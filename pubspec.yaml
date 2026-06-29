@@ -1,0 +1,38 @@
+name: dancing_cats
+description: Beat-synced procedural dancing-cats character engine + blue-hour scenery.
+publish_to: none
+version: 0.1.0+1
+
+environment:
+  sdk: '>=3.12.0 <4.0.0'
+  flutter: '>=3.44.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  media_kit: ^1.0.2
+  media_kit_libs_audio: ^1.0.7
+  meta: ^1.15.0
+  window_manager: ^0.5.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  glados: ^1.1.1
+  path: ^1.9.0
+  very_good_analysis: ^10.2.0
+
+flutter:
+  uses-material-design: true
+  shaders:
+    - shaders/scenery_sky.frag
+    - shaders/scenery_ocean.frag
+    - shaders/scenery_city_lights.frag
+  assets:
+    - assets/scenery/
+    - assets/images/character/
+    - assets/sample_track/
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter/Inter-VariableFont_opsz,wght.ttf

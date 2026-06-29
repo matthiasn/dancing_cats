@@ -1,0 +1,2180 @@
+{
+  "schema_version": "1.0",
+  "audio": {
+    "path": "out/sep/htdemucs/Omah_Lay-Moving/vocals.wav",
+    "duration_sec": 144.066,
+    "segment_start_sec": 0.0
+  },
+  "asr": {
+    "model": "lyrics-aligned",
+    "language": "en",
+    "aligner": "WAV2VEC2_ASR_BASE_960H (whisperx@3.8.6)",
+    "created_utc": null
+  },
+  "segments": [
+    {
+      "start_sec": 9.76,
+      "end_sec": 13.241,
+      "text": "I've been moving, moving, moving",
+      "section": "chorus",
+      "voice": "lead"
+    },
+    {
+      "start_sec": 13.361,
+      "end_sec": 17.121,
+      "text": "I've been moving, moving",
+      "section": "chorus",
+      "voice": "lead"
+    },
+    {
+      "start_sec": 17.841,
+      "end_sec": 21.561,
+      "text": "I've been moving, moving, moving, moving-ing",
+      "section": "chorus",
+      "voice": "lead"
+    },
+    {
+      "start_sec": 21.681,
+      "end_sec": 25.041,
+      "text": "I've been moving, moving, moving-ing",
+      "section": "chorus",
+      "voice": "lead"
+    },
+    {
+      "start_sec": 25.181,
+      "end_sec": 28.701,
+      "text": "This is thicker than metals, these conversations",
+      "section": "pre-chorus",
+      "voice": "lead"
+    },
+    {
+      "start_sec": 29.181,
+      "end_sec": 32.401,
+      "text": "These things money cannot buy, this should be enough for you",
+      "section": "pre-chorus",
+      "voice": "lead"
+    },
+    {
+      "start_sec": 32.881,
+      "end_sec": 36.462,
+      "text": "My darlin', I believe in real life, time is to have fun",
+      "section": "pre-chorus",
+      "voice": "lead"
+    },
+    {
+      "start_sec": 37.262,
+      "end_sec": 41.302,
+      "text": "Let's take this time to get high, leave confirmations",
+      "section": "pre-chorus",
+      "voice": "lead"
+    },
+    {
+      "start_sec": 41.602,
+      "end_sec": 41.902,
+      "text": "Uh, 'cause",
+      "section": "pre-chorus",
+      "voice": "lead"
+    },
+    {
+      "start_sec": 42.022,
+      "end_sec": 45.502,
+      "text": "I've been moving, moving, moving",
+      "section": "chorus",
+      "voice": "lead"
+    },
+    {
+      "start_sec": 45.662,
+      "end_sec": 49.402,
+      "text": "I've been moving Ooh moving",
+      "section": "chorus",
+      "voice": "lead"
+    },
+    {
+      "start_sec": 50.102,
+      "end_sec": 53.842,
+      "text": "I've been moving, moving, moving, moving-ing",
+      "section": "chorus",
+      "voice": "lead"
+    },
+    {
+      "start_sec": 53.942,
+      "end_sec": 57.383,
+      "text": "I've been moving, moving, moving-ing",
+      "section": "chorus",
+      "voice": "lead"
+    },
+    {
+      "start_sec": 57.403,
+      "end_sec": 62.423,
+      "text": "Ambulance or I hear sirens Oh, no",
+      "section": "verse",
+      "voice": "lead"
+    },
+    {
+      "start_sec": 62.923,
+      "end_sec": 67.163,
+      "text": "I will run if I hear silence Ooh, ooh, ooh",
+      "section": "verse",
+      "voice": "lead"
+    },
+    {
+      "start_sec": 67.183,
+      "end_sec": 69.403,
+      "text": "Likkle, likkle drama, I'm bein' honest",
+      "section": "verse",
+      "voice": "lead"
+    },
+    {
+      "start_sec": 70.843,
+      "end_sec": 73.943,
+      "text": "Just a little drama and I'm bein' honest Mm-mm-m",
+      "section": "verse",
+      "voice": "lead"
+    },
+    {
+      "start_sec": 74.023,
+      "end_sec": 76.463,
+      "text": "You can tell that I ran out of time",
+      "section": "bridge",
+      "voice": "background"
+    },
+    {
+      "start_sec": 76.483,
+      "end_sec": 78.343,
+      "text": "You can tell that I ran out of time",
+      "section": "bridge",
+      "voice": "background"
+    },
+    {
+      "start_sec": 78.543,
+      "end_sec": 80.484,
+      "text": "Unavailable a lotta times",
+      "section": "bridge",
+      "voice": "background"
+    },
+    {
+      "start_sec": 80.584,
+      "end_sec": 82.124,
+      "text": "Unavailable a lotta times",
+      "section": "bridge",
+      "voice": "background"
+    },
+    {
+      "start_sec": 82.164,
+      "end_sec": 84.484,
+      "text": "You can tell that I ran out of time",
+      "section": "bridge",
+      "voice": "background"
+    },
+    {
+      "start_sec": 84.504,
+      "end_sec": 86.524,
+      "text": "You can tell that I ran out of time",
+      "section": "bridge",
+      "voice": "background"
+    },
+    {
+      "start_sec": 86.624,
+      "end_sec": 88.564,
+      "text": "Unavailable a lotta times",
+      "section": "bridge",
+      "voice": "background"
+    },
+    {
+      "start_sec": 88.644,
+      "end_sec": 89.984,
+      "text": "Unavailable a lotta times",
+      "section": "bridge",
+      "voice": "background"
+    },
+    {
+      "start_sec": 90.064,
+      "end_sec": 93.824,
+      "text": "I've been moving, moving, moving",
+      "section": "chorus",
+      "voice": "lead"
+    },
+    {
+      "start_sec": 93.844,
+      "end_sec": 97.324,
+      "text": "I've been moving Ooh, ooh moving",
+      "section": "chorus",
+      "voice": "lead"
+    },
+    {
+      "start_sec": 97.384,
+      "end_sec": 102.245,
+      "text": "I've been moving, moving, moving, moving-ing",
+      "section": "chorus",
+      "voice": "lead"
+    },
+    {
+      "start_sec": 102.365,
+      "end_sec": 105.705,
+      "text": "I've been moving, moving, moving",
+      "section": "chorus",
+      "voice": "lead"
+    },
+    {
+      "start_sec": 105.845,
+      "end_sec": 109.225,
+      "text": "This is thicker than metals, these conversations",
+      "section": "post-chorus",
+      "voice": "lead"
+    },
+    {
+      "start_sec": 109.865,
+      "end_sec": 113.085,
+      "text": "These things money cannot buy, this should be enough for you",
+      "section": "post-chorus",
+      "voice": "lead"
+    },
+    {
+      "start_sec": 113.545,
+      "end_sec": 117.425,
+      "text": "My darlin', I believe in real life, time is to have fun",
+      "section": "post-chorus",
+      "voice": "lead"
+    },
+    {
+      "start_sec": 117.925,
+      "end_sec": 122.385,
+      "text": "Let's take this time to get high, leave confirmations Uh, 'cause",
+      "section": "post-chorus",
+      "voice": "lead"
+    },
+    {
+      "start_sec": 123.145,
+      "end_sec": 123.765,
+      "text": "Moving",
+      "section": "outro",
+      "voice": "lead"
+    },
+    {
+      "start_sec": 127.146,
+      "end_sec": 127.586,
+      "text": "Moving",
+      "section": "outro",
+      "voice": "lead"
+    },
+    {
+      "start_sec": 127.646,
+      "end_sec": 131.766,
+      "text": "I've been moving",
+      "section": "outro",
+      "voice": "lead"
+    },
+    {
+      "start_sec": 135.226,
+      "end_sec": 136.066,
+      "text": "Moving",
+      "section": "outro",
+      "voice": "lead"
+    },
+    {
+      "start_sec": 138.846,
+      "end_sec": 139.126,
+      "text": "I've been",
+      "section": "outro",
+      "voice": "lead"
+    }
+  ],
+  "words": [
+    {
+      "word": "I've",
+      "start_sec": 9.76,
+      "end_sec": 9.86,
+      "score": 0.136,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "been",
+      "start_sec": 9.9,
+      "end_sec": 10.14,
+      "score": 0.646,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "moving,",
+      "start_sec": 10.2,
+      "end_sec": 10.94,
+      "score": 0.832,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "moving,",
+      "start_sec": 12.201,
+      "end_sec": 12.661,
+      "score": 0.714,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "moving",
+      "start_sec": 12.721,
+      "end_sec": 13.241,
+      "score": 0.671,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "I've",
+      "start_sec": 13.361,
+      "end_sec": 13.921,
+      "score": 0.263,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "been",
+      "start_sec": 13.941,
+      "end_sec": 14.141,
+      "score": 0.546,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "moving,",
+      "start_sec": 14.161,
+      "end_sec": 14.861,
+      "score": 0.772,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "moving",
+      "start_sec": 16.241,
+      "end_sec": 17.121,
+      "score": 0.793,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "I've",
+      "start_sec": 17.841,
+      "end_sec": 17.941,
+      "score": 0.111,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "been",
+      "start_sec": 17.961,
+      "end_sec": 18.221,
+      "score": 0.552,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "moving,",
+      "start_sec": 18.261,
+      "end_sec": 18.921,
+      "score": 0.702,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "moving,",
+      "start_sec": 19.241,
+      "end_sec": 19.921,
+      "score": 0.606,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "moving,",
+      "start_sec": 20.261,
+      "end_sec": 20.701,
+      "score": 0.63,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "moving-ing",
+      "start_sec": 20.801,
+      "end_sec": 21.561,
+      "score": 0.608,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "I've",
+      "start_sec": 21.681,
+      "end_sec": 21.981,
+      "score": 0.195,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "been",
+      "start_sec": 22.021,
+      "end_sec": 22.241,
+      "score": 0.519,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "moving,",
+      "start_sec": 22.301,
+      "end_sec": 22.941,
+      "score": 0.69,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "moving,",
+      "start_sec": 23.281,
+      "end_sec": 24.121,
+      "score": 0.753,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "moving-ing",
+      "start_sec": 24.301,
+      "end_sec": 25.041,
+      "score": 0.614,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "This",
+      "start_sec": 25.181,
+      "end_sec": 25.401,
+      "score": 0.545,
+      "voice": "lead",
+      "section": "pre-chorus"
+    },
+    {
+      "word": "is",
+      "start_sec": 25.501,
+      "end_sec": 25.621,
+      "score": 0.485,
+      "voice": "lead",
+      "section": "pre-chorus"
+    },
+    {
+      "word": "thicker",
+      "start_sec": 25.661,
+      "end_sec": 26.061,
+      "score": 0.528,
+      "voice": "lead",
+      "section": "pre-chorus"
+    },
+    {
+      "word": "than",
+      "start_sec": 26.081,
+      "end_sec": 26.241,
+      "score": 0.337,
+      "voice": "lead",
+      "section": "pre-chorus"
+    },
+    {
+      "word": "metals,",
+      "start_sec": 26.301,
+      "end_sec": 26.881,
+      "score": 0.676,
+      "voice": "lead",
+      "section": "pre-chorus"
+    },
+    {
+      "word": "these",
+      "start_sec": 27.181,
+      "end_sec": 27.401,
+      "score": 0.512,
+      "voice": "lead",
+      "section": "pre-chorus"
+    },
+    {
+      "word": "conversations",
+      "start_sec": 27.441,
+      "end_sec": 28.701,
+      "score": 0.579,
+      "voice": "lead",
+      "section": "pre-chorus"
+    },
+    {
+      "word": "These",
+      "start_sec": 29.181,
+      "end_sec": 29.421,
+      "score": 0.607,
+      "voice": "lead",
+      "section": "pre-chorus"
+    },
+    {
+      "word": "things",
+      "start_sec": 29.441,
+      "end_sec": 29.661,
+      "score": 0.449,
+      "voice": "lead",
+      "section": "pre-chorus"
+    },
+    {
+      "word": "money",
+      "start_sec": 29.701,
+      "end_sec": 30.021,
+      "score": 0.571,
+      "voice": "lead",
+      "section": "pre-chorus"
+    },
+    {
+      "word": "cannot",
+      "start_sec": 30.061,
+      "end_sec": 30.461,
+      "score": 0.652,
+      "voice": "lead",
+      "section": "pre-chorus"
+    },
+    {
+      "word": "buy,",
+      "start_sec": 30.481,
+      "end_sec": 30.861,
+      "score": 0.782,
+      "voice": "lead",
+      "section": "pre-chorus"
+    },
+    {
+      "word": "this",
+      "start_sec": 31.221,
+      "end_sec": 31.461,
+      "score": 0.62,
+      "voice": "lead",
+      "section": "pre-chorus"
+    },
+    {
+      "word": "should",
+      "start_sec": 31.481,
+      "end_sec": 31.661,
+      "score": 0.223,
+      "voice": "lead",
+      "section": "pre-chorus"
+    },
+    {
+      "word": "be",
+      "start_sec": 31.701,
+      "end_sec": 31.741,
+      "score": 0.276,
+      "voice": "lead",
+      "section": "pre-chorus"
+    },
+    {
+      "word": "enough",
+      "start_sec": 31.761,
+      "end_sec": 32.041,
+      "score": 0.355,
+      "voice": "lead",
+      "section": "pre-chorus"
+    },
+    {
+      "word": "for",
+      "start_sec": 32.081,
+      "end_sec": 32.181,
+      "score": 0.401,
+      "voice": "lead",
+      "section": "pre-chorus"
+    },
+    {
+      "word": "you",
+      "start_sec": 32.201,
+      "end_sec": 32.401,
+      "score": 0.451,
+      "voice": "lead",
+      "section": "pre-chorus"
+    },
+    {
+      "word": "My",
+      "start_sec": 32.881,
+      "end_sec": 33.081,
+      "score": 0.792,
+      "voice": "lead",
+      "section": "pre-chorus"
+    },
+    {
+      "word": "darlin',",
+      "start_sec": 33.121,
+      "end_sec": 33.501,
+      "score": 0.542,
+      "voice": "lead",
+      "section": "pre-chorus"
+    },
+    {
+      "word": "I",
+      "start_sec": 33.581,
+      "end_sec": 33.681,
+      "score": 0.683,
+      "voice": "lead",
+      "section": "pre-chorus"
+    },
+    {
+      "word": "believe",
+      "start_sec": 33.721,
+      "end_sec": 34.102,
+      "score": 0.472,
+      "voice": "lead",
+      "section": "pre-chorus"
+    },
+    {
+      "word": "in",
+      "start_sec": 34.182,
+      "end_sec": 34.322,
+      "score": 0.719,
+      "voice": "lead",
+      "section": "pre-chorus"
+    },
+    {
+      "word": "real",
+      "start_sec": 34.402,
+      "end_sec": 34.502,
+      "score": 0.198,
+      "voice": "lead",
+      "section": "pre-chorus"
+    },
+    {
+      "word": "life,",
+      "start_sec": 34.522,
+      "end_sec": 34.902,
+      "score": 0.717,
+      "voice": "lead",
+      "section": "pre-chorus"
+    },
+    {
+      "word": "time",
+      "start_sec": 35.262,
+      "end_sec": 35.502,
+      "score": 0.551,
+      "voice": "lead",
+      "section": "pre-chorus"
+    },
+    {
+      "word": "is",
+      "start_sec": 35.562,
+      "end_sec": 35.662,
+      "score": 0.505,
+      "voice": "lead",
+      "section": "pre-chorus"
+    },
+    {
+      "word": "to",
+      "start_sec": 35.722,
+      "end_sec": 35.882,
+      "score": 0.795,
+      "voice": "lead",
+      "section": "pre-chorus"
+    },
+    {
+      "word": "have",
+      "start_sec": 35.922,
+      "end_sec": 36.062,
+      "score": 0.442,
+      "voice": "lead",
+      "section": "pre-chorus"
+    },
+    {
+      "word": "fun",
+      "start_sec": 36.102,
+      "end_sec": 36.462,
+      "score": 0.76,
+      "voice": "lead",
+      "section": "pre-chorus"
+    },
+    {
+      "word": "Let's",
+      "start_sec": 37.262,
+      "end_sec": 37.502,
+      "score": 0.488,
+      "voice": "lead",
+      "section": "pre-chorus"
+    },
+    {
+      "word": "take",
+      "start_sec": 37.542,
+      "end_sec": 37.722,
+      "score": 0.516,
+      "voice": "lead",
+      "section": "pre-chorus"
+    },
+    {
+      "word": "this",
+      "start_sec": 37.762,
+      "end_sec": 37.902,
+      "score": 0.482,
+      "voice": "lead",
+      "section": "pre-chorus"
+    },
+    {
+      "word": "time",
+      "start_sec": 37.922,
+      "end_sec": 38.142,
+      "score": 0.644,
+      "voice": "lead",
+      "section": "pre-chorus"
+    },
+    {
+      "word": "to",
+      "start_sec": 38.162,
+      "end_sec": 38.262,
+      "score": 0.691,
+      "voice": "lead",
+      "section": "pre-chorus"
+    },
+    {
+      "word": "get",
+      "start_sec": 38.282,
+      "end_sec": 38.362,
+      "score": 0.154,
+      "voice": "lead",
+      "section": "pre-chorus"
+    },
+    {
+      "word": "high,",
+      "start_sec": 38.422,
+      "end_sec": 38.962,
+      "score": 0.744,
+      "voice": "lead",
+      "section": "pre-chorus"
+    },
+    {
+      "word": "leave",
+      "start_sec": 39.282,
+      "end_sec": 39.502,
+      "score": 0.291,
+      "voice": "lead",
+      "section": "pre-chorus"
+    },
+    {
+      "word": "confirmations",
+      "start_sec": 39.522,
+      "end_sec": 41.302,
+      "score": 0.682,
+      "voice": "lead",
+      "section": "pre-chorus"
+    },
+    {
+      "word": "Uh,",
+      "start_sec": 41.602,
+      "end_sec": 41.722,
+      "score": 0.538,
+      "voice": "lead",
+      "section": "pre-chorus"
+    },
+    {
+      "word": "'cause",
+      "start_sec": 41.742,
+      "end_sec": 41.902,
+      "score": 0.189,
+      "voice": "lead",
+      "section": "pre-chorus"
+    },
+    {
+      "word": "I've",
+      "start_sec": 42.022,
+      "end_sec": 42.142,
+      "score": 0.296,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "been",
+      "start_sec": 42.182,
+      "end_sec": 42.402,
+      "score": 0.6,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "moving,",
+      "start_sec": 42.462,
+      "end_sec": 43.102,
+      "score": 0.762,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "moving,",
+      "start_sec": 44.442,
+      "end_sec": 44.942,
+      "score": 0.782,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "moving",
+      "start_sec": 44.962,
+      "end_sec": 45.502,
+      "score": 0.626,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "I've",
+      "start_sec": 45.662,
+      "end_sec": 46.182,
+      "score": 0.173,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "been",
+      "start_sec": 46.222,
+      "end_sec": 46.422,
+      "score": 0.551,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "moving",
+      "start_sec": 46.442,
+      "end_sec": 46.902,
+      "score": 0.7,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "Ooh",
+      "start_sec": 46.962,
+      "end_sec": 48.362,
+      "score": 0.794,
+      "voice": "background",
+      "section": "chorus"
+    },
+    {
+      "word": "moving",
+      "start_sec": 48.502,
+      "end_sec": 49.402,
+      "score": 0.759,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "I've",
+      "start_sec": 50.102,
+      "end_sec": 51.122,
+      "score": 0.564,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "been",
+      "start_sec": 51.142,
+      "end_sec": 51.222,
+      "score": 0.0,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "moving,",
+      "start_sec": 51.542,
+      "end_sec": 52.122,
+      "score": 0.684,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "moving,",
+      "start_sec": 52.162,
+      "end_sec": 52.382,
+      "score": 0.262,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "moving,",
+      "start_sec": 52.542,
+      "end_sec": 53.022,
+      "score": 0.682,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "moving-ing",
+      "start_sec": 53.062,
+      "end_sec": 53.842,
+      "score": 0.606,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "I've",
+      "start_sec": 53.942,
+      "end_sec": 54.262,
+      "score": 0.269,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "been",
+      "start_sec": 54.282,
+      "end_sec": 54.502,
+      "score": 0.593,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "moving,",
+      "start_sec": 54.562,
+      "end_sec": 55.222,
+      "score": 0.681,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "moving,",
+      "start_sec": 55.542,
+      "end_sec": 56.362,
+      "score": 0.795,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "moving-ing",
+      "start_sec": 56.583,
+      "end_sec": 57.383,
+      "score": 0.645,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "Ambulance",
+      "start_sec": 57.403,
+      "end_sec": 58.103,
+      "score": 0.456,
+      "voice": "lead",
+      "section": "verse"
+    },
+    {
+      "word": "or",
+      "start_sec": 58.823,
+      "end_sec": 59.323,
+      "score": 0.787,
+      "voice": "lead",
+      "section": "verse"
+    },
+    {
+      "word": "I",
+      "start_sec": 59.663,
+      "end_sec": 59.803,
+      "score": 0.631,
+      "voice": "lead",
+      "section": "verse"
+    },
+    {
+      "word": "hear",
+      "start_sec": 59.863,
+      "end_sec": 60.063,
+      "score": 0.566,
+      "voice": "lead",
+      "section": "verse"
+    },
+    {
+      "word": "sirens",
+      "start_sec": 60.083,
+      "end_sec": 60.903,
+      "score": 0.732,
+      "voice": "lead",
+      "section": "verse"
+    },
+    {
+      "word": "Oh,",
+      "start_sec": 61.743,
+      "end_sec": 61.863,
+      "score": 0.475,
+      "voice": "background",
+      "section": "verse"
+    },
+    {
+      "word": "no",
+      "start_sec": 62.063,
+      "end_sec": 62.423,
+      "score": 0.812,
+      "voice": "background",
+      "section": "verse"
+    },
+    {
+      "word": "I",
+      "start_sec": 62.923,
+      "end_sec": 63.163,
+      "score": 0.715,
+      "voice": "lead",
+      "section": "verse"
+    },
+    {
+      "word": "will",
+      "start_sec": 63.203,
+      "end_sec": 63.363,
+      "score": 0.312,
+      "voice": "lead",
+      "section": "verse"
+    },
+    {
+      "word": "run",
+      "start_sec": 63.383,
+      "end_sec": 63.583,
+      "score": 0.469,
+      "voice": "lead",
+      "section": "verse"
+    },
+    {
+      "word": "if",
+      "start_sec": 63.603,
+      "end_sec": 63.703,
+      "score": 0.578,
+      "voice": "lead",
+      "section": "verse"
+    },
+    {
+      "word": "I",
+      "start_sec": 63.743,
+      "end_sec": 63.843,
+      "score": 0.608,
+      "voice": "lead",
+      "section": "verse"
+    },
+    {
+      "word": "hear",
+      "start_sec": 63.883,
+      "end_sec": 64.103,
+      "score": 0.611,
+      "voice": "lead",
+      "section": "verse"
+    },
+    {
+      "word": "silence",
+      "start_sec": 64.123,
+      "end_sec": 64.663,
+      "score": 0.461,
+      "voice": "lead",
+      "section": "verse"
+    },
+    {
+      "word": "Ooh,",
+      "start_sec": 64.723,
+      "end_sec": 64.963,
+      "score": 0.612,
+      "voice": "background",
+      "section": "verse"
+    },
+    {
+      "word": "ooh,",
+      "start_sec": 66.823,
+      "end_sec": 67.003,
+      "score": 0.672,
+      "voice": "background",
+      "section": "verse"
+    },
+    {
+      "word": "ooh",
+      "start_sec": 67.043,
+      "end_sec": 67.163,
+      "score": 0.402,
+      "voice": "background",
+      "section": "verse"
+    },
+    {
+      "word": "Likkle,",
+      "start_sec": 67.183,
+      "end_sec": 67.363,
+      "score": 0.217,
+      "voice": "lead",
+      "section": "verse"
+    },
+    {
+      "word": "likkle",
+      "start_sec": 67.403,
+      "end_sec": 67.663,
+      "score": 0.298,
+      "voice": "lead",
+      "section": "verse"
+    },
+    {
+      "word": "drama,",
+      "start_sec": 67.703,
+      "end_sec": 68.163,
+      "score": 0.6,
+      "voice": "lead",
+      "section": "verse"
+    },
+    {
+      "word": "I'm",
+      "start_sec": 68.263,
+      "end_sec": 68.363,
+      "score": 0.224,
+      "voice": "lead",
+      "section": "verse"
+    },
+    {
+      "word": "bein'",
+      "start_sec": 68.403,
+      "end_sec": 68.703,
+      "score": 0.526,
+      "voice": "lead",
+      "section": "verse"
+    },
+    {
+      "word": "honest",
+      "start_sec": 68.743,
+      "end_sec": 69.403,
+      "score": 0.697,
+      "voice": "lead",
+      "section": "verse"
+    },
+    {
+      "word": "Just",
+      "start_sec": 70.843,
+      "end_sec": 71.043,
+      "score": 0.672,
+      "voice": "lead",
+      "section": "verse"
+    },
+    {
+      "word": "a",
+      "start_sec": 71.143,
+      "end_sec": 71.223,
+      "score": 0.638,
+      "voice": "lead",
+      "section": "verse"
+    },
+    {
+      "word": "little",
+      "start_sec": 71.243,
+      "end_sec": 71.703,
+      "score": 0.49,
+      "voice": "lead",
+      "section": "verse"
+    },
+    {
+      "word": "drama",
+      "start_sec": 71.723,
+      "end_sec": 71.983,
+      "score": 0.471,
+      "voice": "lead",
+      "section": "verse"
+    },
+    {
+      "word": "and",
+      "start_sec": 72.123,
+      "end_sec": 72.203,
+      "score": 0.307,
+      "voice": "lead",
+      "section": "verse"
+    },
+    {
+      "word": "I'm",
+      "start_sec": 72.303,
+      "end_sec": 72.403,
+      "score": 0.217,
+      "voice": "lead",
+      "section": "verse"
+    },
+    {
+      "word": "bein'",
+      "start_sec": 72.443,
+      "end_sec": 72.723,
+      "score": 0.524,
+      "voice": "lead",
+      "section": "verse"
+    },
+    {
+      "word": "honest",
+      "start_sec": 72.763,
+      "end_sec": 73.423,
+      "score": 0.536,
+      "voice": "lead",
+      "section": "verse"
+    },
+    {
+      "word": "Mm-mm-m",
+      "start_sec": 73.743,
+      "end_sec": 73.943,
+      "score": 0.271,
+      "voice": "background",
+      "section": "verse"
+    },
+    {
+      "word": "You",
+      "start_sec": 74.023,
+      "end_sec": 74.163,
+      "score": 0.399,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "can",
+      "start_sec": 74.423,
+      "end_sec": 74.723,
+      "score": 0.56,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "tell",
+      "start_sec": 74.763,
+      "end_sec": 74.983,
+      "score": 0.398,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "that",
+      "start_sec": 75.023,
+      "end_sec": 75.263,
+      "score": 0.478,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "I",
+      "start_sec": 75.323,
+      "end_sec": 75.383,
+      "score": 0.65,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "ran",
+      "start_sec": 75.423,
+      "end_sec": 75.603,
+      "score": 0.653,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "out",
+      "start_sec": 75.723,
+      "end_sec": 75.903,
+      "score": 0.432,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "of",
+      "start_sec": 75.963,
+      "end_sec": 76.083,
+      "score": 0.347,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "time",
+      "start_sec": 76.103,
+      "end_sec": 76.463,
+      "score": 0.682,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "You",
+      "start_sec": 76.483,
+      "end_sec": 76.583,
+      "score": 0.316,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "can",
+      "start_sec": 76.603,
+      "end_sec": 76.743,
+      "score": 0.5,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "tell",
+      "start_sec": 76.783,
+      "end_sec": 77.003,
+      "score": 0.371,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "that",
+      "start_sec": 77.023,
+      "end_sec": 77.283,
+      "score": 0.482,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "I",
+      "start_sec": 77.343,
+      "end_sec": 77.403,
+      "score": 0.571,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "ran",
+      "start_sec": 77.443,
+      "end_sec": 77.623,
+      "score": 0.658,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "out",
+      "start_sec": 77.683,
+      "end_sec": 77.783,
+      "score": 0.217,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "of",
+      "start_sec": 77.943,
+      "end_sec": 78.063,
+      "score": 0.43,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "time",
+      "start_sec": 78.103,
+      "end_sec": 78.343,
+      "score": 0.623,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "Unavailable",
+      "start_sec": 78.543,
+      "end_sec": 79.304,
+      "score": 0.435,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "a",
+      "start_sec": 79.584,
+      "end_sec": 79.644,
+      "score": 0.602,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "lotta",
+      "start_sec": 79.684,
+      "end_sec": 80.124,
+      "score": 0.417,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "times",
+      "start_sec": 80.144,
+      "end_sec": 80.484,
+      "score": 0.479,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "Unavailable",
+      "start_sec": 80.584,
+      "end_sec": 81.344,
+      "score": 0.514,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "a",
+      "start_sec": 81.444,
+      "end_sec": 81.524,
+      "score": 0.639,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "lotta",
+      "start_sec": 81.564,
+      "end_sec": 81.844,
+      "score": 0.445,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "times",
+      "start_sec": 81.944,
+      "end_sec": 82.124,
+      "score": 0.292,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "You",
+      "start_sec": 82.164,
+      "end_sec": 82.344,
+      "score": 0.415,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "can",
+      "start_sec": 82.364,
+      "end_sec": 82.644,
+      "score": 0.593,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "tell",
+      "start_sec": 82.664,
+      "end_sec": 82.804,
+      "score": 0.306,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "that",
+      "start_sec": 82.844,
+      "end_sec": 83.024,
+      "score": 0.373,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "I",
+      "start_sec": 83.204,
+      "end_sec": 83.344,
+      "score": 0.664,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "ran",
+      "start_sec": 83.504,
+      "end_sec": 83.664,
+      "score": 0.518,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "out",
+      "start_sec": 83.884,
+      "end_sec": 83.964,
+      "score": 0.136,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "of",
+      "start_sec": 84.044,
+      "end_sec": 84.124,
+      "score": 0.318,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "time",
+      "start_sec": 84.164,
+      "end_sec": 84.484,
+      "score": 0.673,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "You",
+      "start_sec": 84.504,
+      "end_sec": 84.644,
+      "score": 0.323,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "can",
+      "start_sec": 84.684,
+      "end_sec": 84.824,
+      "score": 0.526,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "tell",
+      "start_sec": 84.864,
+      "end_sec": 85.024,
+      "score": 0.265,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "that",
+      "start_sec": 85.064,
+      "end_sec": 85.324,
+      "score": 0.424,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "I",
+      "start_sec": 85.404,
+      "end_sec": 85.464,
+      "score": 0.608,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "ran",
+      "start_sec": 85.504,
+      "end_sec": 85.684,
+      "score": 0.516,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "out",
+      "start_sec": 85.784,
+      "end_sec": 85.944,
+      "score": 0.387,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "of",
+      "start_sec": 86.024,
+      "end_sec": 86.144,
+      "score": 0.532,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "time",
+      "start_sec": 86.164,
+      "end_sec": 86.524,
+      "score": 0.604,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "Unavailable",
+      "start_sec": 86.624,
+      "end_sec": 87.884,
+      "score": 0.513,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "a",
+      "start_sec": 87.924,
+      "end_sec": 87.984,
+      "score": 0.513,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "lotta",
+      "start_sec": 88.004,
+      "end_sec": 88.384,
+      "score": 0.546,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "times",
+      "start_sec": 88.424,
+      "end_sec": 88.564,
+      "score": 0.155,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "Unavailable",
+      "start_sec": 88.644,
+      "end_sec": 89.364,
+      "score": 0.364,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "a",
+      "start_sec": 89.384,
+      "end_sec": 89.404,
+      "score": 0.006,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "lotta",
+      "start_sec": 89.424,
+      "end_sec": 89.724,
+      "score": 0.306,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "times",
+      "start_sec": 89.764,
+      "end_sec": 89.984,
+      "score": 0.196,
+      "voice": "background",
+      "section": "bridge"
+    },
+    {
+      "word": "I've",
+      "start_sec": 90.064,
+      "end_sec": 90.164,
+      "score": 0.157,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "been",
+      "start_sec": 90.204,
+      "end_sec": 90.844,
+      "score": 0.622,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "moving,",
+      "start_sec": 90.884,
+      "end_sec": 91.424,
+      "score": 0.753,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "moving,",
+      "start_sec": 92.864,
+      "end_sec": 93.364,
+      "score": 0.696,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "moving",
+      "start_sec": 93.404,
+      "end_sec": 93.824,
+      "score": 0.746,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "I've",
+      "start_sec": 93.844,
+      "end_sec": 94.164,
+      "score": 0.506,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "been",
+      "start_sec": 94.184,
+      "end_sec": 94.364,
+      "score": 0.367,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "moving",
+      "start_sec": 94.424,
+      "end_sec": 94.824,
+      "score": 0.655,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "Ooh,",
+      "start_sec": 94.844,
+      "end_sec": 95.304,
+      "score": 0.726,
+      "voice": "background",
+      "section": "chorus"
+    },
+    {
+      "word": "ooh",
+      "start_sec": 95.364,
+      "end_sec": 95.524,
+      "score": 0.238,
+      "voice": "background",
+      "section": "chorus"
+    },
+    {
+      "word": "moving",
+      "start_sec": 96.904,
+      "end_sec": 97.324,
+      "score": 0.704,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "I've",
+      "start_sec": 97.384,
+      "end_sec": 97.784,
+      "score": 0.695,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "been",
+      "start_sec": 98.644,
+      "end_sec": 98.924,
+      "score": 0.546,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "moving,",
+      "start_sec": 98.964,
+      "end_sec": 99.584,
+      "score": 0.653,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "moving,",
+      "start_sec": 99.924,
+      "end_sec": 100.584,
+      "score": 0.659,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "moving,",
+      "start_sec": 100.944,
+      "end_sec": 101.424,
+      "score": 0.749,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "moving-ing",
+      "start_sec": 101.464,
+      "end_sec": 102.245,
+      "score": 0.669,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "I've",
+      "start_sec": 102.365,
+      "end_sec": 102.665,
+      "score": 0.288,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "been",
+      "start_sec": 102.685,
+      "end_sec": 102.925,
+      "score": 0.597,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "moving,",
+      "start_sec": 102.985,
+      "end_sec": 103.605,
+      "score": 0.665,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "moving,",
+      "start_sec": 103.965,
+      "end_sec": 104.905,
+      "score": 0.762,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "moving",
+      "start_sec": 104.985,
+      "end_sec": 105.705,
+      "score": 0.755,
+      "voice": "lead",
+      "section": "chorus"
+    },
+    {
+      "word": "This",
+      "start_sec": 105.845,
+      "end_sec": 106.085,
+      "score": 0.618,
+      "voice": "lead",
+      "section": "post-chorus"
+    },
+    {
+      "word": "is",
+      "start_sec": 106.185,
+      "end_sec": 106.305,
+      "score": 0.563,
+      "voice": "lead",
+      "section": "post-chorus"
+    },
+    {
+      "word": "thicker",
+      "start_sec": 106.325,
+      "end_sec": 106.745,
+      "score": 0.491,
+      "voice": "lead",
+      "section": "post-chorus"
+    },
+    {
+      "word": "than",
+      "start_sec": 106.765,
+      "end_sec": 106.905,
+      "score": 0.315,
+      "voice": "lead",
+      "section": "post-chorus"
+    },
+    {
+      "word": "metals,",
+      "start_sec": 106.985,
+      "end_sec": 107.545,
+      "score": 0.543,
+      "voice": "lead",
+      "section": "post-chorus"
+    },
+    {
+      "word": "these",
+      "start_sec": 107.865,
+      "end_sec": 108.085,
+      "score": 0.593,
+      "voice": "lead",
+      "section": "post-chorus"
+    },
+    {
+      "word": "conversations",
+      "start_sec": 108.125,
+      "end_sec": 109.225,
+      "score": 0.522,
+      "voice": "lead",
+      "section": "post-chorus"
+    },
+    {
+      "word": "These",
+      "start_sec": 109.865,
+      "end_sec": 110.085,
+      "score": 0.602,
+      "voice": "lead",
+      "section": "post-chorus"
+    },
+    {
+      "word": "things",
+      "start_sec": 110.125,
+      "end_sec": 110.345,
+      "score": 0.451,
+      "voice": "lead",
+      "section": "post-chorus"
+    },
+    {
+      "word": "money",
+      "start_sec": 110.385,
+      "end_sec": 110.705,
+      "score": 0.589,
+      "voice": "lead",
+      "section": "post-chorus"
+    },
+    {
+      "word": "cannot",
+      "start_sec": 110.725,
+      "end_sec": 111.145,
+      "score": 0.625,
+      "voice": "lead",
+      "section": "post-chorus"
+    },
+    {
+      "word": "buy,",
+      "start_sec": 111.165,
+      "end_sec": 111.545,
+      "score": 0.773,
+      "voice": "lead",
+      "section": "post-chorus"
+    },
+    {
+      "word": "this",
+      "start_sec": 111.905,
+      "end_sec": 112.145,
+      "score": 0.643,
+      "voice": "lead",
+      "section": "post-chorus"
+    },
+    {
+      "word": "should",
+      "start_sec": 112.165,
+      "end_sec": 112.345,
+      "score": 0.25,
+      "voice": "lead",
+      "section": "post-chorus"
+    },
+    {
+      "word": "be",
+      "start_sec": 112.365,
+      "end_sec": 112.525,
+      "score": 0.678,
+      "voice": "lead",
+      "section": "post-chorus"
+    },
+    {
+      "word": "enough",
+      "start_sec": 112.545,
+      "end_sec": 112.705,
+      "score": 0.242,
+      "voice": "lead",
+      "section": "post-chorus"
+    },
+    {
+      "word": "for",
+      "start_sec": 112.745,
+      "end_sec": 112.845,
+      "score": 0.397,
+      "voice": "lead",
+      "section": "post-chorus"
+    },
+    {
+      "word": "you",
+      "start_sec": 112.865,
+      "end_sec": 113.085,
+      "score": 0.22,
+      "voice": "lead",
+      "section": "post-chorus"
+    },
+    {
+      "word": "My",
+      "start_sec": 113.545,
+      "end_sec": 113.745,
+      "score": 0.835,
+      "voice": "lead",
+      "section": "post-chorus"
+    },
+    {
+      "word": "darlin',",
+      "start_sec": 113.785,
+      "end_sec": 114.165,
+      "score": 0.472,
+      "voice": "lead",
+      "section": "post-chorus"
+    },
+    {
+      "word": "I",
+      "start_sec": 114.265,
+      "end_sec": 114.365,
+      "score": 0.618,
+      "voice": "lead",
+      "section": "post-chorus"
+    },
+    {
+      "word": "believe",
+      "start_sec": 114.405,
+      "end_sec": 114.785,
+      "score": 0.484,
+      "voice": "lead",
+      "section": "post-chorus"
+    },
+    {
+      "word": "in",
+      "start_sec": 114.865,
+      "end_sec": 115.045,
+      "score": 0.728,
+      "voice": "lead",
+      "section": "post-chorus"
+    },
+    {
+      "word": "real",
+      "start_sec": 115.065,
+      "end_sec": 115.165,
+      "score": 0.209,
+      "voice": "lead",
+      "section": "post-chorus"
+    },
+    {
+      "word": "life,",
+      "start_sec": 115.205,
+      "end_sec": 115.565,
+      "score": 0.71,
+      "voice": "lead",
+      "section": "post-chorus"
+    },
+    {
+      "word": "time",
+      "start_sec": 115.945,
+      "end_sec": 116.165,
+      "score": 0.415,
+      "voice": "lead",
+      "section": "post-chorus"
+    },
+    {
+      "word": "is",
+      "start_sec": 116.225,
+      "end_sec": 116.345,
+      "score": 0.538,
+      "voice": "lead",
+      "section": "post-chorus"
+    },
+    {
+      "word": "to",
+      "start_sec": 116.385,
+      "end_sec": 116.565,
+      "score": 0.792,
+      "voice": "lead",
+      "section": "post-chorus"
+    },
+    {
+      "word": "have",
+      "start_sec": 116.605,
+      "end_sec": 116.745,
+      "score": 0.481,
+      "voice": "lead",
+      "section": "post-chorus"
+    },
+    {
+      "word": "fun",
+      "start_sec": 116.785,
+      "end_sec": 117.425,
+      "score": 0.778,
+      "voice": "lead",
+      "section": "post-chorus"
+    },
+    {
+      "word": "Let's",
+      "start_sec": 117.925,
+      "end_sec": 118.165,
+      "score": 0.587,
+      "voice": "lead",
+      "section": "post-chorus"
+    },
+    {
+      "word": "take",
+      "start_sec": 118.205,
+      "end_sec": 118.405,
+      "score": 0.446,
+      "voice": "lead",
+      "section": "post-chorus"
+    },
+    {
+      "word": "this",
+      "start_sec": 118.425,
+      "end_sec": 118.565,
+      "score": 0.57,
+      "voice": "lead",
+      "section": "post-chorus"
+    },
+    {
+      "word": "time",
+      "start_sec": 118.605,
+      "end_sec": 118.805,
+      "score": 0.632,
+      "voice": "lead",
+      "section": "post-chorus"
+    },
+    {
+      "word": "to",
+      "start_sec": 118.825,
+      "end_sec": 118.945,
+      "score": 0.72,
+      "voice": "lead",
+      "section": "post-chorus"
+    },
+    {
+      "word": "get",
+      "start_sec": 118.965,
+      "end_sec": 119.045,
+      "score": 0.153,
+      "voice": "lead",
+      "section": "post-chorus"
+    },
+    {
+      "word": "high,",
+      "start_sec": 119.105,
+      "end_sec": 119.625,
+      "score": 0.622,
+      "voice": "lead",
+      "section": "post-chorus"
+    },
+    {
+      "word": "leave",
+      "start_sec": 119.945,
+      "end_sec": 120.165,
+      "score": 0.453,
+      "voice": "lead",
+      "section": "post-chorus"
+    },
+    {
+      "word": "confirmations",
+      "start_sec": 120.205,
+      "end_sec": 121.145,
+      "score": 0.584,
+      "voice": "lead",
+      "section": "post-chorus"
+    },
+    {
+      "word": "Uh,",
+      "start_sec": 121.245,
+      "end_sec": 121.585,
+      "score": 0.745,
+      "voice": "background",
+      "section": "post-chorus"
+    },
+    {
+      "word": "'cause",
+      "start_sec": 121.605,
+      "end_sec": 122.385,
+      "score": 0.557,
+      "voice": "background",
+      "section": "post-chorus"
+    },
+    {
+      "word": "Moving",
+      "start_sec": 123.145,
+      "end_sec": 123.765,
+      "score": 0.695,
+      "voice": "lead",
+      "section": "outro"
+    },
+    {
+      "word": "Moving",
+      "start_sec": 127.146,
+      "end_sec": 127.586,
+      "score": 0.698,
+      "voice": "lead",
+      "section": "outro"
+    },
+    {
+      "word": "I've",
+      "start_sec": 127.646,
+      "end_sec": 130.886,
+      "score": 0.32,
+      "voice": "lead",
+      "section": "outro"
+    },
+    {
+      "word": "been",
+      "start_sec": 130.926,
+      "end_sec": 131.166,
+      "score": 0.542,
+      "voice": "lead",
+      "section": "outro"
+    },
+    {
+      "word": "moving",
+      "start_sec": 131.226,
+      "end_sec": 131.766,
+      "score": 0.675,
+      "voice": "lead",
+      "section": "outro"
+    },
+    {
+      "word": "Moving",
+      "start_sec": 135.226,
+      "end_sec": 136.066,
+      "score": 0.684,
+      "voice": "lead",
+      "section": "outro"
+    },
+    {
+      "word": "I've",
+      "start_sec": 138.846,
+      "end_sec": 138.946,
+      "score": 0.124,
+      "voice": "lead",
+      "section": "outro"
+    },
+    {
+      "word": "been",
+      "start_sec": 138.986,
+      "end_sec": 139.126,
+      "score": 0.498,
+      "voice": "lead",
+      "section": "outro"
+    }
+  ]
+}

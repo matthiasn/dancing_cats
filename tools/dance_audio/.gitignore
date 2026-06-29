@@ -1,0 +1,22 @@
+# Python virtualenvs for the offline dance-audio tools — never commit.
+.venv/
+.venv-asr/
+__pycache__/
+*.pyc
+
+# Test / coverage artifacts.
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Local audio + generated beat maps (authoring artifacts, not source).
+*.wav
+*.mp3
+*.flac
+*.m4a
+*.ogg
+out/
+
+# Vendored Rhubarb Lip Sync build (large third-party source + native binary).
+# Rebuild per the dance-lipsync skill; never commit.
+vendor/

@@ -1,0 +1,21 @@
+include: package:very_good_analysis/analysis_options.yaml
+
+linter:
+  rules:
+    public_member_api_docs: false
+    lines_longer_than_80_chars: false
+    flutter_style_todos: false
+    document_ignores: false
+    avoid_catches_without_on_clauses: false
+    discarded_futures: false
+    require_trailing_commas: false
+    avoid_types_on_closure_parameters: false
+
+analyzer:
+  exclude:
+    - '**/*.g.dart'
+    - '**/*.freezed.dart'
+  errors:
+    invalid_annotation_target: ignore
+  language:
+    strict-raw-types: true
