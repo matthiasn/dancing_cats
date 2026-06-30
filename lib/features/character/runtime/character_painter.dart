@@ -1207,15 +1207,21 @@ class CharacterPainter extends CustomPainter {
     double p,
     List<({double p, double v})> keys,
   ) {
-    for (var i = 0; i < keys.length - 1; i++) {
+    // Walk the interior segments in order; the last segment is the natural
+    // fall-through, so the sampler is total without an unreachable out-of-range
+    // branch. The camera phase is always in [0, 1]; a value past the final key
+    // clamps onto it.
+    for (var i = 0; i < keys.length - 2; i++) {
       final a = keys[i];
       final b = keys[i + 1];
-      if (p >= a.p && p <= b.p) {
-        final t = _smoothUnit((p - a.p) / (b.p - a.p));
-        return a.v + (b.v - a.v) * t;
+      if (p <= b.p) {
+        return a.v + (b.v - a.v) * _smoothUnit((p - a.p) / (b.p - a.p));
       }
     }
-    return keys.last.v;
+    final a = keys[keys.length - 2];
+    final b = keys[keys.length - 1];
+    final t = _smoothUnit(((p - a.p) / (b.p - a.p)).clamp(0.0, 1.0));
+    return a.v + (b.v - a.v) * t;
   }
 
   static double _pulse(double p, double start, double end) {
@@ -1256,23 +1262,18 @@ class CharacterPainter extends CustomPainter {
       // not offset the actual sampled time, because even sub-frame lead/trail
       // offsets cross support-foot handoffs at different moments and make side
       // dancers pop while the centre lead stays smooth.
-      return switch (index) {
-        0 => 0,
-        1 => 0,
-        2 => 0,
-        _ => 0,
-      };
+      // A trio crew breathes in pose/arms/faces/formation but lands its accents
+      // together, so it takes no per-member sampled-time offset.
+      return 0;
     }
     if (index == 0) return 0;
     final cycle = timeSeconds / duration;
     final p = cycle - cycle.floorToDouble();
     final beatWave = math.sin(p * math.pi * 24);
     final halfBeatWave = math.sin(p * math.pi * 48);
-    return switch (index % 3) {
-      1 => 0.014 * beatWave + 0.006 * halfBeatWave,
-      2 => -0.012 * beatWave + 0.005 * halfBeatWave,
-      _ => 0.006 * beatWave - 0.004 * halfBeatWave,
-    };
+    // Only a 2-member pair reaches here (a trio returned above) and index 0
+    // already returned, so this is always the pair's trailing dancer.
+    return 0.014 * beatWave + 0.006 * halfBeatWave;
   }
 
   static double _cyclePhase(double timeSeconds, double duration) {
