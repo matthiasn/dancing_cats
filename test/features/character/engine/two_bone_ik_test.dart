@@ -2,6 +2,20 @@ import 'dart:math' as math;
 
 import 'package:dancing_cats/features/character/engine/two_bone_ik.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:glados/glados.dart' as glados;
+
+extension _AnyIk on glados.Any {
+  /// A reachable solve case: two segment lengths, a target direction, and a
+  /// fraction placing the target strictly inside the limb's reachable range.
+  glados.Generator<({double u, double l, double dir, double frac})>
+  get reachable => glados.CombinableAny(this).combine4(
+    glados.DoubleAnys(this).doubleInRange(1, 20),
+    glados.DoubleAnys(this).doubleInRange(1, 20),
+    glados.DoubleAnys(this).doubleInRange(0, 6.2831),
+    glados.DoubleAnys(this).doubleInRange(0.05, 0.95),
+    (u, l, dir, frac) => (u: u, l: l, dir: dir, frac: frac),
+  );
+}
 
 /// Reconstructs the end-effector (wrist) world position from a solve, so a test
 /// can assert the limb actually reaches the target.
@@ -128,5 +142,36 @@ void main() {
       expect(w.y, closeTo(0, 1e-2));
       expect(w.x, greaterThan(6.9));
     });
+  });
+
+  group('solveTwoBoneIk properties (generative)', () {
+    glados.Glados<({double u, double l, double dir, double frac})>(
+      glados.any.reachable,
+      glados.ExploreConfig(numRuns: 300),
+    ).test('reaches any target strictly inside its range', (c) {
+      final minReach = (c.u - c.l).abs() + 1e-6;
+      final maxReach = c.u + c.l - 1e-6;
+      final dist = minReach + c.frac * (maxReach - minReach);
+      final tx = math.cos(c.dir) * dist;
+      final ty = math.sin(c.dir) * dist;
+      final tag = 'u=${c.u} l=${c.l} dir=${c.dir} frac=${c.frac}';
+      final s = solveTwoBoneIk(
+        shoulderX: 0,
+        shoulderY: 0,
+        targetX: tx,
+        targetY: ty,
+        upperLength: c.u,
+        lowerLength: c.l,
+        bendDirection: 1,
+      );
+      expect(s, isNotNull, reason: tag);
+      // Reconstruct the wrist from the solved angles; it must land on the target.
+      final ex = math.cos(s!.upperAngle) * c.u;
+      final ey = math.sin(s.upperAngle) * c.u;
+      final wx = ex + math.cos(s.lowerAngle) * c.l;
+      final wy = ey + math.sin(s.lowerAngle) * c.l;
+      expect(wx, closeTo(tx, 1e-6), reason: tag);
+      expect(wy, closeTo(ty, 1e-6), reason: tag);
+    }, tags: 'glados');
   });
 }
