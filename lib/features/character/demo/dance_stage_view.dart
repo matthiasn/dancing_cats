@@ -143,14 +143,22 @@ class DanceStageView extends StatelessWidget {
                 fit: StackFit.expand,
                 children: [
                   if (useNewBackdrop)
-                    Transform(
-                      transform: backdropTransform,
-                      filterQuality: FilterQuality.low,
-                      child: LayeredBackdrop(
-                        scene: BackdropScene.blueHourWaterfront(),
-                        timeSeconds: backdropTimeSeconds,
-                        beatPulse: beat,
-                        onReady: onBackdropReady,
+                    // Clip the parallax-zoomed backdrop to the 16:9 stage so it
+                    // never breathes past the frame as the camera pushes in. The
+                    // grain/lights overlays are screen-fixed to this same 16:9
+                    // box, so without this the zoomed scene edges (e.g. the side
+                    // planters) could fall outside the grained region. Mirrors the
+                    // offline composer's `clipRect(size)` around the backdrop.
+                    ClipRect(
+                      child: Transform(
+                        transform: backdropTransform,
+                        filterQuality: FilterQuality.low,
+                        child: LayeredBackdrop(
+                          scene: BackdropScene.blueHourWaterfront(),
+                          timeSeconds: backdropTimeSeconds,
+                          beatPulse: beat,
+                          onReady: onBackdropReady,
+                        ),
                       ),
                     ),
                   // Aerial-perspective haze band at the waterline (frame-fixed,
