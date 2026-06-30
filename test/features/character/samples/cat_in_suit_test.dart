@@ -365,6 +365,14 @@ void main() {
       final handL = _targetFor(shaku, CatBones.handL).channel;
       final handR = _targetFor(shaku, CatBones.handR).channel;
 
+      expect(
+        shaku.supportFootWorldAnchorStrength,
+        greaterThanOrEqualTo(0.72),
+        reason:
+            'Shaku support feet need enough world anchor to let the torso '
+            'pocket read without skate during the arm crosses',
+      );
+
       final wristCrossLeft = handL.sample(17 / phrase.frameCount);
       final wristCrossRight = handR.sample(17 / phrase.frameCount);
       expect(wristCrossLeft.x, greaterThan(12));
@@ -412,6 +420,32 @@ void main() {
             'the Shaku release beat should hit as a wrist-roll cross rather '
             'than a physically vague open-elbow pump',
       );
+
+      for (final frame in [6, 11, 14, 19, 22, 27, 30]) {
+        final left = handL.sample(frame / phrase.frameCount);
+        final right = handR.sample(frame / phrase.frameCount);
+        expect(
+          left.x,
+          lessThan(-28),
+          reason:
+              'Shaku frame $frame should keep the left fist off the jacket '
+              'centreline so the arm does not merge into the torso shell',
+        );
+        expect(
+          right.x,
+          greaterThan(28),
+          reason:
+              'Shaku frame $frame should keep the right fist off the jacket '
+              'centreline so the arm does not merge into the torso shell',
+        );
+        expect(
+          right.x - left.x,
+          greaterThan(58),
+          reason:
+              'Shaku frame $frame should carve negative space between the '
+              'guard fists and the suit body',
+        );
+      }
 
       final recoveryCrossLeft = handL.sample(29 / phrase.frameCount);
       final recoveryCrossRight = handR.sample(29 / phrase.frameCount);
@@ -622,6 +656,8 @@ void main() {
       final azonto = CatClips.azonto;
       final footL = _targetFor(azonto, CatBones.footL).channel;
       final footR = _targetFor(azonto, CatBones.footR).channel;
+      final handL = _targetFor(azonto, CatBones.handL).channel;
+      final handR = _targetFor(azonto, CatBones.handR).channel;
 
       for (final frame in [0, 4, 8, 12, 16, 20, 24, 28]) {
         final p = frame / phrase.frameCount;
@@ -650,6 +686,26 @@ void main() {
         );
         expect(left.y, greaterThanOrEqualTo(100));
         expect(right.y, greaterThanOrEqualTo(100));
+      }
+
+      for (final frame in [0, 4, 12, 18, 22, 26, 32]) {
+        final p = frame / phrase.frameCount;
+        final left = handL.sample(p);
+        final right = handR.sample(p);
+        expect(
+          left.x,
+          lessThan(-28),
+          reason:
+              'Azonto frame $frame should keep the tucked left wrist off the '
+              'jacket centreline so the arm does not read as a suit blob',
+        );
+        expect(
+          right.x,
+          greaterThan(28),
+          reason:
+              'Azonto frame $frame should keep the tucked right wrist off the '
+              'jacket centreline so the arm does not read as a suit blob',
+        );
       }
     });
 
@@ -744,6 +800,20 @@ void main() {
         lessThan(10),
         reason: 'left Buga show-off pose should hold for two readable frames',
       );
+
+      expect(
+        buga.supportFootWorldAnchorStrength,
+        greaterThanOrEqualTo(0.74),
+        reason:
+            'Buga show-off hits need a strong support plant so the side reach '
+            'does not read as a fall',
+      );
+      expect(buga.contactSpans[0].bone, CatBones.footR);
+      expect(buga.contactSpans[0].start, 0);
+      expect(buga.contactSpans[0].end, 0.25);
+      expect(buga.contactSpans[1].bone, CatBones.footL);
+      expect(buga.contactSpans[1].start, 0.25);
+      expect(buga.contactSpans[1].end, 0.5);
     });
 
     test(
@@ -1154,6 +1224,34 @@ void main() {
           reason: 'pounce frame $frame should stay grounded on the right foot',
         );
       }
+
+      final firstCatchLeft = footL.sample(12 / phrase.frameCount);
+      final firstCatchRight = footR.sample(12 / phrase.frameCount);
+      expect(
+        firstCatchRight.x - firstCatchLeft.x,
+        greaterThan(96),
+        reason:
+            'the first pounce landing should catch on a wide base, not under '
+            'a drifting torso',
+      );
+      final mirrorCatchLeft = footL.sample(28 / phrase.frameCount);
+      final mirrorCatchRight = footR.sample(28 / phrase.frameCount);
+      expect(
+        mirrorCatchRight.x - mirrorCatchLeft.x,
+        greaterThan(96),
+        reason:
+            'the mirrored pounce landing should catch on a wide base, not under '
+            'a drifting torso',
+      );
+
+      final firstGuardLeft = handL.sample(12 / phrase.frameCount);
+      final firstGuardRight = handR.sample(12 / phrase.frameCount);
+      expect(firstGuardLeft.x, lessThan(-44));
+      expect(firstGuardRight.x, greaterThan(48));
+      final mirrorGuardLeft = handL.sample(28 / phrase.frameCount);
+      final mirrorGuardRight = handR.sample(28 / phrase.frameCount);
+      expect(mirrorGuardLeft.x, lessThan(-48));
+      expect(mirrorGuardRight.x, greaterThan(44));
 
       final rightPush = footR.sample(8 / phrase.frameCount);
       final leftPush = footL.sample(24 / phrase.frameCount);
