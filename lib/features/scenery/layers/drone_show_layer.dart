@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:dancing_cats/features/scenery/layers/backdrop_layer.dart';
+import 'package:dancing_cats/features/scenery/runtime/scenery_math.dart';
 
 /// First text held by the drone formation.
 const String kDroneShowOpeningText = 'Omah Lay';
@@ -164,7 +165,7 @@ class DroneShowLayer implements BackdropLayer {
         continue;
       }
 
-      final color = ui.Color.lerp(cool, warm, _unitForIndex(c.dx.toInt()))!;
+      final color = ui.Color.lerp(cool, warm, hashUnit(c.dx.toInt()))!;
       haloPaint.shader = ui.Gradient.radial(
         c,
         radius * 4.5,
@@ -193,7 +194,7 @@ DroneShowTimeline droneShowTimelineAt(
   double cycleSeconds = kDroneShowCycleSeconds,
 }) {
   final safeCycle = cycleSeconds <= 0 ? kDroneShowCycleSeconds : cycleSeconds;
-  final cycleProgress = _fraction(timeSeconds / safeCycle);
+  final cycleProgress = fract(timeSeconds / safeCycle);
   if (cycleProgress < _launchEnd) {
     return DroneShowTimeline(
       phase: DroneShowPhase.launch,
@@ -232,8 +233,8 @@ List<ui.Offset> droneShowFormationPoints({
   return List<ui.Offset>.generate(count, (i) {
     final cellIndex = (i * cells.length) ~/ count;
     final cell = cells[math.min(cellIndex, cells.length - 1)];
-    final angle = _unitForIndex(i + 211) * math.pi * 2;
-    final radius = math.sqrt(_unitForIndex(i + 307)) * 0.08;
+    final angle = hashUnit(i + 211) * math.pi * 2;
+    final radius = math.sqrt(hashUnit(i + 307)) * 0.08;
     return cell.center.translate(
       math.cos(angle) * cell.width * radius,
       math.sin(angle) * cell.height * radius,
@@ -260,7 +261,7 @@ List<DroneShowSample> sampleDroneShow(
     text: kDroneShowFinalText,
   );
   return List<DroneShowSample>.generate(count, (i) {
-    final t = _easeInOut(timeline.progress);
+    final t = smoothstep(timeline.progress);
     final launch = _launchPoint(i, count);
     final rise = _risePoint(i, count);
     final beam = _beamPoint(i, count);
@@ -286,15 +287,14 @@ List<DroneShowSample> sampleDroneShow(
     };
     final twinkle = reducedMotion
         ? 0.0
-        : 0.045 *
-              math.sin(timeSeconds * 1.35 + i * 0.42 + _unitForIndex(i) * 2);
+        : 0.045 * math.sin(timeSeconds * 1.35 + i * 0.42 + hashUnit(i) * 2);
     final coordinated = timeline.phase == DroneShowPhase.launch;
     final formation = timeline.phase == DroneShowPhase.formation;
     final isLit = _isDroneLit(i, position, timeline.phase);
     final litOpacity = (coordinated ? 0.86 : 0.74 + twinkle).clamp(0.0, 1.0);
     final litRadius = coordinated || formation
         ? 0.00255
-        : 0.0020 + _unitForIndex(i + 17) * 0.0009;
+        : 0.0020 + hashUnit(i + 17) * 0.0009;
     return DroneShowSample(
       position: position,
       opacity: isLit ? litOpacity : 0.64,
@@ -307,7 +307,7 @@ List<DroneShowSample> sampleDroneShow(
 
 bool _isDroneLit(int index, ui.Offset position, DroneShowPhase phase) {
   if (phase != DroneShowPhase.launch) return true;
-  final threshold = _bridgeClearY + (_unitForIndex(index + 131) - 0.5) * 0.016;
+  final threshold = _bridgeClearY + (hashUnit(index + 131) - 0.5) * 0.016;
   return position.dy <= threshold;
 }
 
@@ -327,7 +327,7 @@ ui.Offset _launchPhasePoint(
 ) {
   if (progress < _launchHoldProgress) return launch;
   final rawClimb = (progress - _launchHoldProgress) / (1 - _launchHoldProgress);
-  final climb = _easeInOut(rawClimb);
+  final climb = smoothstep(rawClimb);
   final base = ui.Offset.lerp(launch, rise, climb)!;
   final envelope = math.sin(climb * math.pi).clamp(0.0, 1.0);
   if (envelope == 0) return base;
@@ -396,7 +396,7 @@ ui.Offset _formationPoint(
     return ui.Offset.lerp(
       fan,
       opening,
-      _easeInOut(progress / _openingSettleEnd),
+      smoothstep(progress / _openingSettleEnd),
     )!;
   }
   if (progress < _textTransitionStart) return opening;
@@ -405,13 +405,13 @@ ui.Offset _formationPoint(
     final t =
         (progress - _textTransitionStart) /
         (_stagingHoldStart - _textTransitionStart);
-    return ui.Offset.lerp(opening, staging, _easeInOut(t))!;
+    return ui.Offset.lerp(opening, staging, smoothstep(t))!;
   }
   if (progress < _stagingHoldEnd) return staging;
   if (progress < _textTransitionEnd) {
     final t =
         (progress - _stagingHoldEnd) / (_textTransitionEnd - _stagingHoldEnd);
-    return ui.Offset.lerp(staging, finalText, _easeInOut(t))!;
+    return ui.Offset.lerp(staging, finalText, smoothstep(t))!;
   }
   return finalText;
 }
@@ -422,20 +422,7 @@ ui.Offset _transitionStagingPoint(int index, int count) {
   return ui.Offset(0.37 + u * 0.26, 0.245 + row);
 }
 
-double _unitForIndex(int index) {
-  final n = math.sin((index + 1) * 12.9898) * 43758.5453;
-  return _fraction(n);
-}
-
-double _fraction(double value) {
-  final f = value - value.floorToDouble();
-  return f < 0 ? f + 1 : f;
-}
-
-double _easeInOut(double x) {
-  final t = x.clamp(0.0, 1.0);
-  return t * t * (3 - 2 * t);
-}
+// Shared scenery math (`hashUnit`, `smoothstep`) now lives in scenery_math.dart.
 
 List<_DotCell> _textDotCells(String text) {
   const glyphGap = 1;

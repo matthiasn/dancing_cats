@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:dancing_cats/features/scenery/layers/backdrop_layer.dart';
 import 'package:dancing_cats/features/scenery/model/scenery_assets.dart';
 import 'package:dancing_cats/features/scenery/model/skyline_manifest.dart';
+import 'package:dancing_cats/features/scenery/runtime/scenery_math.dart';
 import 'package:dancing_cats/features/scenery/runtime/scenery_shaders.dart';
 import 'package:flutter/rendering.dart';
 
@@ -239,10 +240,8 @@ Rect coverFit(Size viewport) {
 /// unit testing.
 double beaconIntensity(double time) {
   const period = 2.0;
-  final pos = _frac(time / period);
+  final pos = fract(time / period);
   const duty = 0.22; // fraction of the cycle the lamp is pulsing
   if (pos > duty) return 0;
   return 0.5 - 0.5 * math.cos(pos / duty * 2 * math.pi);
 }
-
-double _frac(double x) => x - x.floorToDouble();
