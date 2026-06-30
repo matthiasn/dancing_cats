@@ -82,5 +82,13 @@ void main() {
       expect(a.hashCode, b.hashCode);
       expect(a, isNot(c));
     });
+
+    test('toString labels every matrix component', () {
+      const a = Affine2D(1, 2, 3, 4, 5, 6);
+      expect(
+        a.toString(),
+        'Affine2D(a:1.0, b:2.0, c:3.0, d:4.0, tx:5.0, ty:6.0)',
+      );
+    });
   });
 }

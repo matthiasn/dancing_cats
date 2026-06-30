@@ -3,6 +3,11 @@ import 'package:dancing_cats/features/character/model/dance_dynamics.dart';
 import 'package:dancing_cats/features/character/model/dance_phrase.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+/// Returns [value] unchanged, but as a *runtime* value the compiler cannot fold
+/// into a constant. Used to force a `const` constructor to run at runtime (so
+/// its body is counted by coverage) instead of being const-canonicalised away.
+T _runtime<T>(T value) => value;
+
 void main() {
   group('DancePhrase', () {
     const phrase = DancePhrase(
@@ -818,6 +823,340 @@ void main() {
         ).toGroundSpan(phrase),
         throwsRangeError,
       );
+    });
+
+    test('constructs at runtime and reports empty lookup windows', () {
+      // A bare, runtime-built phrase (non-const so the const constructor body
+      // is exercised) with no supports/sections/moves: every "at frame" lookup
+      // has nothing to return and must surface a clear StateError.
+      final bare = DancePhrase(frameCount: _runtime(16), supports: const []);
+
+      expect(bare.frameCount, 16);
+      expect(bare.phaseOf(8), closeTo(0.5, 1e-9));
+      expect(() => bare.supportAtFrame(0), throwsStateError);
+      expect(() => bare.sectionAtFrame(0), throwsStateError);
+      expect(() => bare.moveAtFrame(0), throwsStateError);
+    });
+
+    test('throws when a frame falls in a gap between move cues', () {
+      // The authored cues cover frames 0..8 and 16..32; frame 10 sits in the
+      // gap, so no cue covers it.
+      expect(() => phrase.moveAtFrame(10), throwsStateError);
+      expect(() => phrase.moveAtPhase(10 / 32), throwsStateError);
+    });
+
+    test(
+      'enforces phrase, support, section, and move-cue frame invariants',
+      () {
+        expect(
+          () => DancePhrase(frameCount: 0, supports: const []),
+          throwsA(isA<AssertionError>()),
+          reason: 'frameCount must be positive',
+        );
+
+        expect(
+          () => DanceSupportSpan(
+            footBoneId: 'foot.L',
+            freeFootBoneId: 'foot.R',
+            startFrame: 8,
+            endFrame: 8,
+            loadFrame: 8,
+            releaseFrame: 8,
+            maxPelvisDistance: 1,
+            pocketScaleY: 0.5,
+            label: 'x',
+          ),
+          throwsA(isA<AssertionError>()),
+          reason: 'support span must move forward',
+        );
+        expect(
+          () => DanceSupportSpan(
+            footBoneId: 'foot.L',
+            freeFootBoneId: 'foot.R',
+            startFrame: 0,
+            endFrame: 16,
+            loadFrame: 16,
+            releaseFrame: 8,
+            maxPelvisDistance: 1,
+            pocketScaleY: 0.5,
+            label: 'x',
+          ),
+          throwsA(isA<AssertionError>()),
+          reason: 'load frame must sit inside the span',
+        );
+        expect(
+          () => DanceSupportSpan(
+            footBoneId: 'foot.L',
+            freeFootBoneId: 'foot.R',
+            startFrame: 0,
+            endFrame: 16,
+            loadFrame: 4,
+            releaseFrame: 20,
+            maxPelvisDistance: 1,
+            pocketScaleY: 0.5,
+            label: 'x',
+          ),
+          throwsA(isA<AssertionError>()),
+          reason: 'release frame must finish inside the span',
+        );
+        expect(
+          () => DanceSupportSpan(
+            footBoneId: 'foot.L',
+            freeFootBoneId: 'foot.R',
+            startFrame: 0,
+            endFrame: 16,
+            loadFrame: 4,
+            releaseFrame: 8,
+            maxPelvisDistance: 0,
+            pocketScaleY: 0.5,
+            label: 'x',
+          ),
+          throwsA(isA<AssertionError>()),
+          reason: 'max pelvis distance must be positive',
+        );
+        expect(
+          () => DanceSupportSpan(
+            footBoneId: 'foot.L',
+            freeFootBoneId: 'foot.R',
+            startFrame: 0,
+            endFrame: 16,
+            loadFrame: 4,
+            releaseFrame: 8,
+            maxPelvisDistance: 1,
+            pocketScaleY: 1.5,
+            label: 'x',
+          ),
+          throwsA(isA<AssertionError>()),
+          reason: 'pocket scale must be a 0..1 compression',
+        );
+
+        expect(
+          () => DancePhraseSection(
+            name: 'x',
+            startFrame: 5,
+            endFrame: 5,
+            intent: 'y',
+          ),
+          throwsA(isA<AssertionError>()),
+          reason: 'section must move forward',
+        );
+
+        expect(
+          () => DanceMoveCue(
+            name: 'x',
+            startFrame: 8,
+            endFrame: 8,
+            accentFrame: 8,
+            featuredDancer: 'lead',
+            signature: 's',
+          ),
+          throwsA(isA<AssertionError>()),
+          reason: 'move cue must move forward',
+        );
+        expect(
+          () => DanceMoveCue(
+            name: 'x',
+            startFrame: 0,
+            endFrame: 8,
+            accentFrame: 8,
+            featuredDancer: 'lead',
+            signature: 's',
+          ),
+          throwsA(isA<AssertionError>()),
+          reason: 'accent frame must sit inside the cue',
+        );
+      },
+    );
+
+    test('enforces positive radius and ordered arcs on accent data', () {
+      expect(
+        () => DanceMoveJointAccent(
+          moveName: 'x',
+          boneId: 'b',
+          offsetFrames: 0,
+          radiusFrames: 0,
+        ),
+        throwsA(isA<AssertionError>()),
+        reason: 'joint accent radius must be positive',
+      );
+      expect(
+        () => DanceBodyAccentOffset(offsetFrames: 1, radiusFrames: 0),
+        throwsA(isA<AssertionError>()),
+        reason: 'body accent offset radius must be positive',
+      );
+      expect(
+        () => DanceMoveBodyAccent(
+          moveName: 'x',
+          offsetFrames: 0,
+          radiusFrames: 0,
+        ),
+        throwsA(isA<AssertionError>()),
+        reason: 'move body accent radius must be positive',
+      );
+      expect(
+        () => DanceIkTargetAccent(8, radiusFrames: 0, x: 1, y: 1),
+        throwsA(isA<AssertionError>()),
+        reason: 'IK target accent radius must be positive',
+      );
+
+      expect(
+        () => DanceIkTargetArc(
+          name: 'x',
+          startFrame: 6,
+          peakFrame: 6,
+          endFrame: 8,
+          startX: 0,
+          startY: 0,
+          peakX: 1,
+          peakY: 1,
+          endX: 2,
+          endY: 2,
+        ),
+        throwsA(isA<AssertionError>()),
+        reason: 'arc peak must follow start',
+      );
+      expect(
+        () => DanceIkTargetArc(
+          name: 'x',
+          startFrame: 4,
+          peakFrame: 8,
+          endFrame: 8,
+          startX: 0,
+          startY: 0,
+          peakX: 1,
+          peakY: 1,
+          endX: 2,
+          endY: 2,
+        ),
+        throwsA(isA<AssertionError>()),
+        reason: 'arc end must follow peak',
+      );
+
+      expect(
+        () => DanceMoveTargetOffsetArc(
+          name: 'x',
+          moveName: 'm',
+          targetBoneId: 't',
+          startOffsetFrames: 0,
+          peakOffsetFrames: 0,
+          endOffsetFrames: 2,
+          peakX: 1,
+          peakY: 1,
+        ),
+        throwsA(isA<AssertionError>()),
+        reason: 'offset arc peak must follow start',
+      );
+      expect(
+        () => DanceMoveTargetOffsetArc(
+          name: 'x',
+          moveName: 'm',
+          targetBoneId: 't',
+          startOffsetFrames: -1,
+          peakOffsetFrames: 2,
+          endOffsetFrames: 2,
+          peakX: 1,
+          peakY: 1,
+        ),
+        throwsA(isA<AssertionError>()),
+        reason: 'offset arc end must follow peak',
+      );
+    });
+
+    test('runtime move signature compiles body accents over its cue', () {
+      final signature = DanceMoveSignature(
+        moveName: _runtime('left pocket hit'),
+        bodyAccents: const [
+          DanceBodyAccent(4, radiusFrames: 2, rootDy: 1.5),
+        ],
+      );
+
+      final accents = phrase.moveBodyAccents([signature]);
+      expect(accents.single.frame, 4);
+      expect(accents.single.rootDy, 1.5);
+    });
+
+    test('runtime root key interpolates inside a compiled root channel', () {
+      final key = DanceRootKey(_runtime(16), dx: 8, dy: 12, rotation: 0.02);
+      final channel = phrase.rootChannel([
+        const DanceRootKey(0),
+        key,
+        const DanceRootKey(32),
+      ]);
+
+      final sample = channel.sample(0.5);
+      expect(sample.dx, closeTo(8, 1e-9));
+      expect(sample.dy, closeTo(12, 1e-9));
+      expect(sample.rotation, closeTo(0.02, 1e-9));
+    });
+
+    test('runtime arc control point lands inside the compiled arc keys', () {
+      final point = DanceIkTargetArcPoint(
+        _runtime(14),
+        x: 58,
+        y: 16,
+        weight: 0.6,
+      );
+      final keys = phrase.ikTargetArcKeys([
+        DanceIkTargetArc(
+          name: 'right hand lift',
+          startFrame: 12,
+          peakFrame: 16,
+          endFrame: 20,
+          startX: 32,
+          startY: 24,
+          peakX: 80,
+          peakY: 8,
+          endX: 52,
+          endY: 28,
+          controlPoints: [point],
+        ),
+      ]);
+
+      final mid = keys.firstWhere((k) => k.frame == 14);
+      expect(mid.x, 58);
+      expect(mid.y, 16);
+      expect(mid.weight, 0.6);
+    });
+
+    test('runtime move-offset control point follows the cue accent frame', () {
+      final point = DanceMoveTargetOffsetArcPoint(
+        _runtime(1),
+        x: 5,
+        y: -3,
+        weight: 0.5,
+      );
+      final keys = phrase.moveTargetOffsetArcKeys([
+        DanceMoveTargetOffsetArc(
+          name: 'right answer backup hand',
+          moveName: 'right answer hit',
+          targetBoneId: 'hand.R',
+          startOffsetFrames: -2,
+          peakOffsetFrames: 0,
+          endOffsetFrames: 3,
+          peakX: 9,
+          peakY: -6,
+          controlPoints: [point],
+        ),
+      ], 'hand.R');
+
+      // 'right answer hit' accents at frame 20; offset +1 -> frame 21.
+      final k = keys.firstWhere((key) => key.frame == 21);
+      expect(k.x, 5);
+      expect(k.weight, 0.5);
+    });
+
+    test('runtime role style compiles joint accents over the phrase', () {
+      final style = DanceRoleStyle(
+        jointAccents: _runtime(<String, List<DanceJointAccent>>{
+          'torso': [
+            const DanceJointAccent(20, radiusFrames: 4, rotation: 0.05),
+          ],
+        }),
+      );
+
+      final torsoKeys = style.jointKeys(phrase, 'torso');
+      expect(torsoKeys.map((k) => k.frame), [16, 20, 24]);
+      expect(torsoKeys[1].rotation, 0.05);
     });
   });
 
