@@ -60,9 +60,11 @@ class DancePhrase {
   /// featured and what body/hand/foot signature the frame should show.
   final List<DanceMoveCue> moves;
 
-  double phaseOf(int frame) {
+  double phaseOf(int frame) => phaseOfFrame(frame);
+
+  double phaseOfFrame(int frame, {double microFrames = 0}) {
     _checkFrame(frame);
-    return frame / frameCount;
+    return (frame + microFrames) / frameCount;
   }
 
   List<GroundSpan> contactSpans() => [
@@ -131,7 +133,7 @@ class DancePhrase {
     // positive value lands the gesture a fraction of a frame late ("laid-back"
     // pocket), negative pushes it early. Routed through [phaseOf] so the integer
     // frame is still range-checked, then the fractional offset is added.
-    p: phaseOf(frame) + microFrames / frameCount,
+    p: phaseOfFrame(frame, microFrames: microFrames),
     rotation: rotation,
     scaleX: scaleX,
     scaleY: scaleY,
@@ -183,8 +185,9 @@ class DancePhrase {
     double dy = 0,
     double rotation = 0,
     Ease ease = Ease.easeInOut,
+    double microFrames = 0,
   }) => RootKeyframe(
-    p: phaseOf(frame),
+    p: phaseOfFrame(frame, microFrames: microFrames),
     dx: dx,
     dy: dy,
     rotation: rotation,
@@ -740,6 +743,7 @@ class DanceBodyKey {
     this.chestScaleX,
     this.chestScaleY,
     this.ease = Ease.easeInOut,
+    this.microFrames = 0,
   });
 
   final int frame;
@@ -751,6 +755,11 @@ class DanceBodyKey {
   final double? chestScaleX;
   final double? chestScaleY;
   final Ease ease;
+
+  /// Sub-frame timing offset (fractional frames) for body groove keys. Negative
+  /// values make root/pelvis weight arrive early; positive values let the chest
+  /// and shoulders follow after the beat.
+  final double microFrames;
 
   bool get hasRoot => rootDx != null || rootDy != null || rootRotation != null;
 
@@ -765,12 +774,14 @@ class DanceBodyKey {
     dy: rootDy ?? 0,
     rotation: rootRotation ?? 0,
     ease: ease,
+    microFrames: microFrames,
   );
 
   Keyframe toPelvisKeyframe(DancePhrase phrase) => phrase.jointKey(
     frame,
     rotation: pelvisRotation ?? 0,
     ease: ease,
+    microFrames: microFrames,
   );
 
   Keyframe toChestKeyframe(DancePhrase phrase) => phrase.jointKey(
@@ -779,6 +790,7 @@ class DanceBodyKey {
     scaleX: chestScaleX ?? 1,
     scaleY: chestScaleY ?? 1,
     ease: ease,
+    microFrames: microFrames,
   );
 
   DanceBodyKey mergeWith(DanceBodyKey other) {
@@ -798,6 +810,7 @@ class DanceBodyKey {
       chestScaleX: multiply(chestScaleX, other.chestScaleX),
       chestScaleY: multiply(chestScaleY, other.chestScaleY),
       ease: ease,
+      microFrames: microFrames,
     );
   }
 }

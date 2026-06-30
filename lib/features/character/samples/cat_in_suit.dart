@@ -2703,6 +2703,100 @@ class CatClips {
         ..._dancePhrase.moveBodyAccents(_danceLeadMoveSignatures),
       ]);
 
+  static const double _bodyRootLeadFrames = -0.35;
+  static const double _bodyPelvisLeadFrames = -0.55;
+  static const double _bodyChestFollowFrames = 0.55;
+  static const double _bodyChestRotationGain = 0.88;
+  static const double _bodyChestScaleGain = 0.92;
+
+  static double? _scaleBodyValue(double? value, double gain) =>
+      value == null ? null : value * gain;
+
+  static double? _scaleBodyMultiplier(double? value, double gain) =>
+      value == null ? null : 1 + (value - 1) * gain;
+
+  static List<DanceBodyKey> _bodyRootLeadKeys(
+    List<DanceBodyKey> keys, {
+    double microFrames = _bodyRootLeadFrames,
+  }) => [
+    for (final key in keys)
+      if (key.hasRoot)
+        DanceBodyKey(
+          key.frame,
+          rootDx: key.rootDx,
+          rootDy: key.rootDy,
+          rootRotation: key.rootRotation,
+          ease: key.ease,
+          microFrames: microFrames,
+        ),
+  ];
+
+  static List<DanceBodyKey> _bodyPelvisLeadKeys(
+    List<DanceBodyKey> keys, {
+    double microFrames = _bodyPelvisLeadFrames,
+  }) => [
+    for (final key in keys)
+      if (key.hasPelvis)
+        DanceBodyKey(
+          key.frame,
+          pelvisRotation: key.pelvisRotation,
+          ease: key.ease,
+          microFrames: microFrames,
+        ),
+  ];
+
+  static List<DanceBodyKey> _bodyChestFollowKeys(
+    List<DanceBodyKey> keys, {
+    double microFrames = _bodyChestFollowFrames,
+    double rotationGain = _bodyChestRotationGain,
+    double scaleGain = _bodyChestScaleGain,
+  }) => [
+    for (final key in keys)
+      if (key.hasChest)
+        DanceBodyKey(
+          key.frame,
+          chestRotation: _scaleBodyValue(key.chestRotation, rotationGain),
+          chestScaleX: _scaleBodyMultiplier(key.chestScaleX, scaleGain),
+          chestScaleY: _scaleBodyMultiplier(key.chestScaleY, scaleGain),
+          ease: key.ease,
+          microFrames: microFrames,
+        ),
+  ];
+
+  static KeyframeRootChannel _bodyRootLeadChannel(
+    List<DanceBodyKey> keys, {
+    bool smooth = false,
+    double microFrames = _bodyRootLeadFrames,
+  }) => _dancePhrase.bodyRootChannel(
+    _bodyRootLeadKeys(keys, microFrames: microFrames),
+    smooth: smooth,
+  );
+
+  static KeyframeChannel _bodyPelvisLeadChannel(
+    List<DanceBodyKey> keys, {
+    bool smooth = false,
+    double microFrames = _bodyPelvisLeadFrames,
+  }) => _dancePhrase.bodyPelvisChannel(
+    _bodyPelvisLeadKeys(keys, microFrames: microFrames),
+    smooth: smooth,
+  );
+
+  static KeyframeChannel _bodyChestFollowChannel(
+    List<DanceBodyKey> keys, {
+    bool smooth = false,
+    double microFrames = _bodyChestFollowFrames,
+    double rotationGain = _bodyChestRotationGain,
+    double scaleGain = _bodyChestScaleGain,
+  }) => _dancePhrase.bodyChestChannel(
+    _bodyChestFollowKeys(
+      keys,
+      microFrames: microFrames,
+      rotationGain: rotationGain,
+      scaleGain: scaleGain,
+    ),
+    smooth: smooth,
+  );
+
   // Backup-dancer roles are configured as small additive style overlays below.
   // The shared base clip owns support timing and body mechanics.
   static const _danceNeckKeys = [
@@ -3976,8 +4070,8 @@ class CatClips {
     contactPinning: ContactPinning.lowestContact,
     limbTargets: _danceLimbTargets,
     root: LayeredRootChannel([
-      _dancePhrase.bodyRootChannel(_danceBodyGrooveKeys, smooth: true),
-      _dancePhrase.bodyRootChannel(_danceBodyAccentKeys, smooth: true),
+      _bodyRootLeadChannel(_danceBodyGrooveKeys, smooth: true),
+      _bodyRootLeadChannel(_danceBodyAccentKeys, smooth: true),
       const SineRootChannel(
         bobAmplitude: -0.055,
         bobPhase: 0.125,
@@ -4001,8 +4095,8 @@ class CatClips {
       // mostly locked to the viewer so the dance reads as body rhythm instead
       // of a wobbling face.
       CatBones.hips: LayeredJointChannel([
-        _dancePhrase.bodyPelvisChannel(_danceBodyGrooveKeys),
-        _dancePhrase.bodyPelvisChannel(_danceBodyAccentKeys, smooth: true),
+        _bodyPelvisLeadChannel(_danceBodyGrooveKeys),
+        _bodyPelvisLeadChannel(_danceBodyAccentKeys, smooth: true),
         const SineChannel(
           harmonicAmplitude: 0.004,
           harmonicPhase: 0.015,
@@ -4016,8 +4110,8 @@ class CatClips {
         ),
       ]),
       CatBones.torso: LayeredJointChannel([
-        _dancePhrase.bodyChestChannel(_danceBodyGrooveKeys),
-        _dancePhrase.bodyChestChannel(_danceBodyAccentKeys, smooth: true),
+        _bodyChestFollowChannel(_danceBodyGrooveKeys),
+        _bodyChestFollowChannel(_danceBodyAccentKeys, smooth: true),
         const SineChannel(
           harmonicAmplitude: 0.003,
           harmonicPhase: 0.04,
@@ -4065,32 +4159,32 @@ class CatClips {
       CatBones.armUpperL: LayeredJointChannel([
         _dancePhrase.jointChannel(_danceArmUpperLLeadKeys, smooth: true),
         const SineChannel(
-          harmonicAmplitude: 0.018,
-          harmonicPhase: 0.02,
+          harmonicAmplitude: 0.014,
+          harmonicPhase: 0.045,
           harmonicMultiplier: 12,
         ),
       ]),
       CatBones.armUpperR: LayeredJointChannel([
         _dancePhrase.jointChannel(_danceArmUpperRLeadKeys, smooth: true),
         const SineChannel(
-          harmonicAmplitude: 0.018,
-          harmonicPhase: 0.52,
+          harmonicAmplitude: 0.014,
+          harmonicPhase: 0.545,
           harmonicMultiplier: 12,
         ),
       ]),
       CatBones.armLowerL: LayeredJointChannel([
         _dancePhrase.jointChannel(_danceArmLowerLLeadKeys, smooth: true),
         const SineChannel(
-          harmonicAmplitude: 0.022,
-          harmonicPhase: 0.08,
+          harmonicAmplitude: 0.016,
+          harmonicPhase: 0.11,
           harmonicMultiplier: 12,
         ),
       ]),
       CatBones.armLowerR: LayeredJointChannel([
         _dancePhrase.jointChannel(_danceArmLowerRLeadKeys, smooth: true),
         const SineChannel(
-          harmonicAmplitude: 0.022,
-          harmonicPhase: 0.58,
+          harmonicAmplitude: 0.016,
+          harmonicPhase: 0.61,
           harmonicMultiplier: 12,
         ),
       ]),
@@ -4539,74 +4633,74 @@ class CatClips {
   // then opens into a low scoop. That preserves the Shaku X without asking the
   // forearm to rotate out through the same-side sleeve.
   static const _shakuHandLTargetKeys = [
-    DanceIkTargetKey(0, x: -44, y: -20),
-    DanceIkTargetKey(1, x: -18, y: -44, ease: Ease.easeOutBack),
-    DanceIkTargetKey(2, x: 18, y: -50),
-    DanceIkTargetKey(3, x: 10, y: -44),
-    DanceIkTargetKey(4, x: -52, y: -14),
-    DanceIkTargetKey(5, x: -38, y: 2, ease: Ease.easeOutBack),
-    DanceIkTargetKey(6, x: -10, y: 8),
-    DanceIkTargetKey(7, x: -42, y: -18),
-    DanceIkTargetKey(8, x: -16, y: -46, ease: Ease.easeOutBack),
-    DanceIkTargetKey(9, x: 20, y: -52),
-    DanceIkTargetKey(10, x: -50, y: -16),
-    DanceIkTargetKey(11, x: -8, y: -42),
-    DanceIkTargetKey(12, x: -54, y: -12, ease: Ease.easeOutBack),
-    DanceIkTargetKey(13, x: -38, y: 2),
-    DanceIkTargetKey(14, x: -8, y: 8),
-    DanceIkTargetKey(15, x: -42, y: -18),
-    DanceIkTargetKey(16, x: -14, y: -48, ease: Ease.easeOutBack),
-    DanceIkTargetKey(17, x: 22, y: -54),
-    DanceIkTargetKey(18, x: 12, y: -46),
-    DanceIkTargetKey(19, x: -4, y: -40),
-    DanceIkTargetKey(20, x: -56, y: -12, ease: Ease.easeOutBack),
-    DanceIkTargetKey(21, x: -40, y: 2),
-    DanceIkTargetKey(22, x: -10, y: 8),
-    DanceIkTargetKey(23, x: -44, y: -18),
-    DanceIkTargetKey(24, x: -12, y: -46, ease: Ease.easeOutBack),
-    DanceIkTargetKey(25, x: 24, y: -52),
-    DanceIkTargetKey(26, x: -52, y: -16),
-    DanceIkTargetKey(27, x: -8, y: -42),
-    DanceIkTargetKey(28, x: -56, y: -12, ease: Ease.easeOutBack),
-    DanceIkTargetKey(29, x: -40, y: 2),
-    DanceIkTargetKey(30, x: -8, y: 8),
-    DanceIkTargetKey(31, x: -44, y: -18),
-    DanceIkTargetKey(32, x: -44, y: -20, ease: Ease.easeOutBack),
+    DanceIkTargetKey(0, x: -58, y: -22),
+    DanceIkTargetKey(1, x: -26, y: -50, ease: Ease.easeOutBack),
+    DanceIkTargetKey(2, x: 30, y: -58),
+    DanceIkTargetKey(3, x: 18, y: -50),
+    DanceIkTargetKey(4, x: -66, y: -16),
+    DanceIkTargetKey(5, x: -48, y: 2, ease: Ease.easeOutBack),
+    DanceIkTargetKey(6, x: -18, y: 10),
+    DanceIkTargetKey(7, x: -56, y: -20),
+    DanceIkTargetKey(8, x: -24, y: -52, ease: Ease.easeOutBack),
+    DanceIkTargetKey(9, x: 32, y: -60),
+    DanceIkTargetKey(10, x: -64, y: -18),
+    DanceIkTargetKey(11, x: -16, y: -48),
+    DanceIkTargetKey(12, x: -68, y: -14, ease: Ease.easeOutBack),
+    DanceIkTargetKey(13, x: -48, y: 2),
+    DanceIkTargetKey(14, x: -16, y: 10),
+    DanceIkTargetKey(15, x: -56, y: -20),
+    DanceIkTargetKey(16, x: -22, y: -54, ease: Ease.easeOutBack),
+    DanceIkTargetKey(17, x: 34, y: -62),
+    DanceIkTargetKey(18, x: 20, y: -54),
+    DanceIkTargetKey(19, x: -12, y: -46),
+    DanceIkTargetKey(20, x: -70, y: -14, ease: Ease.easeOutBack),
+    DanceIkTargetKey(21, x: -50, y: 2),
+    DanceIkTargetKey(22, x: -18, y: 10),
+    DanceIkTargetKey(23, x: -58, y: -20),
+    DanceIkTargetKey(24, x: -20, y: -52, ease: Ease.easeOutBack),
+    DanceIkTargetKey(25, x: 36, y: -60),
+    DanceIkTargetKey(26, x: -66, y: -18),
+    DanceIkTargetKey(27, x: -16, y: -48),
+    DanceIkTargetKey(28, x: -70, y: -14, ease: Ease.easeOutBack),
+    DanceIkTargetKey(29, x: -50, y: 2),
+    DanceIkTargetKey(30, x: -16, y: 10),
+    DanceIkTargetKey(31, x: -58, y: -20),
+    DanceIkTargetKey(32, x: -58, y: -22, ease: Ease.easeOutBack),
   ];
   static const _shakuHandRTargetKeys = [
-    DanceIkTargetKey(0, x: 44, y: -48),
-    DanceIkTargetKey(1, x: 18, y: -16, ease: Ease.easeOutBack),
-    DanceIkTargetKey(2, x: -18, y: -8),
-    DanceIkTargetKey(3, x: -10, y: -14),
-    DanceIkTargetKey(4, x: 52, y: -50),
-    DanceIkTargetKey(5, x: 38, y: -40, ease: Ease.easeOutBack),
-    DanceIkTargetKey(6, x: 10, y: -38),
-    DanceIkTargetKey(7, x: 42, y: -48),
-    DanceIkTargetKey(8, x: 16, y: -16, ease: Ease.easeOutBack),
-    DanceIkTargetKey(9, x: -20, y: -8),
-    DanceIkTargetKey(10, x: 50, y: -50),
-    DanceIkTargetKey(11, x: 8, y: -18),
-    DanceIkTargetKey(12, x: 54, y: -50, ease: Ease.easeOutBack),
-    DanceIkTargetKey(13, x: 38, y: -40),
-    DanceIkTargetKey(14, x: 8, y: -38),
-    DanceIkTargetKey(15, x: 42, y: -48),
-    DanceIkTargetKey(16, x: 14, y: -16, ease: Ease.easeOutBack),
-    DanceIkTargetKey(17, x: -22, y: -8),
-    DanceIkTargetKey(18, x: -12, y: -14),
-    DanceIkTargetKey(19, x: 4, y: -18),
-    DanceIkTargetKey(20, x: 56, y: -50, ease: Ease.easeOutBack),
-    DanceIkTargetKey(21, x: 40, y: -40),
-    DanceIkTargetKey(22, x: 10, y: -38),
-    DanceIkTargetKey(23, x: 44, y: -48),
-    DanceIkTargetKey(24, x: 12, y: -16, ease: Ease.easeOutBack),
-    DanceIkTargetKey(25, x: -24, y: -8),
-    DanceIkTargetKey(26, x: 52, y: -52),
-    DanceIkTargetKey(27, x: 8, y: -18),
-    DanceIkTargetKey(28, x: 56, y: -50, ease: Ease.easeOutBack),
-    DanceIkTargetKey(29, x: 40, y: -40),
-    DanceIkTargetKey(30, x: 8, y: -38),
-    DanceIkTargetKey(31, x: 44, y: -48),
-    DanceIkTargetKey(32, x: 44, y: -48, ease: Ease.easeOutBack),
+    DanceIkTargetKey(0, x: 58, y: -54),
+    DanceIkTargetKey(1, x: 26, y: -18, ease: Ease.easeOutBack),
+    DanceIkTargetKey(2, x: -30, y: -4),
+    DanceIkTargetKey(3, x: -18, y: -12),
+    DanceIkTargetKey(4, x: 66, y: -58),
+    DanceIkTargetKey(5, x: 48, y: -44, ease: Ease.easeOutBack),
+    DanceIkTargetKey(6, x: 18, y: -40),
+    DanceIkTargetKey(7, x: 56, y: -54),
+    DanceIkTargetKey(8, x: 24, y: -18, ease: Ease.easeOutBack),
+    DanceIkTargetKey(9, x: -32, y: -4),
+    DanceIkTargetKey(10, x: 64, y: -58),
+    DanceIkTargetKey(11, x: 16, y: -20),
+    DanceIkTargetKey(12, x: 68, y: -58, ease: Ease.easeOutBack),
+    DanceIkTargetKey(13, x: 48, y: -44),
+    DanceIkTargetKey(14, x: 16, y: -40),
+    DanceIkTargetKey(15, x: 56, y: -54),
+    DanceIkTargetKey(16, x: 22, y: -18, ease: Ease.easeOutBack),
+    DanceIkTargetKey(17, x: -34, y: -4),
+    DanceIkTargetKey(18, x: -20, y: -12),
+    DanceIkTargetKey(19, x: 12, y: -20),
+    DanceIkTargetKey(20, x: 70, y: -58, ease: Ease.easeOutBack),
+    DanceIkTargetKey(21, x: 50, y: -44),
+    DanceIkTargetKey(22, x: 18, y: -40),
+    DanceIkTargetKey(23, x: 58, y: -54),
+    DanceIkTargetKey(24, x: 20, y: -18, ease: Ease.easeOutBack),
+    DanceIkTargetKey(25, x: -36, y: -4),
+    DanceIkTargetKey(26, x: 66, y: -60),
+    DanceIkTargetKey(27, x: 16, y: -20),
+    DanceIkTargetKey(28, x: 70, y: -58, ease: Ease.easeOutBack),
+    DanceIkTargetKey(29, x: 50, y: -44),
+    DanceIkTargetKey(30, x: 16, y: -40),
+    DanceIkTargetKey(31, x: 58, y: -54),
+    DanceIkTargetKey(32, x: 58, y: -54, ease: Ease.easeOutBack),
   ];
   static final KeyframeIkTargetChannel _shakuHandLTarget = _dancePhrase
       .ikTargetChannel(_shakuHandLTargetKeys, smooth: true);
@@ -4685,44 +4779,44 @@ class CatClips {
   static const _shakuHandLKeys = [
     DanceJointKey(0, rotation: -0.12),
     DanceJointKey(1, rotation: 0.58),
-    DanceJointKey(2, rotation: 0.76),
-    DanceJointKey(3, rotation: 0.36),
-    DanceJointKey(6, rotation: -0.52),
+    DanceJointKey(2, rotation: 0.62),
+    DanceJointKey(3, rotation: 0.3),
+    DanceJointKey(6, rotation: -0.42),
     DanceJointKey(7, rotation: 0.32),
-    DanceJointKey(9, rotation: -0.58),
-    DanceJointKey(10, rotation: -0.5),
+    DanceJointKey(9, rotation: -0.46),
+    DanceJointKey(10, rotation: -0.42),
     DanceJointKey(11, rotation: 0.3),
-    DanceJointKey(14, rotation: -0.54),
+    DanceJointKey(14, rotation: -0.44),
     DanceJointKey(15, rotation: 0.24),
-    DanceJointKey(17, rotation: 0.66),
-    DanceJointKey(18, rotation: -0.52),
+    DanceJointKey(17, rotation: 0.54),
+    DanceJointKey(18, rotation: -0.42),
     DanceJointKey(19, rotation: 0.2),
-    DanceJointKey(22, rotation: -0.54),
+    DanceJointKey(22, rotation: -0.44),
     DanceJointKey(23, rotation: 0.24),
     DanceJointKey(27, rotation: 0.18),
-    DanceJointKey(29, rotation: -0.56),
+    DanceJointKey(29, rotation: -0.44),
     DanceJointKey(31, rotation: 0.22),
     DanceJointKey(32, rotation: -0.12),
   ];
   static const _shakuHandRKeys = [
     DanceJointKey(0, rotation: 0.12),
     DanceJointKey(1, rotation: -0.54),
-    DanceJointKey(2, rotation: -0.72),
-    DanceJointKey(3, rotation: -0.36),
-    DanceJointKey(6, rotation: 0.52),
+    DanceJointKey(2, rotation: -0.6),
+    DanceJointKey(3, rotation: -0.3),
+    DanceJointKey(6, rotation: 0.42),
     DanceJointKey(7, rotation: -0.32),
-    DanceJointKey(9, rotation: 0.56),
-    DanceJointKey(10, rotation: 0.68),
+    DanceJointKey(9, rotation: 0.46),
+    DanceJointKey(10, rotation: 0.54),
     DanceJointKey(11, rotation: -0.3),
-    DanceJointKey(14, rotation: 0.54),
+    DanceJointKey(14, rotation: 0.44),
     DanceJointKey(15, rotation: -0.24),
-    DanceJointKey(17, rotation: -0.6),
-    DanceJointKey(18, rotation: 0.68),
+    DanceJointKey(17, rotation: -0.5),
+    DanceJointKey(18, rotation: 0.54),
     DanceJointKey(19, rotation: -0.2),
-    DanceJointKey(22, rotation: 0.54),
+    DanceJointKey(22, rotation: 0.44),
     DanceJointKey(23, rotation: -0.24),
     DanceJointKey(27, rotation: -0.18),
-    DanceJointKey(29, rotation: 0.56),
+    DanceJointKey(29, rotation: 0.44),
     DanceJointKey(31, rotation: -0.22),
     DanceJointKey(32, rotation: 0.12),
   ];
@@ -4881,10 +4975,26 @@ class CatClips {
       // sway, so the tall ears stop sweeping side to side.
       danceHeadBobScale: 0.2,
       root: LayeredRootChannel([
-        _dancePhrase.bodyRootChannel(_shakuGrooveCalm, smooth: true),
-        _dancePhrase.bodyRootChannel(_danceBodyAccentKeys, smooth: true),
-        _dancePhrase.bodyRootChannel(_shakuDabBodyKeys, smooth: true),
-        _dancePhrase.bodyRootChannel(_shakuPanelBodyKeys, smooth: true),
+        _bodyRootLeadChannel(
+          _shakuGrooveCalm,
+          smooth: true,
+          microFrames: 0,
+        ),
+        _bodyRootLeadChannel(
+          _danceBodyAccentKeys,
+          smooth: true,
+          microFrames: 0,
+        ),
+        _bodyRootLeadChannel(
+          _shakuDabBodyKeys,
+          smooth: true,
+          microFrames: 0,
+        ),
+        _bodyRootLeadChannel(
+          _shakuPanelBodyKeys,
+          smooth: true,
+          microFrames: 0,
+        ),
         // Per-BAR pelvis/COM travel — a small lateral shift (harmonic 1) that
         // stacks the body OVER the support foot (left bar 1, right bar 2). Safe
         // now the support foot is world-anchored: it holds while the body slides
@@ -4913,10 +5023,22 @@ class CatClips {
       channels: {
         ...base.channels,
         CatBones.hips: LayeredJointChannel([
-          _dancePhrase.bodyPelvisChannel(_shakuGrooveCalm),
-          _dancePhrase.bodyPelvisChannel(_danceBodyAccentKeys, smooth: true),
-          _dancePhrase.bodyPelvisChannel(_shakuDabBodyKeys, smooth: true),
-          _dancePhrase.bodyPelvisChannel(_shakuPanelBodyKeys, smooth: true),
+          _bodyPelvisLeadChannel(_shakuGrooveCalm, microFrames: -0.3),
+          _bodyPelvisLeadChannel(
+            _danceBodyAccentKeys,
+            smooth: true,
+            microFrames: -0.3,
+          ),
+          _bodyPelvisLeadChannel(
+            _shakuDabBodyKeys,
+            smooth: true,
+            microFrames: -0.3,
+          ),
+          _bodyPelvisLeadChannel(
+            _shakuPanelBodyKeys,
+            smooth: true,
+            microFrames: -0.3,
+          ),
           const SineChannel(
             harmonicAmplitude: 0.004,
             harmonicPhase: 0.015,
@@ -4930,10 +5052,28 @@ class CatClips {
           ),
         ]),
         CatBones.torso: LayeredJointChannel([
-          _dancePhrase.bodyChestChannel(_shakuGrooveCalm),
-          _dancePhrase.bodyChestChannel(_danceBodyAccentKeys, smooth: true),
-          _dancePhrase.bodyChestChannel(_shakuDabBodyKeys, smooth: true),
-          _dancePhrase.bodyChestChannel(_shakuPanelBodyKeys, smooth: true),
+          _bodyChestFollowChannel(
+            _shakuGrooveCalm,
+            microFrames: 0.25,
+            rotationGain: 0.68,
+          ),
+          _bodyChestFollowChannel(
+            _danceBodyAccentKeys,
+            smooth: true,
+            microFrames: 0.25,
+          ),
+          _bodyChestFollowChannel(
+            _shakuDabBodyKeys,
+            smooth: true,
+            microFrames: 0.25,
+            rotationGain: 0.68,
+          ),
+          _bodyChestFollowChannel(
+            _shakuPanelBodyKeys,
+            smooth: true,
+            microFrames: 0.25,
+            rotationGain: 0.68,
+          ),
           const SineChannel(
             harmonicAmplitude: 0.003,
             harmonicPhase: 0.04,
@@ -4949,7 +5089,7 @@ class CatClips {
           // support foot — one way through bar 1, the other through bar 2 — so
           // the upper body commits over the planted leg WITHOUT moving the feet.
           // Kept gentle so it reads as an in-plane tilt, not a turn-to-camera.
-          const SineChannel(amplitude: 0.06),
+          const SineChannel(amplitude: 0.035),
         ]),
         CatBones.legLowerL: _dancePhrase.jointChannel(
           _shakuLegLowerLKeys,
@@ -5449,11 +5589,16 @@ class CatClips {
       contactPinning: base.contactPinning,
       limbTargets: _zankuLimbTargets,
       supportFootWorldAnchor: true,
+      supportFootWorldAnchorStrength: 0.7,
       root: LayeredRootChannel([
-        _dancePhrase.bodyRootChannel(_danceBodyAccentKeys, smooth: true),
+        _bodyRootLeadChannel(_danceBodyAccentKeys, smooth: true),
         // Per-BEAT weight commit that DWELLS over the stamping foot (replaces the
         // sine sway that just passed through centre). See [_zankuCommitKeys].
-        _dancePhrase.bodyRootChannel(_zankuCommitKeys, smooth: true),
+        _bodyRootLeadChannel(
+          _zankuCommitKeys,
+          smooth: true,
+          microFrames: 0,
+        ),
         const SineRootChannel(
           // Subtle beat compression only. A large hop made the move read
           // airborne and unsupported; Zanku here is a grounded stamp-hit.
@@ -5465,12 +5610,21 @@ class CatClips {
       channels: {
         ...base.channels,
         CatBones.hips: LayeredJointChannel([
-          _dancePhrase.bodyPelvisChannel(_danceBodyAccentKeys, smooth: true),
-          _dancePhrase.bodyPelvisChannel(_zankuCommitKeys, smooth: true),
+          _bodyPelvisLeadChannel(_danceBodyAccentKeys, smooth: true),
+          _bodyPelvisLeadChannel(
+            _zankuCommitKeys,
+            smooth: true,
+            microFrames: -0.7,
+          ),
         ]),
         CatBones.torso: LayeredJointChannel([
-          _dancePhrase.bodyChestChannel(_danceBodyAccentKeys, smooth: true),
-          _dancePhrase.bodyChestChannel(_zankuCommitKeys, smooth: true),
+          _bodyChestFollowChannel(_danceBodyAccentKeys, smooth: true),
+          _bodyChestFollowChannel(
+            _zankuCommitKeys,
+            smooth: true,
+            microFrames: 0.65,
+            rotationGain: 0.8,
+          ),
           // Compact forward street-dance carriage: legs do the talking while
           // the chest stays over the planted support instead of leaning back
           // into a mascot victory pose.
@@ -5481,7 +5635,7 @@ class CatClips {
           const SineChannel(
             harmonicAmplitude: 0.07,
             harmonicMultiplier: 4,
-            harmonicPhase: 0.0625,
+            harmonicPhase: 0.0825,
           ),
         ]),
         // The feet are driven by the Zanku foot IK targets (legwork), which
@@ -5624,8 +5778,8 @@ class CatClips {
       // rather than bouncing — the groove dip is in rootDy, which this counters.
       danceHeadBobScale: 0.3,
       root: LayeredRootChannel([
-        _dancePhrase.bodyRootChannel(_shakuGrooveCalm, smooth: true),
-        _dancePhrase.bodyRootChannel(_danceBodyAccentKeys, smooth: true),
+        _bodyRootLeadChannel(_shakuGrooveCalm, smooth: true),
+        _bodyRootLeadChannel(_danceBodyAccentKeys, smooth: true),
         const SineRootChannel(
           bobAmplitude: -0.04,
           bobPhase: 0.125,
@@ -5640,20 +5794,20 @@ class CatClips {
       channels: {
         ...base.channels,
         CatBones.hips: LayeredJointChannel([
-          _dancePhrase.bodyPelvisChannel(_shakuGrooveCalm),
-          _dancePhrase.bodyPelvisChannel(_danceBodyAccentKeys, smooth: true),
+          _bodyPelvisLeadChannel(_shakuGrooveCalm),
+          _bodyPelvisLeadChannel(_danceBodyAccentKeys, smooth: true),
           // Azonto waist swivel — the hips roll side to side, twice per phrase
           // (harmonicMultiplier defaults to 2). Sharpened so the pelvis snap
           // reads as an isolated swivel, not a whole-body turn.
           const SineChannel(harmonicAmplitude: 0.17),
         ]),
         CatBones.torso: LayeredJointChannel([
-          _dancePhrase.bodyChestChannel(_shakuGrooveCalm),
-          _dancePhrase.bodyChestChannel(_danceBodyAccentKeys, smooth: true),
+          _bodyChestFollowChannel(_shakuGrooveCalm, rotationGain: 0.9),
+          _bodyChestFollowChannel(_danceBodyAccentKeys, smooth: true),
           // Chest counters the hip swivel — the Azonto torso/hip opposition.
           // Stronger counter so the shoulders hold while the pelvis snaps under
           // them (hip-vs-shoulder isolation).
-          const SineChannel(harmonicAmplitude: -0.13),
+          const SineChannel(harmonicAmplitude: -0.11, harmonicPhase: 0.02),
         ]),
         CatBones.earL: const SineChannel(amplitude: 0.008),
         CatBones.earR: const SineChannel(amplitude: 0.008, phase: 0.5),
@@ -6004,15 +6158,24 @@ class CatClips {
       limbTargets: _bugaLimbTargets,
       supportFootWorldAnchor: true,
       root: LayeredRootChannel([
-        _dancePhrase.bodyRootChannel(_bugaBodyKeys, smooth: true),
+        _bodyRootLeadChannel(
+          _bugaBodyKeys,
+          smooth: true,
+          microFrames: -0.55,
+        ),
       ]),
       channels: {
         ...base.channels,
         CatBones.hips: LayeredJointChannel([
-          _dancePhrase.bodyPelvisChannel(_bugaBodyKeys),
+          _bodyPelvisLeadChannel(_bugaBodyKeys, microFrames: -0.65),
         ]),
         CatBones.torso: LayeredJointChannel([
-          _dancePhrase.bodyChestChannel(_bugaBodyKeys),
+          _bodyChestFollowChannel(
+            _bugaBodyKeys,
+            microFrames: 0.75,
+            rotationGain: 0.94,
+            scaleGain: 0.98,
+          ),
         ]),
         CatBones.legLowerL: _dancePhrase.jointChannel(
           _bugaLegLowerKeys,
@@ -6383,20 +6546,20 @@ class CatClips {
       // The dwelling lateral creep now lives in _pounceBodyKeys' rootDx (no sine
       // sway — that read as a side-to-side pendulum, worse in unison).
       root: LayeredRootChannel([
-        _dancePhrase.bodyRootChannel(_pounceBodyKeys, smooth: true),
-        _dancePhrase.bodyRootChannel(_pounceGrooveKeys, smooth: true),
+        _bodyRootLeadChannel(_pounceBodyKeys, smooth: true),
+        _bodyRootLeadChannel(_pounceGrooveKeys, smooth: true),
       ]),
       channels: {
         ...base.channels,
         CatBones.hips: LayeredJointChannel([
-          _dancePhrase.bodyPelvisChannel(_pounceBodyKeys),
-          _dancePhrase.bodyPelvisChannel(_pounceGrooveKeys, smooth: true),
+          _bodyPelvisLeadChannel(_pounceBodyKeys),
+          _bodyPelvisLeadChannel(_pounceGrooveKeys, smooth: true),
         ]),
         CatBones.torso: LayeredJointChannel([
-          _dancePhrase.bodyChestChannel(_pounceBodyKeys),
-          _dancePhrase.bodyChestChannel(_pounceGrooveKeys, smooth: true),
+          _bodyChestFollowChannel(_pounceBodyKeys),
+          _bodyChestFollowChannel(_pounceGrooveKeys, smooth: true),
           // Slight counter-lean against the slide (harmonic 2, opposed).
-          const SineChannel(harmonicAmplitude: -0.05),
+          const SineChannel(harmonicAmplitude: -0.04, harmonicPhase: 0.02),
         ]),
         // Neck/head held flat (no inherited dance nod) so the head stays level.
         CatBones.neck: const SineChannel(),
@@ -6772,16 +6935,25 @@ class CatClips {
       contactPinning: base.contactPinning,
       limbTargets: _sekemLimbTargets,
       supportFootWorldAnchor: true,
+      supportFootWorldAnchorStrength: 0.7,
       // The dwelling weight commit now lives in _sekemBodyKeys' rootDx (no sine
       // sway — that just passed through centre).
-      root: _dancePhrase.bodyRootChannel(_sekemBodyKeys, smooth: true),
+      root: _bodyRootLeadChannel(
+        _sekemBodyKeys,
+        smooth: true,
+        microFrames: 0,
+      ),
       channels: {
         ...base.channels,
         CatBones.hips: LayeredJointChannel([
-          _dancePhrase.bodyPelvisChannel(_sekemBodyKeys),
+          _bodyPelvisLeadChannel(_sekemBodyKeys, microFrames: -0.1),
         ]),
         CatBones.torso: LayeredJointChannel([
-          _dancePhrase.bodyChestChannel(_sekemBodyKeys),
+          _bodyChestFollowChannel(
+            _sekemBodyKeys,
+            microFrames: 0.2,
+            rotationGain: 1,
+          ),
         ]),
         CatBones.footL: _dancePhrase.jointChannel(
           _sekemFootLKeys,
@@ -6832,18 +7004,18 @@ class CatClips {
       limbTargets: _danceRoleLimbTargets(style),
       root: LayeredRootChannel([
         base.root,
-        _dancePhrase.bodyRootChannel(bodyKeys, smooth: true),
+        _bodyRootLeadChannel(bodyKeys, smooth: true),
       ]),
       channels: {
         ...base.channels,
         CatBones.hips: LayeredJointChannel([
           base.channels[CatBones.hips]!,
-          _dancePhrase.bodyPelvisChannel(bodyKeys, smooth: true),
+          _bodyPelvisLeadChannel(bodyKeys, smooth: true),
           _danceRoleJointChannel(style, CatBones.hips),
         ]),
         CatBones.torso: LayeredJointChannel([
           base.channels[CatBones.torso]!,
-          _dancePhrase.bodyChestChannel(bodyKeys, smooth: true),
+          _bodyChestFollowChannel(bodyKeys, smooth: true),
           _danceRoleJointChannel(style, CatBones.torso),
         ]),
         CatBones.armUpperL: LayeredJointChannel([

@@ -322,6 +322,61 @@ void main() {
       expect(chest.sample(0.25).scaleY, closeTo(0.91, 1e-9));
     });
 
+    test('body groove keys can land on fractional frames', () {
+      const keys = [
+        DanceBodyKey(
+          0,
+          rootDx: 0,
+          pelvisRotation: 0,
+          chestRotation: 0,
+          chestScaleY: 1,
+        ),
+        DanceBodyKey(
+          8,
+          rootDx: 12,
+          pelvisRotation: 0.4,
+          chestRotation: -0.25,
+          chestScaleY: 0.9,
+          microFrames: 0.5,
+        ),
+        DanceBodyKey(
+          16,
+          rootDx: 0,
+          pelvisRotation: 0,
+          chestRotation: 0,
+          chestScaleY: 1,
+        ),
+      ];
+
+      final root = phrase.bodyRootChannel(keys);
+      final pelvis = phrase.bodyPelvisChannel(keys);
+      final chest = phrase.bodyChestChannel(keys);
+      const fractionalPhase = 8.5 / 32;
+
+      expect(root.sample(fractionalPhase).dx, closeTo(12, 1e-9));
+      expect(pelvis.sample(fractionalPhase).rotation, closeTo(0.4, 1e-9));
+      expect(chest.sample(fractionalPhase).rotation, closeTo(-0.25, 1e-9));
+      expect(chest.sample(fractionalPhase).scaleY, closeTo(0.9, 1e-9));
+      expect(root.sample(8 / 32).dx, lessThan(12));
+    });
+
+    test('same body frame can lead with pelvis and follow with chest', () {
+      const keys = [
+        DanceBodyKey(0, pelvisRotation: 0, chestRotation: 0),
+        DanceBodyKey(8, pelvisRotation: 1, microFrames: -0.5),
+        DanceBodyKey(8, chestRotation: -1, microFrames: 0.5),
+        DanceBodyKey(16, pelvisRotation: 0, chestRotation: 0),
+      ];
+
+      final pelvis = phrase.bodyPelvisChannel(keys);
+      final chest = phrase.bodyChestChannel(keys);
+
+      expect(pelvis.sample(7.5 / 32).rotation, closeTo(1, 1e-9));
+      expect(chest.sample(8.5 / 32).rotation, closeTo(-1, 1e-9));
+      expect(pelvis.sample(8.5 / 32).rotation, lessThan(1));
+      expect(chest.sample(7.5 / 32).rotation, greaterThan(-1));
+    });
+
     test('builds neutralized body accent pulses', () {
       final keys = phrase.bodyAccentKeys(
         const [
