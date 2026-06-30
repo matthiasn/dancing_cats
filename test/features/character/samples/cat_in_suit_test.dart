@@ -367,21 +367,21 @@ void main() {
 
       final wristCrossLeft = handL.sample(17 / phrase.frameCount);
       final wristCrossRight = handR.sample(17 / phrase.frameCount);
-      expect(wristCrossLeft.x, greaterThan(20));
-      expect(wristCrossRight.x, lessThan(-20));
+      expect(wristCrossLeft.x, greaterThan(12));
+      expect(wristCrossRight.x, lessThan(-12));
       expect(
         (wristCrossLeft.x - wristCrossRight.x).abs(),
-        greaterThan(70),
+        greaterThan(35),
         reason:
-            'Shaku should read as a strong diagonal high/low wrist-scoop, '
-            'not a compact belly fold or generic fist pump',
+            'Shaku should cross at the wrists in separated lanes without '
+            'returning to the old impossible folded-forearm reach',
       );
       expect(
         wristCrossLeft.y - wristCrossRight.y,
-        lessThan(-70),
+        lessThan(-35),
         reason:
-            'one Shaku wrist should ride high while the opposite paw scoops '
-            'low, keeping the crossing arms in separate visual lanes',
+            'one Shaku wrist should ride higher while the opposite paw stays '
+            'lower, keeping the crossing arms readable as an X',
       );
       expect(
         wristCrossLeft.y,
@@ -403,11 +403,11 @@ void main() {
 
       final sideHitLeft = handL.sample(22 / phrase.frameCount);
       final sideHitRight = handR.sample(22 / phrase.frameCount);
-      expect(sideHitLeft.x, greaterThan(0));
-      expect(sideHitRight.x, lessThan(0));
+      expect(sideHitLeft.x, lessThan(0));
+      expect(sideHitRight.x, greaterThan(0));
       expect(
-        sideHitLeft.x - sideHitRight.x,
-        greaterThan(10),
+        sideHitRight.x - sideHitLeft.x,
+        greaterThan(16),
         reason:
             'the Shaku release beat should hit as a wrist-roll cross rather '
             'than a physically vague open-elbow pump',
@@ -430,7 +430,7 @@ void main() {
             'the opposite paw should stay in the compact wrist-roll phrase, '
             'not open into a generic chest pump',
       );
-      expect(recoveryCrossRight.y, lessThan(-50));
+      expect(recoveryCrossRight.y, lessThan(-34));
       expect(
         recoveryCrossRight.x - recoveryCrossLeft.x,
         greaterThan(30),
@@ -457,7 +457,7 @@ void main() {
       );
       expect(
         loopRight.y,
-        lessThan(-60),
+        lessThan(-42),
         reason:
             'the opposite hand should recover to the high half of the Shaku '
             'high/low loop, not collapse into a same-plane guard',

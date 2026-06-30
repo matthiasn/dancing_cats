@@ -561,7 +561,10 @@ defaults):
   sweep, not a vertical bob). `0.0` = the dead-level Pouncing head.
 - **`Clip.supportFootWorldAnchor`** (default `false`) — world-anchors the active
   support foot during its contact span so an in-place groove rides *over* a
-  planted foot instead of skating it.
+  planted foot instead of skating it. `supportFootWorldAnchorStrength` keeps the
+  hold per-clip tunable: Shaku uses a slightly firmer plant than the default so
+  the crossed-wrist pocket can sit over the support foot without forcing every
+  catalog move into the same contact feel.
 - **`Ease.easeOutBack` on a non-smooth `KeyframeIkTargetChannel`** — visible
   anticipation→overshoot→settle on an accent hand/foot (the paw whips past the
   target then settles). `DanceIkTargetKey` carries the `Ease`; the non-smooth

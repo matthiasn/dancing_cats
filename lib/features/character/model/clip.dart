@@ -660,8 +660,13 @@ class Clip {
     this.contactPinning = ContactPinning.activeSpan,
     this.limbTargets = const [],
     this.supportFootWorldAnchor = false,
+    this.supportFootWorldAnchorStrength = 0.6,
     this.danceHeadBobScale = 1.0,
-  });
+  }) : assert(
+         supportFootWorldAnchorStrength >= 0 &&
+             supportFootWorldAnchorStrength <= 1,
+         'support foot anchor strength must be in 0..1',
+       );
 
   /// Display/lookup name.
   final String name;
@@ -684,6 +689,11 @@ class Clip {
   /// Opt-in per clip — left false for the shipped clips so their tuned contact
   /// geometry (and tests) are unchanged.
   final bool supportFootWorldAnchor;
+
+  /// Strength for [supportFootWorldAnchor]. Lower values leave more of the
+  /// authored foot scuff; higher values read as a clearer plant for moves whose
+  /// weight transfer depends on a visible support.
+  final double supportFootWorldAnchorStrength;
 
   /// Cycle period (loop) or total length (one-shot), in seconds.
   final double duration;

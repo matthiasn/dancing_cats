@@ -714,7 +714,11 @@ class CharacterScene {
     );
     final origin = solver.solve(anchorPose)[span.bone]?.origin;
     if (origin == null) return null;
-    final blend = _supportFootAnchorBlend(span, contact.strengthPhase);
+    final blend = _supportFootAnchorBlend(
+      span,
+      contact.strengthPhase,
+      clip.supportFootWorldAnchorStrength,
+    );
     return (bone: span.bone, x: origin.x, y: origin.y, blend: blend);
   }
 
@@ -722,14 +726,17 @@ class CharacterScene {
   /// strong hold pulls the support foot to its plant point and collapses the
   /// astride stance; this damps the lateral skate while leaving most of the
   /// natural foot sweep (and thus the stance width) intact.
-  double _supportFootAnchorBlend(GroundSpan span, double p) {
-    const base = 0.6;
+  double _supportFootAnchorBlend(
+    GroundSpan span,
+    double p,
+    double strength,
+  ) {
     final spanLength = span.end - span.start;
     final fade = (spanLength * 0.24).clamp(0.05, 0.09);
     final fadeIn = _smoothUnit((p - span.start) / fade);
     final fadeOut = _smoothUnit((span.end - p) / fade);
     final edge = fadeIn < fadeOut ? fadeIn : fadeOut;
-    return base * edge;
+    return strength * edge;
   }
 
   ({double x, double y}) _contactLockStrength(

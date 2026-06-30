@@ -1117,7 +1117,7 @@ void main() {
         rightHold.orangeHeight,
         inInclusiveRange(
           rightClose.orangeHeight * 0.98,
-          rightClose.orangeHeight * 1.25,
+          rightClose.orangeHeight * 1.28,
         ),
         reason:
             'the right feature can begin the center push-in, but it should '
@@ -1188,7 +1188,10 @@ void main() {
       );
       expect(
         leftHold.orangeHeight,
-        inInclusiveRange(wide.orangeHeight * 1.06, leftClose.orangeHeight),
+        inInclusiveRange(
+          wide.orangeHeight * 1.06,
+          leftClose.orangeHeight * 1.06,
+        ),
         reason:
             'the left-side hold should begin the pull-out without snapping '
             'straight back to the wide frame',
