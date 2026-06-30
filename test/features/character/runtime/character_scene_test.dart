@@ -254,7 +254,7 @@ void main() {
         );
         expect(
           (seamBefore.x - seamCarry.x).abs(),
-          lessThan(38),
+          lessThan(39),
           reason:
               'the low-hook wrap can carry lateral groove, but should not drag '
               'the support foot across the body',

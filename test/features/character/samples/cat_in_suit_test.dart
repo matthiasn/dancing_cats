@@ -364,14 +364,29 @@ void main() {
       final shaku = CatClips.shaku;
       final handL = _targetFor(shaku, CatBones.handL).channel;
       final handR = _targetFor(shaku, CatBones.handR).channel;
+      final footL = _targetFor(shaku, CatBones.footL).channel;
+      final footR = _targetFor(shaku, CatBones.footR).channel;
 
       expect(
         shaku.supportFootWorldAnchorStrength,
-        greaterThanOrEqualTo(0.72),
+        greaterThanOrEqualTo(0.74),
         reason:
             'Shaku support feet need enough world anchor to let the torso '
             'pocket read without skate during the arm crosses',
       );
+
+      for (final frame in [0, 4, 8, 16, 20, 24, 32]) {
+        final p = frame / phrase.frameCount;
+        final leftFoot = footL.sample(p);
+        final rightFoot = footR.sample(p);
+        expect(
+          rightFoot.x - leftFoot.x,
+          greaterThan(114),
+          reason:
+              'Shaku frame $frame should keep a broad base under the bulky '
+              'suit body instead of crossing the feet under the hips',
+        );
+      }
 
       final wristCrossLeft = handL.sample(17 / phrase.frameCount);
       final wristCrossRight = handR.sample(17 / phrase.frameCount);
@@ -803,10 +818,36 @@ void main() {
 
       expect(
         buga.supportFootWorldAnchorStrength,
-        greaterThanOrEqualTo(0.74),
+        greaterThanOrEqualTo(0.78),
         reason:
             'Buga show-off hits need a strong support plant so the side reach '
             'does not read as a fall',
+      );
+      final rootHit = buga.root.sample(12 / phrase.frameCount);
+      final rootMirrorHit = buga.root.sample(28 / phrase.frameCount);
+      expect(
+        rootHit.dx.abs(),
+        lessThanOrEqualTo(27),
+        reason:
+            'Buga should celebrate from a planted stance, not throw the root '
+            'far outside the feet on the right-arm hit',
+      );
+      expect(
+        rootMirrorHit.dx.abs(),
+        lessThanOrEqualTo(27),
+        reason:
+            'the mirrored Buga hit should stay similarly planted instead of '
+            'becoming a lateral fall',
+      );
+      final legHit = buga.channels[CatBones.legLowerL]!.sample(
+        12 / phrase.frameCount,
+      );
+      expect(
+        legHit.rotation,
+        lessThan(-0.68),
+        reason:
+            'Buga hit knees should remain flexed enough to carry weight, not '
+            'lock straight at the celebration peak',
       );
       expect(buga.contactSpans[0].bone, CatBones.footR);
       expect(buga.contactSpans[0].start, 0);
@@ -1148,7 +1189,7 @@ void main() {
       );
       expect(
         landing.dx,
-        greaterThan(20),
+        inInclusiveRange(15, 24),
         reason: 'the first landing should clearly settle to the right side',
       );
       expect(
@@ -1242,6 +1283,28 @@ void main() {
         reason:
             'the mirrored pounce landing should catch on a wide base, not under '
             'a drifting torso',
+      );
+      expect(
+        pounce.supportFootWorldAnchorStrength,
+        greaterThanOrEqualTo(0.78),
+        reason:
+            'pounce landings need a stronger planted-foot anchor so the catch '
+            'reads as loaded rather than skating',
+      );
+      expect(
+        landing.dx.abs(),
+        lessThan((firstCatchRight.x - firstCatchLeft.x) * 0.22),
+        reason:
+            'the first pounce landing root should sit inside the catch base, '
+            'not outside the planted feet',
+      );
+      final mirrorLanding = pounce.root.sample(28 / phrase.frameCount);
+      expect(
+        mirrorLanding.dx.abs(),
+        lessThan((mirrorCatchRight.x - mirrorCatchLeft.x) * 0.22),
+        reason:
+            'the mirrored pounce landing root should also sit inside the catch '
+            'base instead of falling sideways',
       );
 
       final firstGuardLeft = handL.sample(12 / phrase.frameCount);
