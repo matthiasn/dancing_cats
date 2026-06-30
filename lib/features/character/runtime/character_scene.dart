@@ -389,10 +389,9 @@ class CharacterScene {
   ) {
     final parentId = bone.parent;
     if (parentId == null) return pose.rootRotation;
-    final parentWorld = world[parentId];
-    return parentWorld == null
-        ? pose.rootRotation
-        : _worldRotation(parentWorld);
+    // Bones are solved in topological order, so a non-root bone's parent world
+    // transform is always present by the time we read it here.
+    return _worldRotation(world[parentId]!);
   }
 
   double _localPivotAngle(Bone child) => math.atan2(child.pivotY, child.pivotX);

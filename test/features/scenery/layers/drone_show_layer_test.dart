@@ -399,5 +399,42 @@ void main() {
       );
       recorder.endRecording().dispose();
     });
+
+    test(
+      'paints lit halos and cores for the reduce-motion hold frame',
+      () async {
+        // A runtime (non-const) construction so the default constructor is
+        // exercised, then a reduce-motion paint: that pins the show to its
+        // formation hold where every drone is lit, driving the additive
+        // halo + core draw path (not just the unlit dark-body dots).
+        // ignore: prefer_const_constructors
+        final layer = DroneShowLayer(droneCount: 24);
+        const w = 320;
+        const h = 180;
+        final recorder = ui.PictureRecorder();
+        layer.paint(
+          ui.Canvas(recorder),
+          const BackdropContext(
+            size: ui.Size(320, 180),
+            timeSeconds: 3, // ignored under reduce-motion (pins to the hold)
+            palette: kBlueHourPalette,
+            reducedMotion: true,
+          ),
+        );
+        final image = await recorder.endRecording().toImage(w, h);
+        final data = (await image.toByteData())!.buffer.asUint8List();
+        image.dispose();
+
+        var litPixels = 0;
+        for (var i = 3; i < data.length; i += 4) {
+          if (data[i] != 0) litPixels++;
+        }
+        expect(
+          litPixels,
+          greaterThan(0),
+          reason: 'lit formation drones add halos + bright cores to the frame',
+        );
+      },
+    );
   });
 }

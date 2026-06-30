@@ -27,6 +27,14 @@ void main() {
     downbeatIndices: const [0, 4, 8],
   );
 
+  group('BeatMap.beatCount', () {
+    test('reports the number of detected grid anchors', () {
+      final map = steady();
+      expect(map.beatCount, 9);
+      expect(map.beatCount, map.beatTimesSec.length);
+    });
+  });
+
   group('BeatMap.beatAt / timeAtBeat', () {
     test('maps wall-clock time to fractional beat index on a steady grid', () {
       final map = steady();

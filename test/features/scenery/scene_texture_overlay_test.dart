@@ -2,7 +2,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:dancing_cats/features/scenery/scene_texture_overlay.dart';
-import 'package:flutter/rendering.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 const _w = 240;
@@ -81,5 +81,51 @@ void main() {
       );
       recorder.endRecording().dispose();
     });
+
+    test('shouldRepaint tracks both the grain and the vignette budgets', () {
+      const base = SceneTexturePainter(
+        grainOpacity: 0.04,
+        vignetteStrength: 0.07,
+      );
+
+      // First clause: grain differs.
+      expect(
+        base.shouldRepaint(
+          const SceneTexturePainter(grainOpacity: 0.09, vignetteStrength: 0.07),
+        ),
+        isTrue,
+      );
+      // Grain equal, so evaluation falls through to the vignette clause.
+      expect(
+        base.shouldRepaint(
+          const SceneTexturePainter(grainOpacity: 0.04, vignetteStrength: 0.2),
+        ),
+        isTrue,
+      );
+      expect(base.shouldRepaint(base), isFalse);
+    });
+  });
+
+  group('SceneTextureOverlay (widget)', () {
+    testWidgets(
+      'builds a SceneTexturePainter carrying its configured budgets',
+      (
+        tester,
+      ) async {
+        await tester.pumpWidget(
+          const SceneTextureOverlay(grainOpacity: 0.05, vignetteStrength: 0.07),
+        );
+
+        expect(tester.takeException(), isNull);
+        expect(find.byType(SceneTextureOverlay), findsOneWidget);
+        final painter = tester
+            .widgetList<CustomPaint>(find.byType(CustomPaint))
+            .map((p) => p.painter)
+            .whereType<SceneTexturePainter>()
+            .single;
+        expect(painter.grainOpacity, 0.05);
+        expect(painter.vignetteStrength, 0.07);
+      },
+    );
   });
 }

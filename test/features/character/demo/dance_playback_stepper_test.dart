@@ -118,5 +118,18 @@ void main() {
       // 'chorus' is a group hook → the backups sing the lead word too.
       expect(stepper.bgMouth, greaterThan(0.4));
     });
+
+    test('the backup viseme getter tracks the active cue on a group hook', () {
+      // 'B' is the singEe viseme, distinct from the singAh rest default, so the
+      // bgShape getter demonstrably reflects the cue the backups are singing.
+      const cues = [(start: 0.0, end: 1.0, shape: 'B')];
+      final perf = _perf(
+        words: const [
+          (start: 0, end: 2, word: 'oh', voice: 'lead', section: 'chorus'),
+        ],
+      );
+      final stepper = DancePlaybackStepper()..advance(perf, cues, 0.5, 0.06);
+      expect(stepper.bgShape, MouthShape.singEe);
+    });
   });
 }

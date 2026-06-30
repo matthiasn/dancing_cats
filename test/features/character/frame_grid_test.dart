@@ -33,12 +33,67 @@ import 'package:flutter_test/flutter_test.dart';
 /// | `GRID_EXPRESSION`    | neutral/content/happy/surprised/sad/angry| content |
 /// | `GRID_ONION`         | also write `<clip>_onion.png` (1/0)      | 1       |
 /// | `GRID_DANCE_CAMERA`  | enable dance trio camera move (1/0)      | 1       |
+/// | `GRID_VIEWS`         | comma list: front,quarter,quarterLeft,quarterRight | front |
 ///
 /// Run a single motion densely, for example:
 /// ```sh
 /// GRID_CLIPS=walk GRID_FRAMES=36 GRID_COLS=6 \
 ///   fvm flutter test test/features/character/frame_grid_test.dart
 /// ```
+class _ReviewView {
+  const _ReviewView({
+    required this.name,
+    required this.fileSuffix,
+    required this.foreshortenX,
+    required this.shearX,
+  });
+
+  final String name;
+  final String fileSuffix;
+  final double foreshortenX;
+  final double shearX;
+
+  bool get isFront => fileSuffix.isEmpty;
+
+  Affine2D baseAt({
+    required double x,
+    required double y,
+    required double scale,
+  }) {
+    return Affine2D.translation(x, y).multiply(
+      Affine2D(foreshortenX * scale, 0, shearX * scale, scale, 0, 0),
+    );
+  }
+}
+
+const _frontView = _ReviewView(
+  name: 'front',
+  fileSuffix: '',
+  foreshortenX: 1,
+  shearX: 0,
+);
+
+const _quarterView = _ReviewView(
+  name: 'quarter',
+  fileSuffix: 'quarter',
+  foreshortenX: 0.82,
+  shearX: 0.08,
+);
+
+const _quarterLeftView = _ReviewView(
+  name: 'quarterLeft',
+  fileSuffix: 'quarter_left',
+  foreshortenX: 0.82,
+  shearX: -0.08,
+);
+
+const _quarterRightView = _ReviewView(
+  name: 'quarterRight',
+  fileSuffix: 'quarter_right',
+  foreshortenX: 0.82,
+  shearX: 0.08,
+);
+
 void main() {
   // Cell geometry. Large enough to read a single pose; the body is ~310 units
   // tall at scale 1, so scale 0.62 → ~190px and fits with headroom + ground.
@@ -72,6 +127,9 @@ void main() {
   final live = (env['GRID_LIVE'] ?? '1') == '1';
   final enableDanceCamera = (env['GRID_DANCE_CAMERA'] ?? '1') != '0';
   final expression = _expressionByName(env['GRID_EXPRESSION'] ?? 'content');
+  final reviewViews = _reviewViewsByName(
+    env['GRID_VIEWS'] ?? env['GRID_VIEW'] ?? 'front',
+  );
 
   final clipsByName = <String, Clip>{
     for (final c in CatClips.all) c.name: c,
@@ -116,13 +174,14 @@ void main() {
   }
 
   // Places frame [i]'s character at the centre of its grid cell.
-  Affine2D cellBase(int i) {
+  Affine2D cellBase(int i, _ReviewView view) {
     final col = i % cols;
     final row = i ~/ cols;
-    return Affine2D.translation(
-      col * cellW + centreX,
-      row * cellH + hipsY,
-    ).multiply(Affine2D.scale(scale, scale));
+    return view.baseAt(
+      x: col * cellW + centreX,
+      y: row * cellH + hipsY,
+      scale: scale,
+    );
   }
 
   void drawLabel(Canvas canvas, String text, double x, double y) {
@@ -146,6 +205,7 @@ void main() {
     CharacterScene scene,
     Clip clip,
     int frames,
+    _ReviewView view,
   ) async {
     final rows = (frames / cols).ceil();
     final width = cellW * cols;
@@ -187,13 +247,13 @@ void main() {
         clip: clip,
         timeSeconds: t,
         expression: expression,
-        base: cellBase(i),
+        base: cellBase(i, view),
       );
       renderer.paint(canvas, scene.rig, frame.world, frame.face);
 
       drawLabel(
         canvas,
-        '#$i  p=${p.toStringAsFixed(2)}',
+        '#$i  p=${p.toStringAsFixed(2)}  ${view.name}',
         cx + 6,
         cy + 5,
       );
@@ -209,6 +269,7 @@ void main() {
     CharacterScene scene,
     Clip clip,
     int frames,
+    _ReviewView view,
   ) async {
     final span = clip.duration;
     final recorder = ui.PictureRecorder();
@@ -225,10 +286,7 @@ void main() {
         Paint()..color = ground,
       );
 
-    final base = Affine2D.translation(
-      centreX,
-      hipsY,
-    ).multiply(Affine2D.scale(scale, scale));
+    final base = view.baseAt(x: centreX, y: hipsY, scale: scale);
 
     for (var i = 0; i < frames; i++) {
       final t = sampleTime(clip, i, frames, span);
@@ -249,7 +307,7 @@ void main() {
       canvas.restore();
     }
 
-    drawLabel(canvas, 'onion: ${clip.name} ($frames)', 6, 5);
+    drawLabel(canvas, 'onion: ${clip.name} ${view.name} ($frames)', 6, 5);
     return _pngOf(recorder.endRecording(), cellW.round(), cellH.round());
   }
 
@@ -259,6 +317,7 @@ void main() {
     Clip clip,
     int i,
     int frames,
+    _ReviewView view,
   ) async {
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
@@ -269,10 +328,7 @@ void main() {
         const Rect.fromLTWH(0, groundY, cellW, cellH - groundY),
         Paint()..color = ground,
       );
-    final base = Affine2D.translation(
-      centreX,
-      hipsY,
-    ).multiply(Affine2D.scale(scale, scale));
+    final base = view.baseAt(x: centreX, y: hipsY, scale: scale);
     final frame = scene.frameAt(
       clip: clip,
       timeSeconds: sampleTime(clip, i, frames, clip.duration),
@@ -506,36 +562,39 @@ void main() {
         final frames =
             int.tryParse(env['GRID_FRAMES'] ?? '') ?? (clip.loop ? 24 : 32);
 
-        final grid = await renderGrid(scene, clip, frames);
-        File('${outputDir.path}/${name}_grid.png').writeAsBytesSync(grid);
-        expect(
-          await _nonBlankPixels(grid),
-          greaterThan(2000),
-          reason: '$name grid should paint the character',
-        );
-        // ignore: avoid_print
-        print('wrote ${outputDir.path}/${name}_grid.png ($frames frames)');
-
-        if (onion) {
-          final onionPng = await renderOnion(scene, clip, frames);
-          File(
-            '${outputDir.path}/${name}_onion.png',
-          ).writeAsBytesSync(onionPng);
+        for (final view in reviewViews) {
+          final grid = await renderGrid(scene, clip, frames, view);
+          final gridPath = _viewedPngPath(outputDir, name, view, 'grid');
+          File(gridPath).writeAsBytesSync(grid);
+          expect(
+            await _nonBlankPixels(grid),
+            greaterThan(2000),
+            reason: '$name ${view.name} grid should paint the character',
+          );
           // ignore: avoid_print
-          print('wrote ${outputDir.path}/${name}_onion.png');
-        }
+          print('wrote $gridPath ($frames frames)');
 
-        if (frameSeq) {
-          final seqDir = Directory('${outputDir.path}/seq_$name')
-            ..createSync(recursive: true);
-          for (var i = 0; i < frames; i++) {
-            final png = await renderFrame(scene, clip, i, frames);
-            File(
-              '${seqDir.path}/f${i.toString().padLeft(3, '0')}.png',
-            ).writeAsBytesSync(png);
+          if (onion) {
+            final onionPng = await renderOnion(scene, clip, frames, view);
+            final onionPath = _viewedPngPath(outputDir, name, view, 'onion');
+            File(onionPath).writeAsBytesSync(onionPng);
+            // ignore: avoid_print
+            print('wrote $onionPath');
           }
-          // ignore: avoid_print
-          print('wrote ${seqDir.path}/ ($frames frames)');
+
+          if (frameSeq) {
+            final seqDir = Directory(
+              '${outputDir.path}/seq_$name${_viewDirSuffix(view)}',
+            )..createSync(recursive: true);
+            for (var i = 0; i < frames; i++) {
+              final png = await renderFrame(scene, clip, i, frames, view);
+              File(
+                '${seqDir.path}/f${i.toString().padLeft(3, '0')}.png',
+              ).writeAsBytesSync(png);
+            }
+            // ignore: avoid_print
+            print('wrote ${seqDir.path}/ ($frames frames)');
+          }
         }
 
         if (live) {
@@ -577,6 +636,38 @@ void main() {
     });
   });
 }
+
+List<_ReviewView> _reviewViewsByName(String value) {
+  final views = <_ReviewView>[];
+  for (final rawName in value.split(',')) {
+    final name = rawName.trim().replaceAll('-', '').replaceAll('_', '');
+    final view = switch (name.toLowerCase()) {
+      'front' => _frontView,
+      'quarter' => _quarterView,
+      'quarterleft' || 'leftquarter' => _quarterLeftView,
+      'quarterright' || 'rightquarter' => _quarterRightView,
+      _ => null,
+    };
+    if (view == null) continue;
+    if (!views.any((existing) => existing.fileSuffix == view.fileSuffix)) {
+      views.add(view);
+    }
+  }
+  return views.isEmpty ? const [_frontView] : views;
+}
+
+String _viewedPngPath(
+  Directory outputDir,
+  String clipName,
+  _ReviewView view,
+  String kind,
+) {
+  final suffix = view.isFront ? '' : '_${view.fileSuffix}';
+  return '${outputDir.path}/$clipName${suffix}_$kind.png';
+}
+
+String _viewDirSuffix(_ReviewView view) =>
+    view.isFront ? '' : '_${view.fileSuffix}';
 
 Expression _expressionByName(String name) => Expression.presets.firstWhere(
   (e) => e.name == name,

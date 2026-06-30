@@ -2,6 +2,11 @@ import 'package:dancing_cats/features/character/model/clip.dart';
 import 'package:dancing_cats/features/character/model/easing.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+/// Returns [value] unchanged, but as a *runtime* value the compiler cannot fold
+/// into a constant. Used to force a `const` constructor to run at runtime (so
+/// its body is counted by coverage) instead of being const-canonicalised away.
+T _runtime<T>(T value) => value;
+
 void main() {
   group('SineChannel', () {
     test('amplitude and phase shape the rotation', () {
@@ -33,6 +38,20 @@ void main() {
     test('scaleY oscillation defaults to a flat 1', () {
       const ch = SineChannel(amplitude: 1);
       expect(ch.sample(0.3).scaleY, 1);
+    });
+
+    test('a runtime-built channel still samples its rotation and scale', () {
+      // Built from a non-const argument so the const constructor body runs at
+      // runtime; a pure-const call would be folded out of coverage.
+      final ch = SineChannel(
+        amplitude: _runtime<double>(2),
+        scaleYAmplitude: -0.1,
+      );
+      expect(ch.sample(0).rotation, closeTo(0, 1e-9));
+      expect(ch.sample(0.25).rotation, closeTo(2, 1e-9));
+      expect(ch.sample(0.75).rotation, closeTo(-2, 1e-9));
+      // scaleY = 1 + (-0.1)*sin(2π·0.25) = 0.9.
+      expect(ch.sample(0.25).scaleY, closeTo(0.9, 1e-9));
     });
   });
 
@@ -90,6 +109,20 @@ void main() {
       const empty = KeyframeChannel(<Keyframe>[]);
       expect(empty.sample(0.5).rotation, 0);
       expect(empty.sample(0.5).scaleY, 1);
+    });
+
+    test('a non-zero phase shifts and wraps the sample point', () {
+      const shifted = KeyframeChannel([
+        Keyframe(p: 0),
+        Keyframe(p: 0.5, rotation: 1, ease: Ease.linear),
+        Keyframe(p: 1, ease: Ease.linear),
+      ], phase: 0.5);
+
+      // rawP 0 -> p 0.5 (the mid key), rawP 0.5 -> p 0 (wraps past 1),
+      // rawP 0.75 -> p 0.25 (halfway up the leading-in linear segment).
+      expect(shifted.sample(0).rotation, closeTo(1, 1e-9));
+      expect(shifted.sample(0.5).rotation, closeTo(0, 1e-9));
+      expect(shifted.sample(0.75).rotation, closeTo(0.5, 1e-9));
     });
 
     group('smooth (periodic spline)', () {
@@ -214,6 +247,14 @@ void main() {
       expect(sample.x, 12);
       expect(sample.y, -8);
       expect(sample.weight, 0.4);
+    });
+
+    test('a runtime-built fixed target holds its point at any phase', () {
+      // Non-const argument forces the const constructor to run at runtime.
+      final channel = FixedIkTargetChannel(x: 12, y: -8, weight: _runtime(0.4));
+      expect(channel.sample(0).x, 12);
+      expect(channel.sample(0).y, -8);
+      expect(channel.sample(0.72).weight, 0.4);
     });
 
     test('layered targets preserve base weight and add weighted offsets', () {

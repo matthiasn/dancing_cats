@@ -67,6 +67,50 @@ DancePerformance _perf({
 }
 
 void main() {
+  group('DancePerformance.fromBeatMapJson', () {
+    test('assembles waveform-classified sections and lyric spans', () {
+      final map = _beatMap();
+      final perf = DancePerformance.fromBeatMapJson(
+        json: const {
+          // First half silent, second half loud — drives the energy classify.
+          'waveform': [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
+          'sections': [
+            {'start_sec': 0, 'end_sec': 5, 'label': 'quiet'},
+            {'start_sec': 5, 'end_sec': 10, 'label': 'loud'},
+          ],
+        },
+        map: map,
+        trackDurationSec: 10,
+        words: const [
+          (start: 0, end: 0.5, word: 'a', voice: 'lead', section: 'verse'),
+          (start: 2, end: 2.5, word: 'b', voice: 'lead', section: 'chorus'),
+        ],
+      );
+
+      expect(identical(perf.map, map), isTrue);
+      expect(perf.trackDurationSec, 10);
+      // The embedded waveform classifies the long quiet head as calm and the
+      // loud tail as energetic — exactly as classifyDanceSections would.
+      expect(perf.sections.map((s) => s.label), ['quiet', 'loud']);
+      expect(perf.sections[0].energetic, isFalse);
+      expect(perf.sections[1].energetic, isTrue);
+      // The lyrics become the semantic section spans.
+      expect(perf.sectionSpans.map((s) => s.section), ['verse', 'chorus']);
+      expect(perf.words, hasLength(2));
+    });
+
+    test('tolerates a document with no waveform and no sections', () {
+      final perf = DancePerformance.fromBeatMapJson(
+        json: const {},
+        map: _beatMap(),
+        trackDurationSec: 6,
+      );
+      expect(perf.sections, isEmpty);
+      expect(perf.sectionSpans, isEmpty);
+      expect(perf.words, isEmpty);
+    });
+  });
+
   group('classifyDanceSections', () {
     test('without amplitudes every section is energetic at full level', () {
       final out = classifyDanceSections(

@@ -82,5 +82,14 @@ void main() {
       final world = solver.solve(const Pose(joints: {}));
       expect(world.keys, containsAll(<String>['upper', 'lower']));
     });
+
+    test('boneFor resolves a known id and is null for an unknown one', () {
+      final solver = SkeletonSolver(armRig());
+      final lower = solver.boneFor('lower');
+      expect(lower, isNotNull);
+      expect(lower!.id, 'lower');
+      expect(lower.parent, 'upper');
+      expect(solver.boneFor('no-such-bone'), isNull);
+    });
   });
 }

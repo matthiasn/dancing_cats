@@ -18,6 +18,11 @@ const _sections = <DanceWaveformSection>[
   DanceWaveformSection(start: 0, end: 72, label: 'A'),
   DanceWaveformSection(start: 72, end: 144.06, label: 'B'),
 ];
+const _hueSections = <DanceWaveformSection>[
+  DanceWaveformSection(start: 0, end: 48, label: 'pre-chorus'),
+  DanceWaveformSection(start: 48, end: 96, label: 'post-chorus'),
+  DanceWaveformSection(start: 96, end: 144.06, label: 'chorus'),
+];
 
 Future<_Recorder> _pump(
   WidgetTester tester, {
@@ -183,6 +188,46 @@ void main() {
       // Tapping the horizontal centre seeks to ~half the track.
       expect(rec.seek, isNotNull);
       expect(rec.seek, closeTo(144.06 / 2, 144.06 * 0.08));
+    });
+
+    testWidgets('dragging the timeline scrubs the playhead', (tester) async {
+      final rec = await _pump(tester);
+
+      await tester.drag(
+        find.byKey(const Key('danceTimeline')),
+        const Offset(160, 0),
+      );
+      await tester.pump();
+
+      // The horizontal-drag handler seeks proportionally, like the tap handler.
+      expect(rec.seek, isNotNull);
+      expect(rec.seek, inInclusiveRange(0, 144.06));
+    });
+
+    testWidgets('the timeline paints recurring pre/post-chorus hues', (
+      tester,
+    ) async {
+      await _pump(
+        tester,
+        sections: _hueSections,
+        sectionLabel: 'pre-chorus',
+      );
+      // The waveform/section painter ran (no placeholder), so the structural
+      // hue lookup resolved the pre-chorus → amber and post-chorus → rose bands.
+      expect(find.byKey(const Key('danceTimeline')), findsOneWidget);
+      expect(find.textContaining('no waveform in beat map'), findsNothing);
+      // The now-playing readout shows the active section, uppercased.
+      expect(find.text('PRE-CHORUS'), findsOneWidget);
+    });
+
+    testWidgets('the timeline painter is consulted for repaint on rebuild', (
+      tester,
+    ) async {
+      await _pump(tester);
+      // Re-pump the identical tree: the CustomPaint receives a fresh painter
+      // instance and must compare it against the previous one via shouldRepaint.
+      await _pump(tester);
+      expect(find.byKey(const Key('danceTimeline')), findsOneWidget);
     });
 
     testWidgets('empty waveform shows the regenerate hint', (tester) async {

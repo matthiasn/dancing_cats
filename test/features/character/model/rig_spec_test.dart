@@ -2,6 +2,36 @@ import 'package:dancing_cats/features/character/model/bone.dart';
 import 'package:dancing_cats/features/character/model/rig_spec.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+/// Returns [value] unchanged, but as a *runtime* value the compiler cannot fold
+/// into a constant. Used to force a `const` constructor to run at runtime (so
+/// its body is counted by coverage) instead of being const-canonicalised away.
+T _runtime<T>(T value) => value;
+
+/// Two parent->child bones every ribbon/mesh fixture below can reference.
+const _twoBones = [
+  Bone(id: 'a', parent: null, pivotX: 0, pivotY: 0, z: 0),
+  Bone(id: 'b', parent: 'a', pivotX: 0, pivotY: 10, z: 1),
+];
+
+RigSpec _rigWithRibbons(List<LimbRibbonSpec> ribbons) =>
+    RigSpec(name: 'r', bones: _twoBones, ribbons: ribbons);
+
+RigSpec _rigWithMeshes(List<SkinnedMeshSpec> meshes) =>
+    RigSpec(name: 'r', bones: _twoBones, meshes: meshes);
+
+/// A fully-valid triangular mesh skinned to bone `a` (weights sum to 1).
+SkinnedMeshSpec _validMesh(String id, {required int z}) => SkinnedMeshSpec(
+  id: id,
+  vertices: const [
+    SkinnedMeshVertex([MeshInfluence(boneId: 'a', x: 0, y: 0, weight: 1)]),
+    SkinnedMeshVertex([MeshInfluence(boneId: 'a', x: 1, y: 0, weight: 1)]),
+    SkinnedMeshVertex([MeshInfluence(boneId: 'a', x: 0, y: 1, weight: 1)]),
+  ],
+  boundary: const [0, 1, 2],
+  z: z,
+  color: 0xFFFFFFFF,
+);
+
 void main() {
   group('RigSpec', () {
     test('topoOrder visits every parent before its children', () {
@@ -317,6 +347,327 @@ void main() {
           ),
         ),
       );
+    });
+
+    test('throws on a duplicate ribbon id', () {
+      expect(
+        () => _rigWithRibbons([
+          LimbRibbonSpec(
+            id: 'dup',
+            jointBoneIds: const ['a', 'b'],
+            halfWidths: const [4, 3],
+            z: 0,
+            color: 0xFFFFFFFF,
+          ),
+          LimbRibbonSpec(
+            id: 'dup',
+            jointBoneIds: const ['a', 'b'],
+            halfWidths: const [4, 3],
+            z: 1,
+            color: 0xFFFFFFFF,
+          ),
+        ]),
+        throwsA(
+          isA<ArgumentError>().having(
+            (e) => e.message,
+            'message',
+            contains('Duplicate ribbon id'),
+          ),
+        ),
+      );
+    });
+
+    test('throws when a ribbon has fewer than two joints', () {
+      expect(
+        () => _rigWithRibbons([
+          LimbRibbonSpec(
+            id: 'short',
+            jointBoneIds: const ['a'],
+            halfWidths: const [4],
+            z: 0,
+            color: 0xFFFFFFFF,
+          ),
+        ]),
+        throwsA(
+          isA<ArgumentError>().having(
+            (e) => e.message,
+            'message',
+            contains('at least two joints'),
+          ),
+        ),
+      );
+    });
+
+    test('throws when ribbon joints and half-widths disagree in length', () {
+      expect(
+        () => _rigWithRibbons([
+          LimbRibbonSpec(
+            id: 'mismatch',
+            jointBoneIds: const ['a', 'b'],
+            halfWidths: const [4, 3, 2],
+            z: 0,
+            color: 0xFFFFFFFF,
+          ),
+        ]),
+        throwsA(
+          isA<ArgumentError>().having(
+            (e) => e.message,
+            'message',
+            allOf(contains('2 joints'), contains('3 half-widths')),
+          ),
+        ),
+      );
+    });
+
+    test('throws when a ribbon has non-positive samplesPerSegment', () {
+      expect(
+        () => _rigWithRibbons([
+          LimbRibbonSpec(
+            id: 'samples',
+            jointBoneIds: const ['a', 'b'],
+            halfWidths: const [4, 3],
+            z: 0,
+            color: 0xFFFFFFFF,
+            samplesPerSegment: 0,
+          ),
+        ]),
+        throwsA(
+          isA<ArgumentError>().having(
+            (e) => e.message,
+            'message',
+            contains('samplesPerSegment must be positive'),
+          ),
+        ),
+      );
+    });
+
+    test('throws when a ribbon half-width is not positive', () {
+      expect(
+        () => _rigWithRibbons([
+          LimbRibbonSpec(
+            id: 'width',
+            jointBoneIds: const ['a', 'b'],
+            halfWidths: const [4, 0],
+            z: 0,
+            color: 0xFFFFFFFF,
+          ),
+        ]),
+        throwsA(
+          isA<ArgumentError>().having(
+            (e) => e.message,
+            'message',
+            contains('half-widths must be positive'),
+          ),
+        ),
+      );
+    });
+
+    test('throws on a duplicate mesh id', () {
+      expect(
+        () =>
+            _rigWithMeshes([_validMesh('dup', z: 0), _validMesh('dup', z: 1)]),
+        throwsA(
+          isA<ArgumentError>().having(
+            (e) => e.message,
+            'message',
+            contains('Duplicate mesh id'),
+          ),
+        ),
+      );
+    });
+
+    test('throws when a mesh has fewer than three vertices', () {
+      expect(
+        () => _rigWithMeshes([
+          SkinnedMeshSpec(
+            id: 'thin',
+            vertices: const [
+              SkinnedMeshVertex([
+                MeshInfluence(boneId: 'a', x: 0, y: 0, weight: 1),
+              ]),
+              SkinnedMeshVertex([
+                MeshInfluence(boneId: 'a', x: 1, y: 0, weight: 1),
+              ]),
+            ],
+            boundary: const [0, 1],
+            z: 0,
+            color: 0xFFFFFFFF,
+          ),
+        ]),
+        throwsA(
+          isA<ArgumentError>().having(
+            (e) => e.message,
+            'message',
+            contains('at least three vertices'),
+          ),
+        ),
+      );
+    });
+
+    test('throws when a mesh has no boundary loop', () {
+      expect(
+        () => _rigWithMeshes([
+          SkinnedMeshSpec(
+            id: 'noloop',
+            vertices: const [
+              SkinnedMeshVertex([
+                MeshInfluence(boneId: 'a', x: 0, y: 0, weight: 1),
+              ]),
+              SkinnedMeshVertex([
+                MeshInfluence(boneId: 'a', x: 1, y: 0, weight: 1),
+              ]),
+              SkinnedMeshVertex([
+                MeshInfluence(boneId: 'a', x: 0, y: 1, weight: 1),
+              ]),
+            ],
+            boundary: const [0, 1],
+            z: 0,
+            color: 0xFFFFFFFF,
+          ),
+        ]),
+        throwsA(
+          isA<ArgumentError>().having(
+            (e) => e.message,
+            'message',
+            contains('needs a boundary loop'),
+          ),
+        ),
+      );
+    });
+
+    test('throws when a mesh boundary index is out of range', () {
+      expect(
+        () => _rigWithMeshes([
+          SkinnedMeshSpec(
+            id: 'oob',
+            vertices: const [
+              SkinnedMeshVertex([
+                MeshInfluence(boneId: 'a', x: 0, y: 0, weight: 1),
+              ]),
+              SkinnedMeshVertex([
+                MeshInfluence(boneId: 'a', x: 1, y: 0, weight: 1),
+              ]),
+              SkinnedMeshVertex([
+                MeshInfluence(boneId: 'a', x: 0, y: 1, weight: 1),
+              ]),
+            ],
+            boundary: const [0, 1, 5],
+            z: 0,
+            color: 0xFFFFFFFF,
+          ),
+        ]),
+        throwsA(
+          isA<ArgumentError>().having(
+            (e) => e.message,
+            'message',
+            contains('boundary index 5 is out of range'),
+          ),
+        ),
+      );
+    });
+
+    test('throws when a mesh vertex has no influences', () {
+      expect(
+        () => _rigWithMeshes([
+          SkinnedMeshSpec(
+            id: 'unweighted',
+            vertices: const [
+              SkinnedMeshVertex([]),
+              SkinnedMeshVertex([
+                MeshInfluence(boneId: 'a', x: 1, y: 0, weight: 1),
+              ]),
+              SkinnedMeshVertex([
+                MeshInfluence(boneId: 'a', x: 0, y: 1, weight: 1),
+              ]),
+            ],
+            boundary: const [0, 1, 2],
+            z: 0,
+            color: 0xFFFFFFFF,
+          ),
+        ]),
+        throwsA(
+          isA<ArgumentError>().having(
+            (e) => e.message,
+            'message',
+            contains('unweighted vertex'),
+          ),
+        ),
+      );
+    });
+
+    test('throws when a mesh influence weight is not positive', () {
+      expect(
+        () => _rigWithMeshes([
+          SkinnedMeshSpec(
+            id: 'badweight',
+            vertices: const [
+              SkinnedMeshVertex([
+                MeshInfluence(boneId: 'a', x: 0, y: 0, weight: 0),
+              ]),
+              SkinnedMeshVertex([
+                MeshInfluence(boneId: 'a', x: 1, y: 0, weight: 1),
+              ]),
+              SkinnedMeshVertex([
+                MeshInfluence(boneId: 'a', x: 0, y: 1, weight: 1),
+              ]),
+            ],
+            boundary: const [0, 1, 2],
+            z: 0,
+            color: 0xFFFFFFFF,
+          ),
+        ]),
+        throwsA(
+          isA<ArgumentError>().having(
+            (e) => e.message,
+            'message',
+            contains('weights must be positive'),
+          ),
+        ),
+      );
+    });
+
+    test('throws when a mesh hides a missing bone', () {
+      expect(
+        () => _rigWithMeshes([
+          SkinnedMeshSpec(
+            id: 'hide',
+            vertices: const [
+              SkinnedMeshVertex([
+                MeshInfluence(boneId: 'a', x: 0, y: 0, weight: 1),
+              ]),
+              SkinnedMeshVertex([
+                MeshInfluence(boneId: 'a', x: 1, y: 0, weight: 1),
+              ]),
+              SkinnedMeshVertex([
+                MeshInfluence(boneId: 'a', x: 0, y: 1, weight: 1),
+              ]),
+            ],
+            boundary: const [0, 1, 2],
+            hiddenBoneIds: const ['ghost'],
+            z: 0,
+            color: 0xFFFFFFFF,
+          ),
+        ]),
+        throwsA(
+          isA<ArgumentError>().having(
+            (e) => e.message,
+            'message',
+            contains('references missing bone "ghost"'),
+          ),
+        ),
+      );
+    });
+
+    test('a runtime cel-shade spec keeps defaults and attaches to a rig', () {
+      // Non-const argument forces the const CelShadeSpec constructor to run at
+      // runtime so its body is counted.
+      final shade = CelShadeSpec(shadowFactor: _runtime(0.5));
+      expect(shade.shadowFactor, 0.5);
+      expect(shade.coolTint, 0xFF243349);
+      expect(shade.coverage, closeTo(0.42, 1e-9));
+
+      final rig = RigSpec(name: 'r', bones: _twoBones, celShade: shade);
+      expect(rig.celShade, same(shade));
     });
   });
 }

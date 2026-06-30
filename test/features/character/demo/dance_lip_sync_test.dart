@@ -50,6 +50,31 @@ void main() {
     });
   });
 
+  group('danceSingExpression', () {
+    test('an essentially-shut mouth falls back to the base expression', () {
+      const base = Expression.content;
+      // Below the 0.04 threshold → the upper face isn't disturbed at all.
+      final result = danceSingExpression(0.02, base, MouthShape.singAh);
+      expect(identical(result, base), isTrue);
+    });
+
+    test('an open mouth sings on the viseme with an engaged upper face', () {
+      final result = danceSingExpression(
+        0.5,
+        Expression.neutral,
+        MouthShape.singOh,
+      );
+      expect(result.name, 'sing');
+      expect(result.state.mouthShape, MouthShape.singOh);
+      expect(result.state.mouthOpen, 0.5);
+      // brow = 0.18 + mouth·0.4 ; eye = 1 − mouth·0.18.
+      expect(result.state.browRaiseLeft, closeTo(0.38, 1e-9));
+      expect(result.state.browRaiseRight, closeTo(0.38, 1e-9));
+      expect(result.state.eyeOpenLeft, closeTo(0.91, 1e-9));
+      expect(result.state.eyeOpenRight, closeTo(0.91, 1e-9));
+    });
+  });
+
   group('cueShapeAt', () {
     const cues = <DanceCue>[
       (start: 0, end: 0.5, shape: 'B'),

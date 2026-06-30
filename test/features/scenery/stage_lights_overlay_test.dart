@@ -265,4 +265,78 @@ void main() {
       expect(base.shouldRepaint(base), isFalse);
     });
   });
+
+  group('StageLightsOverlay (widget)', () {
+    testWidgets('drops the follow state when anchors do not match the rig', (
+      tester,
+    ) async {
+      // Default (empty) dancerAnchors never match the 3-light rig, so the
+      // overlay falls back to the rig's own sweep instead of tracking feet.
+      await tester.pumpWidget(
+        const StageLightsOverlay(timeSeconds: 1, beat: 0.5),
+      );
+
+      expect(tester.takeException(), isNull);
+      expect(find.byType(StageLightsOverlay), findsOneWidget);
+      final painter = tester
+          .widgetList<CustomPaint>(find.byType(CustomPaint))
+          .map((p) => p.painter)
+          .whereType<StageLightsPainter>()
+          .single;
+      // Not following → no per-light overrides handed to the painter.
+      expect(painter.aimX, isNull);
+      expect(painter.footY, isNull);
+    });
+
+    testWidgets('reduced motion snaps a followed pool straight to the dancer', (
+      tester,
+    ) async {
+      await tester.runAsync(() async {
+        tester.view.physicalSize = const Size(200, 200);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        final key = GlobalKey();
+        Widget tree(double ax) => MaterialApp(
+          debugShowCheckedModeBanner: false,
+          home: RepaintBoundary(
+            key: key,
+            child: ColoredBox(
+              color: const Color(0xFF000000),
+              child: StageLightsOverlay(
+                timeSeconds: 0,
+                reducedMotion: true,
+                rig: const StageLightRig(count: 1, anchors: [0.2]),
+                dancerAnchors: [Offset(ax, 0.82)],
+              ),
+            ),
+          ),
+        );
+        Future<Uint8List> cap() async {
+          final b =
+              key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+          final img = await b.toImage();
+          final bytes = (await img.toByteData())!.buffer.asUint8List();
+          img.dispose();
+          return bytes;
+        }
+
+        // First build seeds the follow state on 0.2; the second build jumps the
+        // dancer to 0.8. Under reduce-motion the pool is pinned straight to the
+        // new spot in that single update — no lazy lag toward it.
+        await tester.pumpWidget(tree(0.2));
+        await tester.pumpWidget(tree(0.8));
+        final snapped = await cap();
+
+        expect(_lum(_at(snapped, 0.8, _poolY)), greaterThan(0.05));
+        expect(
+          _lum(_at(snapped, 0.8, _poolY)),
+          greaterThan(_lum(_at(snapped, 0.2, _poolY))),
+          reason:
+              'the pool snapped to the dancer, leaving the home anchor dark',
+        );
+      });
+    });
+  });
 }

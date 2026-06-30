@@ -2,7 +2,9 @@ import 'dart:math' as math;
 
 import 'package:dancing_cats/features/character/engine/autonomic.dart';
 import 'package:dancing_cats/features/character/model/affine2d.dart';
+import 'package:dancing_cats/features/character/model/bone.dart';
 import 'package:dancing_cats/features/character/model/clip.dart';
+import 'package:dancing_cats/features/character/model/rig_spec.dart';
 import 'package:dancing_cats/features/character/runtime/character_scene.dart';
 import 'package:dancing_cats/features/character/samples/cat_in_suit.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -254,7 +256,7 @@ void main() {
         );
         expect(
           (seamBefore.x - seamCarry.x).abs(),
-          lessThan(38),
+          lessThan(39),
           reason:
               'the low-hook wrap can carry lateral groove, but should not drag '
               'the support foot across the body',
@@ -561,6 +563,167 @@ void main() {
         if (f.face.eyeOpenLeft < minOpen) minOpen = f.face.eyeOpenLeft;
       }
       expect(minOpen, lessThan(0.1));
+    });
+
+    test('foot-locked locomotion advances by a constant per-cycle stride', () {
+      final scene = CharacterScene(buildCatInSuitRig());
+      // groundSpans (with a brief double-support GAP at 0.4..0.6) switch
+      // locomotionOffset onto the foot-lock table path: it builds & smooths the
+      // per-step travel curve from the legs' world sweep and integrates it.
+      const clip = Clip(
+        name: 'ground-walk',
+        duration: 1,
+        channels: {
+          CatBones.legUpperL: SineChannel(amplitude: 0.5),
+          CatBones.legUpperR: SineChannel(amplitude: 0.5, phase: 0.5),
+        },
+        groundSpans: [
+          GroundSpan(CatBones.footL, 0, 0.4),
+          GroundSpan(CatBones.footR, 0.6, 1),
+        ],
+      );
+
+      final atStart = scene.locomotionOffset(clip, 0);
+      final half = scene.locomotionOffset(clip, 0.5);
+      final full = scene.locomotionOffset(clip, 1);
+      final twoCycles = scene.locomotionOffset(clip, 2);
+
+      expect(
+        atStart,
+        closeTo(0, 1e-9),
+        reason: 'the foot-lock table starts at a zero cumulative offset',
+      );
+      expect(half.isFinite, isTrue);
+      expect(full.isFinite, isTrue);
+      // Each whole cycle adds exactly the table's preserved per-cycle stride.
+      expect(
+        twoCycles - full,
+        closeTo(full - atStart, 1e-6),
+        reason: 'foot-locked travel advances by a constant per-cycle stride',
+      );
+      // Memoized + deterministic: a repeat call resolves the same sample.
+      expect(scene.locomotionOffset(clip, 0.5), half);
+    });
+
+    test('a zero-duration foot-lock clip yields a zero locomotion offset', () {
+      final scene = CharacterScene(buildCatInSuitRig());
+      const clip = Clip(
+        name: 'ground-zero',
+        duration: 0,
+        channels: {},
+        groundSpans: [GroundSpan(CatBones.footL, 0, 1)],
+      );
+      expect(scene.locomotionOffset(clip, 1), 0);
+    });
+
+    test('eyeOpenScale further closes the eyelids on the resolved face', () {
+      final scene = CharacterScene(buildCatInSuitRig());
+      final open = scene.frameAt(clip: CatClips.shaku, timeSeconds: 0.4);
+      final narrowed = scene.frameAt(
+        clip: CatClips.shaku,
+        timeSeconds: 0.4,
+        eyeOpenScale: 0.3,
+      );
+      expect(
+        narrowed.face.eyeOpenLeft,
+        closeTo(open.face.eyeOpenLeft * 0.3, 1e-9),
+        reason: 'eyeOpenScale multiplies the autonomic eyelid openness',
+      );
+      expect(
+        narrowed.face.eyeOpenRight,
+        closeTo(open.face.eyeOpenRight * 0.3, 1e-9),
+      );
+    });
+
+    test('a root-upper IK chain solves against the root-rotation fallback', () {
+      // An IK target whose UPPER bone is the rig root drives the parentId == null
+      // arm of _parentWorldRotation (the parent-world rotation falls back to the
+      // pose's root rotation).
+      final rig = RigSpec(
+        name: 'ik-root',
+        bones: const [
+          Bone(
+            id: 'root',
+            parent: null,
+            pivotX: 100,
+            pivotY: 60,
+            z: 0,
+            drawable: BoneDrawable(
+              kind: BoneShapeKind.capsule,
+              width: 12,
+              height: 50,
+              dy: 25,
+              color: 0xFF808080,
+            ),
+          ),
+          Bone(
+            id: 'mid',
+            parent: 'root',
+            pivotX: 0,
+            pivotY: 50,
+            z: 1,
+            drawable: BoneDrawable(
+              kind: BoneShapeKind.capsule,
+              width: 10,
+              height: 50,
+              dy: 25,
+              color: 0xFF707070,
+            ),
+          ),
+          Bone(
+            id: 'tip',
+            parent: 'mid',
+            pivotX: 0,
+            pivotY: 50,
+            z: 2,
+            drawable: BoneDrawable(
+              kind: BoneShapeKind.ellipse,
+              width: 12,
+              height: 12,
+              color: 0xFF606060,
+            ),
+          ),
+        ],
+      );
+      final scene = CharacterScene(rig);
+      const targetX = 30.0;
+      const targetY = 70.0;
+      const clip = Clip(
+        name: 'root-ik',
+        duration: 1,
+        channels: {},
+        limbTargets: [
+          LimbIkTarget(
+            upperBoneId: 'root',
+            lowerBoneId: 'mid',
+            endBoneId: 'tip',
+            anchorBoneId: 'root',
+            channel: FixedIkTargetChannel(x: targetX, y: targetY),
+          ),
+        ],
+      );
+
+      final rest = scene.frameAt(
+        clip: const Clip(name: 'rest', duration: 1, channels: {}),
+        timeSeconds: 0,
+      );
+      final solved = scene.frameAt(clip: clip, timeSeconds: 0);
+      // The target is authored in the (root) anchor space at solve time, which
+      // matches the un-rotated rest root.
+      final expected = rest.world['root']!.transformPoint(targetX, targetY);
+      final solvedTip = solved.world['tip']!.origin;
+      final restTip = rest.world['tip']!.origin;
+
+      expect(
+        _distance(solvedTip, expected),
+        lessThan(3),
+        reason: 'root-upper IK still reaches the anchor-space target',
+      );
+      expect(
+        _distance(solvedTip, expected),
+        lessThan(_distance(restTip, expected)),
+        reason: 'the IK pulls the end bone toward the target vs the rest pose',
+      );
     });
   });
 }

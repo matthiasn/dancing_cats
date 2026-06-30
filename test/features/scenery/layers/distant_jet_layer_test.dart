@@ -58,6 +58,39 @@ Future<ui.Image> _fakeJetImage() {
   return recorder.endRecording().toImage(280, 72);
 }
 
+// A fully opaque 16:9 "skyline" plate: cover-fit over the viewport it blankets
+// the whole stage, so the dstOut occluder pass erases the jet entirely.
+Future<ui.Image> _fakeBridgeImage() {
+  final recorder = ui.PictureRecorder();
+  ui.Canvas(recorder).drawRect(
+    const ui.Rect.fromLTWH(0, 0, 320, 180),
+    ui.Paint()..color = const ui.Color(0xFF101820),
+  );
+  return recorder.endRecording().toImage(320, 180);
+}
+
+Future<Uint8List> _renderFrame(
+  double timeSeconds, {
+  required Map<String, ui.Image> images,
+  int w = 640,
+  int h = 360,
+}) async {
+  final recorder = ui.PictureRecorder();
+  const DistantJetLayer().paint(
+    Canvas(recorder),
+    BackdropContext(
+      size: ui.Size(w.toDouble(), h.toDouble()),
+      timeSeconds: timeSeconds,
+      palette: kBlueHourPalette,
+      images: images,
+    ),
+  );
+  final image = await recorder.endRecording().toImage(w, h);
+  final data = (await image.toByteData())!.buffer.asUint8List();
+  image.dispose();
+  return data;
+}
+
 int _paintedPixels(Uint8List px) {
   var n = 0;
   for (var i = 3; i < px.length; i += 4) {
@@ -269,5 +302,39 @@ void main() {
       );
       expect(_paintedPixels(px), 0);
     });
+
+    test(
+      'cuts the painted skyline occluder back out of the jet layer',
+      () async {
+        const t = kDistantJetStartDelaySeconds + kDistantJetPassSeconds * 0.5;
+        final jet = await _fakeJetImage();
+        final bridge = await _fakeBridgeImage();
+
+        final without = await _renderFrame(
+          t,
+          images: {SceneryAssets.lufthansa747: jet},
+        );
+        final withOccluder = await _renderFrame(
+          t,
+          images: {
+            SceneryAssets.lufthansa747: jet,
+            SceneryAssets.cityBridge: bridge,
+          },
+        );
+        jet.dispose();
+        bridge.dispose();
+
+        expect(_paintedPixels(without), greaterThan(0));
+        // The opaque skyline is composited with BlendMode.dstOut into the jet's
+        // save-layer, so wherever it covers it erases the aircraft + contrails.
+        expect(
+          _paintedPixels(withOccluder),
+          lessThan(_paintedPixels(without)),
+          reason:
+              'the skyline occluder must subtract from the jet, not add to it',
+        );
+        expect(_paintedPixels(withOccluder), lessThan(20));
+      },
+    );
   });
 }

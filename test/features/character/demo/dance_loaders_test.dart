@@ -103,5 +103,21 @@ void main() {
       expect(words, hasLength(1));
       expect(words.single.word, 'hi');
     });
+
+    test('a valid cues file round-trips through loadDanceCues', () async {
+      final file = File(p.join(dir.path, 'cues.json'))
+        ..writeAsStringSync(
+          jsonEncode({
+            'cues': [
+              {'start_sec': 0.0, 'end_sec': 0.2, 'shape': 'D'},
+              {'start_sec': 0.2, 'end_sec': 0.4},
+            ],
+          }),
+        );
+      final cues = await loadDanceCues(file.path);
+      expect(cues, hasLength(2));
+      expect(cues[0], (start: 0.0, end: 0.2, shape: 'D'));
+      expect(cues[1].shape, 'X', reason: 'missing shape defaults to rest');
+    });
   });
 }

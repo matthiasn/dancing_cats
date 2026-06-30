@@ -65,6 +65,31 @@ void main() {
       expect(creaseR.z, greaterThan(rig.bone(CatBones.armUpperR)!.z));
     });
 
+    test('sleeve values separate crossed arms from the jacket shell', () {
+      final torso = rig.bone(CatBones.torso)!.drawable!.color;
+      final farSleeve = rig.ribbons
+          .singleWhere((ribbon) => ribbon.id == 'arm.R.ribbon')
+          .color;
+      final nearSleeve = rig.ribbons
+          .singleWhere((ribbon) => ribbon.id == 'arm.L.ribbon')
+          .color;
+
+      expect(
+        _luma(farSleeve) - _luma(torso),
+        greaterThan(24),
+        reason:
+            'the far sleeve must not melt into the navy jacket during Shaku '
+            'crosses',
+      );
+      expect(
+        _luma(nearSleeve) - _luma(farSleeve),
+        greaterThan(14),
+        reason:
+            'near and far sleeves need a value step so crossed forearms read '
+            'as two separate limbs',
+      );
+    });
+
     test('shoes carry a subtle sole edge for footwork readability', () {
       expect(rig.bone(CatBones.shoeHighlightL)?.parent, CatBones.footL);
       expect(rig.bone(CatBones.shoeHighlightR)?.parent, CatBones.footR);
@@ -364,6 +389,29 @@ void main() {
       final shaku = CatClips.shaku;
       final handL = _targetFor(shaku, CatBones.handL).channel;
       final handR = _targetFor(shaku, CatBones.handR).channel;
+      final footL = _targetFor(shaku, CatBones.footL).channel;
+      final footR = _targetFor(shaku, CatBones.footR).channel;
+
+      expect(
+        shaku.supportFootWorldAnchorStrength,
+        greaterThanOrEqualTo(0.74),
+        reason:
+            'Shaku support feet need enough world anchor to let the torso '
+            'pocket read without skate during the arm crosses',
+      );
+
+      for (final frame in [0, 4, 8, 16, 20, 24, 32]) {
+        final p = frame / phrase.frameCount;
+        final leftFoot = footL.sample(p);
+        final rightFoot = footR.sample(p);
+        expect(
+          rightFoot.x - leftFoot.x,
+          greaterThan(114),
+          reason:
+              'Shaku frame $frame should keep a broad base under the bulky '
+              'suit body instead of crossing the feet under the hips',
+        );
+      }
 
       final wristCrossLeft = handL.sample(17 / phrase.frameCount);
       final wristCrossRight = handR.sample(17 / phrase.frameCount);
@@ -412,6 +460,32 @@ void main() {
             'the Shaku release beat should hit as a wrist-roll cross rather '
             'than a physically vague open-elbow pump',
       );
+
+      for (final frame in [6, 11, 14, 19, 22, 27, 30]) {
+        final left = handL.sample(frame / phrase.frameCount);
+        final right = handR.sample(frame / phrase.frameCount);
+        expect(
+          left.x,
+          lessThan(-36),
+          reason:
+              'Shaku frame $frame should keep the left fist off the jacket '
+              'centreline so the arm does not merge into the torso shell',
+        );
+        expect(
+          right.x,
+          greaterThan(36),
+          reason:
+              'Shaku frame $frame should keep the right fist off the jacket '
+              'centreline so the arm does not merge into the torso shell',
+        );
+        expect(
+          right.x - left.x,
+          greaterThan(72),
+          reason:
+              'Shaku frame $frame should carve negative space between the '
+              'guard fists and the suit body',
+        );
+      }
 
       final recoveryCrossLeft = handL.sample(29 / phrase.frameCount);
       final recoveryCrossRight = handR.sample(29 / phrase.frameCount);
@@ -471,6 +545,8 @@ void main() {
       final footR = _targetFor(zanku, CatBones.footR).channel;
       final handL = _targetFor(zanku, CatBones.handL).channel;
       final handR = _targetFor(zanku, CatBones.handR).channel;
+      final hips = zanku.channels[CatBones.hips]!;
+      final torso = zanku.channels[CatBones.torso]!;
 
       final rightLift = footR.sample(1 / phrase.frameCount);
       final rightFlick = footR.sample(2 / phrase.frameCount);
@@ -486,10 +562,10 @@ void main() {
       );
       expect(
         rightFlick.x,
-        inInclusiveRange(52, 56),
+        inInclusiveRange(66, 70),
         reason:
-            'Zanku should heel-toe knock under the hip without becoming a side '
-            'kick',
+            'Zanku should show a readable heel-toe knock in a widened support '
+            'lane without becoming a side kick',
       );
       expect(rightFlick.y, inInclusiveRange(121, 125));
       expect(
@@ -499,10 +575,40 @@ void main() {
       );
       expect(
         rightStomp.dy - rightFlickLift.dy,
-        inInclusiveRange(10, 16),
+        inInclusiveRange(18, 27),
         reason:
-            'Zanku should drop into a grounded stomp, not hop or float after '
-            'the right-leg flick',
+            'Zanku should drop into a stronger grounded stomp pocket, not hop '
+            'or float after the right-leg flick',
+      );
+      final rightHipLead = hips.sample(3.75 / phrase.frameCount).rotation;
+      final rightHipOnStomp = hips.sample(4 / phrase.frameCount).rotation;
+      expect(
+        rightHipLead,
+        greaterThan(0.3),
+        reason:
+            'the right Zanku stomp should be led by a hip commit just before '
+            'the foot lands',
+      );
+      expect(
+        rightHipLead,
+        greaterThan(rightHipOnStomp),
+        reason: 'the hip should lead the stomp instead of peaking late',
+      );
+      final rightChestOnStomp = torso.sample(4 / phrase.frameCount).rotation;
+      final rightChestFollow = torso.sample(4.9 / phrase.frameCount).rotation;
+      expect(
+        rightChestOnStomp,
+        greaterThan(-0.24),
+        reason:
+            'the chest should not be fully parked in its counter-rotation on '
+            'the same frame as the hip-led stomp',
+      );
+      expect(
+        rightChestFollow,
+        lessThan(rightChestOnStomp - 0.08),
+        reason:
+            'the chest should keep answering after the hip instead of landing '
+            'as a simultaneous full-body pose',
       );
 
       final leftLift = footL.sample(21 / phrase.frameCount);
@@ -512,17 +618,17 @@ void main() {
       final leftFlickLift = zanku.root.sample(22 / phrase.frameCount);
       expect(
         leftLift.y,
-        inInclusiveRange(108, 112),
+        inInclusiveRange(104, 110),
         reason:
             'Zanku should show a compact pre-stomp pickup before the heel-toe '
             'flick, not a walking stride',
       );
       expect(
         leftFlick.x,
-        inInclusiveRange(-56, -52),
+        inInclusiveRange(-68, -64),
         reason:
-            'Zanku should heel-toe knock under the hip without becoming a side '
-            'kick',
+            'Zanku should show a readable heel-toe knock in a widened support '
+            'lane without becoming a side kick',
       );
       expect(leftFlick.y, inInclusiveRange(121, 125));
       expect(
@@ -532,10 +638,40 @@ void main() {
       );
       expect(
         leftStomp.dy - leftFlickLift.dy,
-        inInclusiveRange(10, 16),
+        inInclusiveRange(21, 31),
         reason:
-            'Zanku should drop into a grounded stomp, not hop or float after '
-            'the left-leg flick',
+            'Zanku should drop into a stronger grounded stomp pocket, not hop '
+            'or float after the left-leg flick',
+      );
+      final leftHipLead = hips.sample(23.75 / phrase.frameCount).rotation;
+      final leftHipOnStomp = hips.sample(24 / phrase.frameCount).rotation;
+      expect(
+        leftHipLead,
+        lessThan(-0.34),
+        reason:
+            'the left Zanku stomp should be led by a mirrored hip commit just '
+            'before the foot lands',
+      );
+      expect(
+        leftHipLead,
+        lessThan(leftHipOnStomp),
+        reason:
+            'the mirrored hip should lead the stomp instead of peaking late',
+      );
+      final leftChestOnStomp = torso.sample(24 / phrase.frameCount).rotation;
+      final leftChestFollow = torso.sample(24.9 / phrase.frameCount).rotation;
+      expect(
+        leftChestOnStomp,
+        lessThan(0.24),
+        reason:
+            'the mirrored chest should also avoid arriving fully on the hip '
+            'stomp frame',
+      );
+      expect(
+        leftChestFollow,
+        greaterThan(leftChestOnStomp + 0.08),
+        reason:
+            'the mirrored chest counter should roll in after the hip commit',
       );
 
       final freezeLeftFoot = footL.sample(28 / phrase.frameCount);
@@ -547,7 +683,7 @@ void main() {
       );
       expect(
         freezeRightFoot.x,
-        greaterThan(42),
+        greaterThan(52),
         reason:
             'the exact Zanku freeze needs a clear right support foot under the '
             'COM, not a tiny hidden contact',
@@ -586,7 +722,7 @@ void main() {
       final promotedKick = footR.sample(26 / phrase.frameCount);
       expect(
         promotedKick.y,
-        inInclusiveRange(86, 90),
+        inInclusiveRange(82, 86),
         reason:
             'Zanku needs one legible knock-door accent in the phrase; otherwise '
             'the move reads as a generic in-place groove',
@@ -615,6 +751,88 @@ void main() {
               'cross-body IK makes the shoulders fold impossibly',
         );
       }
+    });
+
+    test('azonto keeps a grounded wide base under the point-out groove', () {
+      final phrase = CatClips.dancePhrase;
+      final azonto = CatClips.azonto;
+      final footL = _targetFor(azonto, CatBones.footL).channel;
+      final footR = _targetFor(azonto, CatBones.footR).channel;
+      final handL = _targetFor(azonto, CatBones.handL).channel;
+      final handR = _targetFor(azonto, CatBones.handR).channel;
+      final hips = azonto.channels[CatBones.hips]!;
+      final torso = azonto.channels[CatBones.torso]!;
+
+      for (final frame in [0, 4, 8, 12, 16, 20, 24, 28]) {
+        final p = frame / phrase.frameCount;
+        final left = footL.sample(p);
+        final right = footR.sample(p);
+        expect(
+          left.x,
+          lessThan(-40),
+          reason:
+              'Azonto frame $frame needs the left foot visibly on its own side, '
+              'not crossing under the hips',
+        );
+        expect(
+          right.x,
+          greaterThan(40),
+          reason:
+              'Azonto frame $frame needs the right foot visibly on its own side, '
+              'not crossing under the hips',
+        );
+        expect(
+          right.x - left.x,
+          greaterThan(84),
+          reason:
+              'Azonto frame $frame should keep a support polygon under the hip '
+              'swivel instead of balancing on bunched feet',
+        );
+        expect(left.y, greaterThanOrEqualTo(100));
+        expect(right.y, greaterThanOrEqualTo(100));
+      }
+
+      for (final frame in [0, 4, 12, 18, 22, 26, 32]) {
+        final p = frame / phrase.frameCount;
+        final left = handL.sample(p);
+        final right = handR.sample(p);
+        expect(
+          left.x,
+          lessThan(-28),
+          reason:
+              'Azonto frame $frame should keep the tucked left wrist off the '
+              'jacket centreline so the arm does not read as a suit blob',
+        );
+        expect(
+          right.x,
+          greaterThan(28),
+          reason:
+              'Azonto frame $frame should keep the tucked right wrist off the '
+              'jacket centreline so the arm does not read as a suit blob',
+        );
+      }
+
+      final tuck = azonto.root.sample(2 / phrase.frameCount);
+      final pointHit = azonto.root.sample(4 / phrase.frameCount);
+      expect(
+        pointHit.dy - tuck.dy,
+        greaterThan(18),
+        reason:
+            'Azonto point-outs should ride a visible knee/hip pocket instead of '
+            'reading as arms over an idle body',
+      );
+      expect(
+        hips.sample(4 / phrase.frameCount).rotation,
+        greaterThan(0.65),
+        reason: 'the Azonto point hit should be driven from the waist',
+      );
+      expect(
+        torso.sample(4.5 / phrase.frameCount).rotation,
+        lessThan(-0.34),
+        reason:
+            'the chest should follow as a delayed counter-rotation, not land '
+            'on the same frame as the hips',
+      );
     });
 
     test(
@@ -708,6 +926,46 @@ void main() {
         lessThan(10),
         reason: 'left Buga show-off pose should hold for two readable frames',
       );
+
+      expect(
+        buga.supportFootWorldAnchorStrength,
+        greaterThanOrEqualTo(0.78),
+        reason:
+            'Buga show-off hits need a strong support plant so the side reach '
+            'does not read as a fall',
+      );
+      final rootHit = buga.root.sample(12 / phrase.frameCount);
+      final rootMirrorHit = buga.root.sample(28 / phrase.frameCount);
+      expect(
+        rootHit.dx.abs(),
+        lessThanOrEqualTo(27),
+        reason:
+            'Buga should celebrate from a planted stance, not throw the root '
+            'far outside the feet on the right-arm hit',
+      );
+      expect(
+        rootMirrorHit.dx.abs(),
+        lessThanOrEqualTo(27),
+        reason:
+            'the mirrored Buga hit should stay similarly planted instead of '
+            'becoming a lateral fall',
+      );
+      final legHit = buga.channels[CatBones.legLowerL]!.sample(
+        12 / phrase.frameCount,
+      );
+      expect(
+        legHit.rotation,
+        lessThan(-0.68),
+        reason:
+            'Buga hit knees should remain flexed enough to carry weight, not '
+            'lock straight at the celebration peak',
+      );
+      expect(buga.contactSpans[0].bone, CatBones.footR);
+      expect(buga.contactSpans[0].start, 0);
+      expect(buga.contactSpans[0].end, 0.25);
+      expect(buga.contactSpans[1].bone, CatBones.footL);
+      expect(buga.contactSpans[1].start, 0.25);
+      expect(buga.contactSpans[1].end, 0.5);
     });
 
     test(
@@ -726,8 +984,8 @@ void main() {
 
         final leftPlant = footL.sample(0);
         final rightPlant = footR.sample(4 / phrase.frameCount);
-        expect(leftPlant.x, lessThan(-28));
-        expect(rightPlant.x, greaterThan(28));
+        expect(leftPlant.x, lessThan(-42));
+        expect(rightPlant.x, greaterThan(42));
         expect(leftPlant.y, greaterThanOrEqualTo(102));
         expect(rightPlant.y, greaterThanOrEqualTo(102));
 
@@ -779,10 +1037,10 @@ void main() {
         final rightPickup = footR.sample(2 / phrase.frameCount);
         expect(
           rightPickup.x,
-          inInclusiveRange(38, 42),
+          inInclusiveRange(48, 52),
           reason:
-              'Sekem pickup should scrape in a compact right lane; going wider '
-              'turns the move into a side-kick',
+              'Sekem pickup should scrape in a widened but grounded right lane; '
+              'lifting the foot high would turn it into a side-kick',
         );
         expect(
           rightPickup.y,
@@ -827,10 +1085,10 @@ void main() {
         final leftPickup = footL.sample(6 / phrase.frameCount);
         expect(
           leftPickup.x,
-          inInclusiveRange(-42, -38),
+          inInclusiveRange(-52, -48),
           reason:
-              'Sekem pickup should scrape in a compact left lane; going wider '
-              'turns the move into a side-kick',
+              'Sekem pickup should scrape in a widened but grounded left lane; '
+              'lifting the foot high would turn it into a side-kick',
         );
         expect(
           leftPickup.y,
@@ -871,28 +1129,30 @@ void main() {
         final torso = sekem.channels[CatBones.torso]!;
         expect(
           leftGroove.dx,
-          lessThan(-22),
+          lessThan(-26),
           reason: 'Sekem should visibly dwell over the left plant',
         );
         expect(
           rightGroove.dx,
-          greaterThan(22),
+          greaterThan(26),
           reason: 'Sekem should visibly dwell over the right plant',
         );
         expect(
           leftGroove.dy - leftRecoil.dy,
-          greaterThan(20),
+          greaterThan(28),
           reason: 'Sekem needs a grounded downbeat squash, not a flat sway',
         );
         expect(
           hips.sample(0).rotation,
-          lessThan(-0.28),
+          lessThan(-0.38),
           reason: 'the hip should lead the left Sekem weight commit',
         );
         expect(
-          torso.sample(0).rotation,
-          greaterThan(0.26),
-          reason: 'the torso should counter the hip for the Sekem groove',
+          torso.sample(0.55 / phrase.frameCount).rotation,
+          greaterThan(0.36),
+          reason:
+              'the torso should counter after the hip lead instead of landing '
+              'as one rigid suit shape',
         );
       },
     );
@@ -1040,8 +1300,10 @@ void main() {
       );
       expect(
         landing.dx,
-        greaterThan(20),
-        reason: 'the first landing should clearly settle to the right side',
+        inInclusiveRange(10, 18),
+        reason:
+            'the first landing should settle to the right side while staying '
+            'inside the planted catch base',
       );
       expect(
         rebound.dy,
@@ -1117,6 +1379,56 @@ void main() {
         );
       }
 
+      final firstCatchLeft = footL.sample(12 / phrase.frameCount);
+      final firstCatchRight = footR.sample(12 / phrase.frameCount);
+      expect(
+        firstCatchRight.x - firstCatchLeft.x,
+        greaterThan(116),
+        reason:
+            'the first pounce landing should catch on a wide base, not under '
+            'a drifting torso',
+      );
+      final mirrorCatchLeft = footL.sample(28 / phrase.frameCount);
+      final mirrorCatchRight = footR.sample(28 / phrase.frameCount);
+      expect(
+        mirrorCatchRight.x - mirrorCatchLeft.x,
+        greaterThan(116),
+        reason:
+            'the mirrored pounce landing should catch on a wide base, not under '
+            'a drifting torso',
+      );
+      expect(
+        pounce.supportFootWorldAnchorStrength,
+        greaterThanOrEqualTo(0.78),
+        reason:
+            'pounce landings need a stronger planted-foot anchor so the catch '
+            'reads as loaded rather than skating',
+      );
+      expect(
+        landing.dx.abs(),
+        lessThan((firstCatchRight.x - firstCatchLeft.x) * 0.16),
+        reason:
+            'the first pounce landing root should sit inside the catch base, '
+            'not outside the planted feet',
+      );
+      final mirrorLanding = pounce.root.sample(28 / phrase.frameCount);
+      expect(
+        mirrorLanding.dx.abs(),
+        lessThan((mirrorCatchRight.x - mirrorCatchLeft.x) * 0.16),
+        reason:
+            'the mirrored pounce landing root should also sit inside the catch '
+            'base instead of falling sideways',
+      );
+
+      final firstGuardLeft = handL.sample(12 / phrase.frameCount);
+      final firstGuardRight = handR.sample(12 / phrase.frameCount);
+      expect(firstGuardLeft.x, lessThan(-44));
+      expect(firstGuardRight.x, greaterThan(48));
+      final mirrorGuardLeft = handL.sample(28 / phrase.frameCount);
+      final mirrorGuardRight = handR.sample(28 / phrase.frameCount);
+      expect(mirrorGuardLeft.x, lessThan(-48));
+      expect(mirrorGuardRight.x, greaterThan(44));
+
       final rightPush = footR.sample(8 / phrase.frameCount);
       final leftPush = footL.sample(24 / phrase.frameCount);
       expect(rightPush.x, inInclusiveRange(70, 86));
@@ -1158,6 +1470,13 @@ void main() {
 
 LimbIkTarget _targetFor(Clip clip, String endBoneId) =>
     clip.limbTargets.singleWhere((target) => target.endBoneId == endBoneId);
+
+double _luma(int argb) {
+  final r = (argb >> 16) & 0xFF;
+  final g = (argb >> 8) & 0xFF;
+  final b = argb & 0xFF;
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
 
 double _targetDistance(IkTargetChannel channel, int fromFrame, int toFrame) {
   final from = channel.sample(fromFrame / CatClips.dancePhrase.frameCount);
