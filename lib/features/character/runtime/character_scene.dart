@@ -197,7 +197,8 @@ class CharacterScene {
       rootDy: pose.rootDy + auto.breath * 1.4,
       rootRotation: pose.rootRotation,
     );
-    final targeted = _limbTargetedPose(clip, timeSeconds, breathed);
+    final balanced = _supportBalancedPose(clip, timeSeconds, breathed);
+    final targeted = _limbTargetedPose(clip, timeSeconds, balanced);
     final posed = _contactLockedPose(clip, timeSeconds, targeted);
 
     final rawWorld = solver.solve(posed, base: base);
@@ -263,6 +264,51 @@ class CharacterScene {
     }
 
     return currentPose;
+  }
+
+  /// Pulls the pelvis back inside a plausible support envelope before foot IK.
+  ///
+  /// Translating the final solved world would move the support foot and pelvis
+  /// together, so it would not fix balance. Applying this as a root-bias before
+  /// [LimbIkTarget] support anchoring lets the stance leg bend against the planted
+  /// foot while the upper body comes back over the base of support.
+  Pose _supportBalancedPose(Clip clip, double timeSeconds, Pose pose) {
+    if (!_isDanceFamily(clip) ||
+        !clip.supportFootWorldAnchor ||
+        clip.contactSpans.isEmpty) {
+      return pose;
+    }
+    final phase = _clipPhase(clip, timeSeconds);
+    final contact = _activeContactAt(clip, phase);
+    if (contact == null) return pose;
+
+    final anchorPose = evaluator.evaluate(
+      clip,
+      contact.anchorPhase * clip.duration,
+    );
+    final anchorWorld = solver.solve(anchorPose);
+    final support = _contactPoint(anchorWorld, contact.span.bone);
+    if (support == null) return pose;
+
+    final rootId = rig.bones.firstWhere((bone) => bone.parent == null).id;
+    final currentWorld = solver.solve(pose);
+    final hip = currentWorld[rootId]?.origin;
+    if (hip == null) return pose;
+
+    final delta = hip.x - support.x;
+    final envelope = _supportComEnvelope(clip, contact.span);
+    if (delta.abs() <= envelope) return pose;
+
+    final targetDelta = delta < 0 ? -envelope : envelope;
+    final blend = _supportComBlend(clip, contact.span, contact.strengthPhase);
+    if (blend <= 0) return pose;
+
+    return Pose(
+      joints: pose.joints,
+      rootDx: pose.rootDx + (targetDelta - delta) * blend,
+      rootDy: pose.rootDy,
+      rootRotation: pose.rootRotation,
+    );
   }
 
   ({JointPose upper, JointPose lower})? _solveLimbTarget(
@@ -718,6 +764,33 @@ class CharacterScene {
     final fadeOut = _smoothUnit((span.end - p) / fade);
     final edge = fadeIn < fadeOut ? fadeIn : fadeOut;
     return strength * edge;
+  }
+
+  double _supportComEnvelope(Clip clip, GroundSpan span) {
+    if (clip.name == 'zanku') return 46;
+    if (clip.name == 'sekem') return 50;
+    if (clip.name == 'buga') return 58;
+    if (clip.name == 'azonto') return 58;
+    if (clip.name == 'shaku' || clip.name.startsWith('danceBackup')) return 64;
+    if (clip.name == 'pouncingCat') return 62;
+    final spanLength = span.end - span.start;
+    return spanLength <= 0.135 ? 50 : 62;
+  }
+
+  double _supportComBlend(Clip clip, GroundSpan span, double p) {
+    final spanLength = span.end - span.start;
+    final fade = (spanLength * 0.28).clamp(0.05, 0.1);
+    final fadeIn = _smoothUnit((p - span.start) / fade);
+    final fadeOut = _smoothUnit((span.end - p) / fade);
+    final edge = fadeIn < fadeOut ? fadeIn : fadeOut;
+    final base = spanLength <= 0.135
+        ? 0.72
+        : spanLength <= 0.26
+        ? 0.58
+        : (clip.name == 'shaku' || clip.name.startsWith('danceBackup'))
+        ? 0.26
+        : 0.42;
+    return base * edge * clip.supportFootWorldAnchorStrength;
   }
 
   ({double x, double y}) _contactLockStrength(

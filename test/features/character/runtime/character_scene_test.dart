@@ -239,6 +239,45 @@ void main() {
       }
     });
 
+    test('catalogue dance support keeps hips over the planted shoe', () {
+      final scene = CharacterScene(buildCatInSuitRig());
+
+      for (final clip in [
+        CatClips.zanku,
+        CatClips.azonto,
+        CatClips.buga,
+        CatClips.sekem,
+      ]) {
+        final envelope = _catalogueSupportEnvelope(clip);
+        for (final span in clip.contactSpans) {
+          final spanLength = span.end - span.start;
+          for (final localP in const [0.35, 0.5, 0.65]) {
+            final timeSeconds =
+                (span.start + spanLength * localP) * clip.duration;
+            final frame = scene.frameAt(
+              clip: clip,
+              timeSeconds: timeSeconds,
+            );
+            final hip = frame.world[CatBones.hips]!.origin;
+            final support = _supportPoint(
+              scene,
+              clip,
+              span.bone,
+              timeSeconds,
+            );
+
+            expect(
+              (hip.x - support.x).abs(),
+              lessThanOrEqualTo(envelope),
+              reason:
+                  '${clip.name} ${span.bone} should keep the pelvis loaded '
+                  'over the active support foot through mid-stance',
+            );
+          }
+        }
+      }
+    });
+
     test(
       'dance keeps broad contact holds floor-plausible and loop continuous',
       () {
@@ -903,6 +942,14 @@ double _angleDistance(double a, double b) =>
     drawable.dy + drawable.height / 2,
   );
 }
+
+double _catalogueSupportEnvelope(Clip clip) => switch (clip.name) {
+  'zanku' => 58,
+  'sekem' => 62,
+  'azonto' => 70,
+  'buga' => 70,
+  _ => 76,
+};
 
 double _distance(({double x, double y}) a, ({double x, double y}) b) {
   final dx = a.x - b.x;
