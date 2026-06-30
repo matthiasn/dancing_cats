@@ -735,12 +735,12 @@ class CharacterScene {
     // per-beat plants can take a stronger hold than long Shaku/Azonto groove
     // spans, where too much correction whips the head laterally.
     final anchoredDanceBaseX = spanLength <= 0.135
-        ? 0.34
+        ? 0.38
         : spanLength <= 0.26
-        ? 0.28
+        ? 0.3
         : (clip.name == 'shaku' || clip.name.startsWith('danceBackup'))
         ? 0.16
-        : 0.24;
+        : 0.26;
     final baseX = clip.supportFootWorldAnchor
         ? (dance ? anchoredDanceBaseX : 0.18)
         : dance

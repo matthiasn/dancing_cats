@@ -5923,10 +5923,10 @@ class CatClips {
 
   static final List<DanceBodyKey> _zankuSupportLoadKeys = _scaledBodyKeys(
     _zankuSupportLoadKeysRaw,
-    rootDxGain: 0.72,
-    rootDyGain: 0.88,
-    pelvisRotationGain: 0.76,
-    chestRotationGain: 0.78,
+    rootDxGain: 0.78,
+    rootDyGain: 0.96,
+    pelvisRotationGain: 0.82,
+    chestRotationGain: 0.82,
   );
 
   /// Standalone "Zanku / Legwork" catalog move. Reuses the dance channels + the
@@ -5945,7 +5945,7 @@ class CatClips {
       contactPinning: base.contactPinning,
       limbTargets: _zankuLimbTargets,
       supportFootWorldAnchor: true,
-      supportFootWorldAnchorStrength: 0.82,
+      supportFootWorldAnchorStrength: 0.86,
       root: LayeredRootChannel([
         _bodyRootLeadChannel(_danceBodyAccentKeys, smooth: true),
         // Per-BEAT weight commit that DWELLS over the stamping foot (replaces the
@@ -6345,7 +6345,7 @@ class CatClips {
       contactPinning: base.contactPinning,
       limbTargets: _azontoLimbTargets,
       supportFootWorldAnchor: true,
-      supportFootWorldAnchorStrength: 0.72,
+      supportFootWorldAnchorStrength: 0.76,
       // Calm the vertical head bob so the skull lags the pelvis sway laterally
       // rather than bouncing — the groove dip is in rootDy, which this counters.
       danceHeadBobScale: 0.3,
@@ -6758,7 +6758,7 @@ class CatClips {
       contactPinning: base.contactPinning,
       limbTargets: _bugaLimbTargets,
       supportFootWorldAnchor: true,
-      supportFootWorldAnchorStrength: 0.82,
+      supportFootWorldAnchorStrength: 0.84,
       root: LayeredRootChannel([
         _bodyRootLeadChannel(
           _bugaBodyKeys,
@@ -7425,6 +7425,221 @@ class CatClips {
       chestScaleX: 1.03,
     ),
   ];
+
+  // One-frame settle/reload accents between Sekem plants. These are deliberately
+  // compact: the main body keys own the big COM travel, while this layer gives
+  // each hard plant a catch, then pre-loads the opposite hip before the next foot
+  // change so the phrase stops reading as identical pose pulses.
+  static const _sekemSettleKeys = [
+    DanceBodyKey(
+      0,
+      rootDx: 0,
+      rootDy: 0,
+      pelvisRotation: 0,
+      chestScaleY: 1,
+      chestScaleX: 1,
+    ),
+    DanceBodyKey(
+      1,
+      rootDx: -2.4,
+      rootDy: 6.4,
+      pelvisRotation: -0.04,
+      chestScaleY: 0.99,
+      chestScaleX: 1.008,
+    ),
+    DanceBodyKey(
+      2,
+      rootDx: 0,
+      rootDy: 0,
+      pelvisRotation: 0,
+      chestScaleY: 1,
+      chestScaleX: 1,
+    ),
+    DanceBodyKey(3, rootDx: 2.2, rootDy: -3.2, pelvisRotation: 0.045),
+    DanceBodyKey(
+      4,
+      rootDx: 0,
+      rootDy: 0,
+      pelvisRotation: 0,
+      chestScaleY: 1,
+      chestScaleX: 1,
+    ),
+    DanceBodyKey(
+      5,
+      rootDx: 2.4,
+      rootDy: 6.6,
+      pelvisRotation: 0.04,
+      chestScaleY: 0.99,
+      chestScaleX: 1.008,
+    ),
+    DanceBodyKey(
+      6,
+      rootDx: 0,
+      rootDy: 0,
+      pelvisRotation: 0,
+      chestScaleY: 1,
+      chestScaleX: 1,
+    ),
+    DanceBodyKey(7, rootDx: -2.2, rootDy: -3.2, pelvisRotation: -0.045),
+    DanceBodyKey(
+      8,
+      rootDx: 0,
+      rootDy: 0,
+      pelvisRotation: 0,
+      chestScaleY: 1,
+      chestScaleX: 1,
+    ),
+    DanceBodyKey(
+      9,
+      rootDx: -2.4,
+      rootDy: 6.4,
+      pelvisRotation: -0.04,
+      chestScaleY: 0.99,
+      chestScaleX: 1.008,
+    ),
+    DanceBodyKey(
+      10,
+      rootDx: 0,
+      rootDy: 0,
+      pelvisRotation: 0,
+      chestScaleY: 1,
+      chestScaleX: 1,
+    ),
+    DanceBodyKey(11, rootDx: 2.2, rootDy: -3.2, pelvisRotation: 0.045),
+    DanceBodyKey(
+      12,
+      rootDx: 0,
+      rootDy: 0,
+      pelvisRotation: 0,
+      chestScaleY: 1,
+      chestScaleX: 1,
+    ),
+    DanceBodyKey(
+      13,
+      rootDx: 2.4,
+      rootDy: 6.6,
+      pelvisRotation: 0.04,
+      chestScaleY: 0.99,
+      chestScaleX: 1.008,
+    ),
+    DanceBodyKey(
+      14,
+      rootDx: 0,
+      rootDy: 0,
+      pelvisRotation: 0,
+      chestScaleY: 1,
+      chestScaleX: 1,
+    ),
+    DanceBodyKey(15, rootDx: -2.2, rootDy: -3.2, pelvisRotation: -0.045),
+    DanceBodyKey(
+      16,
+      rootDx: 0,
+      rootDy: 0,
+      pelvisRotation: 0,
+      chestScaleY: 1,
+      chestScaleX: 1,
+    ),
+    DanceBodyKey(
+      17,
+      rootDx: -2.5,
+      rootDy: 6.6,
+      pelvisRotation: -0.042,
+      chestScaleY: 0.988,
+      chestScaleX: 1.01,
+    ),
+    DanceBodyKey(
+      18,
+      rootDx: 0,
+      rootDy: 0,
+      pelvisRotation: 0,
+      chestScaleY: 1,
+      chestScaleX: 1,
+    ),
+    DanceBodyKey(19, rootDx: 2.3, rootDy: -3.3, pelvisRotation: 0.047),
+    DanceBodyKey(
+      20,
+      rootDx: 0,
+      rootDy: 0,
+      pelvisRotation: 0,
+      chestScaleY: 1,
+      chestScaleX: 1,
+    ),
+    DanceBodyKey(
+      21,
+      rootDx: 2.5,
+      rootDy: 6.8,
+      pelvisRotation: 0.042,
+      chestScaleY: 0.988,
+      chestScaleX: 1.01,
+    ),
+    DanceBodyKey(
+      22,
+      rootDx: 0,
+      rootDy: 0,
+      pelvisRotation: 0,
+      chestScaleY: 1,
+      chestScaleX: 1,
+    ),
+    DanceBodyKey(23, rootDx: -2.4, rootDy: -3.4, pelvisRotation: -0.05),
+    DanceBodyKey(
+      24,
+      rootDx: 0,
+      rootDy: 0,
+      pelvisRotation: 0,
+      chestScaleY: 1,
+      chestScaleX: 1,
+    ),
+    DanceBodyKey(
+      25,
+      rootDx: -3,
+      rootDy: 7.4,
+      pelvisRotation: -0.05,
+      chestScaleY: 0.984,
+      chestScaleX: 1.014,
+    ),
+    DanceBodyKey(
+      26,
+      rootDx: 0,
+      rootDy: 0,
+      pelvisRotation: 0,
+      chestScaleY: 1,
+      chestScaleX: 1,
+    ),
+    DanceBodyKey(27, rootDx: 2.8, rootDy: -3.8, pelvisRotation: 0.055),
+    DanceBodyKey(
+      28,
+      rootDx: 0,
+      rootDy: 0,
+      pelvisRotation: 0,
+      chestScaleY: 1,
+      chestScaleX: 1,
+    ),
+    DanceBodyKey(
+      29,
+      rootDx: 3,
+      rootDy: 7.4,
+      pelvisRotation: 0.05,
+      chestScaleY: 0.984,
+      chestScaleX: 1.014,
+    ),
+    DanceBodyKey(
+      30,
+      rootDx: 0,
+      rootDy: 0,
+      pelvisRotation: 0,
+      chestScaleY: 1,
+      chestScaleX: 1,
+    ),
+    DanceBodyKey(31, rootDx: -2.4, rootDy: -3.2, pelvisRotation: -0.045),
+    DanceBodyKey(
+      32,
+      rootDx: 0,
+      rootDy: 0,
+      pelvisRotation: 0,
+      chestScaleY: 1,
+      chestScaleX: 1,
+    ),
+  ];
   // Feet STOMP in place (no lateral travel): both feet stay in a compact wide
   // stance and mark the beat with tiny heel/toe scrapes. Any real lift or wide x
   // excursion solved into a side-kick in the front-facing rig; Sekem's power now
@@ -7628,7 +7843,7 @@ class CatClips {
       contactPinning: base.contactPinning,
       limbTargets: _sekemLimbTargets,
       supportFootWorldAnchor: true,
-      supportFootWorldAnchorStrength: 0.78,
+      supportFootWorldAnchorStrength: 0.84,
       // The dwelling weight commit now lives in _sekemBodyKeys' rootDx (no sine
       // sway — that just passed through centre).
       root: LayeredRootChannel([
@@ -7641,6 +7856,11 @@ class CatClips {
           smooth: true,
           microFrames: -0.3,
         ),
+        _bodyRootLeadChannel(
+          _sekemSettleKeys,
+          smooth: true,
+          microFrames: -0.15,
+        ),
       ]),
       channels: {
         ...base.channels,
@@ -7650,6 +7870,11 @@ class CatClips {
             _sekemPocketBoostKeys,
             smooth: true,
             microFrames: -0.95,
+          ),
+          _bodyPelvisLeadChannel(
+            _sekemSettleKeys,
+            smooth: true,
+            microFrames: -0.65,
           ),
         ]),
         CatBones.torso: LayeredJointChannel([
@@ -7665,6 +7890,13 @@ class CatClips {
             microFrames: 1.05,
             rotationGain: 0.68,
             scaleGain: 0.84,
+          ),
+          _bodyChestFollowChannel(
+            _sekemSettleKeys,
+            smooth: true,
+            microFrames: 0.95,
+            rotationGain: 0.42,
+            scaleGain: 0.68,
           ),
         ]),
         CatBones.footL: _dancePhrase.jointChannel(

@@ -657,6 +657,10 @@ void main() {
     final world = {
       CatBones.footL: Affine2D.translation(100, 200),
       CatBones.footR: Affine2D.translation(100, 200),
+      CatBones.legUpperL: Affine2D.translation(100, 170),
+      CatBones.legUpperR: Affine2D.translation(100, 170),
+      CatBones.hips: Affine2D.translation(100, 150),
+      CatBones.torso: Affine2D.translation(100, 90),
       CatBones.handL: Affine2D.translation(100, 120),
       CatBones.handR: Affine2D.translation(100, 120),
     };
@@ -666,22 +670,41 @@ void main() {
     final side = _projectReviewWorld(world, _sideView, 1);
     expect(
       side[CatBones.footL]!.origin.x - side[CatBones.footR]!.origin.x,
-      greaterThan(40),
+      greaterThan(78),
       reason:
           'side review needs explicit left/right shoe separation, not just '
           'global foreshortening',
     );
     expect(
+      side[CatBones.legUpperL]!.origin.x - side[CatBones.legUpperR]!.origin.x,
+      greaterThan(54),
+      reason:
+          'near/far thighs need enough offset to keep side poses from reading '
+          'as one dark trouser tube',
+    );
+    expect(
+      side[CatBones.torso]!.origin.x - side[CatBones.hips]!.origin.x,
+      greaterThan(16),
+      reason:
+          'side review should separate chest mass from pelvis mass instead of '
+          'stacking the whole body into one column',
+    );
+    expect(
       side[CatBones.handL]!.origin.x - side[CatBones.handR]!.origin.x,
-      greaterThan(44),
+      greaterThan(88),
       reason: 'hands should pull clear of the torso silhouette in side review',
     );
 
     final sideLeft = _projectReviewWorld(world, _sideLeftView, 1);
     expect(
       sideLeft[CatBones.footL]!.origin.x - sideLeft[CatBones.footR]!.origin.x,
-      lessThan(-40),
+      lessThan(-78),
       reason: 'left-facing side review should mirror the depth offsets',
+    );
+    expect(
+      sideLeft[CatBones.torso]!.origin.x - sideLeft[CatBones.hips]!.origin.x,
+      lessThan(-16),
+      reason: 'left-facing side review should mirror torso/pelvis separation',
     );
   });
 
@@ -830,35 +853,41 @@ Affine2D _translateForReviewDepth(
   double side(double units) => units * depth;
 
   if (_leftFootBones.contains(boneId)) {
-    return (x: side(24), y: settleY * 1.2);
+    return (x: side(42), y: settleY * 1.45);
   }
   if (_rightFootBones.contains(boneId)) {
-    return (x: -side(24), y: settleY * 1.2);
+    return (x: -side(42), y: settleY * 1.45);
   }
   if (_leftLegBones.contains(boneId)) {
-    return (x: side(14), y: settleY * 0.6);
+    return (x: side(30), y: settleY * 0.8);
   }
   if (_rightLegBones.contains(boneId)) {
-    return (x: -side(14), y: settleY * 0.6);
+    return (x: -side(30), y: settleY * 0.8);
   }
   if (_leftHandBones.contains(boneId)) {
-    return (x: side(28), y: -settleY * 0.3);
+    return (x: side(48), y: -settleY * 0.4);
   }
   if (_rightHandBones.contains(boneId)) {
-    return (x: -side(28), y: -settleY * 0.3);
+    return (x: -side(48), y: -settleY * 0.4);
   }
   if (_leftArmBones.contains(boneId)) {
-    return (x: side(20), y: -settleY * 0.2);
+    return (x: side(36), y: -settleY * 0.28);
   }
   if (_rightArmBones.contains(boneId)) {
-    return (x: -side(20), y: -settleY * 0.2);
+    return (x: -side(36), y: -settleY * 0.28);
+  }
+  if (_torsoDepthBones.contains(boneId)) {
+    return (x: side(10), y: -settleY * 0.5);
+  }
+  if (_pelvisDepthBones.contains(boneId)) {
+    return (x: -side(8), y: settleY * 0.38);
   }
   if (_tailBones.contains(boneId)) {
-    return (x: -side(18), y: settleY * 2.0);
+    return (x: -side(22), y: settleY * 2.0);
   }
   if (_headSideBones.contains(boneId)) {
     final sideSign = boneId.endsWith('.L') ? 1.0 : -1.0;
-    return (x: side(4 * sideSign), y: -settleY * 0.4);
+    return (x: side(6 * sideSign), y: -settleY * 0.4);
   }
   return (x: 0, y: 0);
 }
@@ -885,9 +914,9 @@ void _paintReviewContactShadows(
 
     final contact = _drawableFootContact(transform, drawable);
     final active = boneId == activeBone;
-    final width = (active ? 56.0 : 34.0) * scale * (1 - 0.14 * view.depth);
-    final height = (active ? 8.0 : 5.0) * scale;
-    final alpha = active ? 0x42 : 0x1C;
+    final width = (active ? 72.0 : 38.0) * scale * (1 + 0.08 * view.depth);
+    final height = (active ? 9.5 : 5.5) * scale;
+    final alpha = active ? 0x56 : 0x22;
     canvas.drawOval(
       Rect.fromCenter(
         center: Offset(contact.x, contact.y + 2.5 * scale),
@@ -896,6 +925,16 @@ void _paintReviewContactShadows(
       ),
       Paint()..color = Color.fromARGB(alpha, 35, 41, 54),
     );
+    if (active) {
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: Offset(contact.x, contact.y + 2.0 * scale),
+          width: width * 0.46,
+          height: height * 0.56,
+        ),
+        Paint()..color = const Color.fromARGB(0x5E, 16, 20, 29),
+      );
+    }
   }
 }
 
@@ -954,6 +993,7 @@ const Set<String> _leftArmBones = {
   CatBones.armUpperL,
   CatBones.armBicepL,
   CatBones.armLowerL,
+  CatBones.armForearmL,
   CatBones.armElbowCreaseL,
 };
 
@@ -961,7 +1001,26 @@ const Set<String> _rightArmBones = {
   CatBones.armUpperR,
   CatBones.armBicepR,
   CatBones.armLowerR,
+  CatBones.armForearmR,
   CatBones.armElbowCreaseR,
+};
+
+const Set<String> _torsoDepthBones = {
+  CatBones.torso,
+  CatBones.shirtV,
+  CatBones.collarL,
+  CatBones.collarR,
+  CatBones.lapelL,
+  CatBones.lapelR,
+  CatBones.button0,
+  CatBones.button1,
+  CatBones.tie,
+  CatBones.tieLower,
+  CatBones.neck,
+};
+
+const Set<String> _pelvisDepthBones = {
+  CatBones.hips,
 };
 
 const Set<String> _leftHandBones = {

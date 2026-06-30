@@ -1298,7 +1298,9 @@ void main() {
         );
 
         final leftGroove = sekem.root.sample(0);
+        final leftSettle = sekem.root.sample(1 / phrase.frameCount);
         final leftRecoil = sekem.root.sample(2 / phrase.frameCount);
+        final rightPreload = sekem.root.sample(3 / phrase.frameCount);
         final rightGroove = sekem.root.sample(4 / phrase.frameCount);
         final hips = sekem.channels[CatBones.hips]!;
         final torso = sekem.channels[CatBones.torso]!;
@@ -1322,6 +1324,34 @@ void main() {
           reason:
               'Sekem needs a grounded downbeat squash without the old '
               'overcompressed side-view shell shape',
+        );
+        expect(
+          leftSettle.dy,
+          greaterThan(leftRecoil.dy + 12),
+          reason:
+              'Sekem should catch weight for a frame after the plant instead of '
+              'rebounding evenly from downbeat to offbeat',
+        );
+        expect(
+          leftSettle.dx,
+          lessThan(leftRecoil.dx - 4),
+          reason:
+              'the one-frame settle should remain over the planted side before '
+              'the body travels to the next support',
+        );
+        expect(
+          rightPreload.dx,
+          greaterThan(leftRecoil.dx + 14),
+          reason:
+              'Sekem should pre-load the next support before the foot plants, '
+              'not wait for the plant frame to move the pelvis',
+        );
+        expect(
+          rightGroove.dy,
+          greaterThan(rightPreload.dy + 9.5),
+          reason:
+              'the next plant still needs a visibly deeper squash than the '
+              'pre-load frame',
         );
         final rightHipLead = hips.sample(3.75 / phrase.frameCount).rotation;
         final rightHipPlant = hips.sample(4 / phrase.frameCount).rotation;
