@@ -24,9 +24,11 @@ void main() {
 
     test('a white shirt collar frames the neck under the tie', () {
       final shirtColor = rig.bone(CatBones.shirtV)?.drawable?.color;
-      for (final id in [CatBones.collarL, CatBones.collarR]) {
-        final collar = rig.bone(id);
-        expect(collar?.parent, CatBones.torso);
+      final collarL = rig.bone(CatBones.collarL);
+      final collarR = rig.bone(CatBones.collarR);
+      expect(collarL?.parent, CatBones.clavicleL);
+      expect(collarR?.parent, CatBones.clavicleR);
+      for (final collar in [collarL, collarR]) {
         // Same off-white shirt fabric as the chest V, so the head reads as
         // rising out of a collar rather than pasted onto the jacket.
         expect(collar?.drawable?.color, shirtColor);
@@ -35,9 +37,55 @@ void main() {
       }
       // The two points mirror left/right about the centreline.
       expect(
-        rig.bone(CatBones.collarL)!.pivotX,
-        -rig.bone(CatBones.collarR)!.pivotX,
+        collarL!.pivotX,
+        -collarR!.pivotX,
       );
+    });
+
+    test('shoulder controls break up the jacket shell', () {
+      final clavicleL = rig.bone(CatBones.clavicleL);
+      final clavicleR = rig.bone(CatBones.clavicleR);
+      expect(clavicleL?.parent, CatBones.torso);
+      expect(clavicleR?.parent, CatBones.torso);
+      expect(clavicleL?.drawable, isNull);
+      expect(clavicleR?.drawable, isNull);
+      expect(clavicleL?.pivotX, -clavicleR!.pivotX);
+      expect(clavicleL?.pivotY, clavicleR.pivotY);
+
+      expect(rig.bone(CatBones.armUpperL)?.parent, CatBones.clavicleL);
+      expect(rig.bone(CatBones.armUpperR)?.parent, CatBones.clavicleR);
+      expect(rig.bone(CatBones.lapelL)?.parent, CatBones.clavicleL);
+      expect(rig.bone(CatBones.lapelR)?.parent, CatBones.clavicleR);
+
+      final jacket = rig.meshes.singleWhere((mesh) => mesh.id == 'jacket.mesh');
+      expect(
+        jacket.formRound,
+        isFalse,
+        reason:
+            'the suit front should read as tailored cloth panels, not a '
+            'rounded hard shell',
+      );
+      expect(
+        jacket.vertices
+            .expand((vertex) => vertex.influences)
+            .map((influence) => influence.boneId),
+        containsAll([CatBones.clavicleL, CatBones.clavicleR]),
+      );
+
+      for (final index in [0, 1, 13, 14]) {
+        expect(
+          jacket.vertices[index].influences.map((i) => i.boneId),
+          contains(CatBones.clavicleL),
+          reason: 'left jacket shoulder vertex $index should deform with L',
+        );
+      }
+      for (final index in [2, 3, 4, 5]) {
+        expect(
+          jacket.vertices[index].influences.map((i) => i.boneId),
+          contains(CatBones.clavicleR),
+          reason: 'right jacket shoulder vertex $index should deform with R',
+        );
+      }
     });
 
     test('hand-parented cuffs expose the wrists during crossed-arm poses', () {
@@ -324,6 +372,53 @@ void main() {
       expect(channels.containsKey(CatBones.legUpperR), isTrue);
       expect(channels.containsKey(CatBones.armUpperL), isTrue);
       expect(channels.containsKey(CatBones.armUpperR), isTrue);
+    });
+
+    test('dance clips carry alternating shoulder overlap', () {
+      for (final clip in [CatClips.shaku, CatClips.zanku, CatClips.sekem]) {
+        final left = clip.channels[CatBones.clavicleL];
+        final right = clip.channels[CatBones.clavicleR];
+        expect(left, isNotNull, reason: '${clip.name} needs left shoulder');
+        expect(right, isNotNull, reason: '${clip.name} needs right shoulder');
+
+        var minLeft = double.infinity;
+        var maxLeft = double.negativeInfinity;
+        var minRight = double.infinity;
+        var maxRight = double.negativeInfinity;
+        var maxPairDifference = 0.0;
+        for (var i = 0; i <= 32; i++) {
+          final p = i / 32;
+          final l = left!.sample(p).rotation;
+          final r = right!.sample(p).rotation;
+          minLeft = math.min(minLeft, l);
+          maxLeft = math.max(maxLeft, l);
+          minRight = math.min(minRight, r);
+          maxRight = math.max(maxRight, r);
+          maxPairDifference = math.max(maxPairDifference, (l - r).abs());
+        }
+
+        expect(
+          maxLeft - minLeft,
+          greaterThan(0.04),
+          reason: '${clip.name} should have visible left shoulder overlap',
+        );
+        expect(
+          maxRight - minRight,
+          greaterThan(0.04),
+          reason: '${clip.name} should have visible right shoulder overlap',
+        );
+        expect(
+          maxPairDifference,
+          greaterThan(0.035),
+          reason:
+              '${clip.name} shoulders should not move as one rigid torso yoke',
+        );
+        expect(
+          [minLeft.abs(), maxLeft.abs(), minRight.abs(), maxRight.abs()],
+          everyElement(lessThan(0.07)),
+          reason: 'shoulder controls should stay subtle, not shrug wildly',
+        );
+      }
     });
 
     test('kick and shaku drive the expected performance bones', () {
