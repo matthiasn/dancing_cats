@@ -2084,6 +2084,29 @@ class CatClips {
   static final List<GroundSpan> _danceContactSpans = _dancePhrase
       .contactSpans();
 
+  // The broad Shaku-family phrase places the right foot on the floor at frame
+  // 16, but the pelvis does not actually finish transferring weight until the
+  // low-20s. Keep the support solver on the left through that double-support
+  // transition, then let the right foot carry the phrase into the loop.
+  static const _shakuContactSpans = [
+    GroundSpan(CatBones.footL, 0, 10 / 32),
+    GroundSpan(CatBones.footL, 10 / 32, 22 / 32),
+    GroundSpan(CatBones.footR, 22 / 32, 30.125 / 32),
+    GroundSpan(CatBones.footL, 30.125 / 32, 1),
+  ];
+
+  // Azonto is an in-place mime/waist groove with a long left-foot base and a
+  // late right-foot answer. Using the generic Shaku right-support bar made the
+  // side review read as a one-toe balance while the hips were still over left.
+  static const _azontoContactSpans = [
+    GroundSpan(CatBones.footL, 0, 10 / 32),
+    GroundSpan(CatBones.footL, 10 / 32, 18 / 32),
+    GroundSpan(CatBones.footR, 18 / 32, 22 / 32),
+    GroundSpan(CatBones.footL, 22 / 32, 26 / 32),
+    GroundSpan(CatBones.footR, 26 / 32, 30.125 / 32),
+    GroundSpan(CatBones.footL, 30.125 / 32, 1),
+  ];
+
   // 32-frame / two-bar Afrobeats phrase. The support foot changes only on the
   // big count windows; the body keeps moving through compression/rebound so the
   // groove reads as pocket instead of pose swapping. The last bar deliberately
@@ -5010,7 +5033,7 @@ class CatClips {
     return Clip(
       name: 'shaku',
       duration: base.duration,
-      contactSpans: base.contactSpans,
+      contactSpans: _shakuContactSpans,
       contactPinning: base.contactPinning,
       limbTargets: _shakuLimbTargets,
       supportFootWorldAnchor: true,
@@ -6311,13 +6334,14 @@ class CatClips {
   /// into a high/low V in bar 2). Reuses the shaku bent-knee groove for the
   /// lower body; the Azonto character is the hip swivel + chest counter-rotation
   /// + the committed lateral weight-drop + the point-out arms (`easeOutBack`
-  /// overshoot). Panel-certified ≥9/10 on all three lenses.
+  /// overshoot). Still under panel review: the side/quarter pass needs the
+  /// support foot to match where the pelvis actually dwells.
   static Clip get azonto {
     final base = _danceBase;
     return Clip(
       name: 'azonto',
       duration: base.duration,
-      contactSpans: base.contactSpans,
+      contactSpans: _azontoContactSpans,
       contactPinning: base.contactPinning,
       limbTargets: _azontoLimbTargets,
       supportFootWorldAnchor: true,
@@ -6671,15 +6695,15 @@ class CatClips {
   static const _bugaFootLTargetKeys = [
     DanceIkTargetKey(0, x: -58, y: 101),
     DanceIkTargetKey(4, x: -72, y: 102),
-    DanceIkTargetKey(8, x: -86, y: 102),
-    DanceIkTargetKey(11, x: -98, y: 104),
+    DanceIkTargetKey(8, x: -60, y: 102),
+    DanceIkTargetKey(11, x: -84, y: 104),
     DanceIkTargetKey(12, x: -104, y: 104),
     DanceIkTargetKey(13, x: -104, y: 104),
     DanceIkTargetKey(14, x: -104, y: 104),
     DanceIkTargetKey(16, x: -58, y: 101),
     DanceIkTargetKey(20, x: -72, y: 102),
-    DanceIkTargetKey(24, x: -88, y: 102),
-    DanceIkTargetKey(27, x: -100, y: 104),
+    DanceIkTargetKey(24, x: -62, y: 102),
+    DanceIkTargetKey(27, x: -86, y: 104),
     DanceIkTargetKey(28, x: -106, y: 104),
     DanceIkTargetKey(29, x: -106, y: 104),
     DanceIkTargetKey(30, x: -106, y: 104),
@@ -6688,15 +6712,15 @@ class CatClips {
   static const _bugaFootRTargetKeys = [
     DanceIkTargetKey(0, x: 62, y: 101),
     DanceIkTargetKey(4, x: 76, y: 102),
-    DanceIkTargetKey(8, x: 90, y: 102),
-    DanceIkTargetKey(11, x: 100, y: 104),
+    DanceIkTargetKey(8, x: 62, y: 102),
+    DanceIkTargetKey(11, x: 86, y: 104),
     DanceIkTargetKey(12, x: 106, y: 104),
     DanceIkTargetKey(13, x: 106, y: 104),
     DanceIkTargetKey(14, x: 106, y: 104),
     DanceIkTargetKey(16, x: 62, y: 101),
     DanceIkTargetKey(20, x: 76, y: 102),
-    DanceIkTargetKey(24, x: 90, y: 102),
-    DanceIkTargetKey(27, x: 102, y: 104),
+    DanceIkTargetKey(24, x: 64, y: 102),
+    DanceIkTargetKey(27, x: 88, y: 104),
     DanceIkTargetKey(28, x: 108, y: 104),
     DanceIkTargetKey(29, x: 108, y: 104),
     DanceIkTargetKey(30, x: 108, y: 104),

@@ -387,59 +387,76 @@ void main() {
       },
     );
 
-    test('dance holds broad Shaku supports across the phrase', () {
-      final phrase = CatClips.dancePhrase;
-      final spans = CatClips.shaku.contactSpans;
-      expect(phrase.frameCount, 32);
-      expect(spans.map((span) => span.bone), [
-        CatBones.footL,
-        CatBones.footR,
-        CatBones.footL,
-      ]);
-      expect(spans.map((span) => span.start), [0, 1 / 2, 15 / 16]);
-      expect(spans.map((span) => span.end), [1 / 2, 15 / 16, 1]);
-      expect(
-        spans.take(2).map((span) => span.end - span.start),
-        everyElement(greaterThanOrEqualTo(7 / 16)),
-      );
-      expect(phrase.supports.map((support) => support.label), [
-        'left-foot Shaku low pocket',
-        'right-foot answer pocket',
-        'left-foot loop pickup',
-      ]);
-      expect(phrase.supportAtFrame(4).freeFootBoneId, CatBones.footR);
-      expect(phrase.supportAtFrame(20).freeFootBoneId, CatBones.footL);
-      expect(phrase.supportAtFrame(32).footBoneId, CatBones.footL);
-      expect(phrase.supports.map((support) => support.loadFrame), [4, 20, 31]);
-      expect(phrase.supports.map((support) => support.releaseFrame), [
-        8,
-        24,
-        32,
-      ]);
-      expect(phrase.sections.map((section) => section.name), [
-        'Shaku pocket',
-        'Shaku rebound',
-        'answer pocket',
-        'toe-flick release',
-        'loop pickup',
-      ]);
-      expect(phrase.moves.map((move) => move.name), [
-        'lead Shaku pocket hit',
-        'lead rebound shoulder scoop',
-        'right-side camera answer',
-        'right-foot groove pocket',
-        'left-side camera answer',
-        'toe-flick hook reset',
-      ]);
-      expect(phrase.sectionAtFrame(4).name, 'Shaku pocket');
-      expect(phrase.sectionAtFrame(20).name, 'answer pocket');
-      expect(phrase.sectionAtFrame(31).name, 'loop pickup');
-      expect(phrase.moveAtFrame(4).featuredDancer, 'lead');
-      expect(phrase.moveAtFrame(12).name, 'right-side camera answer');
-      expect(phrase.moveAtFrame(20).name, 'right-foot groove pocket');
-      expect(phrase.moveAtFrame(24).featuredDancer, 'left');
-      expect(phrase.moveAtFrame(31).name, 'toe-flick hook reset');
-    });
+    test(
+      'shaku support lock delays handoff until the visible load arrives',
+      () {
+        final phrase = CatClips.dancePhrase;
+        final spans = CatClips.shaku.contactSpans;
+        expect(phrase.frameCount, 32);
+        expect(spans.map((span) => span.bone), [
+          CatBones.footL,
+          CatBones.footL,
+          CatBones.footR,
+          CatBones.footL,
+        ]);
+        expect(spans.map((span) => span.start), [
+          0,
+          10 / 32,
+          22 / 32,
+          30.125 / 32,
+        ]);
+        expect(spans.map((span) => span.end), [
+          10 / 32,
+          22 / 32,
+          30.125 / 32,
+          1,
+        ]);
+        expect(spans[1].end, greaterThan(20 / 32));
+        expect(spans[2].start, greaterThan(20 / 32));
+        expect(spans[2].end, greaterThan(30 / 32));
+        expect(phrase.supports.map((support) => support.label), [
+          'left-foot Shaku low pocket',
+          'right-foot answer pocket',
+          'left-foot loop pickup',
+        ]);
+        expect(phrase.supportAtFrame(4).freeFootBoneId, CatBones.footR);
+        expect(phrase.supportAtFrame(20).freeFootBoneId, CatBones.footL);
+        expect(phrase.supportAtFrame(32).footBoneId, CatBones.footL);
+        expect(phrase.supports.map((support) => support.loadFrame), [
+          4,
+          20,
+          31,
+        ]);
+        expect(phrase.supports.map((support) => support.releaseFrame), [
+          8,
+          24,
+          32,
+        ]);
+        expect(phrase.sections.map((section) => section.name), [
+          'Shaku pocket',
+          'Shaku rebound',
+          'answer pocket',
+          'toe-flick release',
+          'loop pickup',
+        ]);
+        expect(phrase.moves.map((move) => move.name), [
+          'lead Shaku pocket hit',
+          'lead rebound shoulder scoop',
+          'right-side camera answer',
+          'right-foot groove pocket',
+          'left-side camera answer',
+          'toe-flick hook reset',
+        ]);
+        expect(phrase.sectionAtFrame(4).name, 'Shaku pocket');
+        expect(phrase.sectionAtFrame(20).name, 'answer pocket');
+        expect(phrase.sectionAtFrame(31).name, 'loop pickup');
+        expect(phrase.moveAtFrame(4).featuredDancer, 'lead');
+        expect(phrase.moveAtFrame(12).name, 'right-side camera answer');
+        expect(phrase.moveAtFrame(20).name, 'right-foot groove pocket');
+        expect(phrase.moveAtFrame(24).featuredDancer, 'left');
+        expect(phrase.moveAtFrame(31).name, 'toe-flick hook reset');
+      },
+    );
 
     test('shaku crosses wrists, opens elbows, and recovers as shaku', () {
       final phrase = CatClips.dancePhrase;

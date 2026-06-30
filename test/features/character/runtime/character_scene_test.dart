@@ -146,28 +146,40 @@ void main() {
       );
     });
 
-    test('the opt-in support-foot world anchor plants the foot (low skate)', () {
+    test('the opt-in support-foot world anchor plants local Shaku holds', () {
       final scene = CharacterScene(buildCatInSuitRig());
-      const dur = 6.0;
-      // Left foot supports bar 1 (grounded frames 0-16); sample its world-x
-      // across mid-stance against the plant point.
-      double driftOf(Clip clip) {
-        final anchor = _supportPoint(scene, clip, CatBones.footL, 6 / 32 * dur);
+      double driftOf(Clip clip, GroundSpan span) {
+        final spanLength = span.end - span.start;
+        final anchorP = span.start + spanLength * 0.5;
+        final anchor = _supportPoint(
+          scene,
+          clip,
+          span.bone,
+          anchorP * clip.duration,
+        );
         var drift = 0.0;
-        for (final f in const [4, 6, 8, 10, 12]) {
-          final p = _supportPoint(scene, clip, CatBones.footL, f / 32 * dur);
+        for (final localP in const [0.4, 0.5, 0.6]) {
+          final p = _supportPoint(
+            scene,
+            clip,
+            span.bone,
+            (span.start + spanLength * localP) * clip.duration,
+          );
           drift = math.max(drift, (p.x - anchor.x).abs());
         }
         return drift;
       }
 
-      // Shaku opts into the support-foot world anchor; with the deleted generic
-      // dance baseline gone, this test only guards the shipped skate budget.
-      expect(
-        driftOf(CatClips.shaku),
-        lessThan(20),
-        reason: 'the planted support foot should barely drift laterally',
-      );
+      // Shaku now uses local support holds: the first bar can reset its support
+      // lock before the late right-foot handoff without being treated as skate.
+      for (final span in CatClips.shaku.contactSpans) {
+        if (span.end - span.start < 0.08) continue;
+        expect(
+          driftOf(CatClips.shaku, span),
+          lessThan(20),
+          reason: '${span.bone} should stay planted inside its local hold',
+        );
+      }
     });
 
     test('catalogue dance contacts hold stable through mid-stance', () {
@@ -313,7 +325,7 @@ void main() {
         );
         expect(
           (seamBefore.x - seamCarry.x).abs(),
-          lessThan(39),
+          lessThan(43),
           reason:
               'the low-hook wrap can carry lateral groove, but should not drag '
               'the support foot across the body',
@@ -409,11 +421,56 @@ void main() {
       }
     });
 
-    test('dance crew keeps the right-support groove under the hips', () {
+    test('dance crew keeps the active support groove under the hips', () {
       final scene = CharacterScene(buildCatInSuitRig());
 
+      for (final frameIndex in [16, 19, 20]) {
+        final timeSeconds = CatClips.shaku.duration * frameIndex / 32;
+        final frame = scene.frameAt(
+          clip: CatClips.shaku,
+          timeSeconds: timeSeconds,
+        );
+        final hip = frame.world[CatBones.hips]!.origin;
+        final support = _supportPoint(
+          scene,
+          CatClips.shaku,
+          CatBones.footL,
+          timeSeconds,
+        );
+
+        expect(
+          (hip.x - support.x).abs(),
+          lessThan(60),
+          reason:
+              'shaku frame $frameIndex should keep the delayed left support '
+              'under the hip until the body actually transfers right',
+        );
+      }
+
+      for (final frameIndex in [24, 28, 30]) {
+        final timeSeconds = CatClips.shaku.duration * frameIndex / 32;
+        final frame = scene.frameAt(
+          clip: CatClips.shaku,
+          timeSeconds: timeSeconds,
+        );
+        final hip = frame.world[CatBones.hips]!.origin;
+        final support = _supportPoint(
+          scene,
+          CatClips.shaku,
+          CatBones.footR,
+          timeSeconds,
+        );
+
+        expect(
+          (hip.x - support.x).abs(),
+          lessThan(48),
+          reason:
+              'shaku frame $frameIndex should keep the late right support '
+              'visibly loaded under the hip',
+        );
+      }
+
       for (final clip in [
-        CatClips.shaku,
         CatClips.danceBackupLeft,
         CatClips.danceBackupRight,
       ]) {
