@@ -4,7 +4,9 @@ import 'dart:ui' as ui;
 import 'package:dancing_cats/features/scenery/layers/backdrop_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/drone_show_layer.dart'
     show kDroneShowCycleSeconds;
+import 'package:dancing_cats/features/scenery/layers/jet_contrail.dart';
 import 'package:dancing_cats/features/scenery/model/scenery_assets.dart';
+import 'package:dancing_cats/features/scenery/runtime/scenery_geometry.dart';
 import 'package:dancing_cats/features/scenery/runtime/scenery_math.dart';
 
 /// Duration of the distant 747 pass.
@@ -77,10 +79,7 @@ class DistantJetLayer implements BackdropLayer {
     if (sample == null) return;
 
     final stage = distantJetStageRect(ctx.size);
-    final center = ui.Offset(
-      stage.left + sample.position.dx * stage.width,
-      stage.top + sample.position.dy * stage.height,
-    );
+    final center = stage.project(sample.position.dx, sample.position.dy);
     final width = stage.width * sample.widthFraction;
     final height = width * image.height / image.width;
 
@@ -124,7 +123,7 @@ void _cutSkylineOccluder(ui.Canvas canvas, BackdropContext ctx) {
     occluder.width.toDouble(),
     occluder.height.toDouble(),
   );
-  final dest = _coverRect(src.size, ctx.size);
+  final dest = coverRect(src.size, ctx.size);
   final paint = ui.Paint()
     ..blendMode = ui.BlendMode.dstOut
     ..filterQuality = ui.FilterQuality.medium;
@@ -141,22 +140,6 @@ void _cutSkylineOccluder(ui.Canvas canvas, BackdropContext ctx) {
   for (final offset in offsets) {
     canvas.drawImageRect(occluder, src, dest.shift(offset), paint);
   }
-}
-
-ui.Rect _coverRect(ui.Size image, ui.Size viewport) {
-  if (image.isEmpty || viewport.isEmpty) return ui.Rect.zero;
-  final scale = math.max(
-    viewport.width / image.width,
-    viewport.height / image.height,
-  );
-  final width = image.width * scale;
-  final height = image.height * scale;
-  return ui.Rect.fromLTWH(
-    (viewport.width - width) / 2,
-    (viewport.height - height) / 2,
-    width,
-    height,
-  );
 }
 
 /// Active 16:9 composition rect inside [viewport].
@@ -337,10 +320,7 @@ void _paintTrail(
   if (current == null || current.trailOpacity <= 0) return;
 
   ui.Offset engineAt(DistantJetSample sample, ui.Offset normalizedNozzle) {
-    final center = ui.Offset(
-      stage.left + sample.position.dx * stage.width,
-      stage.top + sample.position.dy * stage.height,
-    );
+    final center = stage.project(sample.position.dx, sample.position.dy);
     final width = stage.width * sample.widthFraction;
     final height = width * image.height / image.width;
     final localPoint = ui.Offset(
@@ -368,7 +348,7 @@ void _paintTrail(
   if (maxAge <= formationGapSeconds) return;
 
   for (final normalizedNozzle in _engineNozzles) {
-    final points = <_TrailPoint>[];
+    final points = <TrailPoint>[];
     for (
       var age = formationGapSeconds;
       age <= maxAge;
@@ -378,12 +358,12 @@ void _paintTrail(
       if (emitted == null || emitted.opacity <= 0) continue;
 
       points.add(
-        _TrailPoint(engineAt(emitted, normalizedNozzle) + windDrift(age), age),
+        TrailPoint(engineAt(emitted, normalizedNozzle) + windDrift(age), age),
       );
     }
     if (points.length < 2) continue;
 
-    _paintTrailRibbon(
+    paintTrailRibbon(
       canvas,
       points,
       formationGapSeconds: formationGapSeconds,
@@ -404,7 +384,7 @@ void _paintTrail(
         [0, 0.08, 0.62, 1],
       ),
     );
-    _paintTrailRibbon(
+    paintTrailRibbon(
       canvas,
       points,
       formationGapSeconds: formationGapSeconds,
@@ -426,74 +406,6 @@ void _paintTrail(
       ),
     );
   }
-}
-
-void _paintTrailRibbon(
-  ui.Canvas canvas,
-  List<_TrailPoint> points, {
-  required double formationGapSeconds,
-  required double formationFadeSeconds,
-  required double maxAge,
-  required double maxWidth,
-  required double widthStartFactor,
-  required double widthEndFactor,
-  required ui.Shader shader,
-}) {
-  final left = <ui.Offset>[];
-  final right = <ui.Offset>[];
-  for (var i = 0; i < points.length; i++) {
-    final point = points[i];
-    final tangent =
-        points[math.min(i + 1, points.length - 1)].position -
-        points[math.max(i - 1, 0)].position;
-    final length = tangent.distance;
-    if (length == 0) continue;
-
-    final normal = ui.Offset(-tangent.dy / length, tangent.dx / length);
-    final fadeIn = smoothstep(
-      (point.ageSeconds - formationGapSeconds) / formationFadeSeconds,
-    );
-    final mature = smoothstep(
-      (point.ageSeconds - formationGapSeconds) / 5,
-    );
-    final age01 =
-        ((point.ageSeconds - formationGapSeconds) /
-                math.max(0.001, maxAge - formationGapSeconds))
-            .clamp(0.0, 1.0);
-    final ageWidth = ui.lerpDouble(
-      widthStartFactor,
-      widthEndFactor,
-      smoothstep(age01),
-    )!;
-    final halfWidth = maxWidth * fadeIn * (0.82 + 0.18 * mature) * ageWidth / 2;
-    left.add(point.position + normal * halfWidth);
-    right.add(point.position - normal * halfWidth);
-  }
-  if (left.length < 2 || right.length < 2) return;
-
-  final path = ui.Path()..moveTo(left.first.dx, left.first.dy);
-  for (final p in left.skip(1)) {
-    path.lineTo(p.dx, p.dy);
-  }
-  for (final p in right.reversed) {
-    path.lineTo(p.dx, p.dy);
-  }
-  path.close();
-
-  canvas.drawPath(
-    path,
-    ui.Paint()
-      ..isAntiAlias = true
-      ..style = ui.PaintingStyle.fill
-      ..shader = shader,
-  );
-}
-
-class _TrailPoint {
-  const _TrailPoint(this.position, this.ageSeconds);
-
-  final ui.Offset position;
-  final double ageSeconds;
 }
 
 ui.Offset _rotate(ui.Offset p, double radians) {

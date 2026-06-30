@@ -1,8 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:dancing_cats/features/scenery/layers/backdrop_layer.dart';
-import 'package:dancing_cats/features/scenery/layers/city_lights_layer.dart'
-    show coverFit;
+import 'package:dancing_cats/features/scenery/runtime/scenery_geometry.dart';
 import 'package:dancing_cats/features/scenery/runtime/scenery_math.dart';
 import 'package:flutter/rendering.dart';
 

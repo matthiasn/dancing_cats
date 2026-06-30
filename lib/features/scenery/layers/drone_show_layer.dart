@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:dancing_cats/features/scenery/layers/backdrop_layer.dart';
+import 'package:dancing_cats/features/scenery/layers/drone_text_glyphs.dart';
 import 'package:dancing_cats/features/scenery/runtime/scenery_math.dart';
 
 /// First text held by the drone formation.
@@ -21,6 +22,11 @@ const int kDroneShowDroneCount = 280;
 /// real light-show drone instead of a firework.
 const double kDroneShowCycleSeconds = 144;
 
+// Phase boundaries as fractions of the 0..1 loop, in order: the formation
+// launches until 0.22, converges into the beam until 0.38, fans out until 0.58,
+// then holds text for the remainder. The other fractions stage the text morph
+// (opening settle, the staging-hold and the text-transition window) and the
+// reduced-motion freeze frame.
 const double _launchEnd = 0.22;
 const double _beamEnd = 0.38;
 const double _fanEnd = 0.58;
@@ -229,7 +235,7 @@ List<ui.Offset> droneShowFormationPoints({
   String text = kDroneShowOpeningText,
 }) {
   if (count <= 0) return const [];
-  final cells = _textDotCells(text);
+  final cells = textDotCells(text);
   return List<ui.Offset>.generate(count, (i) {
     final cellIndex = (i * cells.length) ~/ count;
     final cell = cells[math.min(cellIndex, cells.length - 1)];
@@ -376,6 +382,8 @@ ui.Offset _beamPoint(int index, int count) {
 
 ui.Offset _fanPoint(int index, int count) {
   final u = count <= 1 ? 0.5 : index / (count - 1);
+  // Deterministic per-drone "band" in 0..1 (a cheap `(index*7) mod 11` hash) that
+  // scatters drones across the fan's depth so it reads as a cloud, not a line.
   final band = ((index * 7) % 11) / 10;
   final crown = -0.032 * math.sin(u * math.pi);
   return ui.Offset(
@@ -418,181 +426,8 @@ ui.Offset _formationPoint(
 
 ui.Offset _transitionStagingPoint(int index, int count) {
   final u = count <= 1 ? 0.5 : index / (count - 1);
+  // Deterministic per-drone row offset in roughly ±0.012 (a `(index*5) mod 7`
+  // hash centred on 0) so the staging block has a little vertical thickness.
   final row = ((index * 5) % 7 - 3) * 0.004;
   return ui.Offset(0.37 + u * 0.26, 0.245 + row);
-}
-
-// Shared scenery math (`hashUnit`, `smoothstep`) now lives in scenery_math.dart.
-
-List<_DotCell> _textDotCells(String text) {
-  const glyphGap = 1;
-  const spaceWidth = 2;
-  final rawCells = <({int x, int y})>[];
-  var cursor = 0.0;
-  for (final codePoint in text.runes) {
-    final char = String.fromCharCode(codePoint).toUpperCase();
-    if (char == ' ') {
-      cursor += spaceWidth;
-      continue;
-    }
-    final glyph = _dotGlyphFor(char);
-    for (var y = 0; y < glyph.rows.length; y++) {
-      final row = glyph.rows[y];
-      for (var x = 0; x < row.length; x++) {
-        if (row.codeUnitAt(x) == 49) {
-          rawCells.add((x: cursor.round() + x, y: y));
-        }
-      }
-    }
-    cursor += glyph.width + glyphGap;
-  }
-
-  if (rawCells.isEmpty) {
-    return const [_DotCell(ui.Offset(0.5, 0.22), 0.01, 0.01)];
-  }
-
-  rawCells.sort((a, b) {
-    final x = a.x.compareTo(b.x);
-    return x != 0 ? x : a.y.compareTo(b.y);
-  });
-
-  final width = math.max(cursor - glyphGap, 1);
-  const rows = 7;
-  const targetWidth = 0.3;
-  const targetHeight = 0.08;
-  const left = 0.35;
-  const top = 0.205;
-  final cellWidth = targetWidth / width;
-  const cellHeight = targetHeight / rows;
-  return [
-    for (final cell in rawCells)
-      _DotCell(
-        ui.Offset(
-          left + (cell.x + 0.5) * cellWidth,
-          top + (cell.y + 0.5) * cellHeight,
-        ),
-        cellWidth,
-        cellHeight,
-      ),
-  ];
-}
-
-_DotGlyph _dotGlyphFor(String char) {
-  return switch (char) {
-    'O' => const _DotGlyph([
-      '01110',
-      '10001',
-      '10001',
-      '10001',
-      '10001',
-      '10001',
-      '01110',
-    ]),
-    'M' => const _DotGlyph([
-      '10001',
-      '11011',
-      '10101',
-      '10101',
-      '10001',
-      '10001',
-      '10001',
-    ]),
-    'V' => const _DotGlyph([
-      '10001',
-      '10001',
-      '10001',
-      '10001',
-      '01010',
-      '01010',
-      '00100',
-    ]),
-    'I' => const _DotGlyph([
-      '111',
-      '010',
-      '010',
-      '010',
-      '010',
-      '010',
-      '111',
-    ]),
-    'N' => const _DotGlyph([
-      '10001',
-      '11001',
-      '10101',
-      '10011',
-      '10001',
-      '10001',
-      '10001',
-    ]),
-    'G' => const _DotGlyph([
-      '01110',
-      '10001',
-      '10000',
-      '10111',
-      '10001',
-      '10001',
-      '01110',
-    ]),
-    'A' => const _DotGlyph([
-      '01110',
-      '10001',
-      '10001',
-      '11111',
-      '10001',
-      '10001',
-      '10001',
-    ]),
-    'H' => const _DotGlyph([
-      '10001',
-      '10001',
-      '10001',
-      '11111',
-      '10001',
-      '10001',
-      '10001',
-    ]),
-    'L' => const _DotGlyph([
-      '10000',
-      '10000',
-      '10000',
-      '10000',
-      '10000',
-      '10000',
-      '11111',
-    ]),
-    'Y' => const _DotGlyph([
-      '10001',
-      '01010',
-      '00100',
-      '00100',
-      '00100',
-      '00100',
-      '00100',
-    ]),
-    _ => const _DotGlyph([
-      '111',
-      '001',
-      '010',
-      '010',
-      '000',
-      '010',
-      '000',
-    ]),
-  };
-}
-
-class _DotGlyph {
-  const _DotGlyph(this.rows);
-
-  final List<String> rows;
-
-  int get width => rows.first.length;
-}
-
-class _DotCell {
-  const _DotCell(this.center, this.width, this.height);
-
-  final ui.Offset center;
-  final double width;
-  final double height;
 }

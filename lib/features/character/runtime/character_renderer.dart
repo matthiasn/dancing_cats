@@ -344,27 +344,39 @@ class CharacterRenderer {
     _drawKind(canvas, d, _paint);
   }
 
-  /// Paints [d] inflated by its `outlineWidth` in [outlineColor], forming part
-  /// of the shared body silhouette. A filled shape plus a centred stroke of
-  /// twice the outline width grows the shape outward by exactly `outlineWidth`
-  /// (the stroke's inner half overlaps the fill), with a round join that softens
-  /// triangle corners — no per-shape geometry inflation needed.
-  void _drawSilhouette(Canvas canvas, BoneDrawable d, int outlineColor) {
+  /// Two-pass inflated silhouette: a filled pass plus a centred stroke of twice
+  /// [outlineWidth] (round-joined) grows the shape outward by exactly
+  /// [outlineWidth] — the stroke's inner half overlaps the fill, the round join
+  /// softens triangle corners — so the body silhouette needs no per-shape
+  /// geometry inflation. [draw] renders the shape with the configured [Paint].
+  /// Shared by the bone / ribbon / mesh silhouette passes.
+  void _paintInflatedSilhouette(
+    int outlineColor,
+    double outlineWidth,
+    void Function(Paint paint) draw,
+  ) {
     _paint
       ..style = PaintingStyle.fill
       ..strokeWidth = 0
       ..color = Color(outlineColor)
       ..isAntiAlias = antiAlias;
-    _drawKind(canvas, d, _paint);
+    draw(_paint);
 
     _paint
       ..style = PaintingStyle.stroke
-      ..strokeWidth = d.outlineWidth * 2
+      ..strokeWidth = outlineWidth * 2
       ..strokeJoin = StrokeJoin.round
       ..color = Color(outlineColor)
       ..isAntiAlias = antiAlias;
-    _drawKind(canvas, d, _paint);
+    draw(_paint);
   }
+
+  void _drawSilhouette(Canvas canvas, BoneDrawable d, int outlineColor) =>
+      _paintInflatedSilhouette(
+        outlineColor,
+        d.outlineWidth,
+        (paint) => _drawKind(canvas, d, paint),
+      );
 
   void _drawRibbonFill(
     Canvas canvas,
@@ -384,22 +396,11 @@ class CharacterRenderer {
     LimbRibbonSpec ribbon,
     Map<String, Affine2D> world,
     int outlineColor,
-  ) {
-    _paint
-      ..style = PaintingStyle.fill
-      ..strokeWidth = 0
-      ..color = Color(outlineColor)
-      ..isAntiAlias = antiAlias;
-    _drawRibbon(canvas, ribbon, world, _paint);
-
-    _paint
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = ribbon.outlineWidth * 2
-      ..strokeJoin = StrokeJoin.round
-      ..color = Color(outlineColor)
-      ..isAntiAlias = antiAlias;
-    _drawRibbon(canvas, ribbon, world, _paint);
-  }
+  ) => _paintInflatedSilhouette(
+    outlineColor,
+    ribbon.outlineWidth,
+    (paint) => _drawRibbon(canvas, ribbon, world, paint),
+  );
 
   void _drawRibbon(
     Canvas canvas,
@@ -446,22 +447,11 @@ class CharacterRenderer {
     SkinnedMeshSpec mesh,
     Map<String, Affine2D> world,
     int outlineColor,
-  ) {
-    _paint
-      ..style = PaintingStyle.fill
-      ..strokeWidth = 0
-      ..color = Color(outlineColor)
-      ..isAntiAlias = antiAlias;
-    _drawMesh(canvas, mesh, world, _paint);
-
-    _paint
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = mesh.outlineWidth * 2
-      ..strokeJoin = StrokeJoin.round
-      ..color = Color(outlineColor)
-      ..isAntiAlias = antiAlias;
-    _drawMesh(canvas, mesh, world, _paint);
-  }
+  ) => _paintInflatedSilhouette(
+    outlineColor,
+    mesh.outlineWidth,
+    (paint) => _drawMesh(canvas, mesh, world, paint),
+  );
 
   void _drawMesh(
     Canvas canvas,

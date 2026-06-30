@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:dancing_cats/features/scenery/layers/backdrop_layer.dart';
 import 'package:dancing_cats/features/scenery/model/scenery_assets.dart';
 import 'package:dancing_cats/features/scenery/model/skyline_manifest.dart';
+import 'package:dancing_cats/features/scenery/runtime/scenery_geometry.dart';
 import 'package:dancing_cats/features/scenery/runtime/scenery_math.dart';
 import 'package:dancing_cats/features/scenery/runtime/scenery_shaders.dart';
 import 'package:flutter/rendering.dart';
@@ -46,8 +47,7 @@ class CityLightsLayer implements BackdropLayer {
     // A gentle breath on the masthead anchor light so it twinkles through haze.
     final breath = 0.82 + 0.18 * math.sin(time * 1.3);
     final r = cover.width * 0.0016;
-    Offset at(double x, double y) =>
-        Offset(cover.left + x * cover.width, cover.top + y * cover.height);
+    Offset at(double x, double y) => cover.project(x, y);
 
     void lamp(Offset c, Color color, double amp, double scale) {
       canvas
@@ -148,10 +148,7 @@ class CityLightsLayer implements BackdropLayer {
     final r = cover.width * 0.0018;
     final red = ctx.palette.beaconRed;
     for (var i = 0; i < anchors.length; i++) {
-      final c = Offset(
-        cover.left + anchors[i].dx * cover.width,
-        cover.top + anchors[i].dy * cover.height,
-      );
+      final c = cover.project(anchors[i].dx, anchors[i].dy);
       // A real obstruction lamp is a near-point hot core inside a small
       // steep-falloff atmospheric halo — not a soft red bubble. The core clips
       // toward a warm ORANGE-white (not pure/cool white), so at distance the
@@ -209,26 +206,6 @@ class CityLightsLayer implements BackdropLayer {
         ..restore();
     }
   }
-}
-
-/// The rect the [kSceneryCanvasSize] art occupies when cover-fit into
-/// [viewport] (matching `BoxFit.cover`): same scale + centering the master
-/// plate uses, so normalized art anchors map to screen via
-/// `cover.topLeft + anchor * cover.size`.
-Rect coverFit(Size viewport) {
-  const art = kSceneryCanvasSize;
-  final scale = math.max(
-    viewport.width / art.width,
-    viewport.height / art.height,
-  );
-  final w = art.width * scale;
-  final h = art.height * scale;
-  return Rect.fromLTWH(
-    (viewport.width - w) / 2,
-    (viewport.height - h) / 2,
-    w,
-    h,
-  );
 }
 
 /// Blink intensity for the aircraft warning beacons at [time] seconds,

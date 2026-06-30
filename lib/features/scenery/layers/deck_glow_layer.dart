@@ -1,8 +1,7 @@
 import 'dart:ui' as ui;
 
 import 'package:dancing_cats/features/scenery/layers/backdrop_layer.dart';
-import 'package:dancing_cats/features/scenery/layers/city_lights_layer.dart'
-    show coverFit;
+import 'package:dancing_cats/features/scenery/runtime/scenery_geometry.dart';
 import 'package:flutter/rendering.dart';
 
 /// Warm lantern light pooling on the foreground deck. The painted deck lanterns
@@ -53,10 +52,7 @@ class DeckGlowLayer implements BackdropLayer {
     // pool is, so widening the pool never turns the lamp into a blob.
     final coreR = cover.width * 0.013;
     for (final l in lanterns) {
-      final lamp = Offset(
-        cover.left + l.dx * cover.width,
-        cover.top + l.dy * cover.height,
-      );
+      final lamp = cover.project(l.dx, l.dy);
       // Pool centred well below the lamp: warm light spills DOWN and OUT across
       // the planks, falling off smoothly so it never reads as a hard disc.
       final pool = lamp.translate(0, radius * 0.42);
