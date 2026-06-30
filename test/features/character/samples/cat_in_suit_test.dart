@@ -957,13 +957,26 @@ void main() {
 
       expect(
         buga.supportFootWorldAnchorStrength,
-        greaterThanOrEqualTo(0.78),
+        greaterThanOrEqualTo(0.82),
         reason:
             'Buga show-off hits need a strong support plant so the side reach '
             'does not read as a fall',
       );
       final rootHit = buga.root.sample(12 / phrase.frameCount);
       final rootMirrorHit = buga.root.sample(28 / phrase.frameCount);
+      expect(
+        rootHit.dy,
+        greaterThanOrEqualTo(0),
+        reason:
+            'the right-arm Buga hit should rise from the load without lifting '
+            'the body above the planted feet',
+      );
+      expect(
+        rootMirrorHit.dy,
+        greaterThanOrEqualTo(0),
+        reason:
+            'the mirrored Buga hit should stay similarly planted at the peak',
+      );
       expect(
         rootHit.dx.abs(),
         lessThanOrEqualTo(27),
@@ -988,6 +1001,21 @@ void main() {
             'Buga hit knees should remain flexed enough to carry weight, not '
             'lock straight at the celebration peak',
       );
+      final footL = _targetFor(buga, CatBones.footL).channel;
+      final footR = _targetFor(buga, CatBones.footR).channel;
+      final rightHitSupport = footL.sample(12 / phrase.frameCount);
+      final rightHitCounter = footR.sample(12 / phrase.frameCount);
+      expect(rightHitSupport.x, lessThanOrEqualTo(-103));
+      expect(rightHitSupport.y, greaterThanOrEqualTo(103));
+      expect(rightHitCounter.x, greaterThanOrEqualTo(105));
+      expect(rightHitCounter.y, greaterThanOrEqualTo(103));
+
+      final leftHitSupport = footR.sample(28 / phrase.frameCount);
+      final leftHitCounter = footL.sample(28 / phrase.frameCount);
+      expect(leftHitSupport.x, greaterThanOrEqualTo(107));
+      expect(leftHitSupport.y, greaterThanOrEqualTo(103));
+      expect(leftHitCounter.x, lessThanOrEqualTo(-105));
+      expect(leftHitCounter.y, greaterThanOrEqualTo(103));
       expect(buga.contactSpans[0].bone, CatBones.footR);
       expect(buga.contactSpans[0].start, 0);
       expect(buga.contactSpans[0].end, 0.25);
