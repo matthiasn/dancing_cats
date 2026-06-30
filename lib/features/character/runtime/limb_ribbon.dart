@@ -14,10 +14,13 @@ import 'dart:ui';
 ///
 /// [spine] are the joint centres (≥2). [halfWidths] is the half-thickness at each
 /// joint (same length as [spine]). [samplesPerSegment] controls smoothness.
+/// [roundCaps] keeps anatomical limb tips soft; tailored surfaces such as suit
+/// sleeves can disable it for flatter fabric ends at shoulder and cuff.
 Path limbRibbonPath(
   List<Offset> spine,
   List<double> halfWidths, {
   int samplesPerSegment = 10,
+  bool roundCaps = true,
 }) {
   assert(spine.length == halfWidths.length, 'spine/halfWidths length mismatch');
   if (spine.length < 2) return Path();
@@ -25,26 +28,33 @@ Path limbRibbonPath(
   final samples = _sampleCentreline(spine, halfWidths, samplesPerSegment);
 
   // Left and right edges, offset along the centreline normal by the local
-  // half-width. The ends get round caps (semicircles) so joints read as the
-  // soft rounded limbs the capsules used to give, without the hinge.
+  // half-width. Anatomical limbs get round caps (semicircles); tailored sleeves
+  // can use flat caps so the ends read like fabric breaks rather than sausages.
   final path = Path();
   final first = samples.first;
   final last = samples.last;
 
-  // Start cap: semicircle around the first centre, sweeping from the right edge
-  // up over the start to the left edge (so the forward left-edge walk continues).
-  final startAngle = math.atan2(-first.normal.dy, -first.normal.dx);
-  path
-    ..moveTo(
-      first.centre.dx - first.normal.dx * first.halfWidth,
-      first.centre.dy - first.normal.dy * first.halfWidth,
-    )
-    ..arcTo(
+  path.moveTo(
+    first.centre.dx - first.normal.dx * first.halfWidth,
+    first.centre.dy - first.normal.dy * first.halfWidth,
+  );
+  if (roundCaps) {
+    // Start cap: semicircle around the first centre, sweeping from the right
+    // edge up over the start to the left edge (so the forward left-edge walk
+    // continues).
+    final startAngle = math.atan2(-first.normal.dy, -first.normal.dx);
+    path.arcTo(
       Rect.fromCircle(center: first.centre, radius: first.halfWidth),
       startAngle,
       -math.pi, // bulge over the BACK of the limb (opposite the tangent)
       false,
     );
+  } else {
+    path.lineTo(
+      first.centre.dx + first.normal.dx * first.halfWidth,
+      first.centre.dy + first.normal.dy * first.halfWidth,
+    );
+  }
 
   // Forward along the LEFT edge.
   for (var i = 1; i < samples.length; i++) {
@@ -55,15 +65,22 @@ Path limbRibbonPath(
     );
   }
 
-  // End cap: semicircle around the last centre, from the left edge over the tip
-  // to the right edge.
-  final endAngle = math.atan2(last.normal.dy, last.normal.dx);
-  path.arcTo(
-    Rect.fromCircle(center: last.centre, radius: last.halfWidth),
-    endAngle,
-    -math.pi,
-    false,
-  );
+  if (roundCaps) {
+    // End cap: semicircle around the last centre, from the left edge over the
+    // tip to the right edge.
+    final endAngle = math.atan2(last.normal.dy, last.normal.dx);
+    path.arcTo(
+      Rect.fromCircle(center: last.centre, radius: last.halfWidth),
+      endAngle,
+      -math.pi,
+      false,
+    );
+  } else {
+    path.lineTo(
+      last.centre.dx - last.normal.dx * last.halfWidth,
+      last.centre.dy - last.normal.dy * last.halfWidth,
+    );
+  }
 
   // Back along the RIGHT edge.
   for (var i = samples.length - 2; i >= 0; i--) {

@@ -299,7 +299,7 @@ class CharacterRenderer {
   ) {
     final path = _ribbonPath(ribbon, world);
     if (path == null) return;
-    _celShadePath(canvas, path, ribbon.color, s);
+    _celShadePath(canvas, path, ribbon.color, s, formRound: ribbon.formRound);
   }
 
   void _celShadeMesh(
@@ -426,6 +426,7 @@ class CharacterRenderer {
       spine,
       ribbon.halfWidths,
       samplesPerSegment: ribbon.samplesPerSegment,
+      roundCaps: ribbon.roundCaps,
     );
   }
 

@@ -48,6 +48,23 @@ void main() {
       expect(path.contains(const Offset(80, 55)), isFalse);
     });
 
+    test('flat caps preserve taper without capsule end bulges', () {
+      final path = limbRibbonPath(
+        const [Offset.zero, Offset(0, 60)],
+        const [12, 6],
+        roundCaps: false,
+      );
+
+      final b = path.getBounds();
+      expect(b.left, closeTo(-12, 0.1));
+      expect(b.right, closeTo(12, 0.1));
+      expect(b.top, closeTo(0, 0.1));
+      expect(b.bottom, closeTo(60, 0.1));
+      expect(path.contains(Offset.zero), isTrue);
+      expect(path.contains(const Offset(0, -6)), isFalse);
+      expect(path.contains(const Offset(0, 66)), isFalse);
+    });
+
     test('degenerate input is handled (no crash, empty path)', () {
       expect(
         limbRibbonPath(const [Offset.zero], const [10]).getBounds(),

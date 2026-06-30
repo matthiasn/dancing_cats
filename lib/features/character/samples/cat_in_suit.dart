@@ -514,10 +514,10 @@ RigSpec buildCatInSuitRig({
       restRotation: 1.57,
       drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
-        width: 11,
-        height: 2.2,
-        cornerRadius: 1.1,
-        color: 0x88263553,
+        width: 9.5,
+        height: 1.8,
+        cornerRadius: 0.9,
+        color: 0x66263553,
         celShade: false,
       ),
     ),
@@ -556,10 +556,10 @@ RigSpec buildCatInSuitRig({
       restRotation: -0.08,
       drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
-        width: 22,
-        height: 8,
+        width: 19,
+        height: 7.5,
         dy: -1,
-        cornerRadius: 3,
+        cornerRadius: 2.6,
         color: _shirt,
         outlineColor: _outline,
         outlineWidth: 1.5,
@@ -840,10 +840,10 @@ RigSpec buildCatInSuitRig({
       restRotation: 1.57,
       drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
-        width: 11,
-        height: 2.2,
-        cornerRadius: 1.1,
-        color: 0x8834456A,
+        width: 9.5,
+        height: 1.8,
+        cornerRadius: 0.9,
+        color: 0x6634456A,
         celShade: false,
       ),
     ),
@@ -876,10 +876,10 @@ RigSpec buildCatInSuitRig({
       restRotation: 0.08,
       drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
-        width: 22,
-        height: 8,
+        width: 19,
+        height: 7.5,
         dy: -1,
-        cornerRadius: 3,
+        cornerRadius: 2.6,
         color: _shirt,
         outlineColor: _outline,
         outlineWidth: 1.5,
@@ -1156,15 +1156,18 @@ RigSpec buildCatInSuitRig({
         CatBones.handR,
       ],
       hiddenBoneIds: const [CatBones.armUpperR, CatBones.armLowerR],
-      // Broad shoulder into a modest bicep swell, then a sharper elbow valley
-      // and slim wrist. The elbow crease bone rides over this valley so crossed
-      // poses read as jointed arms, not one inflated sleeve tube.
-      halfWidths: scaledArmWidths(const [10.6, 11.4, 5.8, 4.4]),
+      // Heroic animated sleeve: broad shoulder/bicep mass, a decisive elbow
+      // valley, then a fitted wrist. Broad contour-rounding and round caps are
+      // disabled so the suit reads as tailored fabric rather than an inflated
+      // tube.
+      halfWidths: scaledArmWidths(const [11.6, 12.2, 5.0, 3.5]),
       z: 15,
       color: _sleeve,
       outlineColor: _outline,
       outlineWidth: 2,
       samplesPerSegment: 12,
+      formRound: false,
+      roundCaps: false,
     ),
     LimbRibbonSpec(
       id: 'arm.L.ribbon',
@@ -1175,12 +1178,14 @@ RigSpec buildCatInSuitRig({
         CatBones.handL,
       ],
       hiddenBoneIds: const [CatBones.armUpperL, CatBones.armLowerL],
-      halfWidths: scaledArmWidths(const [10.6, 11.4, 5.8, 4.4]),
+      halfWidths: scaledArmWidths(const [11.6, 12.2, 5.0, 3.5]),
       z: 16,
       color: _sleeveNear,
       outlineColor: _outline,
       outlineWidth: 2,
       samplesPerSegment: 12,
+      formRound: false,
+      roundCaps: false,
     ),
   ];
 

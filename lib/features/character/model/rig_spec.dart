@@ -348,6 +348,8 @@ class LimbRibbonSpec {
     this.outlineColor,
     this.outlineWidth = 0,
     this.samplesPerSegment = 10,
+    this.formRound = true,
+    this.roundCaps = true,
   }) : jointBoneIds = List<String>.unmodifiable(jointBoneIds),
        hiddenBoneIds = List<String>.unmodifiable(hiddenBoneIds),
        halfWidths = List<double>.unmodifiable(halfWidths);
@@ -361,6 +363,15 @@ class LimbRibbonSpec {
   final int? outlineColor;
   final double outlineWidth;
   final int samplesPerSegment;
+
+  /// Whether the cel-shade's broad contour-rounding applies to the whole
+  /// ribbon. Limbs default to true for soft anatomical volume; tailored sleeves
+  /// can opt out so they read as shaped fabric instead of inflated tubes.
+  final bool formRound;
+
+  /// Whether the ribbon ends use capsule-style semicircles. Default true for
+  /// organic limbs; false gives sleeves or cloth bands a flatter cut edge.
+  final bool roundCaps;
 }
 
 /// A broad skinned surface made from weighted vertices.
