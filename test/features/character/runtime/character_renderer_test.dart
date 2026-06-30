@@ -79,6 +79,28 @@ Future<Uint8List> _renderFace(FaceState face) async {
   return data!.buffer.asUint8List();
 }
 
+/// Renders an arbitrary [rig] with the supplied [world] transforms onto a
+/// [w]x[h] canvas (anti-aliasing off) and returns the RGBA bytes. Used to drive
+/// ribbon/mesh draw orders the single-bone [_renderOne] cannot express.
+Future<Uint8List> _renderRig(
+  RigSpec rig,
+  Map<String, Affine2D> world, {
+  int w = 120,
+  int h = 160,
+}) async {
+  final recorder = ui.PictureRecorder();
+  final canvas = Canvas(recorder);
+  CharacterRenderer(
+    antiAlias: false,
+  ).paint(canvas, rig, world, const FaceState());
+  final picture = recorder.endRecording();
+  final image = await picture.toImage(w, h);
+  final data = await image.toByteData();
+  image.dispose();
+  picture.dispose();
+  return data!.buffer.asUint8List();
+}
+
 /// Counts pixels that exactly match the opaque 0xAARRGGBB [argb].
 int _countColor(Uint8List px, int argb) {
   final r = (argb >> 16) & 0xFF;
@@ -556,4 +578,127 @@ void main() {
       );
     });
   });
+
+  testWidgets('cel-shading clips its ramp to a capsule volume', (tester) async {
+    await tester.runAsync(() async {
+      // A capsule fill exercises the capsule arm of the cel-shade clip switch
+      // (_clipKind), which the rounded-rect cases above never reach.
+      const capsule = BoneDrawable(
+        kind: BoneShapeKind.capsule,
+        width: 44,
+        height: 110,
+        dy: 50,
+        color: 0xFF808080,
+      );
+      final flat = await _renderOne(capsule);
+      final shaded = await _renderOne(capsule, celShade: const CelShadeSpec());
+      int lum(Uint8List px, int x, int y) {
+        final o = (y * w + x) * 4;
+        return px[o] + px[o + 1] + px[o + 2];
+      }
+
+      // Centre ≈ (60, 82); the light comes from the upper-left, so inside the
+      // pill the upper-left lifts and the lower-right darkens vs the flat fill.
+      expect(
+        lum(shaded, 48, 58),
+        greaterThan(lum(flat, 48, 58) + 15),
+        reason: 'the capsule cel-ramp lifts the lit side',
+      );
+      expect(
+        lum(shaded, 72, 106),
+        lessThan(lum(flat, 72, 106) - 15),
+        reason: 'the capsule cel-ramp darkens the shade side',
+      );
+    });
+  });
+
+  testWidgets(
+    'ribbons and meshes above the last bone z are flushed (and cel-shaded)',
+    (tester) async {
+      await tester.runAsync(() async {
+        // A ribbon (z=50) and mesh (z=60) both sit ABOVE the only bone (z=0), so
+        // the main draw loop never consumes them — they fall through to the
+        // trailing flush loops at the end of _drawFills. With a CelShadeSpec the
+        // flush also runs the ribbon/mesh cel-shade passes.
+        RigSpec build({CelShadeSpec? celShade}) => RigSpec(
+          name: 'flush',
+          celShade: celShade,
+          bones: const [
+            Bone(
+              id: 'root',
+              parent: null,
+              pivotX: 0,
+              pivotY: 0,
+              z: 0,
+              drawable: BoneDrawable(
+                kind: BoneShapeKind.ellipse,
+                width: 16,
+                height: 16,
+                color: 0xFF606060,
+              ),
+            ),
+            Bone(id: 'tip', parent: 'root', pivotX: 0, pivotY: 50, z: 0),
+          ],
+          ribbons: [
+            LimbRibbonSpec(
+              id: 'r',
+              jointBoneIds: const ['root', 'tip'],
+              halfWidths: const [12, 9],
+              z: 50,
+              color: 0xFF3F6FB0,
+            ),
+          ],
+          meshes: [
+            SkinnedMeshSpec(
+              id: 'm',
+              z: 60,
+              color: 0xFFB07A3F,
+              vertices: const [
+                SkinnedMeshVertex([
+                  MeshInfluence(boneId: 'root', x: -22, y: -22, weight: 1),
+                ]),
+                SkinnedMeshVertex([
+                  MeshInfluence(boneId: 'root', x: 22, y: -22, weight: 1),
+                ]),
+                SkinnedMeshVertex([
+                  MeshInfluence(boneId: 'root', x: 0, y: 24, weight: 1),
+                ]),
+              ],
+              boundary: const [0, 1, 2],
+            ),
+          ],
+        );
+        final world = {
+          'root': Affine2D.translation(60, 70),
+          'tip': Affine2D.translation(60, 120),
+        };
+        final plain = await _renderRig(build(), world);
+        final shaded = await _renderRig(
+          build(celShade: const CelShadeSpec(roundAmount: 0.6)),
+          world,
+        );
+        var plainPainted = 0;
+        var diff = 0;
+        for (var i = 0; i + 3 < plain.length; i += 4) {
+          if (plain[i + 3] != 0) plainPainted++;
+          if (plain[i] != shaded[i] ||
+              plain[i + 1] != shaded[i + 1] ||
+              plain[i + 2] != shaded[i + 2] ||
+              plain[i + 3] != shaded[i + 3]) {
+            diff++;
+          }
+        }
+        expect(
+          plainPainted,
+          greaterThan(200),
+          reason: 'the high-z ribbon + mesh are flushed and painted',
+        );
+        expect(
+          diff,
+          greaterThan(50),
+          reason: 'the cel-shade flush passes re-tint the ribbon + mesh',
+        );
+      });
+    },
+  );
 }
