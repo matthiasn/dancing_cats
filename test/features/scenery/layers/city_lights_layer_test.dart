@@ -5,6 +5,7 @@ import 'package:dancing_cats/features/scenery/layers/city_lights_layer.dart';
 import 'package:dancing_cats/features/scenery/model/backdrop_palette.dart';
 import 'package:dancing_cats/features/scenery/model/scenery_assets.dart';
 import 'package:dancing_cats/features/scenery/model/skyline_manifest.dart';
+import 'package:dancing_cats/features/scenery/runtime/scenery_geometry.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
