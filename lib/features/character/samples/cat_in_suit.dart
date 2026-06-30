@@ -2716,6 +2716,33 @@ class CatClips {
   static double? _scaleBodyMultiplier(double? value, double gain) =>
       value == null ? null : 1 + (value - 1) * gain;
 
+  static List<DanceBodyKey> _scaledBodyKeys(
+    List<DanceBodyKey> keys, {
+    double rootDxGain = 1,
+    double rootDyGain = 1,
+    double rootRotationGain = 1,
+    double pelvisRotationGain = 1,
+    double chestRotationGain = 1,
+    double chestScaleGain = 1,
+  }) => [
+    for (final key in keys)
+      DanceBodyKey(
+        key.frame,
+        rootDx: _scaleBodyValue(key.rootDx, rootDxGain),
+        rootDy: _scaleBodyValue(key.rootDy, rootDyGain),
+        rootRotation: _scaleBodyValue(key.rootRotation, rootRotationGain),
+        pelvisRotation: _scaleBodyValue(
+          key.pelvisRotation,
+          pelvisRotationGain,
+        ),
+        chestRotation: _scaleBodyValue(key.chestRotation, chestRotationGain),
+        chestScaleX: _scaleBodyMultiplier(key.chestScaleX, chestScaleGain),
+        chestScaleY: _scaleBodyMultiplier(key.chestScaleY, chestScaleGain),
+        ease: key.ease,
+        microFrames: key.microFrames,
+      ),
+  ];
+
   static List<DanceBodyKey> _bodyRootLeadKeys(
     List<DanceBodyKey> keys, {
     double microFrames = _bodyRootLeadFrames,
@@ -5340,7 +5367,7 @@ class CatClips {
   // the COM deepest, pickup frames rebound only slightly, and the chest bites
   // back harder than the pelvis so the shoulders are visibly dancing the beat
   // instead of staying upright while the feet move.
-  static const _zankuCommitKeys = [
+  static const _zankuCommitKeysRaw = [
     DanceBodyKey(
       0,
       rootDx: -22,
@@ -5574,6 +5601,14 @@ class CatClips {
     ),
   ];
 
+  static final List<DanceBodyKey> _zankuCommitKeys = _scaledBodyKeys(
+    _zankuCommitKeysRaw,
+    rootDxGain: 0.82,
+    rootDyGain: 0.9,
+    pelvisRotationGain: 0.84,
+    chestRotationGain: 0.82,
+  );
+
   static const _zankuPocketBoostKeys = [
     DanceBodyKey(
       0,
@@ -5660,7 +5695,7 @@ class CatClips {
   // Extra stomp load over the active Zanku support foot. The base commit keys
   // carry the step pattern; this layer makes the plant frames read as a brief
   // grounded compression instead of a whole-body lean sliding through centre.
-  static const _zankuSupportLoadKeys = [
+  static const _zankuSupportLoadKeysRaw = [
     DanceBodyKey(
       0,
       rootDx: -6,
@@ -5845,6 +5880,14 @@ class CatClips {
       chestRotation: 0.03,
     ),
   ];
+
+  static final List<DanceBodyKey> _zankuSupportLoadKeys = _scaledBodyKeys(
+    _zankuSupportLoadKeysRaw,
+    rootDxGain: 0.72,
+    rootDyGain: 0.88,
+    pelvisRotationGain: 0.76,
+    chestRotationGain: 0.78,
+  );
 
   /// Standalone "Zanku / Legwork" catalog move. Reuses the dance channels + the
   /// proven shaku groove, and adds the Zanku signatures: per-BEAT LEGWORK via
@@ -6420,21 +6463,21 @@ class CatClips {
     ), // HIT
     DanceBodyKey(
       14,
-      rootDx: -25,
-      rootDy: 4,
-      rootRotation: 0.01,
-      pelvisRotation: 0.23,
-      chestRotation: -0.4,
-      chestScaleY: 1.15,
-    ), // hold the present
+      rootDx: -20,
+      rootDy: 8,
+      rootRotation: 0.007,
+      pelvisRotation: 0.17,
+      chestRotation: -0.32,
+      chestScaleY: 1.08,
+    ), // readable overshoot, already releasing
     DanceBodyKey(
       15,
-      rootDx: -23,
-      rootDy: 6,
-      rootRotation: 0.008,
-      pelvisRotation: 0.2,
-      chestRotation: -0.36,
-      chestScaleY: 1.1,
+      rootDx: -12,
+      rootDy: 18,
+      rootRotation: 0.003,
+      pelvisRotation: 0.08,
+      chestRotation: -0.18,
+      chestScaleY: 0.98,
     ),
     DanceBodyKey(
       16,
@@ -6508,21 +6551,21 @@ class CatClips {
     ), // HIT
     DanceBodyKey(
       30,
-      rootDx: 25,
-      rootDy: 4,
-      rootRotation: -0.01,
-      pelvisRotation: -0.23,
-      chestRotation: 0.4,
-      chestScaleY: 1.15,
+      rootDx: 20,
+      rootDy: 8,
+      rootRotation: -0.007,
+      pelvisRotation: -0.17,
+      chestRotation: 0.32,
+      chestScaleY: 1.08,
     ),
     DanceBodyKey(
       31,
-      rootDx: 23,
-      rootDy: 6,
-      rootRotation: -0.008,
-      pelvisRotation: -0.2,
-      chestRotation: 0.36,
-      chestScaleY: 1.1,
+      rootDx: 12,
+      rootDy: 18,
+      rootRotation: -0.003,
+      pelvisRotation: -0.08,
+      chestRotation: 0.18,
+      chestScaleY: 0.98,
     ),
     DanceBodyKey(
       32,
@@ -6567,8 +6610,8 @@ class CatClips {
     DanceIkTargetKey(11, x: 104, y: -120), // elbow follows before the fist
     DanceIkTargetKey(12, x: 104, y: -164), // high/out declarative present
     DanceIkTargetKey(13, x: 110, y: -172), // overshoot past the peak
-    DanceIkTargetKey(14, x: 108, y: -168), // proud hold, not immediate drop
-    DanceIkTargetKey(15, x: 104, y: -162),
+    DanceIkTargetKey(14, x: 100, y: -150), // readable peak, already releasing
+    DanceIkTargetKey(15, x: 76, y: -96),
     DanceIkTargetKey(16, x: 54, y: -34),
     DanceIkTargetKey(20, x: 44, y: -34),
     DanceIkTargetKey(22, x: 50, y: -32),
@@ -6600,8 +6643,8 @@ class CatClips {
       y: -164,
     ), // vertical declarative present (mirror hit)
     DanceIkTargetKey(29, x: -110, y: -172), // overshoot past the peak
-    DanceIkTargetKey(30, x: -108, y: -168), // proud hold
-    DanceIkTargetKey(31, x: -104, y: -162),
+    DanceIkTargetKey(30, x: -100, y: -150), // readable peak, already releasing
+    DanceIkTargetKey(31, x: -76, y: -96),
     DanceIkTargetKey(32, x: -88, y: -92),
   ];
   static final KeyframeIkTargetChannel _bugaHandLTarget = _dancePhrase
@@ -7107,7 +7150,7 @@ class CatClips {
     GroundSpan(CatBones.footL, 0.75, 0.875),
     GroundSpan(CatBones.footR, 0.875, 1),
   ];
-  static const _sekemBodyKeys = [
+  static const _sekemBodyKeysRaw = [
     // The weight COMMIT, keyframed to DWELL over the planting foot (a sine sway
     // just passes through centre and reads uncommitted). rootDx holds at one
     // side for the beat then presses to the other on the plant. Keep the travel
@@ -7250,6 +7293,15 @@ class CatClips {
       chestScaleY: 0.84,
     ),
   ];
+
+  static final List<DanceBodyKey> _sekemBodyKeys = _scaledBodyKeys(
+    _sekemBodyKeysRaw,
+    rootDxGain: 0.78,
+    rootDyGain: 0.9,
+    pelvisRotationGain: 0.8,
+    chestRotationGain: 0.85,
+    chestScaleGain: 0.75,
+  );
   static const _sekemPocketBoostKeys = [
     DanceBodyKey(
       0,

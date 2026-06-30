@@ -726,16 +726,27 @@ class CharacterScene {
     double p,
   ) {
     final dance = _isDanceFamily(clip);
-    // A world-anchored support foot already holds itself, so the root only needs
-    // a light horizontal nudge — a strong pull would re-skate the planted foot
-    // and cancel the lateral groove.
+    final spanLength = span.end - span.start;
+    // A world-anchored support foot holds the IK endpoint, but the root still
+    // needs enough horizontal correction for the pelvis to visibly load over
+    // that planted shoe. Keep this below the non-anchored dance lock so stance
+    // width and authored groove survive, but do not leave it at a token nudge:
+    // mid-stance catalogue moves otherwise read as side-view toe skates. Short
+    // per-beat plants can take a stronger hold than long Shaku/Azonto groove
+    // spans, where too much correction whips the head laterally.
+    final anchoredDanceBaseX = spanLength <= 0.135
+        ? 0.34
+        : spanLength <= 0.26
+        ? 0.28
+        : (clip.name == 'shaku' || clip.name.startsWith('danceBackup'))
+        ? 0.18
+        : 0.24;
     final baseX = clip.supportFootWorldAnchor
-        ? 0.1
+        ? (dance ? anchoredDanceBaseX : 0.18)
         : dance
         ? 0.55
         : (clip.loop ? 0.8 : 0.94);
     final baseY = dance ? 0.94 : (clip.loop ? 0.8 : 0.94);
-    final spanLength = span.end - span.start;
     final fade = dance
         ? (spanLength * 0.24).clamp(0.044, 0.058)
         : (clip.loop ? (spanLength * 0.2).clamp(0.018, 0.035) : 0.08);

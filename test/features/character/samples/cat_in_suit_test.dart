@@ -622,17 +622,17 @@ void main() {
       );
       expect(
         rightStomp.dx,
-        greaterThan(24),
+        inInclusiveRange(20, 25),
         reason:
-            'the right Zanku stomp should carry the pelvis toward the planted '
-            'right foot instead of only tilting the suit over centre',
+            'the right Zanku stomp should carry the pelvis toward support '
+            'without throwing the whole body into a side-view plank',
       );
       expect(
         rightSettle.dx,
-        greaterThan(18),
+        inInclusiveRange(14, 21),
         reason:
             'Zanku should dwell over the right support for a frame after the '
-            'plant instead of rebounding immediately through centre',
+            'plant while staying compact enough for profile balance',
       );
       expect(
         rightSettle.dy,
@@ -707,17 +707,17 @@ void main() {
       );
       expect(
         leftStomp.dx,
-        lessThan(-26),
+        inInclusiveRange(-27, -20),
         reason:
-            'the left Zanku stomp should carry the pelvis toward the planted '
-            'left foot instead of only tilting the suit over centre',
+            'the left Zanku stomp should carry the pelvis toward support '
+            'without throwing the whole body into a side-view plank',
       );
       expect(
         leftSettle.dx,
-        lessThan(-18),
+        inInclusiveRange(-21, -14),
         reason:
             'the mirrored Zanku plant should also dwell over support instead '
-            'of rebounding immediately through centre',
+            'of rebounding immediately through centre or overbalancing',
       );
       expect(
         leftSettle.dy,
@@ -730,7 +730,7 @@ void main() {
       final leftHipOnStomp = hips.sample(24 / phrase.frameCount).rotation;
       expect(
         leftHipLead,
-        lessThan(-0.34),
+        lessThan(-0.28),
         reason:
             'the left Zanku stomp should be led by a mirrored hip commit just '
             'before the foot lands',
@@ -973,13 +973,13 @@ void main() {
       },
     );
 
-    test('buga raises the presenting arm before the hit and holds it', () {
+    test('buga raises the presenting arm, overshoots, then releases', () {
       final phrase = CatClips.dancePhrase;
       final buga = CatClips.buga;
       final handL = _targetFor(buga, CatBones.handL).channel;
       final handR = _targetFor(buga, CatBones.handR).channel;
 
-      for (final frame in [10, 12, 15]) {
+      for (final frame in [10, 12, 14]) {
         final right = handR.sample(frame / phrase.frameCount);
         expect(
           right.x,
@@ -989,7 +989,7 @@ void main() {
         expect(right.y, lessThan(-64));
       }
 
-      for (final frame in [26, 28, 31]) {
+      for (final frame in [26, 28, 30]) {
         final left = handL.sample(frame / phrase.frameCount);
         expect(
           left.x,
@@ -1000,14 +1000,28 @@ void main() {
       }
 
       expect(
+        handR.sample(13 / phrase.frameCount).y,
+        lessThan(handR.sample(12 / phrase.frameCount).y),
+        reason: 'right Buga present should overshoot past the hit',
+      );
+      expect(
+        handL.sample(29 / phrase.frameCount).y,
+        lessThan(handL.sample(28 / phrase.frameCount).y),
+        reason: 'left Buga present should overshoot past the hit',
+      );
+      expect(
         _targetDistance(handR, 14, 15),
-        lessThan(10),
-        reason: 'right Buga show-off pose should hold for two readable frames',
+        greaterThan(40),
+        reason:
+            'right Buga show-off should release after the readable peak instead '
+            'of freezing through the next groove count',
       );
       expect(
         _targetDistance(handL, 30, 31),
-        lessThan(10),
-        reason: 'left Buga show-off pose should hold for two readable frames',
+        greaterThan(40),
+        reason:
+            'left Buga show-off should release after the readable peak instead '
+            'of freezing through the next groove count',
       );
 
       expect(
@@ -1247,18 +1261,24 @@ void main() {
         final torso = sekem.channels[CatBones.torso]!;
         expect(
           leftGroove.dx,
-          lessThan(-26),
-          reason: 'Sekem should visibly dwell over the left plant',
+          inInclusiveRange(-25, -20),
+          reason:
+              'Sekem should visibly dwell over the left plant without '
+              'overthrowing the body in quarter/profile review',
         );
         expect(
           rightGroove.dx,
-          greaterThan(26),
-          reason: 'Sekem should visibly dwell over the right plant',
+          inInclusiveRange(20, 25),
+          reason:
+              'Sekem should visibly dwell over the right plant without '
+              'overthrowing the body in quarter/profile review',
         );
         expect(
           leftGroove.dy - leftRecoil.dy,
-          greaterThan(28),
-          reason: 'Sekem needs a grounded downbeat squash, not a flat sway',
+          inInclusiveRange(26, 32),
+          reason:
+              'Sekem needs a grounded downbeat squash without the old '
+              'overcompressed side-view shell shape',
         );
         final rightHipLead = hips.sample(3.75 / phrase.frameCount).rotation;
         final rightHipPlant = hips.sample(4 / phrase.frameCount).rotation;

@@ -170,6 +170,63 @@ void main() {
       );
     });
 
+    test('catalogue dance contacts hold stable through mid-stance', () {
+      final scene = CharacterScene(buildCatInSuitRig());
+
+      for (final clip in [
+        CatClips.zanku,
+        CatClips.azonto,
+        CatClips.buga,
+        CatClips.sekem,
+      ]) {
+        for (final span in clip.contactSpans) {
+          final spanLength = span.end - span.start;
+          final anchorP = span.start + spanLength * 0.5;
+          final anchor = _supportPoint(
+            scene,
+            clip,
+            span.bone,
+            anchorP * clip.duration,
+          );
+
+          var lateralDrift = 0.0;
+          var verticalDrift = 0.0;
+          for (final localP in const [0.4, 0.5, 0.6]) {
+            final support = _supportPoint(
+              scene,
+              clip,
+              span.bone,
+              (span.start + spanLength * localP) * clip.duration,
+            );
+            lateralDrift = math.max(
+              lateralDrift,
+              (support.x - anchor.x).abs(),
+            );
+            verticalDrift = math.max(
+              verticalDrift,
+              (support.y - anchor.y).abs(),
+            );
+          }
+
+          final maxLateralDrift = spanLength <= 0.26 ? 18 : 20;
+          expect(
+            lateralDrift,
+            lessThan(maxLateralDrift),
+            reason:
+                '${clip.name} ${span.bone} should stay visibly planted while '
+                'the pelvis loads the middle of the support span',
+          );
+          expect(
+            verticalDrift,
+            lessThan(10),
+            reason:
+                '${clip.name} ${span.bone} should not pop off the floor during '
+                'the middle of a support span',
+          );
+        }
+      }
+    });
+
     test(
       'dance keeps broad contact holds floor-plausible and loop continuous',
       () {
