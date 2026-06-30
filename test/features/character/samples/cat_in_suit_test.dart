@@ -441,21 +441,21 @@ void main() {
         final right = handR.sample(frame / phrase.frameCount);
         expect(
           left.x,
-          lessThan(-28),
+          lessThan(-36),
           reason:
               'Shaku frame $frame should keep the left fist off the jacket '
               'centreline so the arm does not merge into the torso shell',
         );
         expect(
           right.x,
-          greaterThan(28),
+          greaterThan(36),
           reason:
               'Shaku frame $frame should keep the right fist off the jacket '
               'centreline so the arm does not merge into the torso shell',
         );
         expect(
           right.x - left.x,
-          greaterThan(58),
+          greaterThan(72),
           reason:
               'Shaku frame $frame should carve negative space between the '
               'guard fists and the suit body',
@@ -520,6 +520,8 @@ void main() {
       final footR = _targetFor(zanku, CatBones.footR).channel;
       final handL = _targetFor(zanku, CatBones.handL).channel;
       final handR = _targetFor(zanku, CatBones.handR).channel;
+      final hips = zanku.channels[CatBones.hips]!;
+      final torso = zanku.channels[CatBones.torso]!;
 
       final rightLift = footR.sample(1 / phrase.frameCount);
       final rightFlick = footR.sample(2 / phrase.frameCount);
@@ -548,10 +550,20 @@ void main() {
       );
       expect(
         rightStomp.dy - rightFlickLift.dy,
-        inInclusiveRange(12, 20),
+        inInclusiveRange(18, 27),
         reason:
-            'Zanku should drop into a grounded stomp, not hop or float after '
-            'the right-leg flick',
+            'Zanku should drop into a stronger grounded stomp pocket, not hop '
+            'or float after the right-leg flick',
+      );
+      expect(
+        hips.sample(4 / phrase.frameCount).rotation,
+        greaterThan(0.3),
+        reason: 'the right Zanku stomp should be hip-led',
+      );
+      expect(
+        torso.sample(4.5 / phrase.frameCount).rotation,
+        lessThan(-0.28),
+        reason: 'the chest should counter after the hip instead of posing flat',
       );
 
       final leftLift = footL.sample(21 / phrase.frameCount);
@@ -581,10 +593,15 @@ void main() {
       );
       expect(
         leftStomp.dy - leftFlickLift.dy,
-        inInclusiveRange(14, 22),
+        inInclusiveRange(21, 31),
         reason:
-            'Zanku should drop into a grounded stomp, not hop or float after '
-            'the left-leg flick',
+            'Zanku should drop into a stronger grounded stomp pocket, not hop '
+            'or float after the left-leg flick',
+      );
+      expect(
+        hips.sample(24 / phrase.frameCount).rotation,
+        lessThan(-0.34),
+        reason: 'the left Zanku stomp should visibly commit through the hip',
       );
 
       final freezeLeftFoot = footL.sample(28 / phrase.frameCount);
@@ -673,6 +690,8 @@ void main() {
       final footR = _targetFor(azonto, CatBones.footR).channel;
       final handL = _targetFor(azonto, CatBones.handL).channel;
       final handR = _targetFor(azonto, CatBones.handR).channel;
+      final hips = azonto.channels[CatBones.hips]!;
+      final torso = azonto.channels[CatBones.torso]!;
 
       for (final frame in [0, 4, 8, 12, 16, 20, 24, 28]) {
         final p = frame / phrase.frameCount;
@@ -722,6 +741,28 @@ void main() {
               'jacket centreline so the arm does not read as a suit blob',
         );
       }
+
+      final tuck = azonto.root.sample(2 / phrase.frameCount);
+      final pointHit = azonto.root.sample(4 / phrase.frameCount);
+      expect(
+        pointHit.dy - tuck.dy,
+        greaterThan(18),
+        reason:
+            'Azonto point-outs should ride a visible knee/hip pocket instead of '
+            'reading as arms over an idle body',
+      );
+      expect(
+        hips.sample(4 / phrase.frameCount).rotation,
+        greaterThan(0.65),
+        reason: 'the Azonto point hit should be driven from the waist',
+      );
+      expect(
+        torso.sample(4.5 / phrase.frameCount).rotation,
+        lessThan(-0.34),
+        reason:
+            'the chest should follow as a delayed counter-rotation, not land '
+            'on the same frame as the hips',
+      );
     });
 
     test(
@@ -1028,17 +1069,17 @@ void main() {
         );
         expect(
           leftGroove.dy - leftRecoil.dy,
-          greaterThan(20),
+          greaterThan(28),
           reason: 'Sekem needs a grounded downbeat squash, not a flat sway',
         );
         expect(
           hips.sample(0).rotation,
-          lessThan(-0.32),
+          lessThan(-0.38),
           reason: 'the hip should lead the left Sekem weight commit',
         );
         expect(
           torso.sample(0.55 / phrase.frameCount).rotation,
-          greaterThan(0.3),
+          greaterThan(0.36),
           reason:
               'the torso should counter after the hip lead instead of landing '
               'as one rigid suit shape',
