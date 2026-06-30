@@ -514,12 +514,10 @@ RigSpec buildCatInSuitRig({
       restRotation: 1.57,
       drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
-        width: 18,
-        height: 4,
-        cornerRadius: 2,
-        color: 0xFF263553,
-        outlineColor: _outline,
-        outlineWidth: 1,
+        width: 11,
+        height: 2.2,
+        cornerRadius: 1.1,
+        color: 0x88263553,
         celShade: false,
       ),
     ),
@@ -842,12 +840,10 @@ RigSpec buildCatInSuitRig({
       restRotation: 1.57,
       drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
-        width: 18,
-        height: 4,
-        cornerRadius: 2,
-        color: 0xFF34456A,
-        outlineColor: _outline,
-        outlineWidth: 1,
+        width: 11,
+        height: 2.2,
+        cornerRadius: 1.1,
+        color: 0x8834456A,
         celShade: false,
       ),
     ),
@@ -5213,59 +5209,59 @@ class CatClips {
   // reading the old wide leg as a side kick; keeping the ankles near the pelvis
   // makes the groove plausible in a front-facing rig.
   static const _zankuFootLTargetKeys = [
-    DanceIkTargetKey(0, x: -54, y: 124), // heavy stamp/support
-    DanceIkTargetKey(2, x: -54, y: 122), // planted, held
-    DanceIkTargetKey(4, x: -54, y: 124), // plant end — swap
-    DanceIkTargetKey(5, x: -42, y: 108), // compact pickup, not a stride
-    DanceIkTargetKey(6, x: -68, y: 123), // heel-toe knock under hip
-    DanceIkTargetKey(7, x: -46, y: 122), // drag back under the knee
-    DanceIkTargetKey(8, x: -54, y: 124), // stamp
-    DanceIkTargetKey(10, x: -54, y: 122),
-    DanceIkTargetKey(12, x: -54, y: 124),
-    DanceIkTargetKey(13, x: -42, y: 108),
-    DanceIkTargetKey(14, x: -70, y: 123),
-    DanceIkTargetKey(15, x: -46, y: 122),
-    DanceIkTargetKey(16, x: -54, y: 124), // stamp
-    DanceIkTargetKey(18, x: -54, y: 122),
-    DanceIkTargetKey(20, x: -54, y: 124),
-    DanceIkTargetKey(21, x: -40, y: 106),
-    DanceIkTargetKey(22, x: -66, y: 122),
-    DanceIkTargetKey(23, x: -44, y: 121),
-    DanceIkTargetKey(24, x: -56, y: 124), // stamp/support
-    DanceIkTargetKey(26, x: -56, y: 122), // support holds while right kicks
-    DanceIkTargetKey(28, x: -72, y: 123), // exact-window heel-toe scrape
-    DanceIkTargetKey(29, x: -48, y: 122),
-    DanceIkTargetKey(30, x: -68, y: 123),
-    DanceIkTargetKey(31, x: -48, y: 122),
-    DanceIkTargetKey(32, x: -54, y: 124), // == frame 0
+    DanceIkTargetKey(0, x: -62, y: 126), // heavy stamp/support
+    DanceIkTargetKey(2, x: -62, y: 125), // planted, held
+    DanceIkTargetKey(4, x: -62, y: 126), // plant end — swap
+    DanceIkTargetKey(5, x: -46, y: 110), // compact pickup, not a stride
+    DanceIkTargetKey(6, x: -74, y: 125), // heel-toe knock under hip
+    DanceIkTargetKey(7, x: -50, y: 124), // drag back under the knee
+    DanceIkTargetKey(8, x: -62, y: 126), // stamp
+    DanceIkTargetKey(10, x: -62, y: 125),
+    DanceIkTargetKey(12, x: -62, y: 126),
+    DanceIkTargetKey(13, x: -46, y: 110),
+    DanceIkTargetKey(14, x: -76, y: 125),
+    DanceIkTargetKey(15, x: -50, y: 124),
+    DanceIkTargetKey(16, x: -62, y: 126), // stamp
+    DanceIkTargetKey(18, x: -62, y: 125),
+    DanceIkTargetKey(20, x: -62, y: 126),
+    DanceIkTargetKey(21, x: -44, y: 108),
+    DanceIkTargetKey(22, x: -72, y: 124),
+    DanceIkTargetKey(23, x: -48, y: 123),
+    DanceIkTargetKey(24, x: -64, y: 126), // stamp/support
+    DanceIkTargetKey(26, x: -64, y: 125), // support holds while right kicks
+    DanceIkTargetKey(28, x: -78, y: 124), // exact-window heel-toe scrape
+    DanceIkTargetKey(29, x: -52, y: 123),
+    DanceIkTargetKey(30, x: -74, y: 124),
+    DanceIkTargetKey(31, x: -52, y: 123),
+    DanceIkTargetKey(32, x: -62, y: 126), // == frame 0
   ];
   // RIGHT foot: opposite phase — digs out on 2/10/18/26, stamps on 4/12/20/28.
   static const _zankuFootRTargetKeys = [
-    DanceIkTargetKey(0, x: 46, y: 122), // scrape from previous tap
-    DanceIkTargetKey(1, x: 42, y: 108), // compact pickup
-    DanceIkTargetKey(2, x: 68, y: 123), // heel-toe knock under hip
-    DanceIkTargetKey(3, x: 46, y: 122), // drag back under the knee
-    DanceIkTargetKey(4, x: 54, y: 124), // stamp/support
-    DanceIkTargetKey(6, x: 54, y: 122), // planted, held
-    DanceIkTargetKey(8, x: 46, y: 122),
-    DanceIkTargetKey(9, x: 42, y: 108),
-    DanceIkTargetKey(10, x: 68, y: 123),
-    DanceIkTargetKey(11, x: 46, y: 122),
-    DanceIkTargetKey(12, x: 54, y: 124), // stamp
-    DanceIkTargetKey(14, x: 54, y: 122),
-    DanceIkTargetKey(16, x: 46, y: 122),
-    DanceIkTargetKey(17, x: 42, y: 108),
-    DanceIkTargetKey(18, x: 68, y: 123),
-    DanceIkTargetKey(19, x: 46, y: 122),
-    DanceIkTargetKey(20, x: 54, y: 124), // stamp
-    DanceIkTargetKey(22, x: 54, y: 122),
-    DanceIkTargetKey(24, x: 46, y: 122),
+    DanceIkTargetKey(0, x: 50, y: 123), // scrape from previous tap
+    DanceIkTargetKey(1, x: 44, y: 110), // compact pickup
+    DanceIkTargetKey(2, x: 74, y: 125), // heel-toe knock under hip
+    DanceIkTargetKey(3, x: 50, y: 124), // drag back under the knee
+    DanceIkTargetKey(4, x: 62, y: 126), // stamp/support
+    DanceIkTargetKey(6, x: 62, y: 125), // planted, held
+    DanceIkTargetKey(8, x: 50, y: 123),
+    DanceIkTargetKey(9, x: 44, y: 110),
+    DanceIkTargetKey(10, x: 74, y: 125),
+    DanceIkTargetKey(11, x: 50, y: 124),
+    DanceIkTargetKey(12, x: 62, y: 126), // stamp
+    DanceIkTargetKey(14, x: 62, y: 125),
+    DanceIkTargetKey(16, x: 50, y: 123),
+    DanceIkTargetKey(17, x: 44, y: 110),
+    DanceIkTargetKey(18, x: 74, y: 125),
+    DanceIkTargetKey(19, x: 50, y: 124),
+    DanceIkTargetKey(20, x: 62, y: 126), // stamp
+    DanceIkTargetKey(22, x: 62, y: 125),
+    DanceIkTargetKey(24, x: 50, y: 123),
     DanceIkTargetKey(25, x: 38, y: 102), // promoted knock-door pickup
     DanceIkTargetKey(26, x: 30, y: 84), // forward/up accent, not a side kick
-    DanceIkTargetKey(27, x: 50, y: 112), // retract under the knee
-    DanceIkTargetKey(28, x: 56, y: 124), // exact-window support stamp
-    DanceIkTargetKey(30, x: 56, y: 122), // held support for loop
-    DanceIkTargetKey(32, x: 46, y: 122), // == frame 0
+    DanceIkTargetKey(27, x: 54, y: 114), // retract under the knee
+    DanceIkTargetKey(28, x: 64, y: 126), // exact-window support stamp
+    DanceIkTargetKey(30, x: 64, y: 125), // held support for loop
+    DanceIkTargetKey(32, x: 50, y: 123), // == frame 0
   ];
   // Per-beat support map: which foot stamps (and is world-anchored) each beat.
   static const _zankuContactSpans = [
@@ -5656,6 +5652,83 @@ class CatClips {
     ),
   ];
 
+  // Extra stomp load over the active Zanku support foot. The base commit keys
+  // carry the step pattern; this layer makes the plant frames read as a brief
+  // grounded compression instead of a whole-body lean sliding through centre.
+  static const _zankuSupportLoadKeys = [
+    DanceBodyKey(
+      0,
+      rootDx: -6,
+      rootDy: 6,
+      pelvisRotation: -0.08,
+      chestRotation: 0.03,
+    ),
+    DanceBodyKey(2, rootDy: -2, pelvisRotation: -0.01, chestRotation: 0.01),
+    DanceBodyKey(
+      4,
+      rootDx: 6,
+      rootDy: 6,
+      pelvisRotation: 0.08,
+      chestRotation: -0.03,
+    ),
+    DanceBodyKey(6, rootDy: -2, pelvisRotation: 0.01, chestRotation: -0.01),
+    DanceBodyKey(
+      8,
+      rootDx: -6,
+      rootDy: 6,
+      pelvisRotation: -0.08,
+      chestRotation: 0.03,
+    ),
+    DanceBodyKey(10, rootDy: -2, pelvisRotation: -0.01, chestRotation: 0.01),
+    DanceBodyKey(
+      12,
+      rootDx: 6,
+      rootDy: 6,
+      pelvisRotation: 0.08,
+      chestRotation: -0.03,
+    ),
+    DanceBodyKey(14, rootDy: -2, pelvisRotation: 0.01, chestRotation: -0.01),
+    DanceBodyKey(
+      16,
+      rootDx: -6,
+      rootDy: 6,
+      pelvisRotation: -0.08,
+      chestRotation: 0.03,
+    ),
+    DanceBodyKey(18, rootDy: -2, pelvisRotation: -0.01, chestRotation: 0.01),
+    DanceBodyKey(
+      20,
+      rootDx: 6,
+      rootDy: 6,
+      pelvisRotation: 0.08,
+      chestRotation: -0.03,
+    ),
+    DanceBodyKey(22, rootDy: -2, pelvisRotation: 0.01, chestRotation: -0.01),
+    DanceBodyKey(
+      24,
+      rootDx: -7,
+      rootDy: 7,
+      pelvisRotation: -0.09,
+      chestRotation: 0.035,
+    ),
+    DanceBodyKey(26, rootDy: -2, pelvisRotation: -0.01, chestRotation: 0.01),
+    DanceBodyKey(
+      28,
+      rootDx: 7,
+      rootDy: 7,
+      pelvisRotation: 0.09,
+      chestRotation: -0.035,
+    ),
+    DanceBodyKey(30, rootDy: -2, pelvisRotation: 0.01, chestRotation: -0.01),
+    DanceBodyKey(
+      32,
+      rootDx: -6,
+      rootDy: 6,
+      pelvisRotation: -0.08,
+      chestRotation: 0.03,
+    ),
+  ];
+
   /// Standalone "Zanku / Legwork" catalog move. Reuses the dance channels + the
   /// proven shaku groove, and adds the Zanku signatures: per-BEAT LEGWORK via
   /// the foot IK targets (compact heel-toe scrapes under the hips — see
@@ -5672,7 +5745,7 @@ class CatClips {
       contactPinning: base.contactPinning,
       limbTargets: _zankuLimbTargets,
       supportFootWorldAnchor: true,
-      supportFootWorldAnchorStrength: 0.74,
+      supportFootWorldAnchorStrength: 0.82,
       root: LayeredRootChannel([
         _bodyRootLeadChannel(_danceBodyAccentKeys, smooth: true),
         // Per-BEAT weight commit that DWELLS over the stamping foot (replaces the
@@ -5686,6 +5759,11 @@ class CatClips {
           _zankuPocketBoostKeys,
           smooth: true,
           microFrames: -0.3,
+        ),
+        _bodyRootLeadChannel(
+          _zankuSupportLoadKeys,
+          smooth: true,
+          microFrames: -0.45,
         ),
         const SineRootChannel(
           // Subtle beat compression only. A large hop made the move read
@@ -5709,6 +5787,11 @@ class CatClips {
             smooth: true,
             microFrames: -1.05,
           ),
+          _bodyPelvisLeadChannel(
+            _zankuSupportLoadKeys,
+            smooth: true,
+            microFrames: -1.15,
+          ),
         ]),
         CatBones.torso: LayeredJointChannel([
           _bodyChestFollowChannel(_danceBodyAccentKeys, smooth: true),
@@ -5724,6 +5807,13 @@ class CatClips {
             microFrames: 1.05,
             rotationGain: 0.7,
             scaleGain: 0.86,
+          ),
+          _bodyChestFollowChannel(
+            _zankuSupportLoadKeys,
+            smooth: true,
+            microFrames: 1.15,
+            rotationGain: 0.62,
+            scaleGain: 0.84,
           ),
           // Compact forward street-dance carriage: legs do the talking while
           // the chest stays over the planted support instead of leaning back

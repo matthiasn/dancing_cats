@@ -53,7 +53,7 @@ void main() {
       expect(cuffR?.z, lessThan(rig.bone(CatBones.handR)!.z));
     });
 
-    test('elbow creases expose arm mechanics over the sleeve ribbons', () {
+    test('elbow creases read as subtle sleeve shadows, not hard bars', () {
       final creaseL = rig.bone(CatBones.armElbowCreaseL);
       final creaseR = rig.bone(CatBones.armElbowCreaseR);
 
@@ -61,6 +61,12 @@ void main() {
       expect(creaseR?.parent, CatBones.armLowerR);
       expect(creaseL?.drawable?.height, lessThan(creaseL!.drawable!.width));
       expect(creaseR?.drawable?.height, lessThan(creaseR!.drawable!.width));
+      expect(creaseL.drawable!.width, lessThanOrEqualTo(12));
+      expect(creaseR.drawable!.width, lessThanOrEqualTo(12));
+      expect(creaseL.drawable!.outlineColor, isNull);
+      expect(creaseR.drawable!.outlineColor, isNull);
+      expect(creaseL.drawable!.outlineWidth, 0);
+      expect(creaseR.drawable!.outlineWidth, 0);
       expect(creaseL.z, greaterThan(rig.bone(CatBones.armUpperL)!.z));
       expect(creaseR.z, greaterThan(rig.bone(CatBones.armUpperR)!.z));
     });
@@ -548,6 +554,14 @@ void main() {
       final hips = zanku.channels[CatBones.hips]!;
       final torso = zanku.channels[CatBones.torso]!;
 
+      expect(
+        zanku.supportFootWorldAnchorStrength,
+        greaterThanOrEqualTo(0.82),
+        reason:
+            'Zanku support feet need a firmer world anchor so the stomp reads '
+            'as a plant instead of a side-view slide',
+      );
+
       final rightLift = footR.sample(1 / phrase.frameCount);
       final rightFlick = footR.sample(2 / phrase.frameCount);
       final rightRecoil = footR.sample(3 / phrase.frameCount);
@@ -562,12 +576,12 @@ void main() {
       );
       expect(
         rightFlick.x,
-        inInclusiveRange(66, 70),
+        inInclusiveRange(72, 76),
         reason:
             'Zanku should show a readable heel-toe knock in a widened support '
             'lane without becoming a side kick',
       );
-      expect(rightFlick.y, inInclusiveRange(121, 125));
+      expect(rightFlick.y, inInclusiveRange(123, 126));
       expect(
         rightRecoil.x,
         lessThan(rightFlick.x - 10),
@@ -575,10 +589,17 @@ void main() {
       );
       expect(
         rightStomp.dy - rightFlickLift.dy,
-        inInclusiveRange(18, 27),
+        inInclusiveRange(21, 33),
         reason:
             'Zanku should drop into a stronger grounded stomp pocket, not hop '
             'or float after the right-leg flick',
+      );
+      expect(
+        rightStomp.dx,
+        greaterThan(24),
+        reason:
+            'the right Zanku stomp should carry the pelvis toward the planted '
+            'right foot instead of only tilting the suit over centre',
       );
       final rightHipLead = hips.sample(3.75 / phrase.frameCount).rotation;
       final rightHipOnStomp = hips.sample(4 / phrase.frameCount).rotation;
@@ -625,12 +646,12 @@ void main() {
       );
       expect(
         leftFlick.x,
-        inInclusiveRange(-68, -64),
+        inInclusiveRange(-74, -70),
         reason:
             'Zanku should show a readable heel-toe knock in a widened support '
             'lane without becoming a side kick',
       );
-      expect(leftFlick.y, inInclusiveRange(121, 125));
+      expect(leftFlick.y, inInclusiveRange(123, 126));
       expect(
         leftRecoil.x,
         greaterThan(leftFlick.x + 10),
@@ -638,10 +659,17 @@ void main() {
       );
       expect(
         leftStomp.dy - leftFlickLift.dy,
-        inInclusiveRange(21, 31),
+        inInclusiveRange(24, 36),
         reason:
             'Zanku should drop into a stronger grounded stomp pocket, not hop '
             'or float after the left-leg flick',
+      );
+      expect(
+        leftStomp.dx,
+        lessThan(-26),
+        reason:
+            'the left Zanku stomp should carry the pelvis toward the planted '
+            'left foot instead of only tilting the suit over centre',
       );
       final leftHipLead = hips.sample(23.75 / phrase.frameCount).rotation;
       final leftHipOnStomp = hips.sample(24 / phrase.frameCount).rotation;
@@ -683,21 +711,21 @@ void main() {
       );
       expect(
         freezeRightFoot.x,
-        greaterThan(52),
+        greaterThan(60),
         reason:
             'the exact Zanku freeze needs a clear right support foot under the '
             'COM, not a tiny hidden contact',
       );
       expect(
         freezeLeftFoot.x,
-        lessThan(-52),
+        lessThan(-72),
         reason:
             'the exact Zanku freeze should show a left heel-toe knock, not '
             'collapse into a neutral/walking stance or a side kick',
       );
       expect(
         freezeLeftFoot.y,
-        inInclusiveRange(119, 123),
+        inInclusiveRange(123, 126),
         reason: 'the scraped freeze foot should skim the floor',
       );
 
