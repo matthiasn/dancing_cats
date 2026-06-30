@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:dancing_cats/features/character/demo/dance_app_frame_exporter.dart';
 import 'package:dancing_cats/features/character/demo/dance_ffmpeg_encoder.dart';
 import 'package:dancing_cats/features/character/demo/dance_lip_sync.dart';
 import 'package:dancing_cats/features/character/demo/dance_loaders.dart';
@@ -408,39 +409,31 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
           : _trackDurationSec - start;
       if (duration <= 0) throw StateError('export duration is empty');
 
-      await _waitForExportReadiness();
-
-      final frameCount = math.max(1, (duration * kDanceAppExportFps).ceil());
-      final dt = 1 / kDanceAppExportFps;
-      final encoder = await DanceFfmpegEncoder.start(
-        width: kDanceRenderWidth,
-        height: kDanceRenderHeight,
-        fps: kDanceAppExportFps,
-        startSec: start,
-        durationSec: duration,
-        outputPath: kDanceAppExportOut,
-        audioPath: kDanceAudioPath,
-        crf: kDanceAppExportCrf,
-        audioKbps: kDanceAppExportAudioKbps,
-        x264Preset: kDanceAppExportX264Preset,
+      final exporter = DanceAppFrameExporter(
+        waitReady: _waitForExportReadiness,
+        prerollClock: (clockStart, dt) =>
+            _prerollExportClock(start: clockStart, dt: dt),
+        renderFrame: (pos, dt) => _renderExportFrame(pos: pos, dt: dt),
+        captureFrame: _captureStageRgba,
+        startEncoder: () => DanceFfmpegEncoder.start(
+          width: kDanceRenderWidth,
+          height: kDanceRenderHeight,
+          fps: kDanceAppExportFps,
+          startSec: start,
+          durationSec: duration,
+          outputPath: kDanceAppExportOut,
+          audioPath: kDanceAudioPath,
+          crf: kDanceAppExportCrf,
+          audioKbps: kDanceAppExportAudioKbps,
+          x264Preset: kDanceAppExportX264Preset,
+        ),
+        log: stdout.writeln,
       );
-      var encoderFinished = false;
-      try {
-        _prerollExportClock(start: start, dt: dt);
-        final progressEvery = math.max(1, kDanceAppExportFps);
-        for (var frame = 0; frame < frameCount; frame++) {
-          final pos = start + frame * dt;
-          await _renderExportFrame(pos: pos, dt: dt);
-          await encoder.writeFrame(await _captureStageRgba());
-          if (frame % progressEvery == 0 || frame == frameCount - 1) {
-            stdout.writeln('rendered ${frame + 1}/$frameCount frames');
-          }
-        }
-        await encoder.finish();
-        encoderFinished = true;
-      } finally {
-        if (!encoderFinished) encoder.kill();
-      }
+      await exporter.run(
+        start: start,
+        durationSec: duration,
+        fps: kDanceAppExportFps,
+      );
       stdout.writeln('wrote $kDanceAppExportOut');
       exit(0);
     } on Object catch (e, st) {
