@@ -5,6 +5,7 @@ import 'package:dancing_cats/features/scenery/layers/backdrop_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/drone_show_layer.dart'
     show kDroneShowCycleSeconds;
 import 'package:dancing_cats/features/scenery/model/scenery_assets.dart';
+import 'package:dancing_cats/features/scenery/runtime/scenery_math.dart';
 
 /// Duration of the distant 747 pass.
 ///
@@ -236,7 +237,7 @@ DistantJetSample? sampleDistantJet(
 }
 
 double? _jetPassLocalSeconds(double timeSeconds, double safeCycle) {
-  final local = _fraction(timeSeconds / safeCycle) * safeCycle;
+  final local = fract(timeSeconds / safeCycle) * safeCycle;
   if (local < kDistantJetStartDelaySeconds) return null;
   return local - kDistantJetStartDelaySeconds;
 }
@@ -245,10 +246,10 @@ DistantJetSample? _sampleDistantJetLocal(double local, double safePass) {
   if (local > safePass + kDistantJetTrailHoldSeconds) return null;
 
   final progress = (local / safePass).clamp(0.0, 1.0);
-  final eased = _smoothstep(progress);
+  final eased = smoothstep(progress);
   final afterPassSeconds = math.max(0, local - safePass);
   final trailAfterPassFade =
-      1 - _smoothstep(afterPassSeconds / kDistantJetTrailHoldSeconds);
+      1 - smoothstep(afterPassSeconds / kDistantJetTrailHoldSeconds);
   // Start at the right edge, but lower in open sky. The earlier high path
   // entered under the foreground palm, making its lights read detached.
   final x = 0.98 - progress * 1.10;
@@ -275,19 +276,19 @@ DistantJetSample? _sampleDistantJetLocal(double local, double safePass) {
 
 /// Edge fade for the pass so the jet never pops on/off at the frame boundary.
 double distantJetEdgeVisibility(double x) {
-  final enter = 1 - _smoothstep((x - 1.12) / 0.08);
-  final exit = _smoothstep((x + 0.18) / 0.12);
+  final enter = 1 - smoothstep((x - 1.12) / 0.08);
+  final exit = smoothstep((x + 0.18) / 0.12);
   return (enter * exit).clamp(0.0, 1.0);
 }
 
 /// Red anti-collision beacon pulse at 60 cycles/minute.
 double aircraftBeaconPulse(double timeSeconds, {double phase = 0}) {
-  final t = _fraction(
+  final t = fract(
     (timeSeconds + phase) / kAircraftAntiCollisionPeriodSeconds,
   );
   const flashWidth = 0.11;
   if (t > flashWidth) return 0;
-  return 1 - _smoothstep(t / flashWidth);
+  return 1 - smoothstep(t / flashWidth);
 }
 
 /// White anti-collision wingtip pulse, synchronized with the red beacon.
@@ -449,10 +450,10 @@ void _paintTrailRibbon(
     if (length == 0) continue;
 
     final normal = ui.Offset(-tangent.dy / length, tangent.dx / length);
-    final fadeIn = _smoothstep(
+    final fadeIn = smoothstep(
       (point.ageSeconds - formationGapSeconds) / formationFadeSeconds,
     );
-    final mature = _smoothstep(
+    final mature = smoothstep(
       (point.ageSeconds - formationGapSeconds) / 5,
     );
     final age01 =
@@ -462,7 +463,7 @@ void _paintTrailRibbon(
     final ageWidth = ui.lerpDouble(
       widthStartFactor,
       widthEndFactor,
-      _smoothstep(age01),
+      smoothstep(age01),
     )!;
     final halfWidth = maxWidth * fadeIn * (0.82 + 0.18 * mature) * ageWidth / 2;
     left.add(point.position + normal * halfWidth);
@@ -600,9 +601,4 @@ void _paintLights(
   );
 }
 
-double _smoothstep(double t) {
-  final x = t.clamp(0.0, 1.0);
-  return x * x * (3 - 2 * x);
-}
-
-double _fraction(double value) => value - value.floorToDouble();
+// Shared scenery math (`fract`, `smoothstep`) now lives in scenery_math.dart.

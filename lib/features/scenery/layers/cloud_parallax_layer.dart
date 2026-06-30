@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:dancing_cats/features/scenery/layers/backdrop_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/city_lights_layer.dart'
     show coverFit;
+import 'package:dancing_cats/features/scenery/runtime/scenery_math.dart';
 import 'package:flutter/rendering.dart';
 
 /// Drifts one full-frame transparent cloud plate over the cloudless backdrop.
@@ -73,7 +74,7 @@ Offset cloudParallaxOffset(
   double timeSeconds,
   CloudParallaxLayer layer,
 ) {
-  final horizontalPhase = _fraction(timeSeconds * layer.dxPerSecond);
+  final horizontalPhase = fract(timeSeconds * layer.dxPerSecond);
   final dx = horizontalPhase <= 0.5
       ? horizontalPhase * cover.width
       : (horizontalPhase - 1.0) * cover.width;
@@ -84,5 +85,3 @@ Offset cloudParallaxOffset(
     math.sin(t * 0.71 + layer.phase * 0.37) * cover.height * layer.dyAmplitude,
   );
 }
-
-double _fraction(double value) => value - value.floorToDouble();
