@@ -22,6 +22,11 @@ const int kDroneShowDroneCount = 280;
 /// real light-show drone instead of a firework.
 const double kDroneShowCycleSeconds = 144;
 
+// Phase boundaries as fractions of the 0..1 loop, in order: the formation
+// launches until 0.22, converges into the beam until 0.38, fans out until 0.58,
+// then holds text for the remainder. The other fractions stage the text morph
+// (opening settle, the staging-hold and the text-transition window) and the
+// reduced-motion freeze frame.
 const double _launchEnd = 0.22;
 const double _beamEnd = 0.38;
 const double _fanEnd = 0.58;
@@ -377,6 +382,8 @@ ui.Offset _beamPoint(int index, int count) {
 
 ui.Offset _fanPoint(int index, int count) {
   final u = count <= 1 ? 0.5 : index / (count - 1);
+  // Deterministic per-drone "band" in 0..1 (a cheap `(index*7) mod 11` hash) that
+  // scatters drones across the fan's depth so it reads as a cloud, not a line.
   final band = ((index * 7) % 11) / 10;
   final crown = -0.032 * math.sin(u * math.pi);
   return ui.Offset(
@@ -419,6 +426,8 @@ ui.Offset _formationPoint(
 
 ui.Offset _transitionStagingPoint(int index, int count) {
   final u = count <= 1 ? 0.5 : index / (count - 1);
+  // Deterministic per-drone row offset in roughly ±0.012 (a `(index*5) mod 7`
+  // hash centred on 0) so the staging block has a little vertical thickness.
   final row = ((index * 5) % 7 - 3) * 0.004;
   return ui.Offset(0.37 + u * 0.26, 0.245 + row);
 }
