@@ -1,8 +1,7 @@
 import 'dart:ui' as ui;
 
 import 'package:dancing_cats/features/scenery/layers/backdrop_layer.dart';
-import 'package:dancing_cats/features/scenery/layers/city_lights_layer.dart'
-    show coverFit;
+import 'package:dancing_cats/features/scenery/runtime/scenery_geometry.dart';
 import 'package:flutter/rendering.dart';
 
 /// Warm lantern light pooling on the foreground deck. The painted deck lanterns

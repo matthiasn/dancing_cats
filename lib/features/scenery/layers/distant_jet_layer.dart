@@ -5,6 +5,7 @@ import 'package:dancing_cats/features/scenery/layers/backdrop_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/drone_show_layer.dart'
     show kDroneShowCycleSeconds;
 import 'package:dancing_cats/features/scenery/model/scenery_assets.dart';
+import 'package:dancing_cats/features/scenery/runtime/scenery_geometry.dart';
 import 'package:dancing_cats/features/scenery/runtime/scenery_math.dart';
 
 /// Duration of the distant 747 pass.
@@ -124,7 +125,7 @@ void _cutSkylineOccluder(ui.Canvas canvas, BackdropContext ctx) {
     occluder.width.toDouble(),
     occluder.height.toDouble(),
   );
-  final dest = _coverRect(src.size, ctx.size);
+  final dest = coverRect(src.size, ctx.size);
   final paint = ui.Paint()
     ..blendMode = ui.BlendMode.dstOut
     ..filterQuality = ui.FilterQuality.medium;
@@ -141,22 +142,6 @@ void _cutSkylineOccluder(ui.Canvas canvas, BackdropContext ctx) {
   for (final offset in offsets) {
     canvas.drawImageRect(occluder, src, dest.shift(offset), paint);
   }
-}
-
-ui.Rect _coverRect(ui.Size image, ui.Size viewport) {
-  if (image.isEmpty || viewport.isEmpty) return ui.Rect.zero;
-  final scale = math.max(
-    viewport.width / image.width,
-    viewport.height / image.height,
-  );
-  final width = image.width * scale;
-  final height = image.height * scale;
-  return ui.Rect.fromLTWH(
-    (viewport.width - width) / 2,
-    (viewport.height - height) / 2,
-    width,
-    height,
-  );
 }
 
 /// Active 16:9 composition rect inside [viewport].
