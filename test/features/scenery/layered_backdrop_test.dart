@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui' as ui;
 
 import 'package:dancing_cats/features/scenery/layered_backdrop.dart';
@@ -9,6 +10,11 @@ import 'package:flutter_test/flutter_test.dart';
 
 Future<ui.FragmentProgram> _failingLoader() =>
     Future<ui.FragmentProgram>.error(StateError('shader unavailable'));
+
+// A second, distinct failing loader so didUpdateWidget sees the sky program
+// loader change (tear-offs of the same function compare equal).
+Future<ui.FragmentProgram> _otherFailingLoader() =>
+    Future<ui.FragmentProgram>.error(StateError('other shader unavailable'));
 
 Future<ui.Image> _solid(Color color, int w, int h) {
   final recorder = ui.PictureRecorder();
@@ -169,5 +175,181 @@ void main() {
     await tester.pump(const Duration(milliseconds: 16));
 
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('decodes scene bitmaps through the default rootBundle loader', (
+    tester,
+  ) async {
+    await tester.runAsync(() async {
+      // No imageLoader is injected, so the widget must fall back to its bundled
+      // rootBundle decoder. With the real shader programs supplied, onReady only
+      // fires once that default loader has decoded the scene's lone asset.
+      final sky = await ui.FragmentProgram.fromAsset(SceneryShaderAssets.sky);
+      final ocean = await ui.FragmentProgram.fromAsset(
+        SceneryShaderAssets.ocean,
+      );
+      final cityLights = await ui.FragmentProgram.fromAsset(
+        SceneryShaderAssets.cityLights,
+      );
+
+      var ready = false;
+      await tester.pumpWidget(
+        _host(
+          LayeredBackdrop(
+            scene: const BackdropScene(
+              layers: [],
+              imageAssets: [SceneryAssets.cityWindows],
+            ),
+            timeOverride: 0,
+            skyProgramLoader: () async => sky,
+            oceanProgramLoader: () async => ocean,
+            cityLightsProgramLoader: () async => cityLights,
+            onReady: () => ready = true,
+          ),
+        ),
+      );
+
+      for (var i = 0; i < 40 && !ready; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 25));
+        await tester.pump();
+      }
+
+      expect(
+        ready,
+        isTrue,
+        reason: 'the default rootBundle loader decoded the bundled asset',
+      );
+      expect(tester.takeException(), isNull);
+    });
+  });
+
+  testWidgets('reloads programs and images when the config changes', (
+    tester,
+  ) async {
+    Widget build({
+      required SceneryShaderProgramLoader sky,
+      required List<String> assets,
+    }) => _host(
+      LayeredBackdrop(
+        scene: BackdropScene(layers: const [], imageAssets: assets),
+        timeOverride: 0,
+        skyProgramLoader: sky,
+        oceanProgramLoader: _failingLoader,
+        imageLoader: (_) => Future<ui.Image>.error(StateError('skip decode')),
+      ),
+    );
+
+    await tester.pumpWidget(
+      build(
+        sky: _failingLoader,
+        assets: const ['assets/scenery/clouds_far.webp'],
+      ),
+    );
+    await tester.pump();
+    // A new sky loader AND a new asset list both trip didUpdateWidget's
+    // reload branches (programs reload, images reload).
+    await tester.pumpWidget(
+      build(
+        sky: _otherFailingLoader,
+        assets: const ['assets/scenery/clouds_mid.webp'],
+      ),
+    );
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('stops the self-clock ticker when an external clock takes over', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _host(
+        LayeredBackdrop(
+          scene: BackdropScene.proceduralBlueHour(),
+          skyProgramLoader: _failingLoader,
+          oceanProgramLoader: _failingLoader,
+        ),
+      ),
+    );
+    // Self-driven: the ticker is running.
+    await tester.pump(const Duration(milliseconds: 16));
+
+    // Hand it an external clock (timeOverride) → didUpdateWidget re-syncs and
+    // stops the now-unneeded ticker.
+    await tester.pumpWidget(
+      _host(
+        LayeredBackdrop(
+          scene: BackdropScene.proceduralBlueHour(),
+          timeOverride: 1.5,
+          skyProgramLoader: _failingLoader,
+          oceanProgramLoader: _failingLoader,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('repaint check reaches the image-version clause when stable', (
+    tester,
+  ) async {
+    // Reuse one scene instance + identical params, so every painter field
+    // compares equal and shouldRepaint falls through to its last (image
+    // version) clause instead of short-circuiting earlier.
+    final scene = BackdropScene.proceduralBlueHour();
+    LayeredBackdrop widget() => LayeredBackdrop(
+      scene: scene,
+      timeOverride: 2,
+      beatPulse: 0.5,
+      skyProgramLoader: _failingLoader,
+      oceanProgramLoader: _failingLoader,
+      cityLightsProgramLoader: _failingLoader,
+    );
+
+    await tester.pumpWidget(_host(widget()));
+    await tester.pump();
+    await tester.pumpWidget(_host(widget()));
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('disposes a late image that resolves after teardown', (
+    tester,
+  ) async {
+    await tester.runAsync(() async {
+      final completer = Completer<ui.Image>();
+      await tester.pumpWidget(
+        _host(
+          LayeredBackdrop(
+            scene: const BackdropScene(
+              layers: [],
+              imageAssets: ['assets/scenery/clouds_far.webp'],
+            ),
+            timeOverride: 0,
+            skyProgramLoader: _failingLoader,
+            oceanProgramLoader: _failingLoader,
+            imageLoader: (_) => completer.future,
+          ),
+        ),
+      );
+      await tester.pump();
+
+      // Tear the backdrop down before the decode resolves.
+      await tester.pumpWidget(_host(const SizedBox.shrink()));
+
+      final image = await _solid(const Color(0xFF010203), 2, 2);
+      completer.complete(image);
+      await Future<void>.delayed(Duration.zero);
+      await tester.pump();
+
+      expect(
+        image.debugDisposed,
+        isTrue,
+        reason:
+            'an image that arrives after unmount must be disposed, not kept',
+      );
+    });
   });
 }

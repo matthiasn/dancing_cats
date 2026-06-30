@@ -42,6 +42,20 @@ void main() {
         }
       }
     });
+
+    testWidgets('memoizes the ocean program after the first compile', (
+      tester,
+    ) async {
+      final first = await SceneryShaderProgramCache.loadOcean();
+      final second = await SceneryShaderProgramCache.loadOcean();
+
+      expect(first, isA<ui.FragmentProgram>());
+      expect(
+        identical(first, second),
+        isTrue,
+        reason: 'loadOcean must hand back the same cached program instance',
+      );
+    });
   });
 
   group('uniform layout contract', () {
