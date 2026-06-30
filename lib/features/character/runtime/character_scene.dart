@@ -4,6 +4,7 @@ import 'package:dancing_cats/features/character/engine/autonomic.dart';
 import 'package:dancing_cats/features/character/engine/clip_evaluator.dart';
 import 'package:dancing_cats/features/character/engine/face_solver.dart';
 import 'package:dancing_cats/features/character/engine/skeleton_solver.dart';
+import 'package:dancing_cats/features/character/engine/two_bone_ik.dart';
 import 'package:dancing_cats/features/character/model/affine2d.dart';
 import 'package:dancing_cats/features/character/model/bone.dart';
 import 'package:dancing_cats/features/character/model/clip.dart';
@@ -312,37 +313,18 @@ class CharacterScene {
                 authoredTarget.y +
                 (worldAnchor.y - authoredTarget.y) * anchorBlend,
           );
-    final upperLength = _pointDistance(shoulder, elbow);
-    final lowerLength = _pointDistance(elbow, wrist);
-    if (upperLength <= 0 || lowerLength <= 0) return null;
-
-    final toTargetX = targetPoint.x - shoulder.x;
-    final toTargetY = targetPoint.y - shoulder.y;
-    final targetDistance = math.sqrt(
-      toTargetX * toTargetX + toTargetY * toTargetY,
+    final solution = solveTwoBoneIk(
+      shoulderX: shoulder.x,
+      shoulderY: shoulder.y,
+      targetX: targetPoint.x,
+      targetY: targetPoint.y,
+      upperLength: _pointDistance(shoulder, elbow),
+      lowerLength: _pointDistance(elbow, wrist),
+      bendDirection: target.bendDirection.toDouble(),
     );
-    if (targetDistance <= 1e-6) return null;
-
-    final minReach = (upperLength - lowerLength).abs() + 1e-6;
-    final maxReach = upperLength + lowerLength - 1e-6;
-    final solvedDistance = targetDistance.clamp(minReach, maxReach);
-    final targetAngle = math.atan2(toTargetY, toTargetX);
-    final shoulderCos =
-        (upperLength * upperLength +
-            solvedDistance * solvedDistance -
-            lowerLength * lowerLength) /
-        (2 * upperLength * solvedDistance);
-    final shoulderOffset = math.acos(shoulderCos.clamp(-1.0, 1.0));
-    final upperSegmentAngle =
-        targetAngle + target.bendDirection * shoulderOffset;
-    final solvedElbow = (
-      x: shoulder.x + math.cos(upperSegmentAngle) * upperLength,
-      y: shoulder.y + math.sin(upperSegmentAngle) * upperLength,
-    );
-    final lowerSegmentAngle = math.atan2(
-      targetPoint.y - solvedElbow.y,
-      targetPoint.x - solvedElbow.x,
-    );
+    if (solution == null) return null;
+    final upperSegmentAngle = solution.upperAngle;
+    final lowerSegmentAngle = solution.lowerAngle;
 
     final parentRotation = _parentWorldRotation(world, upper, pose);
     final upperTargetRotation =
