@@ -51,10 +51,7 @@ class BridgePoliceLayer implements BackdropLayer {
 
     for (final unit in units) {
       final intensity = policeStrobe(ctx.timeSeconds, unit.phase) * cordon;
-      final c = Offset(
-        cover.left + unit.position.dx * cover.width,
-        cover.top + unit.position.dy * cover.height,
-      );
+      final c = cover.project(unit.position.dx, unit.position.dy);
       final color = unit.isRed ? red : blue;
       // A tight steep-falloff halo around a hot near-white core — a vehicle LED
       // bar, not a soft bubble.

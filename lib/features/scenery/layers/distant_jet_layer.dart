@@ -78,10 +78,7 @@ class DistantJetLayer implements BackdropLayer {
     if (sample == null) return;
 
     final stage = distantJetStageRect(ctx.size);
-    final center = ui.Offset(
-      stage.left + sample.position.dx * stage.width,
-      stage.top + sample.position.dy * stage.height,
-    );
+    final center = stage.project(sample.position.dx, sample.position.dy);
     final width = stage.width * sample.widthFraction;
     final height = width * image.height / image.width;
 
@@ -322,10 +319,7 @@ void _paintTrail(
   if (current == null || current.trailOpacity <= 0) return;
 
   ui.Offset engineAt(DistantJetSample sample, ui.Offset normalizedNozzle) {
-    final center = ui.Offset(
-      stage.left + sample.position.dx * stage.width,
-      stage.top + sample.position.dy * stage.height,
-    );
+    final center = stage.project(sample.position.dx, sample.position.dy);
     final width = stage.width * sample.widthFraction;
     final height = width * image.height / image.width;
     final localPoint = ui.Offset(

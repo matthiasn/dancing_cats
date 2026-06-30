@@ -47,8 +47,7 @@ class CityLightsLayer implements BackdropLayer {
     // A gentle breath on the masthead anchor light so it twinkles through haze.
     final breath = 0.82 + 0.18 * math.sin(time * 1.3);
     final r = cover.width * 0.0016;
-    Offset at(double x, double y) =>
-        Offset(cover.left + x * cover.width, cover.top + y * cover.height);
+    Offset at(double x, double y) => cover.project(x, y);
 
     void lamp(Offset c, Color color, double amp, double scale) {
       canvas
@@ -149,10 +148,7 @@ class CityLightsLayer implements BackdropLayer {
     final r = cover.width * 0.0018;
     final red = ctx.palette.beaconRed;
     for (var i = 0; i < anchors.length; i++) {
-      final c = Offset(
-        cover.left + anchors[i].dx * cover.width,
-        cover.top + anchors[i].dy * cover.height,
-      );
+      final c = cover.project(anchors[i].dx, anchors[i].dy);
       // A real obstruction lamp is a near-point hot core inside a small
       // steep-falloff atmospheric halo — not a soft red bubble. The core clips
       // toward a warm ORANGE-white (not pure/cool white), so at distance the

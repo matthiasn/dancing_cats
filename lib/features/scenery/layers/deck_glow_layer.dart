@@ -52,10 +52,7 @@ class DeckGlowLayer implements BackdropLayer {
     // pool is, so widening the pool never turns the lamp into a blob.
     final coreR = cover.width * 0.013;
     for (final l in lanterns) {
-      final lamp = Offset(
-        cover.left + l.dx * cover.width,
-        cover.top + l.dy * cover.height,
-      );
+      final lamp = cover.project(l.dx, l.dy);
       // Pool centred well below the lamp: warm light spills DOWN and OUT across
       // the planks, falling off smoothly so it never reads as a hard disc.
       final pool = lamp.translate(0, radius * 0.42);

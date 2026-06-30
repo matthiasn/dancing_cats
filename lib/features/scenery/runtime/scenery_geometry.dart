@@ -24,6 +24,13 @@ Rect coverRect(Size content, Size viewport) {
 }
 
 /// The rect the fixed [kSceneryCanvasSize] master plate occupies when cover-fit
-/// into [viewport] — the mapping normalized art anchors use:
-/// `coverFit(size).topLeft + anchor * coverFit(size).size`.
+/// into [viewport] — the mapping normalized art anchors use: `cover.project(x, y)`.
 Rect coverFit(Size viewport) => coverRect(kSceneryCanvasSize, viewport);
+
+/// Maps normalized art anchors onto a cover-fit rect.
+extension RectProject on Rect {
+  /// The screen point for a normalized anchor (`x`, `y` in 0..1) in this rect's
+  /// space — i.e. `topLeft + (x, y) * size`.
+  Offset project(double x, double y) =>
+      Offset(left + x * width, top + y * height);
+}
