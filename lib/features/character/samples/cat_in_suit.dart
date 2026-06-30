@@ -50,7 +50,7 @@ const int _nose = 0xFFC8696B; // pink nose
 const int _whisker = 0xFF8A765C; // muted whisker
 
 const double kDanceLeadLegWidthScale = 1.48;
-const double kDanceLeadArmWidthScale = 1.18;
+const double kDanceLeadArmWidthScale = 1.10;
 
 /// Fur/face colours for a cat-in-suit rig variant.
 ///
@@ -128,6 +128,7 @@ class CatBones {
   static const armUpperL = 'arm_upper.L';
   static const armBicepL = 'arm_bicep.L';
   static const armLowerL = 'arm_lower.L';
+  static const armForearmL = 'arm_forearm.L';
   static const armElbowCreaseL = 'arm_elbow_crease.L';
   static const handL = 'hand.L';
   static const wristCuffL = 'wrist_cuff.L';
@@ -137,6 +138,7 @@ class CatBones {
   static const armUpperR = 'arm_upper.R';
   static const armBicepR = 'arm_bicep.R';
   static const armLowerR = 'arm_lower.R';
+  static const armForearmR = 'arm_forearm.R';
   static const armElbowCreaseR = 'arm_elbow_crease.R';
   static const handR = 'hand.R';
   static const wristCuffR = 'wrist_cuff.R';
@@ -506,6 +508,13 @@ RigSpec buildCatInSuitRig({
       drawable: _tapered(18, 13, 50, _sleeve, dy: 20),
     ),
     const Bone(
+      id: CatBones.armForearmR,
+      parent: CatBones.armLowerR,
+      pivotX: 0,
+      pivotY: 22,
+      z: 16,
+    ),
+    const Bone(
       id: CatBones.armElbowCreaseR,
       parent: CatBones.armLowerR,
       pivotX: 0,
@@ -514,10 +523,10 @@ RigSpec buildCatInSuitRig({
       restRotation: 1.57,
       drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
-        width: 9.5,
-        height: 1.8,
-        cornerRadius: 0.9,
-        color: 0x66263553,
+        width: 7.2,
+        height: 1.1,
+        cornerRadius: 0.55,
+        color: 0x44263553,
         celShade: false,
       ),
     ),
@@ -536,8 +545,8 @@ RigSpec buildCatInSuitRig({
       z: 17,
       drawable: BoneDrawable(
         kind: BoneShapeKind.ellipse,
-        width: 24,
-        height: 23,
+        width: 22,
+        height: 21,
         dy: 1,
         color: palette.fur,
         outlineColor: _outline,
@@ -556,8 +565,8 @@ RigSpec buildCatInSuitRig({
       restRotation: -0.08,
       drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
-        width: 19,
-        height: 7.5,
+        width: 17.5,
+        height: 7,
         dy: -1,
         cornerRadius: 2.6,
         color: _shirt,
@@ -577,8 +586,8 @@ RigSpec buildCatInSuitRig({
       z: 16,
       drawable: BoneDrawable(
         kind: BoneShapeKind.ellipse,
-        width: 11,
-        height: 11,
+        width: 10,
+        height: 10,
         dy: 9,
         color: palette.fur,
         outlineColor: _outline,
@@ -594,8 +603,8 @@ RigSpec buildCatInSuitRig({
       z: 16,
       drawable: BoneDrawable(
         kind: BoneShapeKind.ellipse,
-        width: 11,
-        height: 11,
+        width: 10,
+        height: 10,
         dy: 9,
         color: palette.fur,
         outlineColor: _outline,
@@ -832,6 +841,13 @@ RigSpec buildCatInSuitRig({
       drawable: _tapered(18, 13, 50, _sleeveNear, dy: 20),
     ),
     const Bone(
+      id: CatBones.armForearmL,
+      parent: CatBones.armLowerL,
+      pivotX: 0,
+      pivotY: 22,
+      z: 17,
+    ),
+    const Bone(
       id: CatBones.armElbowCreaseL,
       parent: CatBones.armLowerL,
       pivotX: 0,
@@ -840,10 +856,10 @@ RigSpec buildCatInSuitRig({
       restRotation: 1.57,
       drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
-        width: 9.5,
-        height: 1.8,
-        cornerRadius: 0.9,
-        color: 0x6634456A,
+        width: 7.2,
+        height: 1.1,
+        cornerRadius: 0.55,
+        color: 0x4434456A,
         celShade: false,
       ),
     ),
@@ -858,8 +874,8 @@ RigSpec buildCatInSuitRig({
       z: 18,
       drawable: BoneDrawable(
         kind: BoneShapeKind.ellipse,
-        width: 24,
-        height: 23,
+        width: 22,
+        height: 21,
         dy: 1,
         color: palette.fur,
         outlineColor: _outline,
@@ -876,8 +892,8 @@ RigSpec buildCatInSuitRig({
       restRotation: 0.08,
       drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
-        width: 19,
-        height: 7.5,
+        width: 17.5,
+        height: 7,
         dy: -1,
         cornerRadius: 2.6,
         color: _shirt,
@@ -894,8 +910,8 @@ RigSpec buildCatInSuitRig({
       z: 17,
       drawable: BoneDrawable(
         kind: BoneShapeKind.ellipse,
-        width: 11,
-        height: 11,
+        width: 10,
+        height: 10,
         dy: 9,
         color: palette.fur,
         outlineColor: _outline,
@@ -911,8 +927,8 @@ RigSpec buildCatInSuitRig({
       z: 17,
       drawable: BoneDrawable(
         kind: BoneShapeKind.ellipse,
-        width: 11,
-        height: 11,
+        width: 10,
+        height: 10,
         dy: 9,
         color: palette.fur,
         outlineColor: _outline,
@@ -1153,14 +1169,14 @@ RigSpec buildCatInSuitRig({
         CatBones.armUpperR,
         CatBones.armBicepR,
         CatBones.armLowerR,
+        CatBones.armForearmR,
         CatBones.handR,
       ],
       hiddenBoneIds: const [CatBones.armUpperR, CatBones.armLowerR],
-      // Heroic animated sleeve: broad shoulder/bicep mass, a decisive elbow
-      // valley, then a fitted wrist. Broad contour-rounding and round caps are
-      // disabled so the suit reads as tailored fabric rather than an inflated
-      // tube.
-      halfWidths: scaledArmWidths(const [11.6, 12.2, 5.0, 3.5]),
+      // Heroic animated sleeve: compact shoulder, broad bicep, decisive elbow
+      // pinch, a visible forearm wedge, then a fitted wrist. The extra forearm
+      // guide stops the arm from reading as one soft tube from elbow to cuff.
+      halfWidths: scaledArmWidths(const [8.6, 10.4, 3.8, 5.8, 2.7]),
       z: 15,
       color: _sleeve,
       outlineColor: _outline,
@@ -1175,10 +1191,11 @@ RigSpec buildCatInSuitRig({
         CatBones.armUpperL,
         CatBones.armBicepL,
         CatBones.armLowerL,
+        CatBones.armForearmL,
         CatBones.handL,
       ],
       hiddenBoneIds: const [CatBones.armUpperL, CatBones.armLowerL],
-      halfWidths: scaledArmWidths(const [11.6, 12.2, 5.0, 3.5]),
+      halfWidths: scaledArmWidths(const [8.6, 10.4, 3.8, 5.8, 2.7]),
       z: 16,
       color: _sleeveNear,
       outlineColor: _outline,

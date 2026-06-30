@@ -61,8 +61,10 @@ void main() {
       expect(creaseR?.parent, CatBones.armLowerR);
       expect(creaseL?.drawable?.height, lessThan(creaseL!.drawable!.width));
       expect(creaseR?.drawable?.height, lessThan(creaseR!.drawable!.width));
-      expect(creaseL.drawable!.width, lessThanOrEqualTo(10));
-      expect(creaseR.drawable!.width, lessThanOrEqualTo(10));
+      expect(creaseL.drawable!.width, lessThanOrEqualTo(7.5));
+      expect(creaseR.drawable!.width, lessThanOrEqualTo(7.5));
+      expect(creaseL.drawable!.height, lessThanOrEqualTo(1.2));
+      expect(creaseR.drawable!.height, lessThanOrEqualTo(1.2));
       expect(creaseL.drawable!.outlineColor, isNull);
       expect(creaseR.drawable!.outlineColor, isNull);
       expect(creaseL.drawable!.outlineWidth, 0);
@@ -103,7 +105,17 @@ void main() {
       final cuff = rig.bone(CatBones.wristCuffL)!.drawable!;
       final hand = rig.bone(CatBones.handL)!.drawable!;
 
-      expect(arm.halfWidths, const [11.6, 12.2, 5.0, 3.5]);
+      expect(
+        arm.jointBoneIds,
+        const [
+          CatBones.armUpperL,
+          CatBones.armBicepL,
+          CatBones.armLowerL,
+          CatBones.armForearmL,
+          CatBones.handL,
+        ],
+      );
+      expect(arm.halfWidths, const [8.6, 10.4, 3.8, 5.8, 2.7]);
       expect(arm.formRound, isFalse);
       expect(arm.roundCaps, isFalse);
       expect(arm.halfWidths[1], greaterThan(arm.halfWidths.first));
@@ -114,11 +126,16 @@ void main() {
       );
       expect(
         arm.halfWidths.last,
-        lessThan(arm.halfWidths[2] * 0.75),
-        reason: 'the wrist must taper before the cuff/hand break',
+        lessThan(arm.halfWidths[3] * 0.5),
+        reason: 'the wrist must taper after the forearm before the cuff break',
+      );
+      expect(
+        arm.halfWidths[3],
+        greaterThan(arm.halfWidths[2] * 1.35),
+        reason: 'the forearm should wedge back out after the elbow pinch',
       );
       expect(cuff.width, lessThan(hand.width));
-      expect(cuff.width, lessThanOrEqualTo(20));
+      expect(cuff.width, lessThanOrEqualTo(18));
     });
 
     test('shoes carry a subtle sole edge for footwork readability', () {
@@ -246,15 +263,19 @@ void main() {
         greaterThan(leadLeg.halfWidths[2]),
         reason: 'the calf must bulge past the knee dip',
       );
-      expect(baseArm.halfWidths, const [11.6, 12.2, 5.0, 3.5]);
+      expect(baseArm.halfWidths, const [8.6, 10.4, 3.8, 5.8, 2.7]);
       expect(
         leadArm.halfWidths[1],
-        closeTo(12.2 * kDanceLeadArmWidthScale, 0.001),
+        closeTo(10.4 * kDanceLeadArmWidthScale, 0.001),
       );
       expect(
         leadArm.halfWidths[2],
         lessThan(leadArm.halfWidths[1] * 0.6),
         reason: 'the elbow valley should keep crossed arms readable',
+      );
+      expect(
+        leadArm.halfWidths[3],
+        closeTo(5.8 * kDanceLeadArmWidthScale, 0.001),
       );
       expect(leadTail.halfWidths, baseTail.halfWidths);
     });
