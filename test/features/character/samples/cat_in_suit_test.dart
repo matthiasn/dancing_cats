@@ -566,6 +566,7 @@ void main() {
       final rightFlick = footR.sample(2 / phrase.frameCount);
       final rightRecoil = footR.sample(3 / phrase.frameCount);
       final rightStomp = zanku.root.sample(4 / phrase.frameCount);
+      final rightSettle = zanku.root.sample(5 / phrase.frameCount);
       final rightFlickLift = zanku.root.sample(2 / phrase.frameCount);
       expect(
         rightLift.y,
@@ -600,6 +601,20 @@ void main() {
         reason:
             'the right Zanku stomp should carry the pelvis toward the planted '
             'right foot instead of only tilting the suit over centre',
+      );
+      expect(
+        rightSettle.dx,
+        greaterThan(18),
+        reason:
+            'Zanku should dwell over the right support for a frame after the '
+            'plant instead of rebounding immediately through centre',
+      );
+      expect(
+        rightSettle.dy,
+        greaterThan(rightFlickLift.dy + 5),
+        reason:
+            'the frame after the right stomp should still carry visible body '
+            'weight before the rebound',
       );
       final rightHipLead = hips.sample(3.75 / phrase.frameCount).rotation;
       final rightHipOnStomp = hips.sample(4 / phrase.frameCount).rotation;
@@ -636,6 +651,7 @@ void main() {
       final leftFlick = footL.sample(22 / phrase.frameCount);
       final leftRecoil = footL.sample(23 / phrase.frameCount);
       final leftStomp = zanku.root.sample(24 / phrase.frameCount);
+      final leftSettle = zanku.root.sample(25 / phrase.frameCount);
       final leftFlickLift = zanku.root.sample(22 / phrase.frameCount);
       expect(
         leftLift.y,
@@ -670,6 +686,20 @@ void main() {
         reason:
             'the left Zanku stomp should carry the pelvis toward the planted '
             'left foot instead of only tilting the suit over centre',
+      );
+      expect(
+        leftSettle.dx,
+        lessThan(-18),
+        reason:
+            'the mirrored Zanku plant should also dwell over support instead '
+            'of rebounding immediately through centre',
+      );
+      expect(
+        leftSettle.dy,
+        greaterThan(leftFlickLift.dy + 5),
+        reason:
+            'the frame after the left stomp should still carry visible body '
+            'weight before the rebound',
       );
       final leftHipLead = hips.sample(23.75 / phrase.frameCount).rotation;
       final leftHipOnStomp = hips.sample(24 / phrase.frameCount).rotation;

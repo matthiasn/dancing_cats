@@ -4,8 +4,10 @@ import 'dart:ui' as ui;
 
 import 'package:dancing_cats/features/character/engine/autonomic.dart';
 import 'package:dancing_cats/features/character/model/affine2d.dart';
+import 'package:dancing_cats/features/character/model/bone.dart';
 import 'package:dancing_cats/features/character/model/clip.dart';
 import 'package:dancing_cats/features/character/model/face.dart';
+import 'package:dancing_cats/features/character/model/rig_spec.dart';
 import 'package:dancing_cats/features/character/runtime/character_painter.dart';
 import 'package:dancing_cats/features/character/runtime/character_renderer.dart';
 import 'package:dancing_cats/features/character/runtime/character_scene.dart';
@@ -46,12 +48,16 @@ class _ReviewView {
     required this.fileSuffix,
     required this.foreshortenX,
     required this.shearX,
+    this.depth = 0,
+    this.facing = 1,
   });
 
   final String name;
   final String fileSuffix;
   final double foreshortenX;
   final double shearX;
+  final double depth;
+  final double facing;
 
   bool get isFront => fileSuffix.isEmpty;
 
@@ -78,6 +84,7 @@ const _quarterView = _ReviewView(
   fileSuffix: 'quarter',
   foreshortenX: 0.74,
   shearX: 0.16,
+  depth: 0.48,
 );
 
 const _quarterLeftView = _ReviewView(
@@ -85,6 +92,8 @@ const _quarterLeftView = _ReviewView(
   fileSuffix: 'quarter_left',
   foreshortenX: 0.74,
   shearX: -0.16,
+  depth: 0.48,
+  facing: -1,
 );
 
 const _quarterRightView = _ReviewView(
@@ -92,6 +101,7 @@ const _quarterRightView = _ReviewView(
   fileSuffix: 'quarter_right',
   foreshortenX: 0.74,
   shearX: 0.16,
+  depth: 0.48,
 );
 
 const _sideView = _ReviewView(
@@ -99,6 +109,7 @@ const _sideView = _ReviewView(
   fileSuffix: 'side',
   foreshortenX: 0.56,
   shearX: 0.28,
+  depth: 1,
 );
 
 const _sideLeftView = _ReviewView(
@@ -106,6 +117,8 @@ const _sideLeftView = _ReviewView(
   fileSuffix: 'side_left',
   foreshortenX: 0.56,
   shearX: -0.28,
+  depth: 1,
+  facing: -1,
 );
 
 const _sideRightView = _ReviewView(
@@ -113,6 +126,7 @@ const _sideRightView = _ReviewView(
   fileSuffix: 'side_right',
   foreshortenX: 0.56,
   shearX: 0.28,
+  depth: 1,
 );
 
 void main() {
@@ -270,7 +284,17 @@ void main() {
         expression: expression,
         base: cellBase(i, view),
       );
-      renderer.paint(canvas, scene.rig, frame.world, frame.face);
+      final reviewWorld = _projectReviewWorld(frame.world, view, scale);
+      _paintReviewContactShadows(
+        canvas,
+        scene.rig,
+        clip,
+        reviewWorld,
+        p,
+        scale,
+        view,
+      );
+      renderer.paint(canvas, scene.rig, reviewWorld, frame.face);
 
       drawLabel(
         canvas,
@@ -317,6 +341,7 @@ void main() {
         expression: expression,
         base: base,
       );
+      final reviewWorld = _projectReviewWorld(frame.world, view, scale);
       final last = i == frames - 1;
       // Fade ramp: oldest ~10%, newest ~45%, final pose fully solid.
       final alpha = last ? 1.0 : 0.10 + 0.35 * (i / (frames - 1));
@@ -324,7 +349,7 @@ void main() {
         const Rect.fromLTWH(0, 0, cellW, cellH),
         Paint()..color = Color.fromRGBO(0, 0, 0, alpha),
       );
-      renderer.paint(canvas, scene.rig, frame.world, frame.face);
+      renderer.paint(canvas, scene.rig, reviewWorld, frame.face);
       canvas.restore();
     }
 
@@ -356,7 +381,20 @@ void main() {
       expression: expression,
       base: base,
     );
-    renderer.paint(canvas, scene.rig, frame.world, frame.face);
+    final p = clip.duration <= 0
+        ? 0.0
+        : sampleTime(clip, i, frames, clip.duration) / clip.duration;
+    final reviewWorld = _projectReviewWorld(frame.world, view, scale);
+    _paintReviewContactShadows(
+      canvas,
+      scene.rig,
+      clip,
+      reviewWorld,
+      p,
+      scale,
+      view,
+    );
+    renderer.paint(canvas, scene.rig, reviewWorld, frame.face);
     return _pngOf(recorder.endRecording(), cellW.round(), cellH.round());
   }
 
@@ -615,6 +653,47 @@ void main() {
     },
   );
 
+  test('review depth projection separates near and far contact feet', () {
+    final world = {
+      CatBones.footL: Affine2D.translation(100, 200),
+      CatBones.footR: Affine2D.translation(100, 200),
+      CatBones.handL: Affine2D.translation(100, 120),
+      CatBones.handR: Affine2D.translation(100, 120),
+    };
+
+    expect(_projectReviewWorld(world, _frontView, 1), same(world));
+
+    final side = _projectReviewWorld(world, _sideView, 1);
+    expect(
+      side[CatBones.footL]!.origin.x - side[CatBones.footR]!.origin.x,
+      greaterThan(40),
+      reason:
+          'side review needs explicit left/right shoe separation, not just '
+          'global foreshortening',
+    );
+    expect(
+      side[CatBones.handL]!.origin.x - side[CatBones.handR]!.origin.x,
+      greaterThan(44),
+      reason: 'hands should pull clear of the torso silhouette in side review',
+    );
+
+    final sideLeft = _projectReviewWorld(world, _sideLeftView, 1);
+    expect(
+      sideLeft[CatBones.footL]!.origin.x - sideLeft[CatBones.footR]!.origin.x,
+      lessThan(-40),
+      reason: 'left-facing side review should mirror the depth offsets',
+    );
+  });
+
+  test('review contact lookup follows authored support spans', () {
+    final buga = CatClips.buga;
+
+    expect(_activeContactBone(buga, 0.10), CatBones.footR);
+    expect(_activeContactBone(buga, 0.375), CatBones.footL);
+    expect(_activeContactBone(buga, 0.625), CatBones.footL);
+    expect(_activeContactBone(buga, 0.875), CatBones.footR);
+  });
+
   testWidgets('renders per-frame contact-sheet grids', (tester) async {
     await tester.runAsync(() async {
       for (final name in selected) {
@@ -715,6 +794,208 @@ void main() {
     });
   });
 }
+
+Map<String, Affine2D> _projectReviewWorld(
+  Map<String, Affine2D> world,
+  _ReviewView view,
+  double scale,
+) {
+  if (view.depth <= 0) return world;
+
+  return {
+    for (final entry in world.entries)
+      entry.key: _translateForReviewDepth(
+        entry.value,
+        _reviewDepthOffset(entry.key, view, scale),
+      ),
+  };
+}
+
+Affine2D _translateForReviewDepth(
+  Affine2D transform,
+  ({double x, double y}) offset,
+) {
+  if (offset.x == 0 && offset.y == 0) return transform;
+  return Affine2D.translation(offset.x, offset.y).multiply(transform);
+}
+
+({double x, double y}) _reviewDepthOffset(
+  String boneId,
+  _ReviewView view,
+  double scale,
+) {
+  final depth = view.depth * view.facing * scale;
+  final settleY = view.depth * scale;
+
+  double side(double units) => units * depth;
+
+  if (_leftFootBones.contains(boneId)) {
+    return (x: side(24), y: settleY * 1.2);
+  }
+  if (_rightFootBones.contains(boneId)) {
+    return (x: -side(24), y: settleY * 1.2);
+  }
+  if (_leftLegBones.contains(boneId)) {
+    return (x: side(14), y: settleY * 0.6);
+  }
+  if (_rightLegBones.contains(boneId)) {
+    return (x: -side(14), y: settleY * 0.6);
+  }
+  if (_leftHandBones.contains(boneId)) {
+    return (x: side(28), y: -settleY * 0.3);
+  }
+  if (_rightHandBones.contains(boneId)) {
+    return (x: -side(28), y: -settleY * 0.3);
+  }
+  if (_leftArmBones.contains(boneId)) {
+    return (x: side(20), y: -settleY * 0.2);
+  }
+  if (_rightArmBones.contains(boneId)) {
+    return (x: -side(20), y: -settleY * 0.2);
+  }
+  if (_tailBones.contains(boneId)) {
+    return (x: -side(18), y: settleY * 2.0);
+  }
+  if (_headSideBones.contains(boneId)) {
+    final sideSign = boneId.endsWith('.L') ? 1.0 : -1.0;
+    return (x: side(4 * sideSign), y: -settleY * 0.4);
+  }
+  return (x: 0, y: 0);
+}
+
+void _paintReviewContactShadows(
+  Canvas canvas,
+  RigSpec rig,
+  Clip clip,
+  Map<String, Affine2D> world,
+  double phase,
+  double scale,
+  _ReviewView view,
+) {
+  if (clip.contactSpans.isEmpty) return;
+  final activeBone = _activeContactBone(clip, phase);
+  final footBones = {
+    for (final span in clip.contactSpans) span.bone,
+  };
+
+  for (final boneId in footBones) {
+    final transform = world[boneId];
+    final drawable = rig.bone(boneId)?.drawable;
+    if (transform == null || drawable == null) continue;
+
+    final contact = _drawableFootContact(transform, drawable);
+    final active = boneId == activeBone;
+    final width = (active ? 56.0 : 34.0) * scale * (1 - 0.14 * view.depth);
+    final height = (active ? 8.0 : 5.0) * scale;
+    final alpha = active ? 0x42 : 0x1C;
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(contact.x, contact.y + 2.5 * scale),
+        width: width,
+        height: height,
+      ),
+      Paint()..color = Color.fromARGB(alpha, 35, 41, 54),
+    );
+  }
+}
+
+String? _activeContactBone(Clip clip, double phase) {
+  if (clip.contactSpans.isEmpty || clip.duration < 0) return null;
+  final normalized = clip.loop
+      ? phase - phase.floorToDouble()
+      : phase.clamp(0.0, 1.0 - 1e-9);
+
+  for (final span in clip.contactSpans) {
+    if (_spanContainsPhase(span, normalized)) return span.bone;
+  }
+  return null;
+}
+
+bool _spanContainsPhase(GroundSpan span, double phase) {
+  if (span.start <= span.end) {
+    return phase >= span.start && phase < span.end;
+  }
+  return phase >= span.start || phase < span.end;
+}
+
+({double x, double y}) _drawableFootContact(
+  Affine2D transform,
+  BoneDrawable drawable,
+) => transform.transformPoint(
+  drawable.dx,
+  drawable.dy + drawable.height / 2,
+);
+
+const Set<String> _leftFootBones = {
+  CatBones.footL,
+  CatBones.shoeHighlightL,
+};
+
+const Set<String> _rightFootBones = {
+  CatBones.footR,
+  CatBones.shoeHighlightR,
+};
+
+const Set<String> _leftLegBones = {
+  CatBones.legUpperL,
+  CatBones.legQuadL,
+  CatBones.legLowerL,
+  CatBones.legCalfL,
+};
+
+const Set<String> _rightLegBones = {
+  CatBones.legUpperR,
+  CatBones.legQuadR,
+  CatBones.legLowerR,
+  CatBones.legCalfR,
+};
+
+const Set<String> _leftArmBones = {
+  CatBones.armUpperL,
+  CatBones.armBicepL,
+  CatBones.armLowerL,
+  CatBones.armElbowCreaseL,
+};
+
+const Set<String> _rightArmBones = {
+  CatBones.armUpperR,
+  CatBones.armBicepR,
+  CatBones.armLowerR,
+  CatBones.armElbowCreaseR,
+};
+
+const Set<String> _leftHandBones = {
+  CatBones.handL,
+  CatBones.wristCuffL,
+  CatBones.thumbL,
+  CatBones.pawToeL1,
+  CatBones.pawToeL2,
+};
+
+const Set<String> _rightHandBones = {
+  CatBones.handR,
+  CatBones.wristCuffR,
+  CatBones.thumbR,
+  CatBones.pawToeR1,
+  CatBones.pawToeR2,
+};
+
+const Set<String> _tailBones = {
+  CatBones.tail0,
+  CatBones.tail1,
+  CatBones.tail2,
+  CatBones.tail3,
+  CatBones.tail4,
+  CatBones.tail5,
+  CatBones.tail6,
+};
+
+const Set<String> _headSideBones = {
+  CatBones.earL,
+  CatBones.earInnerL,
+  CatBones.earR,
+  CatBones.earInnerR,
+};
 
 List<_ReviewView> _reviewViewsByName(String value) {
   final views = <_ReviewView>[];
