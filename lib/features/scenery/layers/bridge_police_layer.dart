@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:dancing_cats/features/scenery/layers/backdrop_layer.dart';
@@ -6,6 +5,7 @@ import 'package:dancing_cats/features/scenery/layers/city_lights_layer.dart'
     show coverFit;
 import 'package:dancing_cats/features/scenery/layers/drone_show_layer.dart'
     show kDroneShowCycleSeconds;
+import 'package:dancing_cats/features/scenery/runtime/scenery_math.dart';
 import 'package:flutter/rendering.dart';
 
 /// Number of strobe units in the bridge cordon.
@@ -38,7 +38,7 @@ class BridgePoliceLayer implements BackdropLayer {
   void paint(Canvas canvas, BackdropContext ctx) {
     if (ctx.reducedMotion) return;
     final safeCycle = cycleSeconds <= 0 ? kDroneShowCycleSeconds : cycleSeconds;
-    final cordon = trafficStopIntensity(_fraction(ctx.timeSeconds / safeCycle));
+    final cordon = trafficStopIntensity(fract(ctx.timeSeconds / safeCycle));
     if (cordon <= 0) return;
 
     final cover = coverFit(ctx.size);
@@ -135,7 +135,7 @@ List<PoliceCordonUnit> policeCordonPoints({
   const endY = 0.481;
   return List<PoliceCordonUnit>.generate(count, (i) {
     final u = count <= 1 ? 0.5 : i / (count - 1);
-    final jitter = (_unitForIndex(i + 41) - 0.5) * 0.004;
+    final jitter = (hashUnit(i + 41) - 0.5) * 0.004;
     // Two evenly spread red accents in a mostly-blue cordon.
     final isRed = i == (count * 0.3).round() || i == (count * 0.78).round();
     return PoliceCordonUnit(
@@ -143,7 +143,7 @@ List<PoliceCordonUnit> policeCordonPoints({
         startX + u * (endX - startX),
         startY + u * (endY - startY) + jitter,
       ),
-      phase: _unitForIndex(i * 3 + 7) * 0.9,
+      phase: hashUnit(i * 3 + 7) * 0.9,
       isRed: isRed,
     );
   }, growable: false);
@@ -157,13 +157,13 @@ List<PoliceCordonUnit> policeCordonPoints({
 /// climb away — keyed so the lights are gone well before the formation reaches
 /// the sky. Pure for unit testing.
 double trafficStopIntensity(double cycleProgress) {
-  final p = _fraction(cycleProgress);
+  final p = fract(cycleProgress);
   // Signed distance to the launch instant, in loop fractions [-0.5, 0.5).
   final d = p <= 0.5 ? p : p - 1.0;
   if (d < -0.20 || d >= 0.12) return 0;
-  if (d < -0.10) return _smoothstep((d + 0.20) / 0.10); // roll in
+  if (d < -0.10) return smoothstep((d + 0.20) / 0.10); // roll in
   if (d < 0.04) return 1; // full hold across the launch
-  return 1 - _smoothstep((d - 0.04) / 0.08); // clear out as drones climb
+  return 1 - smoothstep((d - 0.04) / 0.08); // clear out as drones climb
 }
 
 /// Instantaneous strobe value for an LED police bar at [time] seconds, offset by
@@ -177,7 +177,7 @@ double policeStrobe(double time, double phase) {
   const period = 0.9;
   const flash = 0.05;
   const gap = 0.05;
-  final t = _fraction((time + phase) / period) * period;
+  final t = fract((time + phase) / period) * period;
   for (var i = 0; i < 4; i++) {
     final start = i * (flash + gap);
     if (t >= start && t < start + flash) return 1;
@@ -188,17 +188,4 @@ double policeStrobe(double time, double phase) {
 /// Dim always-on presence between strobe flashes (see [policeStrobe]).
 const double _strobeFloor = 0.3;
 
-double _unitForIndex(int index) {
-  final n = math.sin((index + 1) * 12.9898) * 43758.5453;
-  return _fraction(n);
-}
-
-double _fraction(double value) {
-  final f = value - value.floorToDouble();
-  return f < 0 ? f + 1 : f;
-}
-
-double _smoothstep(double x) {
-  final t = x.clamp(0.0, 1.0);
-  return t * t * (3 - 2 * t);
-}
+// Shared scenery math (`hashUnit`, `smoothstep`) now lives in scenery_math.dart.

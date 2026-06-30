@@ -201,41 +201,8 @@ class KeyframeChannel extends JointChannel {
   /// finite-difference tangents that wrap around the cycle (period = last-first
   /// key p, assuming the endpoints coincide). This is C1-continuous, so the
   /// joint never stops at an intermediate key.
-  double _spline(int i, double local, double dp, double Function(Keyframe) f) {
-    final n = keys.length;
-    final period = keys.last.p - keys.first.p;
-    final v1 = f(keys[i]);
-    final v2 = f(keys[i + 1]);
-    // Neighbours, wrapping periodically (keys[0] and keys[n-1] coincide).
-    final double v0;
-    final double p0;
-    final double v3;
-    final double p3;
-    if (i == 0) {
-      v0 = f(keys[n - 2]);
-      p0 = keys[n - 2].p - period;
-    } else {
-      v0 = f(keys[i - 1]);
-      p0 = keys[i - 1].p;
-    }
-    if (i + 1 == n - 1) {
-      v3 = f(keys[1]);
-      p3 = keys[1].p + period;
-    } else {
-      v3 = f(keys[i + 2]);
-      p3 = keys[i + 2].p;
-    }
-    // Per-unit-p tangents (scaled by the segment span for the Hermite basis).
-    final m1 = dp * (v2 - v0) / (keys[i + 1].p - p0);
-    final m2 = dp * (v3 - v1) / (p3 - keys[i].p);
-    final t = local;
-    final t2 = t * t;
-    final t3 = t2 * t;
-    return (2 * t3 - 3 * t2 + 1) * v1 +
-        (t3 - 2 * t2 + t) * m1 +
-        (-2 * t3 + 3 * t2) * v2 +
-        (t3 - t2) * m2;
-  }
+  double _spline(int i, double local, double dp, double Function(Keyframe) f) =>
+      periodicCatmullRom(keys, (k) => k.p, f, i, local, dp);
 }
 
 /// A sampled inverse-kinematics target for a two-bone limb chain.
@@ -365,39 +332,7 @@ class KeyframeIkTargetChannel extends IkTargetChannel {
     double local,
     double dp,
     double Function(IkTargetKeyframe) f,
-  ) {
-    final n = keys.length;
-    final period = keys.last.p - keys.first.p;
-    final v1 = f(keys[i]);
-    final v2 = f(keys[i + 1]);
-    final double v0;
-    final double p0;
-    final double v3;
-    final double p3;
-    if (i == 0) {
-      v0 = f(keys[n - 2]);
-      p0 = keys[n - 2].p - period;
-    } else {
-      v0 = f(keys[i - 1]);
-      p0 = keys[i - 1].p;
-    }
-    if (i + 1 == n - 1) {
-      v3 = f(keys[1]);
-      p3 = keys[1].p + period;
-    } else {
-      v3 = f(keys[i + 2]);
-      p3 = keys[i + 2].p;
-    }
-    final m1 = dp * (v2 - v0) / (keys[i + 1].p - p0);
-    final m2 = dp * (v3 - v1) / (p3 - keys[i].p);
-    final t = local;
-    final t2 = t * t;
-    final t3 = t2 * t;
-    return (2 * t3 - 3 * t2 + 1) * v1 +
-        (t3 - 2 * t2 + t) * m1 +
-        (-2 * t3 + 3 * t2) * v2 +
-        (t3 - t2) * m2;
-  }
+  ) => periodicCatmullRom(keys, (k) => k.p, f, i, local, dp);
 }
 
 class LimbIkTarget {
@@ -580,39 +515,59 @@ class KeyframeRootChannel extends RootChannel {
     double local,
     double dp,
     double Function(RootKeyframe) f,
-  ) {
-    final n = keys.length;
-    final period = keys.last.p - keys.first.p;
-    final v1 = f(keys[i]);
-    final v2 = f(keys[i + 1]);
-    final double v0;
-    final double p0;
-    final double v3;
-    final double p3;
-    if (i == 0) {
-      v0 = f(keys[n - 2]);
-      p0 = keys[n - 2].p - period;
-    } else {
-      v0 = f(keys[i - 1]);
-      p0 = keys[i - 1].p;
-    }
-    if (i + 1 == n - 1) {
-      v3 = f(keys[1]);
-      p3 = keys[1].p + period;
-    } else {
-      v3 = f(keys[i + 2]);
-      p3 = keys[i + 2].p;
-    }
-    final m1 = dp * (v2 - v0) / (keys[i + 1].p - p0);
-    final m2 = dp * (v3 - v1) / (p3 - keys[i].p);
-    final t = local;
-    final t2 = t * t;
-    final t3 = t2 * t;
-    return (2 * t3 - 3 * t2 + 1) * v1 +
-        (t3 - 2 * t2 + t) * m1 +
-        (-2 * t3 + 3 * t2) * v2 +
-        (t3 - t2) * m2;
+  ) => periodicCatmullRom(keys, (k) => k.p, f, i, local, dp);
+}
+
+/// Periodic Catmull-Rom (Hermite) interpolation of one channel value across the
+/// segment that starts at `keys[i]`.
+///
+/// [phaseOf] reads a key's normalized phase `p` and [valueOf] reads the scalar
+/// being interpolated; [local] is the 0..1 progress within the segment and [dp]
+/// the segment span used to scale the wrapped finite-difference tangents. The
+/// endpoints coincide (`keys.first` == `keys.last`), so neighbours wrap around
+/// by one period. Shared by the joint / IK-target / root keyframe channels so
+/// the spline math lives in exactly one place.
+double periodicCatmullRom<K>(
+  List<K> keys,
+  double Function(K) phaseOf,
+  double Function(K) valueOf,
+  int i,
+  double local,
+  double dp,
+) {
+  final n = keys.length;
+  final period = phaseOf(keys.last) - phaseOf(keys.first);
+  final v1 = valueOf(keys[i]);
+  final v2 = valueOf(keys[i + 1]);
+  // Neighbours, wrapping periodically (keys[0] and keys[n-1] coincide).
+  final double v0;
+  final double p0;
+  final double v3;
+  final double p3;
+  if (i == 0) {
+    v0 = valueOf(keys[n - 2]);
+    p0 = phaseOf(keys[n - 2]) - period;
+  } else {
+    v0 = valueOf(keys[i - 1]);
+    p0 = phaseOf(keys[i - 1]);
   }
+  if (i + 1 == n - 1) {
+    v3 = valueOf(keys[1]);
+    p3 = phaseOf(keys[1]) + period;
+  } else {
+    v3 = valueOf(keys[i + 2]);
+    p3 = phaseOf(keys[i + 2]);
+  }
+  // Per-unit-p tangents (scaled by the segment span for the Hermite basis).
+  final m1 = dp * (v2 - v0) / (phaseOf(keys[i + 1]) - p0);
+  final m2 = dp * (v3 - v1) / (p3 - phaseOf(keys[i]));
+  final t = local;
+  final t2 = t * t;
+  final t3 = t2 * t;
+  return (2 * t3 - 3 * t2 + 1) * v1 +
+      (t3 - 2 * t2 + t) * m1 +
+      (-2 * t3 + 3 * t2) * v2 +
+      (t3 - t2) * m2;
 }
 
 /// Declares which foot [bone] is planted on the ground over the phase span
