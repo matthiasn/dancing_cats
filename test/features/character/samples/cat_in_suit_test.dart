@@ -117,7 +117,7 @@ void main() {
           CatBones.handL,
         ],
       );
-      expect(arm.halfWidths, const [7.4, 11.2, 4.9, 6.8, 3.2]);
+      expect(arm.halfWidths, const [7.0, 10.0, 4.4, 6.0, 2.9]);
       expect(arm.formRound, isFalse);
       expect(arm.roundCaps, isFalse);
       expect(arm.halfWidths[1], greaterThan(arm.halfWidths.first));
@@ -255,27 +255,27 @@ void main() {
 
       // Athletic trouser profile: full thigh, sharp knee pinch, fitted calf,
       // then a narrow ankle. The knee/ankle taper keeps negative space between
-      // legs in crouched dance poses instead of one fused trouser column.
-      expect(baseLeg.halfWidths, const [12.8, 11.8, 7.8, 9.8, 5.8]);
+      // legs in crouched dance poses without drifting into bodybuilder mass.
+      expect(baseLeg.halfWidths, const [12.4, 11.1, 7.2, 9.2, 5.5]);
       expect(
         leadLeg.halfWidths.first,
-        closeTo(12.8 * kDanceLeadLegWidthScale, 0.001),
+        closeTo(12.4 * kDanceLeadLegWidthScale, 0.001),
       );
       // The calf control (index 3) remains fuller than the knee pinch, but both
       // are slimmer than the old trouser tube.
       expect(
         leadLeg.halfWidths[3],
-        closeTo(9.8 * kDanceLeadLegWidthScale, 0.001),
+        closeTo(9.2 * kDanceLeadLegWidthScale, 0.001),
       );
       expect(
         leadLeg.halfWidths[3],
         greaterThan(leadLeg.halfWidths[2]),
         reason: 'the calf must bulge past the knee dip',
       );
-      expect(baseArm.halfWidths, const [7.4, 11.2, 4.9, 6.8, 3.2]);
+      expect(baseArm.halfWidths, const [7.0, 10.0, 4.4, 6.0, 2.9]);
       expect(
         leadArm.halfWidths[1],
-        closeTo(11.2 * kDanceLeadArmWidthScale, 0.001),
+        closeTo(10.0 * kDanceLeadArmWidthScale, 0.001),
       );
       expect(
         leadArm.halfWidths[2],
@@ -284,7 +284,7 @@ void main() {
       );
       expect(
         leadArm.halfWidths[3],
-        closeTo(6.8 * kDanceLeadArmWidthScale, 0.001),
+        closeTo(6.0 * kDanceLeadArmWidthScale, 0.001),
       );
       expect(leadTail.halfWidths, baseTail.halfWidths);
     });

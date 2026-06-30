@@ -645,34 +645,33 @@ void main() {
     });
 
     // Regression guard: the concert stage act (rim/halo, grade, formation, foot
-    // anchors) must light up for the SHIPPING `shaku` phrase, not only `dance`.
-    // The audio player dances `shaku`; gating the whole system on `clip.name ==
-    // 'dance'` once left the running player completely dark — invisible to tests
-    // because they only ever rendered `dance`. Assert the rim draws for `shaku`.
+    // anchors) must light up for the catalogue phrases the audio player cuts
+    // between. Gating the whole system on one representative phrase once left
+    // later sections flat/frontal in the running player.
     testWidgets(
-      'rings the trio for the shipping shaku phrase, not just dance',
+      'rings the trio for catalogue dance phrases, not just one lead move',
       (
         tester,
       ) async {
         await tester.runAsync(() async {
-          final plain = await pixels(trio(lead: CatClips.shaku));
-          final lit = await pixels(
-            trio(lead: CatClips.shaku, backlights: gels),
-          );
-          var newRimPixels = 0;
-          for (var y = 0; y < h; y++) {
-            for (var x = 0; x < w; x++) {
-              final o = (y * w + x) * 4;
-              if (lit[o + 3] != 0 && plain[o + 3] == 0) newRimPixels++;
+          for (final lead in [CatClips.shaku, CatClips.zanku, CatClips.sekem]) {
+            final plain = await pixels(trio(lead: lead));
+            final lit = await pixels(trio(lead: lead, backlights: gels));
+            var newRimPixels = 0;
+            for (var y = 0; y < h; y++) {
+              for (var x = 0; x < w; x++) {
+                final o = (y * w + x) * 4;
+                if (lit[o + 3] != 0 && plain[o + 3] == 0) newRimPixels++;
+              }
             }
+            expect(
+              newRimPixels,
+              greaterThan(300),
+              reason:
+                  'memberBacklights must ring ${lead.name}; otherwise the live '
+                  'stage loses trio depth during that catalogue phrase',
+            );
           }
-          expect(
-            newRimPixels,
-            greaterThan(300),
-            reason:
-                'memberBacklights must ring the cats for the shaku phrase the '
-                'audio player actually dances, not only the dance phrase',
-          );
         });
       },
     );
@@ -740,12 +739,13 @@ void main() {
         );
         // …but the face split should stay in the same order of magnitude as the
         // body grade, not blow out as a separate sticker pass. The bound is a
-        // loose sanity check (a real "sticker" blowout is multiples larger);
-        // this is a per-pixel readback whose totals drift ~1-2% across
-        // rasterization backends (local arm64 vs CI x86_64), so keep margin.
+        // loose sanity check (a real "sticker" blowout is multiples larger).
+        // The leaner limb silhouette carries less body area than the old broad
+        // sleeve profile, so the face/body total can sit a little higher while
+        // still reading as one integrated grade.
         expect(
           headChange,
-          lessThan(bodyChange * 1.25),
+          lessThan(bodyChange * 1.35),
           reason: 'the face grade should stay balanced against the body grade',
         );
       });
@@ -1854,52 +1854,54 @@ void main() {
     });
   });
 
-  testWidgets('reports per-dancer foot anchors in trio dance mode', (
+  testWidgets('reports per-dancer foot anchors in catalogue trio dance mode', (
     tester,
   ) async {
     await tester.runAsync(() async {
-      List<Offset>? reported;
-      final recorder = ui.PictureRecorder();
-      CharacterPainter(
-        scene: scene,
-        partnerScene: CharacterScene(
-          buildCatInSuitRig(palette: CatInSuitPalette.silverTabby),
-        ),
-        ensembleScenes: [
-          CharacterScene(
+      for (final lead in [CatClips.shaku, CatClips.zanku, CatClips.sekem]) {
+        List<Offset>? reported;
+        final recorder = ui.PictureRecorder();
+        CharacterPainter(
+          scene: scene,
+          partnerScene: CharacterScene(
             buildCatInSuitRig(palette: CatInSuitPalette.silverTabby),
           ),
-          CharacterScene(
-            buildCatInSuitRig(palette: CatInSuitPalette.darkBrown),
-          ),
-        ],
-        ensembleClips: [
-          CatClips.shaku,
-          CatClips.danceBackupLeft,
-          CatClips.danceBackupRight,
-        ],
-        synchronousEnsemble: true,
-        walkingPair: true,
-        clip: CatClips.shaku,
-        timeSeconds: 0.25,
-        // Locked camera so the reported anchors stay inside the canvas (the
-        // dance camera's deep zoom can push feet past the frame edge).
-        enableDanceCamera: false,
-        shadowColor: const Color(0x00000000),
-        onDancerAnchors: (anchors) => reported = anchors,
-        renderer: renderer,
-      ).paint(Canvas(recorder), const Size(760, 420));
-      recorder.endRecording().dispose();
+          ensembleScenes: [
+            CharacterScene(
+              buildCatInSuitRig(palette: CatInSuitPalette.silverTabby),
+            ),
+            CharacterScene(
+              buildCatInSuitRig(palette: CatInSuitPalette.darkBrown),
+            ),
+          ],
+          ensembleClips: [lead, lead, lead],
+          synchronousEnsemble: true,
+          walkingPair: true,
+          clip: lead,
+          timeSeconds: 0.25,
+          // Locked camera so the reported anchors stay inside the canvas (the
+          // dance camera's deep zoom can push feet past the frame edge).
+          enableDanceCamera: false,
+          shadowColor: const Color(0x00000000),
+          onDancerAnchors: (anchors) => reported = anchors,
+          renderer: renderer,
+        ).paint(Canvas(recorder), const Size(760, 420));
+        recorder.endRecording().dispose();
 
-      expect(reported, isNotNull);
-      expect(reported!.length, 3);
-      for (final anchor in reported!) {
-        expect(anchor.dx, inInclusiveRange(0.0, 1.0));
-        expect(anchor.dy, inInclusiveRange(0.0, 1.0));
+        expect(
+          reported,
+          isNotNull,
+          reason: '${lead.name} should use trio mode',
+        );
+        expect(reported!.length, 3);
+        for (final anchor in reported!) {
+          expect(anchor.dx, inInclusiveRange(0.0, 1.0));
+          expect(anchor.dy, inInclusiveRange(0.0, 1.0));
+        }
+        // Reported left→right by lane.
+        expect(reported![0].dx, lessThan(reported![1].dx));
+        expect(reported![1].dx, lessThan(reported![2].dx));
       }
-      // Reported left→right by lane.
-      expect(reported![0].dx, lessThan(reported![1].dx));
-      expect(reported![1].dx, lessThan(reported![2].dx));
     });
   });
 

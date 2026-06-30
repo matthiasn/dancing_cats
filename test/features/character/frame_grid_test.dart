@@ -406,7 +406,8 @@ void main() {
     CharacterScene thirdScene,
     Clip clip,
   ) async {
-    final w = clip.name == CatClips.shaku.name ? 760.0 : 360.0;
+    final danceTrio = _isCatalogueDanceClip(clip);
+    final w = danceTrio ? 760.0 : 360.0;
     const h = 520.0;
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder)
@@ -421,34 +422,20 @@ void main() {
       expression: expression,
       scale: h * 0.78 / 300.0,
       groundColor: const Color(0xFF374551),
-      backdrop: clip.name == CatClips.shaku.name
+      backdrop: danceTrio
           ? CharacterBackdrop.waterfront
           : CharacterBackdrop.none,
-      backdropImage: clip.name == CatClips.shaku.name
-          ? waterfrontBackdropImage
-          : null,
-      backdropCloudsImage: clip.name == CatClips.shaku.name
-          ? waterfrontCloudsImage
-          : null,
-      backdropWavesImage: clip.name == CatClips.shaku.name
-          ? waterfrontWavesImage
-          : null,
-      walkingPair: clip.name == CatClips.shaku.name,
+      backdropImage: danceTrio ? waterfrontBackdropImage : null,
+      backdropCloudsImage: danceTrio ? waterfrontCloudsImage : null,
+      backdropWavesImage: danceTrio ? waterfrontWavesImage : null,
+      walkingPair: danceTrio,
       partnerScene: partnerScene,
-      ensembleScenes: clip.name == CatClips.shaku.name
-          ? [partnerScene, thirdScene]
-          : const [],
-      ensembleClips: clip.name == CatClips.shaku.name
-          ? [
-              CatClips.shaku,
-              CatClips.danceBackupLeft,
-              CatClips.danceBackupRight,
-            ]
-          : const [],
-      ensembleExpressions: clip.name == CatClips.shaku.name
+      ensembleScenes: danceTrio ? [partnerScene, thirdScene] : const [],
+      ensembleClips: danceTrio ? [clip, clip, clip] : const [],
+      ensembleExpressions: danceTrio
           ? _ensembleExpressionsAt(clip.duration * 0.5, expression)
           : const [],
-      synchronousEnsemble: clip.name == CatClips.shaku.name,
+      synchronousEnsemble: danceTrio,
       enableDanceCamera: enableDanceCamera,
     ).paint(canvas, Size(w, h));
     return _pngOf(recorder.endRecording(), w.round(), h.round());
@@ -500,34 +487,16 @@ void main() {
         expression: expression,
         scale: liveH * 0.78 / 300.0,
         groundColor: const Color(0xFF374551),
-        backdrop: clip.name == CatClips.shaku.name
-            ? CharacterBackdrop.waterfront
-            : CharacterBackdrop.none,
-        backdropImage: clip.name == CatClips.shaku.name
-            ? waterfrontBackdropImage
-            : null,
-        backdropCloudsImage: clip.name == CatClips.shaku.name
-            ? waterfrontCloudsImage
-            : null,
-        backdropWavesImage: clip.name == CatClips.shaku.name
-            ? waterfrontWavesImage
-            : null,
-        walkingPair: clip.name == CatClips.shaku.name,
+        backdrop: CharacterBackdrop.waterfront,
+        backdropImage: waterfrontBackdropImage,
+        backdropCloudsImage: waterfrontCloudsImage,
+        backdropWavesImage: waterfrontWavesImage,
+        walkingPair: true,
         partnerScene: partnerScene,
-        ensembleScenes: clip.name == CatClips.shaku.name
-            ? [partnerScene, thirdScene]
-            : const [],
-        ensembleClips: clip.name == CatClips.shaku.name
-            ? [
-                CatClips.shaku,
-                CatClips.danceBackupLeft,
-                CatClips.danceBackupRight,
-              ]
-            : const [],
-        ensembleExpressions: clip.name == CatClips.shaku.name
-            ? _ensembleExpressionsAt(t, expression)
-            : const [],
-        synchronousEnsemble: clip.name == CatClips.shaku.name,
+        ensembleScenes: [partnerScene, thirdScene],
+        ensembleClips: [clip, clip, clip],
+        ensembleExpressions: _ensembleExpressionsAt(t, expression),
+        synchronousEnsemble: true,
         enableDanceCamera: enableDanceCamera,
       ).paint(canvas, const Size(liveW, liveH));
 
@@ -789,7 +758,7 @@ void main() {
           // ignore: avoid_print
           print('wrote ${outputDir.path}/${name}_live.png');
 
-          if (name == CatClips.shaku.name) {
+          if (_isCatalogueDanceClip(clip)) {
             final liveGridPng = await renderLiveGrid(
               scene,
               partnerScene,
@@ -817,6 +786,13 @@ void main() {
     });
   });
 }
+
+bool _isCatalogueDanceClip(Clip clip) =>
+    clip.name == CatClips.shaku.name ||
+    clip.name == CatClips.zanku.name ||
+    clip.name == CatClips.azonto.name ||
+    clip.name == CatClips.buga.name ||
+    clip.name == CatClips.sekem.name;
 
 Map<String, Affine2D> _projectReviewWorld(
   Map<String, Affine2D> world,
