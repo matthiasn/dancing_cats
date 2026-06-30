@@ -124,9 +124,13 @@ void main() {
     test('shoes carry a subtle sole edge for footwork readability', () {
       expect(rig.bone(CatBones.shoeHighlightL)?.parent, CatBones.footL);
       expect(rig.bone(CatBones.shoeHighlightR)?.parent, CatBones.footR);
-      expect(rig.bone(CatBones.shoeHighlightL)?.drawable?.width, 23);
-      // A subtle sole edge, NOT a bright strip that reads as a skeletal mark in
-      // the stage-lit shoe.
+      expect(rig.bone(CatBones.shoeHighlightL)?.drawable?.width, 25);
+      expect(
+        rig.bone(CatBones.shoeHighlightL)?.drawable?.width,
+        lessThan(rig.bone(CatBones.footL)?.drawable?.width ?? 0),
+      );
+      // A wider but still subtle sole edge, NOT a bright strip that reads as a
+      // skeletal mark in the stage-lit shoe.
       expect(rig.bone(CatBones.shoeHighlightR)?.drawable?.color, 0xFF3C4058);
     });
 
@@ -223,18 +227,19 @@ void main() {
       final baseTail = base.ribbons.singleWhere((r) => r.id == 'tail.ribbon');
       final leadTail = lead.ribbons.singleWhere((r) => r.id == 'tail.ribbon');
 
-      // Anatomical trouser profile: full thigh (13.5/13), a knee dip (11.5), a
-      // calf bulge (12.5), then a narrow ankle (8) tapering into the shoe so the
-      // trouser breaks over the foot, not past it.
-      expect(baseLeg.halfWidths, const [13.5, 13, 11.5, 12.5, 8]);
+      // Athletic trouser profile: full thigh, sharp knee pinch, fitted calf,
+      // then a narrow ankle. The knee/ankle taper keeps negative space between
+      // legs in crouched dance poses instead of one fused trouser column.
+      expect(baseLeg.halfWidths, const [12.8, 11.8, 7.8, 9.8, 5.8]);
       expect(
         leadLeg.halfWidths.first,
-        closeTo(13.5 * kDanceLeadLegWidthScale, 0.001),
+        closeTo(12.8 * kDanceLeadLegWidthScale, 0.001),
       );
-      // The calf control (index 3) is fuller than the knee (index 2) — the bulge.
+      // The calf control (index 3) remains fuller than the knee pinch, but both
+      // are slimmer than the old trouser tube.
       expect(
         leadLeg.halfWidths[3],
-        closeTo(12.5 * kDanceLeadLegWidthScale, 0.001),
+        closeTo(9.8 * kDanceLeadLegWidthScale, 0.001),
       );
       expect(
         leadLeg.halfWidths[3],
@@ -602,12 +607,12 @@ void main() {
       );
       expect(
         rightFlick.x,
-        inInclusiveRange(72, 76),
+        inInclusiveRange(82, 86),
         reason:
-            'Zanku should show a readable heel-toe knock in a widened support '
-            'lane without becoming a side kick',
+            'Zanku should show a readable heel-toe knock outside the trouser '
+            'mass without becoming a side kick',
       );
-      expect(rightFlick.y, inInclusiveRange(123, 126));
+      expect(rightFlick.y, inInclusiveRange(122, 125));
       expect(
         rightRecoil.x,
         lessThan(rightFlick.x - 10),
@@ -687,12 +692,12 @@ void main() {
       );
       expect(
         leftFlick.x,
-        inInclusiveRange(-74, -70),
+        inInclusiveRange(-85, -80),
         reason:
-            'Zanku should show a readable heel-toe knock in a widened support '
-            'lane without becoming a side kick',
+            'Zanku should show a readable heel-toe knock outside the trouser '
+            'mass without becoming a side kick',
       );
-      expect(leftFlick.y, inInclusiveRange(123, 126));
+      expect(leftFlick.y, inInclusiveRange(122, 125));
       expect(
         leftRecoil.x,
         greaterThan(leftFlick.x + 10),
@@ -1109,8 +1114,8 @@ void main() {
 
         final leftPlant = footL.sample(0);
         final rightPlant = footR.sample(4 / phrase.frameCount);
-        expect(leftPlant.x, lessThan(-50));
-        expect(rightPlant.x, greaterThan(50));
+        expect(leftPlant.x, lessThan(-56));
+        expect(rightPlant.x, greaterThan(56));
         expect(leftPlant.y, greaterThanOrEqualTo(102));
         expect(rightPlant.y, greaterThanOrEqualTo(102));
         expect(
@@ -1169,10 +1174,10 @@ void main() {
         final rightPickup = footR.sample(2 / phrase.frameCount);
         expect(
           rightPickup.x,
-          inInclusiveRange(56, 60),
+          inInclusiveRange(64, 68),
           reason:
-              'Sekem pickup should scrape in a widened but grounded right lane; '
-              'lifting the foot high would turn it into a side-kick',
+              'Sekem pickup should scrape outside the trouser mass while '
+              'staying low; lifting the foot high would turn it into a side-kick',
         );
         expect(
           rightPickup.y,
@@ -1217,10 +1222,10 @@ void main() {
         final leftPickup = footL.sample(6 / phrase.frameCount);
         expect(
           leftPickup.x,
-          inInclusiveRange(-60, -56),
+          inInclusiveRange(-68, -64),
           reason:
-              'Sekem pickup should scrape in a widened but grounded left lane; '
-              'lifting the foot high would turn it into a side-kick',
+              'Sekem pickup should scrape outside the trouser mass while '
+              'staying low; lifting the foot high would turn it into a side-kick',
         );
         expect(
           leftPickup.y,

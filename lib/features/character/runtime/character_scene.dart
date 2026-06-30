@@ -739,7 +739,7 @@ class CharacterScene {
         : spanLength <= 0.26
         ? 0.28
         : (clip.name == 'shaku' || clip.name.startsWith('danceBackup'))
-        ? 0.18
+        ? 0.16
         : 0.24;
     final baseX = clip.supportFootWorldAnchor
         ? (dance ? anchoredDanceBaseX : 0.18)

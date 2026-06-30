@@ -360,8 +360,8 @@ RigSpec buildCatInSuitRig({
       z: 5,
       drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
-        width: 32,
-        height: 12,
+        width: 34,
+        height: 13,
         // Toe points -x (local), which — through the locomotion mirror — makes
         // the shoe LEAD the direction of travel instead of trailing it.
         dx: -9,
@@ -380,7 +380,7 @@ RigSpec buildCatInSuitRig({
       z: 6,
       drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
-        width: 23,
+        width: 25,
         height: 4,
         dx: -9,
         dy: 7,
@@ -429,8 +429,8 @@ RigSpec buildCatInSuitRig({
       z: 8,
       drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
-        width: 32,
-        height: 12,
+        width: 34,
+        height: 13,
         // Toe points -x (local) so the shoe leads travel — see footR.
         dx: -9,
         dy: 3.5,
@@ -448,7 +448,7 @@ RigSpec buildCatInSuitRig({
       z: 9,
       drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
-        width: 23,
+        width: 25,
         height: 4,
         dx: -9,
         dy: 7,
@@ -1119,11 +1119,11 @@ RigSpec buildCatInSuitRig({
         CatBones.footR,
       ],
       hiddenBoneIds: const [CatBones.legUpperR, CatBones.legLowerR],
-      // Tailored TROUSER profile: a full thigh (15.5/14.5) growing from the hip,
-      // a knee dip (11.5), a calf bulge (13), then a NARROW ankle (8) that tapers
-      // INTO the shoe so the trouser breaks cleanly over the foot instead of
-      // flaring wider than the shoe and sticking out past the heel.
-      halfWidths: scaledLegWidths(const [13.5, 13, 11.5, 12.5, 8]),
+      // Tailored athletic trouser profile: enough thigh mass to feel superhero
+      // strong, a decisive knee pinch, a fitted calf, then a narrow ankle. The
+      // old fuller calf joined both legs into one soft column in quarter/profile
+      // review; this keeps negative space around knees and shoes.
+      halfWidths: scaledLegWidths(const [12.8, 11.8, 7.8, 9.8, 5.8]),
       z: 3,
       color: _trouserRear,
       outlineColor: _outline,
@@ -1140,7 +1140,7 @@ RigSpec buildCatInSuitRig({
         CatBones.footL,
       ],
       hiddenBoneIds: const [CatBones.legUpperL, CatBones.legLowerL],
-      halfWidths: scaledLegWidths(const [13.5, 13, 11.5, 12.5, 8]),
+      halfWidths: scaledLegWidths(const [12.8, 11.8, 7.8, 9.8, 5.8]),
       z: 6,
       color: _trouser,
       outlineColor: _outline,
@@ -5245,25 +5245,25 @@ class CatClips {
     DanceIkTargetKey(2, x: -62, y: 125), // planted, held
     DanceIkTargetKey(4, x: -62, y: 126), // plant end — swap
     DanceIkTargetKey(5, x: -46, y: 110), // compact pickup, not a stride
-    DanceIkTargetKey(6, x: -74, y: 125), // heel-toe knock under hip
+    DanceIkTargetKey(6, x: -84, y: 124), // heel-toe knock under hip
     DanceIkTargetKey(7, x: -50, y: 124), // drag back under the knee
     DanceIkTargetKey(8, x: -62, y: 126), // stamp
     DanceIkTargetKey(10, x: -62, y: 125),
     DanceIkTargetKey(12, x: -62, y: 126),
     DanceIkTargetKey(13, x: -46, y: 110),
-    DanceIkTargetKey(14, x: -76, y: 125),
+    DanceIkTargetKey(14, x: -84, y: 124),
     DanceIkTargetKey(15, x: -50, y: 124),
     DanceIkTargetKey(16, x: -62, y: 126), // stamp
     DanceIkTargetKey(18, x: -62, y: 125),
     DanceIkTargetKey(20, x: -62, y: 126),
     DanceIkTargetKey(21, x: -44, y: 108),
-    DanceIkTargetKey(22, x: -72, y: 124),
+    DanceIkTargetKey(22, x: -82, y: 123),
     DanceIkTargetKey(23, x: -48, y: 123),
     DanceIkTargetKey(24, x: -64, y: 126), // stamp/support
     DanceIkTargetKey(26, x: -64, y: 125), // support holds while right kicks
-    DanceIkTargetKey(28, x: -78, y: 124), // exact-window heel-toe scrape
+    DanceIkTargetKey(28, x: -86, y: 123), // exact-window heel-toe scrape
     DanceIkTargetKey(29, x: -52, y: 123),
-    DanceIkTargetKey(30, x: -74, y: 124),
+    DanceIkTargetKey(30, x: -82, y: 123),
     DanceIkTargetKey(31, x: -52, y: 123),
     DanceIkTargetKey(32, x: -62, y: 126), // == frame 0
   ];
@@ -5271,19 +5271,19 @@ class CatClips {
   static const _zankuFootRTargetKeys = [
     DanceIkTargetKey(0, x: 50, y: 123), // scrape from previous tap
     DanceIkTargetKey(1, x: 44, y: 110), // compact pickup
-    DanceIkTargetKey(2, x: 74, y: 125), // heel-toe knock under hip
+    DanceIkTargetKey(2, x: 84, y: 124), // heel-toe knock under hip
     DanceIkTargetKey(3, x: 50, y: 124), // drag back under the knee
     DanceIkTargetKey(4, x: 62, y: 126), // stamp/support
     DanceIkTargetKey(6, x: 62, y: 125), // planted, held
     DanceIkTargetKey(8, x: 50, y: 123),
     DanceIkTargetKey(9, x: 44, y: 110),
-    DanceIkTargetKey(10, x: 74, y: 125),
+    DanceIkTargetKey(10, x: 84, y: 124),
     DanceIkTargetKey(11, x: 50, y: 124),
     DanceIkTargetKey(12, x: 62, y: 126), // stamp
     DanceIkTargetKey(14, x: 62, y: 125),
     DanceIkTargetKey(16, x: 50, y: 123),
     DanceIkTargetKey(17, x: 44, y: 110),
-    DanceIkTargetKey(18, x: 74, y: 125),
+    DanceIkTargetKey(18, x: 84, y: 124),
     DanceIkTargetKey(19, x: 50, y: 124),
     DanceIkTargetKey(20, x: 62, y: 126), // stamp
     DanceIkTargetKey(22, x: 62, y: 125),
@@ -7391,42 +7391,42 @@ class CatClips {
   // footL lands on the downbeats (frames 0/8/16/24); footR on the 2/4 (4/12/
   // 20/28), mirroring the per-beat support map.
   static const _sekemFootLTargetKeys = [
-    DanceIkTargetKey(0, x: -54, y: 104), // grounded plant
-    DanceIkTargetKey(2, x: -50, y: 103), // tiny toe scrape
-    DanceIkTargetKey(4, x: -54, y: 104),
-    DanceIkTargetKey(6, x: -58, y: 103),
-    DanceIkTargetKey(8, x: -54, y: 104, ease: Ease.easeIn),
-    DanceIkTargetKey(10, x: -50, y: 103),
-    DanceIkTargetKey(12, x: -54, y: 104),
-    DanceIkTargetKey(14, x: -58, y: 103),
-    DanceIkTargetKey(16, x: -54, y: 104, ease: Ease.easeIn),
-    DanceIkTargetKey(18, x: -50, y: 103),
-    DanceIkTargetKey(20, x: -54, y: 104),
-    DanceIkTargetKey(22, x: -58, y: 103),
-    DanceIkTargetKey(24, x: -58, y: 104, ease: Ease.easeIn),
-    DanceIkTargetKey(26, x: -54, y: 103),
-    DanceIkTargetKey(28, x: -56, y: 104),
-    DanceIkTargetKey(30, x: -50, y: 103),
-    DanceIkTargetKey(32, x: -54, y: 104, ease: Ease.easeIn),
+    DanceIkTargetKey(0, x: -60, y: 104), // grounded plant
+    DanceIkTargetKey(2, x: -54, y: 103), // low toe scrape inward
+    DanceIkTargetKey(4, x: -60, y: 104),
+    DanceIkTargetKey(6, x: -66, y: 103), // outward knee/ankle mark
+    DanceIkTargetKey(8, x: -60, y: 104, ease: Ease.easeIn),
+    DanceIkTargetKey(10, x: -54, y: 103),
+    DanceIkTargetKey(12, x: -60, y: 104),
+    DanceIkTargetKey(14, x: -66, y: 103),
+    DanceIkTargetKey(16, x: -60, y: 104, ease: Ease.easeIn),
+    DanceIkTargetKey(18, x: -54, y: 103),
+    DanceIkTargetKey(20, x: -60, y: 104),
+    DanceIkTargetKey(22, x: -66, y: 103),
+    DanceIkTargetKey(24, x: -64, y: 104, ease: Ease.easeIn),
+    DanceIkTargetKey(26, x: -58, y: 103),
+    DanceIkTargetKey(28, x: -62, y: 104),
+    DanceIkTargetKey(30, x: -54, y: 103),
+    DanceIkTargetKey(32, x: -60, y: 104, ease: Ease.easeIn),
   ];
   static const _sekemFootRTargetKeys = [
-    DanceIkTargetKey(0, x: 54, y: 104), // grounded plant
-    DanceIkTargetKey(2, x: 58, y: 103), // tiny toe scrape
-    DanceIkTargetKey(4, x: 54, y: 104, ease: Ease.easeIn),
-    DanceIkTargetKey(6, x: 50, y: 103),
-    DanceIkTargetKey(8, x: 54, y: 104),
-    DanceIkTargetKey(10, x: 58, y: 103),
-    DanceIkTargetKey(12, x: 54, y: 104, ease: Ease.easeIn),
-    DanceIkTargetKey(14, x: 50, y: 103),
-    DanceIkTargetKey(16, x: 54, y: 104),
-    DanceIkTargetKey(18, x: 58, y: 103),
-    DanceIkTargetKey(20, x: 54, y: 104, ease: Ease.easeIn),
-    DanceIkTargetKey(22, x: 50, y: 103),
-    DanceIkTargetKey(24, x: 54, y: 104),
-    DanceIkTargetKey(26, x: 58, y: 103),
-    DanceIkTargetKey(28, x: 58, y: 104, ease: Ease.easeIn),
-    DanceIkTargetKey(30, x: 54, y: 103),
-    DanceIkTargetKey(32, x: 54, y: 104),
+    DanceIkTargetKey(0, x: 60, y: 104), // grounded plant
+    DanceIkTargetKey(2, x: 66, y: 103), // outward knee/ankle mark
+    DanceIkTargetKey(4, x: 60, y: 104, ease: Ease.easeIn),
+    DanceIkTargetKey(6, x: 54, y: 103), // low toe scrape inward
+    DanceIkTargetKey(8, x: 60, y: 104),
+    DanceIkTargetKey(10, x: 66, y: 103),
+    DanceIkTargetKey(12, x: 60, y: 104, ease: Ease.easeIn),
+    DanceIkTargetKey(14, x: 54, y: 103),
+    DanceIkTargetKey(16, x: 60, y: 104),
+    DanceIkTargetKey(18, x: 66, y: 103),
+    DanceIkTargetKey(20, x: 60, y: 104, ease: Ease.easeIn),
+    DanceIkTargetKey(22, x: 54, y: 103),
+    DanceIkTargetKey(24, x: 60, y: 104),
+    DanceIkTargetKey(26, x: 66, y: 103),
+    DanceIkTargetKey(28, x: 64, y: 104, ease: Ease.easeIn),
+    DanceIkTargetKey(30, x: 58, y: 103),
+    DanceIkTargetKey(32, x: 60, y: 104),
   ];
   static const _sekemFootLKeys = [
     DanceJointKey(0, rotation: 0.06), // planted flat
