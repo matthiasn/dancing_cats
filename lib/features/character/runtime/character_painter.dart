@@ -886,6 +886,32 @@ class CharacterPainter extends CustomPainter {
     canvas.restore();
   }
 
+  /// The clamped pan for a camera / parallax move at [size]: dx is rescaled from
+  /// the 2560-ref authoring width; dy from the 1440-ref height only when
+  /// [scaleDy] (the director authors a fractional lift, the legacy keyframes
+  /// author raw px). Both clamp to the margin a zoom > 1 exposes. Shared by
+  /// [_applySceneCamera] and [_parallaxMatrix] so the foreground camera and the
+  /// lagged parallax can't drift apart.
+  static ({Offset pivot, double dx, double dy}) _clampedPan(
+    ({double zoom, double dx, double dy}) camera,
+    Size size,
+    double pivotFraction, {
+    bool scaleDy = false,
+  }) {
+    final pivot = Offset(size.width / 2, size.height * pivotFraction);
+    final maxDx = size.width * (camera.zoom - 1) / 2;
+    final maxDy = size.height * (camera.zoom - 1) / 2;
+    final dx = (camera.dx * size.width / _danceCameraRefWidth).clamp(
+      -maxDx,
+      maxDx,
+    );
+    final rawDy = scaleDy
+        ? camera.dy * size.height / _danceCameraRefHeight
+        : camera.dy;
+    final dy = rawDy.clamp(-maxDy, maxDy);
+    return (pivot: pivot, dx: dx, dy: dy);
+  }
+
   static void _applySceneCamera(
     Canvas canvas,
     Size size,
@@ -894,24 +920,11 @@ class CharacterPainter extends CustomPainter {
     bool scaleDy = false,
   }) {
     if (camera.zoom == 1 && camera.dx == 0 && camera.dy == 0) return;
-    final pivot = Offset(size.width / 2, size.height * pivotFraction);
-    final maxDx = size.width * (camera.zoom - 1) / 2;
-    final maxDy = size.height * (camera.zoom - 1) / 2;
-    final dx = (camera.dx * size.width / _danceCameraRefWidth).clamp(
-      -maxDx,
-      maxDx,
-    );
-    // The virtual director authors dy in 1440-ref px so a negative dy frames the
-    // same FRACTION of the figure at any height (the legwork-climax lift). The
-    // legacy built-in keyframes author dy in raw px, so they are not rescaled.
-    final rawDy = scaleDy
-        ? camera.dy * size.height / _danceCameraRefHeight
-        : camera.dy;
-    final dy = rawDy.clamp(-maxDy, maxDy);
+    final pan = _clampedPan(camera, size, pivotFraction, scaleDy: scaleDy);
     canvas
-      ..translate(pivot.dx + dx, pivot.dy + dy)
+      ..translate(pan.pivot.dx + pan.dx, pan.pivot.dy + pan.dy)
       ..scale(camera.zoom)
-      ..translate(-pivot.dx, -pivot.dy);
+      ..translate(-pan.pivot.dx, -pan.pivot.dy);
   }
 
   static void _applyParallaxCamera(
@@ -1006,22 +1019,12 @@ class CharacterPainter extends CustomPainter {
     if (parallax.zoom == 1 && parallax.dx == 0 && parallax.dy == 0) {
       return Matrix4.identity();
     }
-    final pivot = Offset(size.width / 2, size.height * pivotFraction);
-    final maxDx = size.width * (parallax.zoom - 1) / 2;
-    final maxDy = size.height * (parallax.zoom - 1) / 2;
-    final dx = (parallax.dx * size.width / _danceCameraRefWidth).clamp(
-      -maxDx,
-      maxDx,
-    );
-    final rawDy = scaleDy
-        ? parallax.dy * size.height / _danceCameraRefHeight
-        : parallax.dy;
-    final dy = rawDy.clamp(-maxDy, maxDy);
-    // Uniform scale about [pivot] then translate by (dx, dy), written directly
+    final pan = _clampedPan(parallax, size, pivotFraction, scaleDy: scaleDy);
+    // Uniform scale about the pivot then translate by (dx, dy), written directly
     // as a column-major matrix (avoids the deprecated Matrix4.translate/scale).
     final z = parallax.zoom;
-    final tx = pivot.dx * (1 - z) + dx;
-    final ty = pivot.dy * (1 - z) + dy;
+    final tx = pan.pivot.dx * (1 - z) + pan.dx;
+    final ty = pan.pivot.dy * (1 - z) + pan.dy;
     return Matrix4(
       z,
       0,
