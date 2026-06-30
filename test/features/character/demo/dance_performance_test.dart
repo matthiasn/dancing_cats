@@ -212,15 +212,14 @@ void main() {
       expect(trio.ensemble.map((c) => c.name), everyElement('buga'));
     });
 
-    test('the chorus front half rotates its lead by occurrence', () {
-      expect(
-        perf.choreoTrioForSection('chorus', 0.2, 0.5, 0).lead.name,
-        'zanku',
-      );
-      expect(
-        perf.choreoTrioForSection('chorus', 0.2, 0.5, 1).lead.name,
-        'sekem',
-      );
+    test('the chorus front half uses one readable unison phrase', () {
+      final first = perf.choreoTrioForSection('chorus', 0.2, 0.5, 0);
+      final second = perf.choreoTrioForSection('chorus', 0.2, 0.5, 1);
+
+      expect(first.lead.name, 'zanku');
+      expect(first.ensemble.map((c) => c.name), everyElement('zanku'));
+      expect(second.lead.name, 'shaku');
+      expect(second.ensemble.map((c) => c.name), everyElement('shaku'));
     });
 
     test('verses swap the lead on even/odd occurrence', () {
@@ -228,30 +227,33 @@ void main() {
       expect(perf.choreoTrioForSection('verse', 0, 0.5, 1).lead.name, 'shaku');
     });
 
-    test('the bridge drops the whole trio to the Pouncing-Cat glide', () {
+    test('the bridge drops the whole trio to the grounded Sekem pocket', () {
       final trio = perf.choreoTrioForSection('bridge', 0.5, 0.5, 0);
-      expect(trio.lead.name, 'pouncingCat');
-      expect(trio.ensemble.map((c) => c.name), everyElement('pouncingCat'));
+      expect(trio.lead.name, 'sekem');
+      expect(trio.ensemble.map((c) => c.name), everyElement('sekem'));
     });
 
     test('untagged sections fall back to the energy-level map', () {
       expect(perf.choreoTrioForSection('', 0, 0.95, 0).lead.name, 'buga');
       expect(
         perf.choreoTrioForSection('', 0, 0.10, 0).lead.name,
-        'pouncingCat',
+        'sekem',
       );
     });
   });
 
   group('DancePerformance.choreoTrioByLevel', () {
     final perf = _perf();
-    test('builds from the glide up to the unison Buga hit by energy', () {
-      expect(perf.choreoTrioByLevel(0.95).lead.name, 'buga');
-      expect(perf.choreoTrioByLevel(0.80).lead.name, 'zanku');
-      expect(perf.choreoTrioByLevel(0.50).lead.name, 'shaku');
-      expect(perf.choreoTrioByLevel(0.30).lead.name, 'azonto');
-      expect(perf.choreoTrioByLevel(0.05).lead.name, 'pouncingCat');
-    });
+    test(
+      'builds from the grounded pocket up to the unison Buga hit by energy',
+      () {
+        expect(perf.choreoTrioByLevel(0.95).lead.name, 'buga');
+        expect(perf.choreoTrioByLevel(0.80).lead.name, 'zanku');
+        expect(perf.choreoTrioByLevel(0.50).lead.name, 'shaku');
+        expect(perf.choreoTrioByLevel(0.30).lead.name, 'azonto');
+        expect(perf.choreoTrioByLevel(0.05).lead.name, 'sekem');
+      },
+    );
 
     test('the two shaku-led bands differ by ensemble at the 0.62 boundary', () {
       expect(
@@ -291,14 +293,14 @@ void main() {
       expect(stage.seconds, 2.5, reason: 'idle runs on raw playback time');
     });
 
-    test('the Pouncing-Cat glide dances in canon (not unison)', () {
+    test('the bridge Sekem pocket stays in unison', () {
       final perf = _perf(
         spans: const [(start: 0, end: 6, section: 'bridge')],
         sections: const [
           (start: 0, end: 6, label: 'A', energetic: true, level: 0.5),
         ],
       );
-      expect(perf.stageAt(2).synchronous, isFalse);
+      expect(perf.stageAt(2).synchronous, isTrue);
     });
   });
 
@@ -366,7 +368,7 @@ void main() {
             .ensemble
             .map((c) => c.name)
             .toList(),
-        ['pouncingCat', 'pouncingCat', 'shaku'],
+        ['sekem', 'sekem', 'shaku'],
       );
       expect(
         perf.choreoTrioForSection('post-chorus', 0.6, 0.5, 0).lead.name,
@@ -374,16 +376,19 @@ void main() {
       );
     });
 
-    test('the chorus front rotates to the third variant', () {
-      expect(
-        perf
-            .choreoTrioForSection('chorus', 0.2, 0.5, 2)
-            .ensemble
-            .map((c) => c.name)
-            .toList(),
-        ['zanku', 'buga', 'sekem'],
-      );
-    });
+    test(
+      'the chorus front repeats the unison Zanku variant on the third hook',
+      () {
+        expect(
+          perf
+              .choreoTrioForSection('chorus', 0.2, 0.5, 2)
+              .ensemble
+              .map((c) => c.name)
+              .toList(),
+          ['zanku', 'zanku', 'zanku'],
+        );
+      },
+    );
   });
 
   group('DancePerformance.stageAt — the resting gate', () {
@@ -425,8 +430,8 @@ void main() {
         );
         expect(trio.ensemble.length, 3);
         expect(trio.ensemble.first.name, trio.lead.name);
-        // ensemble[0] IS the lead instance — `synchronous: lead != _pounce`
-        // relies on this identity, so the invariant test asserts identity too.
+        // ensemble[0] IS the lead instance — the renderer and UI use that as
+        // the canonical lead identity, so the invariant test asserts identity.
         expect(identical(trio.ensemble.first, trio.lead), isTrue);
       },
       tags: 'glados',

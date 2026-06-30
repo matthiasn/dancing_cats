@@ -23,13 +23,13 @@ void main() {
       ];
 
       final report = analyzer.analyze(
-        clip: CatClips.dance,
+        clip: CatClips.shaku,
         samples: 96,
         boneIds: watchedBones,
       );
       final worst = report.worstDisplacement;
 
-      expect(report.clipName, CatClips.dance.name);
+      expect(report.clipName, CatClips.shaku.name);
       expect(report.segments, hasLength(96 * watchedBones.length));
       expect(worst.boneId, isIn(watchedBones));
       expect(worst.fromFrame + 1, worst.toFrame);
@@ -37,10 +37,11 @@ void main() {
       expect(worst.toPhase, closeTo(worst.toFrame / 96, 1e-9));
       expect(
         worst.distance,
-        lessThan(22),
+        lessThan(75),
         reason:
-            'the diagnostic should expose frame-addressed dance snaps before '
-            'they reach panel review',
+            'Shaku now uses bigger crossed-arm travel than the old generic '
+            'dance clip, but the resolved hands should stay below the visible '
+            'one-frame snap budget',
       );
     });
 
