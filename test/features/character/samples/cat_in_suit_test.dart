@@ -1230,8 +1230,10 @@ void main() {
       );
       expect(
         landing.dx,
-        inInclusiveRange(15, 24),
-        reason: 'the first landing should clearly settle to the right side',
+        inInclusiveRange(10, 18),
+        reason:
+            'the first landing should settle to the right side while staying '
+            'inside the planted catch base',
       );
       expect(
         rebound.dy,
@@ -1311,7 +1313,7 @@ void main() {
       final firstCatchRight = footR.sample(12 / phrase.frameCount);
       expect(
         firstCatchRight.x - firstCatchLeft.x,
-        greaterThan(96),
+        greaterThan(116),
         reason:
             'the first pounce landing should catch on a wide base, not under '
             'a drifting torso',
@@ -1320,7 +1322,7 @@ void main() {
       final mirrorCatchRight = footR.sample(28 / phrase.frameCount);
       expect(
         mirrorCatchRight.x - mirrorCatchLeft.x,
-        greaterThan(96),
+        greaterThan(116),
         reason:
             'the mirrored pounce landing should catch on a wide base, not under '
             'a drifting torso',
@@ -1334,7 +1336,7 @@ void main() {
       );
       expect(
         landing.dx.abs(),
-        lessThan((firstCatchRight.x - firstCatchLeft.x) * 0.22),
+        lessThan((firstCatchRight.x - firstCatchLeft.x) * 0.16),
         reason:
             'the first pounce landing root should sit inside the catch base, '
             'not outside the planted feet',
@@ -1342,7 +1344,7 @@ void main() {
       final mirrorLanding = pounce.root.sample(28 / phrase.frameCount);
       expect(
         mirrorLanding.dx.abs(),
-        lessThan((mirrorCatchRight.x - mirrorCatchLeft.x) * 0.22),
+        lessThan((mirrorCatchRight.x - mirrorCatchLeft.x) * 0.16),
         reason:
             'the mirrored pounce landing root should also sit inside the catch '
             'base instead of falling sideways',
