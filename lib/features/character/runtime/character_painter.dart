@@ -9,6 +9,7 @@ import 'package:dancing_cats/features/character/model/face.dart';
 import 'package:dancing_cats/features/character/model/rig_spec.dart';
 import 'package:dancing_cats/features/character/runtime/character_renderer.dart';
 import 'package:dancing_cats/features/character/runtime/character_scene.dart';
+import 'package:dancing_cats/features/character/runtime/dance_timing.dart';
 import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/rendering.dart';
 import 'package:meta/meta.dart';
@@ -200,7 +201,7 @@ class CharacterPainter extends CustomPainter {
   /// uses of the painter are untouched.
   final bool singingHeadMotion;
 
-  /// When set, replaces the built-in [_danceCamera] move with a caller-supplied
+  /// When set, replaces the built-in [danceCameraShot] move with a caller-supplied
   /// shot `(zoom, dx, dy)` — applied verbatim (it owns the intensity, so
   /// [danceCameraStrength] is ignored). The dance-to-track demo's "virtual
   /// director" uses this to cut between section-aware, per-phrase-varied shots
@@ -302,7 +303,7 @@ class CharacterPainter extends CustomPainter {
   static const double _pairSpacing = 215;
   static const double _trioSpacing = 238;
 
-  // The dance camera's horizontal truck keyframes (_danceCamera.dx) are authored
+  // The dance camera's horizontal truck keyframes (danceCameraShot's dx) are authored
   // in pixels of this reference stage (the 2560-wide art space), where the truck
   // across the side dancers keeps them in frame. Applied verbatim to a narrower
   // stage, the same pixel pan is a much larger FRACTION of the width and slides
@@ -325,7 +326,7 @@ class CharacterPainter extends CustomPainter {
   /// stage size.
   static const double _directorPivotFraction = 0.88;
 
-  /// Zoom-pivot fraction for the built-in [_danceCamera] push-in when no
+  /// Zoom-pivot fraction for the built-in [danceCameraShot] push-in when no
   /// [cameraOverride] is supplied. Its keyframes were authored around a
   /// head/torso-height pivot, so it keeps that pivot — the director's
   /// feet-planted pivot above is a property of the director's framing, not of
@@ -355,7 +356,7 @@ class CharacterPainter extends CustomPainter {
               walkingPair &&
               _isTrioDanceClip(clip) &&
               memberCount == 3
-          ? _danceCamera(timeSeconds, clip.duration)
+          ? danceCameraShot(timeSeconds, clip.duration)
           : (zoom: 1.0, dx: 0.0, dy: 0.0);
       // Scale toward neutral so a caller can ramp the camera in/out smoothly.
       // Identity at strength 1 (the default) keeps existing renders bit-identical.
@@ -998,7 +999,7 @@ class CharacterPainter extends CustomPainter {
     if (!active || clipDuration <= 0 || size.isEmpty) {
       return Matrix4.identity();
     }
-    final raw = _danceCamera(timeSeconds, clipDuration);
+    final raw = danceCameraShot(timeSeconds, clipDuration);
     final scene = (
       zoom: 1 + (raw.zoom - 1) * danceCameraStrength,
       dx: raw.dx * danceCameraStrength,
@@ -1014,7 +1015,7 @@ class CharacterPainter extends CustomPainter {
   /// The reduced parallax transform a *separate* backdrop widget should apply
   /// for an explicit virtual-director [shot]. The dance-to-track demo drives the
   /// dance camera from `dance_camera_director.dart` (per-section framings with
-  /// cuts) rather than the built-in [_danceCamera] keyframes, and feeds the same
+  /// cuts) rather than the built-in [danceCameraShot] keyframes, and feeds the same
   /// shot here so the scenery lags the dancers exactly as it does under the
   /// in-painter parallax. Mirrors [_applySceneCamera] reduced by
   /// [_parallaxCamera]. Returns identity when [active] is false, the stage is
@@ -1117,51 +1118,6 @@ class CharacterPainter extends CustomPainter {
     return (scale: 0.8, dy: -28, dx: inward * 30);
   }
 
-  static ({double zoom, double dx, double dy}) _danceCamera(
-    double timeSeconds,
-    double duration,
-  ) {
-    final p = _cyclePhase(timeSeconds, duration);
-    return (
-      // Shot plan: establish the trio, push into the lead's face/torso, truck
-      // across the side dancers, then pull back. The easing keeps it on rails
-      // rather than feeling like a fast handheld pan.
-      zoom: _smoothKeys(p, const [
-        (p: 0, v: 1.0),
-        (p: 1 / 8, v: 1.18),
-        (p: 1 / 4, v: 1.52),
-        (p: 3 / 8, v: 1.78),
-        (p: 1 / 2, v: 2.08),
-        (p: 5 / 8, v: 1.82),
-        (p: 3 / 4, v: 1.58),
-        (p: 7 / 8, v: 1.22),
-        (p: 1, v: 1.0),
-      ]),
-      dx: _smoothKeys(p, const [
-        (p: 0, v: 0.0),
-        (p: 1 / 8, v: -18.0),
-        (p: 1 / 4, v: -86.0),
-        (p: 3 / 8, v: -142.0),
-        (p: 1 / 2, v: -112.0),
-        (p: 5 / 8, v: 24.0),
-        (p: 3 / 4, v: 142.0),
-        (p: 7 / 8, v: 62.0),
-        (p: 1, v: 0.0),
-      ]),
-      dy: _smoothKeys(p, const [
-        (p: 0, v: 0.0),
-        (p: 1 / 8, v: -18.0),
-        (p: 1 / 4, v: -50.0),
-        (p: 3 / 8, v: -82.0),
-        (p: 1 / 2, v: -88.0),
-        (p: 5 / 8, v: -76.0),
-        (p: 3 / 4, v: -50.0),
-        (p: 7 / 8, v: -18.0),
-        (p: 1, v: 0.0),
-      ]),
-    );
-  }
-
   static ({double dx, double dy, double scale}) _danceFormation(
     int index,
     int memberCount,
@@ -1169,7 +1125,7 @@ class CharacterPainter extends CustomPainter {
     double duration,
   ) {
     if (memberCount < 3) return (dx: 0, dy: 0, scale: 1);
-    final p = _cyclePhase(timeSeconds, duration);
+    final p = cyclePhase(timeSeconds, duration);
     final breathe = math.sin(2 * math.pi * (p * 3 + 0.15));
     final leadCall = _pulse(p, 1 / 16, 1 / 4);
     final rightFeature = _holdPulse(p, 3 / 32, 5 / 32, 7 / 32, 9 / 32);
@@ -1233,32 +1189,11 @@ class CharacterPainter extends CustomPainter {
     double duration,
   ) => _danceFormation(index, memberCount, timeSeconds, duration);
 
-  static double _smoothKeys(
-    double p,
-    List<({double p, double v})> keys,
-  ) {
-    // Walk the interior segments in order; the last segment is the natural
-    // fall-through, so the sampler is total without an unreachable out-of-range
-    // branch. The camera phase is always in [0, 1]; a value past the final key
-    // clamps onto it.
-    for (var i = 0; i < keys.length - 2; i++) {
-      final a = keys[i];
-      final b = keys[i + 1];
-      if (p <= b.p) {
-        return a.v + (b.v - a.v) * _smoothUnit((p - a.p) / (b.p - a.p));
-      }
-    }
-    final a = keys[keys.length - 2];
-    final b = keys[keys.length - 1];
-    final t = _smoothUnit(((p - a.p) / (b.p - a.p)).clamp(0.0, 1.0));
-    return a.v + (b.v - a.v) * t;
-  }
-
   static double _pulse(double p, double start, double end) {
     final mid = (start + end) / 2;
     if (p < start || p > end) return 0;
-    if (p <= mid) return _smoothUnit((p - start) / (mid - start));
-    return 1 - _smoothUnit((p - mid) / (end - mid));
+    if (p <= mid) return smoothstep((p - start) / (mid - start));
+    return 1 - smoothstep((p - mid) / (end - mid));
   }
 
   static double _holdPulse(
@@ -1269,14 +1204,9 @@ class CharacterPainter extends CustomPainter {
     double end,
   ) {
     if (p < start || p > end) return 0;
-    if (p < holdStart) return _smoothUnit((p - start) / (holdStart - start));
+    if (p < holdStart) return smoothstep((p - start) / (holdStart - start));
     if (p <= holdEnd) return 1;
-    return 1 - _smoothUnit((p - holdEnd) / (end - holdEnd));
-  }
-
-  static double _smoothUnit(double t) {
-    final x = t.clamp(0.0, 1.0);
-    return x * x * (3 - 2 * x);
+    return 1 - smoothstep((p - holdEnd) / (end - holdEnd));
   }
 
   static double _ensembleMicroTimingOffset(
@@ -1304,12 +1234,6 @@ class CharacterPainter extends CustomPainter {
     // Only a 2-member pair reaches here (a trio returned above) and index 0
     // already returned, so this is always the pair's trailing dancer.
     return 0.014 * beatWave + 0.006 * halfBeatWave;
-  }
-
-  static double _cyclePhase(double timeSeconds, double duration) {
-    final cycle = timeSeconds / duration;
-    final p = cycle - cycle.floorToDouble();
-    return p < 0 ? p + 1 : p;
   }
 
   void _paintWaterfrontBackdrop(
