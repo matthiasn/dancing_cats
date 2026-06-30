@@ -65,6 +65,31 @@ void main() {
       expect(creaseR.z, greaterThan(rig.bone(CatBones.armUpperR)!.z));
     });
 
+    test('sleeve values separate crossed arms from the jacket shell', () {
+      final torso = rig.bone(CatBones.torso)!.drawable!.color;
+      final farSleeve = rig.ribbons
+          .singleWhere((ribbon) => ribbon.id == 'arm.R.ribbon')
+          .color;
+      final nearSleeve = rig.ribbons
+          .singleWhere((ribbon) => ribbon.id == 'arm.L.ribbon')
+          .color;
+
+      expect(
+        _luma(farSleeve) - _luma(torso),
+        greaterThan(24),
+        reason:
+            'the far sleeve must not melt into the navy jacket during Shaku '
+            'crosses',
+      );
+      expect(
+        _luma(nearSleeve) - _luma(farSleeve),
+        greaterThan(14),
+        reason:
+            'near and far sleeves need a value step so crossed forearms read '
+            'as two separate limbs',
+      );
+    });
+
     test('shoes carry a subtle sole edge for footwork readability', () {
       expect(rig.bone(CatBones.shoeHighlightL)?.parent, CatBones.footL);
       expect(rig.bone(CatBones.shoeHighlightR)?.parent, CatBones.footR);
@@ -1400,6 +1425,13 @@ void main() {
 
 LimbIkTarget _targetFor(Clip clip, String endBoneId) =>
     clip.limbTargets.singleWhere((target) => target.endBoneId == endBoneId);
+
+double _luma(int argb) {
+  final r = (argb >> 16) & 0xFF;
+  final g = (argb >> 8) & 0xFF;
+  final b = argb & 0xFF;
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
 
 double _targetDistance(IkTargetChannel channel, int fromFrame, int toFrame) {
   final from = channel.sample(fromFrame / CatClips.dancePhrase.frameCount);

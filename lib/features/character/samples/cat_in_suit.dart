@@ -18,11 +18,11 @@ import 'package:dancing_cats/features/character/model/rig_spec.dart';
 // colours in the rig art (plan decision D6 — no design-system colour tokens).
 const int _suit = 0xFF2E3A59; // navy jacket (torso)
 const int _sleeve =
-    0xFF3A4A6E; // FAR (right) jacket sleeve — a lighter navy so the arm reads
+    0xFF435783; // FAR (right) jacket sleeve — a lighter navy so the arm reads
 // as a distinct limb when it crosses over the same-navy torso (e.g. the Shaku
 // crossed-X), instead of melting in and leaving the paws floating.
 const int _sleeveNear =
-    0xFF4A5A80; // NEAR (left) sleeve — lighter still. The left arm draws on top
+    0xFF586D9A; // NEAR (left) sleeve — lighter still. The left arm draws on top
 // (z16/17 > right z15/16), so a 3-step value gradient torso < far < near keeps
 // the two CROSSED forearms reading as two distinct arms, not one fused band.
 const int _button = 0xFFAE955C; // muted brass placket button — a dark horn
