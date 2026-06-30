@@ -7126,42 +7126,42 @@ class CatClips {
   // footL lands on the downbeats (frames 0/8/16/24); footR on the 2/4 (4/12/
   // 20/28), mirroring the per-beat support map.
   static const _sekemFootLTargetKeys = [
-    DanceIkTargetKey(0, x: -46, y: 104), // grounded plant
-    DanceIkTargetKey(2, x: -44, y: 103), // tiny toe scrape
-    DanceIkTargetKey(4, x: -46, y: 104),
-    DanceIkTargetKey(6, x: -50, y: 103),
-    DanceIkTargetKey(8, x: -46, y: 104, ease: Ease.easeIn),
-    DanceIkTargetKey(10, x: -44, y: 103),
-    DanceIkTargetKey(12, x: -46, y: 104),
-    DanceIkTargetKey(14, x: -50, y: 103),
-    DanceIkTargetKey(16, x: -46, y: 104, ease: Ease.easeIn),
-    DanceIkTargetKey(18, x: -44, y: 103),
-    DanceIkTargetKey(20, x: -46, y: 104),
-    DanceIkTargetKey(22, x: -50, y: 103),
-    DanceIkTargetKey(24, x: -50, y: 104, ease: Ease.easeIn),
-    DanceIkTargetKey(26, x: -46, y: 103),
-    DanceIkTargetKey(28, x: -48, y: 104),
-    DanceIkTargetKey(30, x: -44, y: 103),
-    DanceIkTargetKey(32, x: -46, y: 104, ease: Ease.easeIn),
+    DanceIkTargetKey(0, x: -54, y: 104), // grounded plant
+    DanceIkTargetKey(2, x: -50, y: 103), // tiny toe scrape
+    DanceIkTargetKey(4, x: -54, y: 104),
+    DanceIkTargetKey(6, x: -58, y: 103),
+    DanceIkTargetKey(8, x: -54, y: 104, ease: Ease.easeIn),
+    DanceIkTargetKey(10, x: -50, y: 103),
+    DanceIkTargetKey(12, x: -54, y: 104),
+    DanceIkTargetKey(14, x: -58, y: 103),
+    DanceIkTargetKey(16, x: -54, y: 104, ease: Ease.easeIn),
+    DanceIkTargetKey(18, x: -50, y: 103),
+    DanceIkTargetKey(20, x: -54, y: 104),
+    DanceIkTargetKey(22, x: -58, y: 103),
+    DanceIkTargetKey(24, x: -58, y: 104, ease: Ease.easeIn),
+    DanceIkTargetKey(26, x: -54, y: 103),
+    DanceIkTargetKey(28, x: -56, y: 104),
+    DanceIkTargetKey(30, x: -50, y: 103),
+    DanceIkTargetKey(32, x: -54, y: 104, ease: Ease.easeIn),
   ];
   static const _sekemFootRTargetKeys = [
-    DanceIkTargetKey(0, x: 46, y: 104), // grounded plant
-    DanceIkTargetKey(2, x: 50, y: 103), // tiny toe scrape
-    DanceIkTargetKey(4, x: 46, y: 104, ease: Ease.easeIn),
-    DanceIkTargetKey(6, x: 44, y: 103),
-    DanceIkTargetKey(8, x: 46, y: 104),
-    DanceIkTargetKey(10, x: 50, y: 103),
-    DanceIkTargetKey(12, x: 46, y: 104, ease: Ease.easeIn),
-    DanceIkTargetKey(14, x: 44, y: 103),
-    DanceIkTargetKey(16, x: 46, y: 104),
-    DanceIkTargetKey(18, x: 50, y: 103),
-    DanceIkTargetKey(20, x: 46, y: 104, ease: Ease.easeIn),
-    DanceIkTargetKey(22, x: 44, y: 103),
-    DanceIkTargetKey(24, x: 46, y: 104),
-    DanceIkTargetKey(26, x: 50, y: 103),
-    DanceIkTargetKey(28, x: 50, y: 104, ease: Ease.easeIn),
-    DanceIkTargetKey(30, x: 46, y: 103),
-    DanceIkTargetKey(32, x: 46, y: 104),
+    DanceIkTargetKey(0, x: 54, y: 104), // grounded plant
+    DanceIkTargetKey(2, x: 58, y: 103), // tiny toe scrape
+    DanceIkTargetKey(4, x: 54, y: 104, ease: Ease.easeIn),
+    DanceIkTargetKey(6, x: 50, y: 103),
+    DanceIkTargetKey(8, x: 54, y: 104),
+    DanceIkTargetKey(10, x: 58, y: 103),
+    DanceIkTargetKey(12, x: 54, y: 104, ease: Ease.easeIn),
+    DanceIkTargetKey(14, x: 50, y: 103),
+    DanceIkTargetKey(16, x: 54, y: 104),
+    DanceIkTargetKey(18, x: 58, y: 103),
+    DanceIkTargetKey(20, x: 54, y: 104, ease: Ease.easeIn),
+    DanceIkTargetKey(22, x: 50, y: 103),
+    DanceIkTargetKey(24, x: 54, y: 104),
+    DanceIkTargetKey(26, x: 58, y: 103),
+    DanceIkTargetKey(28, x: 58, y: 104, ease: Ease.easeIn),
+    DanceIkTargetKey(30, x: 54, y: 103),
+    DanceIkTargetKey(32, x: 54, y: 104),
   ];
   static const _sekemFootLKeys = [
     DanceJointKey(0, rotation: 0.06), // planted flat
@@ -7322,39 +7322,43 @@ class CatClips {
       contactPinning: base.contactPinning,
       limbTargets: _sekemLimbTargets,
       supportFootWorldAnchor: true,
-      supportFootWorldAnchorStrength: 0.74,
+      supportFootWorldAnchorStrength: 0.78,
       // The dwelling weight commit now lives in _sekemBodyKeys' rootDx (no sine
       // sway — that just passed through centre).
       root: LayeredRootChannel([
         _bodyRootLeadChannel(
           _sekemBodyKeys,
           smooth: true,
-          microFrames: -0.25,
         ),
         _bodyRootLeadChannel(
           _sekemPocketBoostKeys,
           smooth: true,
-          microFrames: -0.2,
+          microFrames: -0.3,
         ),
       ]),
       channels: {
         ...base.channels,
         CatBones.hips: LayeredJointChannel([
-          _bodyPelvisLeadChannel(_sekemBodyKeys, microFrames: -0.45),
+          _bodyPelvisLeadChannel(_sekemBodyKeys, microFrames: -0.8),
           _bodyPelvisLeadChannel(
             _sekemPocketBoostKeys,
             smooth: true,
-            microFrames: -0.7,
+            microFrames: -0.95,
           ),
         ]),
         CatBones.torso: LayeredJointChannel([
-          _bodyChestFollowChannel(_sekemBodyKeys),
+          _bodyChestFollowChannel(
+            _sekemBodyKeys,
+            microFrames: 0.9,
+            rotationGain: 0.74,
+            scaleGain: 0.86,
+          ),
           _bodyChestFollowChannel(
             _sekemPocketBoostKeys,
             smooth: true,
-            microFrames: 0.75,
-            rotationGain: 0.8,
-            scaleGain: 0.9,
+            microFrames: 1.05,
+            rotationGain: 0.68,
+            scaleGain: 0.84,
           ),
         ]),
         CatBones.footL: _dancePhrase.jointChannel(

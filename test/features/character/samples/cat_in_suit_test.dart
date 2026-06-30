@@ -984,10 +984,17 @@ void main() {
 
         final leftPlant = footL.sample(0);
         final rightPlant = footR.sample(4 / phrase.frameCount);
-        expect(leftPlant.x, lessThan(-42));
-        expect(rightPlant.x, greaterThan(42));
+        expect(leftPlant.x, lessThan(-50));
+        expect(rightPlant.x, greaterThan(50));
         expect(leftPlant.y, greaterThanOrEqualTo(102));
         expect(rightPlant.y, greaterThanOrEqualTo(102));
+        expect(
+          sekem.supportFootWorldAnchorStrength,
+          greaterThanOrEqualTo(0.78),
+          reason:
+              'Sekem needs a firmer support anchor so the wider stomp base '
+              'does not skate under the side-view body lean',
+        );
 
         final leftPlantHand = handL.sample(0);
         final rightPlantHand = handR.sample(0);
@@ -1037,7 +1044,7 @@ void main() {
         final rightPickup = footR.sample(2 / phrase.frameCount);
         expect(
           rightPickup.x,
-          inInclusiveRange(48, 52),
+          inInclusiveRange(56, 60),
           reason:
               'Sekem pickup should scrape in a widened but grounded right lane; '
               'lifting the foot high would turn it into a side-kick',
@@ -1085,7 +1092,7 @@ void main() {
         final leftPickup = footL.sample(6 / phrase.frameCount);
         expect(
           leftPickup.x,
-          inInclusiveRange(-52, -48),
+          inInclusiveRange(-60, -56),
           reason:
               'Sekem pickup should scrape in a widened but grounded left lane; '
               'lifting the foot high would turn it into a side-kick',
@@ -1142,17 +1149,33 @@ void main() {
           greaterThan(28),
           reason: 'Sekem needs a grounded downbeat squash, not a flat sway',
         );
+        final rightHipLead = hips.sample(3.75 / phrase.frameCount).rotation;
+        final rightHipPlant = hips.sample(4 / phrase.frameCount).rotation;
         expect(
-          hips.sample(0).rotation,
-          lessThan(-0.38),
-          reason: 'the hip should lead the left Sekem weight commit',
+          rightHipLead,
+          greaterThan(rightHipPlant),
+          reason:
+              'the hip should lead into the right Sekem plant instead of '
+              'peaking on the same frame as the foot',
         );
+        final rightChestOnPlant = torso.sample(4 / phrase.frameCount).rotation;
+        final rightChestFollow = torso.sample(4.9 / phrase.frameCount).rotation;
         expect(
-          torso.sample(0.55 / phrase.frameCount).rotation,
-          greaterThan(0.36),
+          rightChestFollow,
+          lessThan(rightChestOnPlant - 0.06),
           reason:
               'the torso should counter after the hip lead instead of landing '
               'as one rigid suit shape',
+        );
+
+        final leftHipLead = hips.sample(7.75 / phrase.frameCount).rotation;
+        final leftHipPlant = hips.sample(8 / phrase.frameCount).rotation;
+        expect(
+          leftHipLead,
+          lessThan(leftHipPlant),
+          reason:
+              'the mirrored hip commit should also arrive before the plant '
+              'frame',
         );
       },
     );
