@@ -35,6 +35,22 @@ void main() {
       ]);
       expect(s.mouthShape, MouthShape.angry);
     });
+
+    test('a runtime-built weight blends the same as a const one', () {
+      // Built from a runtime (non-const) value so the constructor actually runs
+      // (a const ctor only ever used in const expressions never runs at runtime).
+      final weight = double.parse('0.7');
+      final w = ExpressionWeight(Expression.happy, weight);
+      expect(w.expression, Expression.happy);
+      expect(w.weight, 0.7);
+      final s = solver.blend([
+        w,
+        const ExpressionWeight(Expression.surprised, 0.3),
+      ]);
+      // Same result as the const-built weighted blend above.
+      expect(s.mouthShape, MouthShape.smileOpen);
+      expect(s.browRaiseLeft, closeTo(0.51, 1e-9));
+    });
   });
 
   group('applyAutonomic', () {

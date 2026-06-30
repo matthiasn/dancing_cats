@@ -74,5 +74,99 @@ void main() {
       expect(report.worstAcceleration.dx.abs(), closeTo(60, 1e-9));
       expect(report.worstAcceleration.magnitude, closeTo(60, 0.01));
     });
+
+    test('rejects a non-positive sample count', () {
+      final analyzer = TemporalMotionAnalyzer(
+        CharacterScene(buildCatInSuitRig()),
+      );
+      expect(
+        () => analyzer.analyze(
+          clip: CatClips.shaku,
+          samples: 0,
+          boneIds: const [CatBones.hips],
+        ),
+        throwsArgumentError,
+      );
+    });
+
+    test('rejects an empty bone list', () {
+      final analyzer = TemporalMotionAnalyzer(
+        CharacterScene(buildCatInSuitRig()),
+      );
+      expect(
+        () => analyzer.analyze(
+          clip: CatClips.shaku,
+          samples: 4,
+          boneIds: const [],
+        ),
+        throwsArgumentError,
+      );
+    });
+
+    test('throws when a watched bone is not resolved in the rig', () {
+      final analyzer = TemporalMotionAnalyzer(
+        CharacterScene(buildCatInSuitRig()),
+      );
+      expect(
+        () => analyzer.analyze(
+          clip: CatClips.shaku,
+          samples: 4,
+          boneIds: const ['no-such-bone'],
+        ),
+        throwsStateError,
+      );
+    });
+
+    test(
+      'topAccelerations returns the n biggest spikes, sorted descending',
+      () {
+        final analyzer = TemporalMotionAnalyzer(
+          CharacterScene(buildCatInSuitRig()),
+        );
+        const clip = Clip(
+          name: 'synthetic-root-snap',
+          duration: 1,
+          loop: false,
+          root: KeyframeRootChannel([
+            RootKeyframe(p: 0),
+            RootKeyframe(p: 0.5, dx: 120, ease: Ease.linear),
+            RootKeyframe(p: 1, dx: 120, ease: Ease.linear),
+          ]),
+          channels: {},
+        );
+        final report = analyzer.analyze(
+          clip: clip,
+          samples: 4,
+          boneIds: const [CatBones.hips],
+        );
+        final top = report.topAccelerations(2);
+        expect(top, hasLength(2));
+        expect(
+          top.first.magnitude,
+          greaterThanOrEqualTo(top.last.magnitude),
+          reason: 'sorted by magnitude, biggest first',
+        );
+        expect(
+          top.first.magnitude,
+          closeTo(report.worstAcceleration.magnitude, 1e-9),
+        );
+      },
+    );
+
+    test('worstAcceleration throws when no acceleration was recorded', () {
+      final analyzer = TemporalMotionAnalyzer(
+        CharacterScene(buildCatInSuitRig()),
+      );
+      // A single sample yields one displacement segment but no consecutive
+      // pair to derive an acceleration from.
+      final report = analyzer.analyze(
+        clip: CatClips.shaku,
+        samples: 1,
+        boneIds: const [CatBones.hips],
+      );
+      expect(report.accelerations, isEmpty);
+      expect(report.segments, hasLength(1));
+      expect(() => report.worstAcceleration, throwsStateError);
+    });
   });
 }
