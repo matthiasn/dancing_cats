@@ -2,6 +2,15 @@ import 'dart:math' as math;
 
 import 'package:dancing_cats/features/scenery/runtime/scenery_math.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:glados/glados.dart' as glados;
+
+extension _AnySceneryMath on glados.Any {
+  glados.Generator<double> get realDouble =>
+      glados.DoubleAnys(this).doubleInRange(-1000, 1000);
+
+  glados.Generator<int> get index =>
+      glados.IntAnys(this).intInRange(-10000, 10000);
+}
 
 void main() {
   group('fract', () {
@@ -69,5 +78,40 @@ void main() {
         closeTo(fract(math.sin(8 * 12.9898) * 43758.5453), 1e-12),
       );
     });
+  });
+
+  group('properties (generative)', () {
+    glados.Glados<double>(
+      glados.any.realDouble,
+      glados.ExploreConfig(numRuns: 300),
+    ).test('fract always lands in [0, 1)', (x) {
+      final f = fract(x);
+      expect(f, greaterThanOrEqualTo(0), reason: 'x=$x');
+      expect(f, lessThan(1), reason: 'x=$x');
+    }, tags: 'glados');
+
+    glados.Glados<double>(
+      glados.any.realDouble,
+      glados.ExploreConfig(numRuns: 300),
+    ).test('fract is invariant under a unit shift', (x) {
+      expect(fract(x), closeTo(fract(x + 1), 1e-9), reason: 'x=$x');
+    }, tags: 'glados');
+
+    glados.Glados<int>(
+      glados.any.index,
+      glados.ExploreConfig(numRuns: 300),
+    ).test('hashUnit always lands in [0, 1) and is deterministic', (i) {
+      final h = hashUnit(i);
+      expect(h, greaterThanOrEqualTo(0), reason: 'i=$i');
+      expect(h, lessThan(1), reason: 'i=$i');
+      expect(h, hashUnit(i), reason: 'i=$i');
+    }, tags: 'glados');
+
+    glados.Glados<double>(
+      glados.any.realDouble,
+      glados.ExploreConfig(numRuns: 300),
+    ).test('smoothstep always lands in [0, 1]', (t) {
+      expect(smoothstep(t), inInclusiveRange(0, 1), reason: 't=$t');
+    }, tags: 'glados');
   });
 }
