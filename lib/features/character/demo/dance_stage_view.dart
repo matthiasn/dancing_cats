@@ -357,6 +357,7 @@ CharacterPainter danceCharacterPainter({
   memberBacklights: backlights,
   bodyGrade: useNewBackdrop ? kDanceBodyGrade : null,
   heroStaging: useNewBackdrop,
+  danceViewProjection: useNewBackdrop,
   renderer: renderer,
 );
 

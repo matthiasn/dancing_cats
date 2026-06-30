@@ -268,6 +268,36 @@ class LayeredIkTargetChannel extends IkTargetChannel {
   }
 }
 
+/// Stateless temporal smoothing for IK target paths.
+///
+/// This rounds small target-path corners before the two-bone solve runs. It is
+/// useful for dance hands, where an exact pose hit should still arrive in time
+/// but the wrist path should not read as a hard keyframe step.
+class SoftenedIkTargetChannel extends IkTargetChannel {
+  const SoftenedIkTargetChannel(this.channel, {this.radius = 0.01})
+    : assert(radius >= 0, 'radius must be non-negative');
+
+  final IkTargetChannel channel;
+
+  /// Phase radius for the smoothing window. For a 32-frame phrase, `0.015625`
+  /// is half a frame.
+  final double radius;
+
+  @override
+  IkTargetPose sample(double p) {
+    if (radius == 0) return channel.sample(p);
+    final before = channel.sample((p - radius).clamp(0.0, 1.0));
+    final centre = channel.sample(p);
+    final after = channel.sample((p + radius).clamp(0.0, 1.0));
+    return IkTargetPose(
+      x: before.x * 0.25 + centre.x * 0.5 + after.x * 0.25,
+      y: before.y * 0.25 + centre.y * 0.5 + after.y * 0.25,
+      weight: (before.weight * 0.25 + centre.weight * 0.5 + after.weight * 0.25)
+          .clamp(0.0, 1.0),
+    );
+  }
+}
+
 class IkTargetKeyframe {
   const IkTargetKeyframe({
     required this.p,

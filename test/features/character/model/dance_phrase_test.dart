@@ -469,6 +469,21 @@ void main() {
       expect(channel.sample(1).x, closeTo(-12, 1e-9));
     });
 
+    test('IK target channels can land on fractional frames', () {
+      final channel = phrase.ikTargetChannel(
+        const [
+          DanceIkTargetKey(0, x: -12, y: 24, weight: 0.4),
+          DanceIkTargetKey(8, x: 18, y: 12, microFrames: 0.25),
+          DanceIkTargetKey(32, x: -12, y: 24, weight: 0.4),
+        ],
+        microFrames: 0.5,
+      );
+
+      expect(channel.sample(8.75 / 32).x, closeTo(18, 1e-9));
+      expect(channel.sample(8.75 / 32).y, closeTo(12, 1e-9));
+      expect(channel.sample(8 / 32).x, lessThan(18));
+    });
+
     test('builds named IK target arcs from start peak and settle points', () {
       final keys = phrase.ikTargetArcKeys(
         const [

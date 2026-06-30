@@ -279,6 +279,23 @@ void main() {
       expect(sample.weight, 0);
     });
 
+    test('softened targets round hard target corners', () {
+      const base = KeyframeIkTargetChannel([
+        IkTargetKeyframe(p: 0, x: 0, y: 0),
+        IkTargetKeyframe(p: 0.5, x: 20, y: 0, ease: Ease.linear),
+        IkTargetKeyframe(p: 1, x: 20, y: 20, ease: Ease.linear),
+      ]);
+      const softened = SoftenedIkTargetChannel(base, radius: 0.1);
+
+      final hardCorner = base.sample(0.5);
+      final roundedCorner = softened.sample(0.5);
+
+      expect(hardCorner.x, closeTo(20, 1e-9));
+      expect(hardCorner.y, closeTo(0, 1e-9));
+      expect(roundedCorner.x, lessThan(20));
+      expect(roundedCorner.y, greaterThan(0));
+    });
+
     test('keyframed targets interpolate position and blend weight', () {
       const channel = KeyframeIkTargetChannel([
         IkTargetKeyframe(p: 0, x: 0, y: 10, weight: 0),

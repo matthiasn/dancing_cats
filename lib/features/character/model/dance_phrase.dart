@@ -29,7 +29,7 @@ enum DanceFeel {
 /// plant" is much easier to reason about than `p: 0.5`. This layer keeps the
 /// authored intent in those terms, then converts it to [GroundSpan],
 /// [KeyframeChannel], [KeyframeRootChannel], [KeyframeIkTargetChannel], and
-/// synchronized body-groove channels so the runtime stays unchanged.
+/// de-synchronized body/limb channels so the runtime stays unchanged.
 class DancePhrase {
   const DancePhrase({
     required this.frameCount,
@@ -318,8 +318,9 @@ class DancePhrase {
     required double y,
     double weight = 1,
     Ease ease = Ease.easeInOut,
+    double microFrames = 0,
   }) => IkTargetKeyframe(
-    p: phaseOf(frame),
+    p: phaseOfFrame(frame, microFrames: microFrames),
     x: x,
     y: y,
     weight: weight,
@@ -329,8 +330,12 @@ class DancePhrase {
   KeyframeIkTargetChannel ikTargetChannel(
     List<DanceIkTargetKey> keys, {
     bool smooth = false,
+    double microFrames = 0,
   }) => KeyframeIkTargetChannel(
-    [for (final key in keys) key.toIkTargetKeyframe(this)],
+    [
+      for (final key in keys)
+        key.toIkTargetKeyframe(this, microFrames: microFrames),
+    ],
     smooth: smooth,
   );
 
@@ -964,6 +969,7 @@ class DanceIkTargetKey {
     required this.y,
     this.weight = 1,
     this.ease = Ease.easeInOut,
+    this.microFrames = 0,
   });
 
   final int frame;
@@ -971,13 +977,18 @@ class DanceIkTargetKey {
   final double y;
   final double weight;
   final Ease ease;
+  final double microFrames;
 
-  IkTargetKeyframe toIkTargetKeyframe(DancePhrase phrase) => phrase.ikTargetKey(
+  IkTargetKeyframe toIkTargetKeyframe(
+    DancePhrase phrase, {
+    double microFrames = 0,
+  }) => phrase.ikTargetKey(
     frame,
     x: x,
     y: y,
     weight: weight,
     ease: ease,
+    microFrames: this.microFrames + microFrames,
   );
 }
 

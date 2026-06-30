@@ -834,7 +834,6 @@ RigSpec buildCatInSuitRig({
         outlineWidth: 1.5,
       ),
     ),
-
     // Near (left) arm.
     Bone(
       id: CatBones.armUpperL,
@@ -1212,7 +1211,13 @@ RigSpec buildCatInSuitRig({
         CatBones.armForearmR,
         CatBones.handR,
       ],
-      hiddenBoneIds: const [CatBones.armUpperR, CatBones.armLowerR],
+      hiddenBoneIds: const [
+        CatBones.armUpperR,
+        CatBones.armBicepR,
+        CatBones.armLowerR,
+        CatBones.armForearmR,
+        CatBones.armElbowCreaseR,
+      ],
       // Heroic animated sleeve: compact shoulder, broad bicep, decisive elbow
       // pinch, a visible forearm wedge, then a fitted wrist. The extra forearm
       // guide stops the arm from reading as one soft tube from elbow to cuff.
@@ -1234,7 +1239,13 @@ RigSpec buildCatInSuitRig({
         CatBones.armForearmL,
         CatBones.handL,
       ],
-      hiddenBoneIds: const [CatBones.armUpperL, CatBones.armLowerL],
+      hiddenBoneIds: const [
+        CatBones.armUpperL,
+        CatBones.armBicepL,
+        CatBones.armLowerL,
+        CatBones.armForearmL,
+        CatBones.armElbowCreaseL,
+      ],
       halfWidths: scaledArmWidths(const [7.4, 11.2, 4.9, 6.8, 3.2]),
       z: 16,
       color: _sleeveNear,
@@ -7842,10 +7853,22 @@ class CatClips {
       .ikTargetChannel(_sekemFootLTargetKeys);
   static final KeyframeIkTargetChannel _sekemFootRTarget = _dancePhrase
       .ikTargetChannel(_sekemFootRTargetKeys);
-  static final KeyframeIkTargetChannel _sekemHandLTarget = _dancePhrase
-      .ikTargetChannel(_sekemHandLTargetKeys, smooth: true);
-  static final KeyframeIkTargetChannel _sekemHandRTarget = _dancePhrase
-      .ikTargetChannel(_sekemHandRTargetKeys, smooth: true);
+  static final IkTargetChannel _sekemHandLTarget = SoftenedIkTargetChannel(
+    _dancePhrase.ikTargetChannel(
+      _sekemHandLTargetKeys,
+      smooth: true,
+      microFrames: 0.55,
+    ),
+    radius: 0.45 / _dancePhrase.frameCount,
+  );
+  static final IkTargetChannel _sekemHandRTarget = SoftenedIkTargetChannel(
+    _dancePhrase.ikTargetChannel(
+      _sekemHandRTargetKeys,
+      smooth: true,
+      microFrames: 0.55,
+    ),
+    radius: 0.45 / _dancePhrase.frameCount,
+  );
   static final List<LimbIkTarget> _sekemLimbTargets = [
     // Sekem is own-side paddles, not a crossed-arm pose. Use explicit OUTSIDE
     // elbow bends so the sleeve ribbon stays on the same anatomical side as the
@@ -7901,6 +7924,14 @@ class CatClips {
           smooth: true,
           microFrames: -0.15,
         ),
+        const SineRootChannel(
+          swayAmplitude: 1.55,
+          swayHarmonic: 8,
+          swayPhase: -0.035,
+          leanAmplitude: 0.0012,
+          leanHarmonic: 8,
+          leanPhase: -0.02,
+        ),
       ]),
       channels: {
         ...base.channels,
@@ -7915,6 +7946,17 @@ class CatClips {
             _sekemSettleKeys,
             smooth: true,
             microFrames: -0.65,
+          ),
+          const SineChannel(
+            harmonicAmplitude: 0.042,
+            harmonicMultiplier: 8,
+            harmonicPhase: -0.025,
+            scaleXAmplitude: 0.012,
+            scaleXHarmonic: 8,
+            scaleXPhase: -0.025,
+            scaleYAmplitude: -0.01,
+            scaleYHarmonic: 8,
+            scaleYPhase: -0.025,
           ),
         ]),
         CatBones.torso: LayeredJointChannel([
@@ -7937,6 +7979,17 @@ class CatClips {
             microFrames: 0.95,
             rotationGain: 0.42,
             scaleGain: 0.68,
+          ),
+          const SineChannel(
+            harmonicAmplitude: -0.026,
+            harmonicMultiplier: 8,
+            harmonicPhase: 0.03,
+            scaleXAmplitude: -0.007,
+            scaleXHarmonic: 8,
+            scaleXPhase: 0.03,
+            scaleYAmplitude: 0.006,
+            scaleYHarmonic: 8,
+            scaleYPhase: 0.03,
           ),
         ]),
         CatBones.footL: _dancePhrase.jointChannel(

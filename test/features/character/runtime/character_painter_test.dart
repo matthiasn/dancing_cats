@@ -141,6 +141,17 @@ void main() {
       expect(locked.shouldRepaint(painterAt(0.5)), isTrue);
     });
 
+    test('repaints when the dance view projection changes', () {
+      final projected = CharacterPainter(
+        scene: scene,
+        clip: CatClips.shaku,
+        timeSeconds: 0.5,
+        danceViewProjection: true,
+        renderer: renderer,
+      );
+      expect(projected.shouldRepaint(painterAt(0.5)), isTrue);
+    });
+
     test('does not repaint for identical inputs', () {
       final clip = CatClips.shaku;
       final previous = CharacterPainter(
@@ -932,6 +943,64 @@ void main() {
             'are disconnected from the legwork',
       );
     }
+  });
+
+  test('dance trio view projection quarter-turns flankers inward', () {
+    final leftView = CharacterPainter.debugDanceMemberView(0, 3);
+    final leadView = CharacterPainter.debugDanceMemberView(1, 3);
+    final rightView = CharacterPainter.debugDanceMemberView(2, 3);
+
+    expect(leftView.shearX, greaterThan(0));
+    expect(rightView.shearX, lessThan(0));
+    expect(leftView.foreshortenX, lessThan(leadView.foreshortenX));
+    expect(rightView.foreshortenX, lessThan(leadView.foreshortenX));
+
+    final frame = scene.frameAt(clip: CatClips.shaku, timeSeconds: 0.25);
+    final leftWorld = CharacterPainter.debugProjectDanceViewWorld(
+      frame.world,
+      index: 0,
+      memberCount: 3,
+      scale: 1,
+    );
+    final rightWorld = CharacterPainter.debugProjectDanceViewWorld(
+      frame.world,
+      index: 2,
+      memberCount: 3,
+      scale: 1,
+    );
+
+    expect(
+      leftWorld[CatBones.footL]!.origin.x -
+          frame.world[CatBones.footL]!.origin.x,
+      greaterThan(7),
+      reason: 'left flanker near shoe should move into its depth lane',
+    );
+    expect(
+      leftWorld[CatBones.footR]!.origin.x -
+          frame.world[CatBones.footR]!.origin.x,
+      lessThan(-7),
+      reason: 'left flanker far shoe should move into the opposite depth lane',
+    );
+    expect(
+      rightWorld[CatBones.footL]!.origin.x -
+          frame.world[CatBones.footL]!.origin.x,
+      lessThan(-7),
+      reason: 'right flanker should mirror the near/far shoe lanes',
+    );
+    expect(
+      leftWorld[CatBones.handL]!.origin.x -
+          frame.world[CatBones.handL]!.origin.x,
+      greaterThan(9),
+      reason: 'quarter-turn hands should pull clear of the jacket',
+    );
+    expect(
+      leftWorld[CatBones.torso]!.origin.x - leftWorld[CatBones.hips]!.origin.x,
+      greaterThan(
+        frame.world[CatBones.torso]!.origin.x -
+            frame.world[CatBones.hips]!.origin.x,
+      ),
+      reason: 'quarter turn should separate chest mass from pelvis mass',
+    );
   });
 
   testWidgets('dance trio camera pushes into torso close-up then pulls out', (

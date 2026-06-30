@@ -1196,14 +1196,22 @@ void main() {
         );
         expect(rightPlantHand.y, inInclusiveRange(-42, -34));
 
-        final leftPullback = handL.sample(2 / phrase.frameCount);
-        final rightRecover = handR.sample(2 / phrase.frameCount);
+        final leftPullbackApproach = handL.sample(2 / phrase.frameCount);
+        final leftPullback = handL.sample(2.55 / phrase.frameCount);
+        final rightRecover = handR.sample(2.55 / phrase.frameCount);
+        expect(
+          leftPullbackApproach.x,
+          lessThan(-84),
+          reason:
+              'the delayed Sekem pullback may not sweep through the torso '
+              'while the paw is still approaching its late hit',
+        );
         expect(
           leftPullback.x,
           inInclusiveRange(-100, -92),
           reason:
-              'the left Sekem offbeat should rebound up in the left lane '
-              'instead of sweeping across the torso',
+              'the left Sekem offbeat should rebound up in the left lane on '
+              'its delayed wrist follow-through, not on the integer frame',
         );
         expect(
           leftPullback.x,
@@ -1232,8 +1240,8 @@ void main() {
           reason: 'Sekem should skim the floor, not lift into a side-kick',
         );
 
-        final leftPoint = handL.sample(4 / phrase.frameCount);
-        final rightSweep = handR.sample(4 / phrase.frameCount);
+        final leftPoint = handL.sample(4.55 / phrase.frameCount);
+        final rightSweep = handR.sample(4.55 / phrase.frameCount);
         expect(
           leftPoint.x,
           lessThan(-100),
@@ -1260,7 +1268,7 @@ void main() {
           greaterThan(32),
           reason: 'the low Sekem hand should visibly sit on the beltline',
         );
-        final rightSweepInward = handR.sample(6 / phrase.frameCount);
+        final rightSweepInward = handR.sample(6.55 / phrase.frameCount);
         expect(
           rightSweepInward.x,
           greaterThan(92),
