@@ -3,6 +3,12 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+/// Starts a child process from an executable + argument vector. Defaults to
+/// [Process.start]; injected in tests so [DanceFfmpegEncoder] can be exercised
+/// without an `ffmpeg` binary or real process I/O.
+typedef DanceProcessStarter =
+    Future<Process> Function(String executable, List<String> arguments);
+
 /// Pipes raw RGBA frames into one `ffmpeg` process and muxes them with the
 /// track's audio into an H.264/AAC MP4 — the single encoder shared by the live
 /// app's exact-frame export and the offline MP4 exporter, so the (long, fiddly)
@@ -18,8 +24,84 @@ final class DanceFfmpegEncoder {
     this._stderrBuffer,
   );
 
+  /// Builds the exact `ffmpeg` argument vector for one raw-RGBA → H.264/AAC MP4
+  /// encode. Pure (no I/O), so the long flag list, the bt709 colour tags, and
+  /// the keyframe-interval math (`-g`) can be asserted directly in tests. The
+  /// output path is the vector's final element.
+  static List<String> buildArgs({
+    required int width,
+    required int height,
+    required int fps,
+    required double startSec,
+    required double durationSec,
+    required String outputPath,
+    required String audioPath,
+    required int crf,
+    required int audioKbps,
+    required String x264Preset,
+  }) => [
+    '-y',
+    '-f',
+    'rawvideo',
+    '-pix_fmt',
+    'rgba',
+    '-s:v',
+    '${width}x$height',
+    '-framerate',
+    '$fps',
+    '-i',
+    'pipe:0',
+    '-ss',
+    startSec.toStringAsFixed(6),
+    '-t',
+    durationSec.toStringAsFixed(6),
+    '-i',
+    audioPath,
+    '-map',
+    '0:v:0',
+    '-map',
+    '1:a:0',
+    '-c:v',
+    'libx264',
+    '-preset',
+    x264Preset,
+    '-crf',
+    '$crf',
+    '-pix_fmt',
+    'yuv420p',
+    '-profile:v',
+    'high',
+    '-level',
+    '4.2',
+    '-r',
+    '$fps',
+    '-g',
+    '${math.max(1, (fps / 2).round())}',
+    '-bf',
+    '2',
+    '-colorspace',
+    'bt709',
+    '-color_primaries',
+    'bt709',
+    '-color_trc',
+    'bt709',
+    '-c:a',
+    'aac',
+    '-b:a',
+    '${audioKbps}k',
+    '-ar',
+    '48000',
+    '-movflags',
+    '+faststart',
+    '-shortest',
+    outputPath,
+  ];
+
   /// Starts ffmpeg reading raw `rgba` frames of [width]×[height] at [fps] from
   /// stdin, muxing the `[startSec, startSec+durationSec]` window of [audioPath].
+  ///
+  /// [executable] and [startProcess] are seams for testing; production callers
+  /// use the defaults (`ffmpeg` via [Process.start]).
   static Future<DanceFfmpegEncoder> start({
     required int width,
     required int height,
@@ -31,67 +113,23 @@ final class DanceFfmpegEncoder {
     required int crf,
     required int audioKbps,
     required String x264Preset,
+    String executable = 'ffmpeg',
+    DanceProcessStarter startProcess = Process.start,
   }) async {
-    final outputFile = File(outputPath);
-    outputFile.parent.createSync(recursive: true);
-    final args = [
-      '-y',
-      '-f',
-      'rawvideo',
-      '-pix_fmt',
-      'rgba',
-      '-s:v',
-      '${width}x$height',
-      '-framerate',
-      '$fps',
-      '-i',
-      'pipe:0',
-      '-ss',
-      startSec.toStringAsFixed(6),
-      '-t',
-      durationSec.toStringAsFixed(6),
-      '-i',
-      audioPath,
-      '-map',
-      '0:v:0',
-      '-map',
-      '1:a:0',
-      '-c:v',
-      'libx264',
-      '-preset',
-      x264Preset,
-      '-crf',
-      '$crf',
-      '-pix_fmt',
-      'yuv420p',
-      '-profile:v',
-      'high',
-      '-level',
-      '4.2',
-      '-r',
-      '$fps',
-      '-g',
-      '${math.max(1, (fps / 2).round())}',
-      '-bf',
-      '2',
-      '-colorspace',
-      'bt709',
-      '-color_primaries',
-      'bt709',
-      '-color_trc',
-      'bt709',
-      '-c:a',
-      'aac',
-      '-b:a',
-      '${audioKbps}k',
-      '-ar',
-      '48000',
-      '-movflags',
-      '+faststart',
-      '-shortest',
-      outputFile.path,
-    ];
-    final process = await Process.start('ffmpeg', args);
+    File(outputPath).parent.createSync(recursive: true);
+    final args = buildArgs(
+      width: width,
+      height: height,
+      fps: fps,
+      startSec: startSec,
+      durationSec: durationSec,
+      outputPath: outputPath,
+      audioPath: audioPath,
+      crf: crf,
+      audioKbps: audioKbps,
+      x264Preset: x264Preset,
+    );
+    final process = await startProcess(executable, args);
     final stderrBuffer = StringBuffer();
     final stdoutDone = process.stdout.drain<void>();
     final stderrDone = process.stderr
