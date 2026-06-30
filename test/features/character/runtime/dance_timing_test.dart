@@ -1,5 +1,21 @@
 import 'package:dancing_cats/features/character/runtime/dance_timing.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:glados/glados.dart' as glados;
+
+extension _AnyTiming on glados.Any {
+  glados.Generator<double> get phaseTime =>
+      glados.DoubleAnys(this).doubleInRange(-100, 100);
+
+  glados.Generator<double> get unit01 =>
+      glados.DoubleAnys(this).doubleInRange(0, 1);
+
+  glados.Generator<({double t, double d})> get cycleCase =>
+      glados.CombinableAny(this).combine2(
+        glados.DoubleAnys(this).doubleInRange(-100, 100),
+        glados.DoubleAnys(this).doubleInRange(0.05, 10),
+        (t, d) => (t: t, d: d),
+      );
+}
 
 void main() {
   group('cyclePhase', () {
@@ -61,5 +77,56 @@ void main() {
     test('is periodic over the cycle', () {
       expect(danceCameraShot(2.5, 1).zoom, closeTo(2.08, 1e-9));
     });
+  });
+
+  group('properties (generative)', () {
+    glados.Glados<({double t, double d})>(
+      glados.any.cycleCase,
+      glados.ExploreConfig(numRuns: 200),
+    ).test('cyclePhase always lands in [0, 1)', (c) {
+      final p = cyclePhase(c.t, c.d);
+      expect(p, greaterThanOrEqualTo(0), reason: 't=${c.t} d=${c.d}');
+      expect(p, lessThan(1), reason: 't=${c.t} d=${c.d}');
+    }, tags: 'glados');
+
+    glados.Glados<({double t, double d})>(
+      glados.any.cycleCase,
+      glados.ExploreConfig(numRuns: 200),
+    ).test('cyclePhase is periodic over one duration', (c) {
+      expect(
+        cyclePhase(c.t, c.d),
+        closeTo(cyclePhase(c.t + c.d, c.d), 1e-9),
+        reason: 't=${c.t} d=${c.d}',
+      );
+    }, tags: 'glados');
+
+    glados.Glados<double>(
+      glados.any.phaseTime,
+      glados.ExploreConfig(numRuns: 200),
+    ).test('smoothstep stays in [0, 1]', (t) {
+      expect(smoothstep(t), inInclusiveRange(0, 1), reason: 't=$t');
+    }, tags: 'glados');
+
+    glados.Glados<double>(
+      glados.any.unit01,
+      glados.ExploreConfig(numRuns: 200),
+    ).test('smoothstep is symmetric about 0.5', (t) {
+      expect(
+        smoothstep(t) + smoothstep(1 - t),
+        closeTo(1, 1e-9),
+        reason: 't=$t',
+      );
+    }, tags: 'glados');
+
+    glados.Glados<({double t, double d})>(
+      glados.any.cycleCase,
+      glados.ExploreConfig(numRuns: 200),
+    ).test('danceCameraShot zoom stays within the authored key range', (c) {
+      // Smoothstep interpolation never overshoots adjacent keys, so the zoom
+      // stays within the table's [1.0, 2.08] span.
+      final z = danceCameraShot(c.t, c.d).zoom;
+      expect(z, greaterThanOrEqualTo(1.0 - 1e-9), reason: 't=${c.t} d=${c.d}');
+      expect(z, lessThanOrEqualTo(2.08 + 1e-9), reason: 't=${c.t} d=${c.d}');
+    }, tags: 'glados');
   });
 }
