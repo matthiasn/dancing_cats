@@ -1,5 +1,8 @@
 # dancing_cats
 
+[![CI](https://github.com/matthiasn/dancing_cats/actions/workflows/ci.yml/badge.svg)](https://github.com/matthiasn/dancing_cats/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/matthiasn/dancing_cats/graph/badge.svg)](https://codecov.io/gh/matthiasn/dancing_cats)
+
 A standalone, beat-synced **procedural dancing-cats** engine + **blue-hour waterfront** scenery, ejected from the Lotti app. Pure-Dart skeletal rig, `CustomPainter` runtime, GLSL scenery shaders, lip-sync, a virtual camera director, and an offline MP4/contact-sheet renderer — driven by a track's beat map so the whole scene moves with the music.
 
 No Riverpod, no service locator, no database, no localization. The runtime closure is just `lib/features/character` + `lib/features/scenery`, three scenery shaders, and a handful of assets.
