@@ -33,7 +33,7 @@ import 'package:flutter_test/flutter_test.dart';
 /// | `GRID_EXPRESSION`    | neutral/content/happy/surprised/sad/angry| content |
 /// | `GRID_ONION`         | also write `<clip>_onion.png` (1/0)      | 1       |
 /// | `GRID_DANCE_CAMERA`  | enable dance trio camera move (1/0)      | 1       |
-/// | `GRID_VIEWS`         | comma list: front,quarter,quarterLeft,quarterRight | front |
+/// | `GRID_VIEWS`         | comma list: front,quarter,quarterLeft,quarterRight,side,sideLeft,sideRight | front |
 ///
 /// Run a single motion densely, for example:
 /// ```sh
@@ -76,22 +76,43 @@ const _frontView = _ReviewView(
 const _quarterView = _ReviewView(
   name: 'quarter',
   fileSuffix: 'quarter',
-  foreshortenX: 0.82,
-  shearX: 0.08,
+  foreshortenX: 0.74,
+  shearX: 0.16,
 );
 
 const _quarterLeftView = _ReviewView(
   name: 'quarterLeft',
   fileSuffix: 'quarter_left',
-  foreshortenX: 0.82,
-  shearX: -0.08,
+  foreshortenX: 0.74,
+  shearX: -0.16,
 );
 
 const _quarterRightView = _ReviewView(
   name: 'quarterRight',
   fileSuffix: 'quarter_right',
-  foreshortenX: 0.82,
-  shearX: 0.08,
+  foreshortenX: 0.74,
+  shearX: 0.16,
+);
+
+const _sideView = _ReviewView(
+  name: 'side',
+  fileSuffix: 'side',
+  foreshortenX: 0.56,
+  shearX: 0.28,
+);
+
+const _sideLeftView = _ReviewView(
+  name: 'sideLeft',
+  fileSuffix: 'side_left',
+  foreshortenX: 0.56,
+  shearX: -0.28,
+);
+
+const _sideRightView = _ReviewView(
+  name: 'sideRight',
+  fileSuffix: 'side_right',
+  foreshortenX: 0.56,
+  shearX: 0.28,
 );
 
 void main() {
@@ -536,6 +557,64 @@ void main() {
     return _pngOf(recorder.endRecording(), w.round(), h.round());
   }
 
+  test('review view parsing includes stronger quarter and side angles', () {
+    final views = _reviewViewsByName(
+      'front,quarter,quarter-left,side,side_right,profile,unknown',
+    );
+
+    expect(
+      views.map((view) => view.name),
+      ['front', 'quarter', 'quarterLeft', 'side', 'sideRight'],
+    );
+    expect(
+      _quarterView.foreshortenX,
+      lessThan(_frontView.foreshortenX),
+      reason:
+          'quarter view should visibly narrow the body, not duplicate front',
+    );
+    expect(
+      _sideView.foreshortenX,
+      lessThan(_quarterView.foreshortenX),
+      reason: 'side/profile review should be more oblique than quarter review',
+    );
+    expect(_sideLeftView.shearX, lessThan(0));
+    expect(_sideRightView.shearX, greaterThan(0));
+  });
+
+  test(
+    'review view transforms preserve the floor while skewing upper body',
+    () {
+      const x = 100.0;
+      const y = 200.0;
+      const scale = 0.5;
+      final front = _frontView.baseAt(x: x, y: y, scale: scale);
+      final quarter = _quarterView.baseAt(x: x, y: y, scale: scale);
+      final side = _sideView.baseAt(x: x, y: y, scale: scale);
+
+      final frontGround = front.transformPoint(0, 120);
+      final quarterGround = quarter.transformPoint(0, 120);
+      final sideGround = side.transformPoint(0, 120);
+      expect(quarterGround.y, frontGround.y);
+      expect(sideGround.y, frontGround.y);
+
+      const upperBody = (x: 0.0, y: -120.0);
+      final frontUpper = front.transformPoint(upperBody.x, upperBody.y);
+      final quarterUpper = quarter.transformPoint(upperBody.x, upperBody.y);
+      final sideUpper = side.transformPoint(upperBody.x, upperBody.y);
+      expect(
+        (quarterUpper.x - frontUpper.x).abs(),
+        greaterThan(8),
+        reason:
+            'quarter view should make upper-body occlusion differences visible',
+      );
+      expect(
+        (sideUpper.x - frontUpper.x).abs(),
+        greaterThan((quarterUpper.x - frontUpper.x).abs()),
+        reason: 'side/profile view should exaggerate the review angle further',
+      );
+    },
+  );
+
   testWidgets('renders per-frame contact-sheet grids', (tester) async {
     await tester.runAsync(() async {
       for (final name in selected) {
@@ -646,6 +725,15 @@ List<_ReviewView> _reviewViewsByName(String value) {
       'quarter' => _quarterView,
       'quarterleft' || 'leftquarter' => _quarterLeftView,
       'quarterright' || 'rightquarter' => _quarterRightView,
+      'side' || 'profile' => _sideView,
+      'sideleft' ||
+      'leftside' ||
+      'profileleft' ||
+      'leftprofile' => _sideLeftView,
+      'sideright' ||
+      'rightside' ||
+      'profileright' ||
+      'rightprofile' => _sideRightView,
       _ => null,
     };
     if (view == null) continue;
