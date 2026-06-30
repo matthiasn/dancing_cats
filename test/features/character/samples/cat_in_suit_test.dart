@@ -486,10 +486,10 @@ void main() {
       );
       expect(
         rightFlick.x,
-        inInclusiveRange(52, 56),
+        inInclusiveRange(66, 70),
         reason:
-            'Zanku should heel-toe knock under the hip without becoming a side '
-            'kick',
+            'Zanku should show a readable heel-toe knock in a widened support '
+            'lane without becoming a side kick',
       );
       expect(rightFlick.y, inInclusiveRange(121, 125));
       expect(
@@ -499,7 +499,7 @@ void main() {
       );
       expect(
         rightStomp.dy - rightFlickLift.dy,
-        inInclusiveRange(10, 16),
+        inInclusiveRange(12, 20),
         reason:
             'Zanku should drop into a grounded stomp, not hop or float after '
             'the right-leg flick',
@@ -512,17 +512,17 @@ void main() {
       final leftFlickLift = zanku.root.sample(22 / phrase.frameCount);
       expect(
         leftLift.y,
-        inInclusiveRange(108, 112),
+        inInclusiveRange(104, 110),
         reason:
             'Zanku should show a compact pre-stomp pickup before the heel-toe '
             'flick, not a walking stride',
       );
       expect(
         leftFlick.x,
-        inInclusiveRange(-56, -52),
+        inInclusiveRange(-68, -64),
         reason:
-            'Zanku should heel-toe knock under the hip without becoming a side '
-            'kick',
+            'Zanku should show a readable heel-toe knock in a widened support '
+            'lane without becoming a side kick',
       );
       expect(leftFlick.y, inInclusiveRange(121, 125));
       expect(
@@ -532,7 +532,7 @@ void main() {
       );
       expect(
         leftStomp.dy - leftFlickLift.dy,
-        inInclusiveRange(10, 16),
+        inInclusiveRange(14, 22),
         reason:
             'Zanku should drop into a grounded stomp, not hop or float after '
             'the left-leg flick',
@@ -547,7 +547,7 @@ void main() {
       );
       expect(
         freezeRightFoot.x,
-        greaterThan(42),
+        greaterThan(52),
         reason:
             'the exact Zanku freeze needs a clear right support foot under the '
             'COM, not a tiny hidden contact',
@@ -586,7 +586,7 @@ void main() {
       final promotedKick = footR.sample(26 / phrase.frameCount);
       expect(
         promotedKick.y,
-        inInclusiveRange(86, 90),
+        inInclusiveRange(82, 86),
         reason:
             'Zanku needs one legible knock-door accent in the phrase; otherwise '
             'the move reads as a generic in-place groove',
@@ -614,6 +614,42 @@ void main() {
               'Zanku right hand must stay in the right lane on frame $frame; '
               'cross-body IK makes the shoulders fold impossibly',
         );
+      }
+    });
+
+    test('azonto keeps a grounded wide base under the point-out groove', () {
+      final phrase = CatClips.dancePhrase;
+      final azonto = CatClips.azonto;
+      final footL = _targetFor(azonto, CatBones.footL).channel;
+      final footR = _targetFor(azonto, CatBones.footR).channel;
+
+      for (final frame in [0, 4, 8, 12, 16, 20, 24, 28]) {
+        final p = frame / phrase.frameCount;
+        final left = footL.sample(p);
+        final right = footR.sample(p);
+        expect(
+          left.x,
+          lessThan(-40),
+          reason:
+              'Azonto frame $frame needs the left foot visibly on its own side, '
+              'not crossing under the hips',
+        );
+        expect(
+          right.x,
+          greaterThan(40),
+          reason:
+              'Azonto frame $frame needs the right foot visibly on its own side, '
+              'not crossing under the hips',
+        );
+        expect(
+          right.x - left.x,
+          greaterThan(84),
+          reason:
+              'Azonto frame $frame should keep a support polygon under the hip '
+              'swivel instead of balancing on bunched feet',
+        );
+        expect(left.y, greaterThanOrEqualTo(100));
+        expect(right.y, greaterThanOrEqualTo(100));
       }
     });
 
@@ -726,8 +762,8 @@ void main() {
 
         final leftPlant = footL.sample(0);
         final rightPlant = footR.sample(4 / phrase.frameCount);
-        expect(leftPlant.x, lessThan(-28));
-        expect(rightPlant.x, greaterThan(28));
+        expect(leftPlant.x, lessThan(-42));
+        expect(rightPlant.x, greaterThan(42));
         expect(leftPlant.y, greaterThanOrEqualTo(102));
         expect(rightPlant.y, greaterThanOrEqualTo(102));
 
@@ -779,10 +815,10 @@ void main() {
         final rightPickup = footR.sample(2 / phrase.frameCount);
         expect(
           rightPickup.x,
-          inInclusiveRange(38, 42),
+          inInclusiveRange(48, 52),
           reason:
-              'Sekem pickup should scrape in a compact right lane; going wider '
-              'turns the move into a side-kick',
+              'Sekem pickup should scrape in a widened but grounded right lane; '
+              'lifting the foot high would turn it into a side-kick',
         );
         expect(
           rightPickup.y,
@@ -827,10 +863,10 @@ void main() {
         final leftPickup = footL.sample(6 / phrase.frameCount);
         expect(
           leftPickup.x,
-          inInclusiveRange(-42, -38),
+          inInclusiveRange(-52, -48),
           reason:
-              'Sekem pickup should scrape in a compact left lane; going wider '
-              'turns the move into a side-kick',
+              'Sekem pickup should scrape in a widened but grounded left lane; '
+              'lifting the foot high would turn it into a side-kick',
         );
         expect(
           leftPickup.y,
@@ -871,12 +907,12 @@ void main() {
         final torso = sekem.channels[CatBones.torso]!;
         expect(
           leftGroove.dx,
-          lessThan(-22),
+          lessThan(-26),
           reason: 'Sekem should visibly dwell over the left plant',
         );
         expect(
           rightGroove.dx,
-          greaterThan(22),
+          greaterThan(26),
           reason: 'Sekem should visibly dwell over the right plant',
         );
         expect(
@@ -886,13 +922,15 @@ void main() {
         );
         expect(
           hips.sample(0).rotation,
-          lessThan(-0.28),
+          lessThan(-0.32),
           reason: 'the hip should lead the left Sekem weight commit',
         );
         expect(
-          torso.sample(0).rotation,
-          greaterThan(0.26),
-          reason: 'the torso should counter the hip for the Sekem groove',
+          torso.sample(0.55 / phrase.frameCount).rotation,
+          greaterThan(0.3),
+          reason:
+              'the torso should counter after the hip lead instead of landing '
+              'as one rigid suit shape',
         );
       },
     );
