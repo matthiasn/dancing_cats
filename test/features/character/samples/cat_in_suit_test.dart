@@ -61,10 +61,10 @@ void main() {
       expect(creaseR?.parent, CatBones.armLowerR);
       expect(creaseL?.drawable?.height, lessThan(creaseL!.drawable!.width));
       expect(creaseR?.drawable?.height, lessThan(creaseR!.drawable!.width));
-      expect(creaseL.drawable!.width, lessThanOrEqualTo(7.5));
-      expect(creaseR.drawable!.width, lessThanOrEqualTo(7.5));
-      expect(creaseL.drawable!.height, lessThanOrEqualTo(1.2));
-      expect(creaseR.drawable!.height, lessThanOrEqualTo(1.2));
+      expect(creaseL.drawable!.width, lessThanOrEqualTo(5));
+      expect(creaseR.drawable!.width, lessThanOrEqualTo(5));
+      expect(creaseL.drawable!.height, lessThanOrEqualTo(0.9));
+      expect(creaseR.drawable!.height, lessThanOrEqualTo(0.9));
       expect(creaseL.drawable!.outlineColor, isNull);
       expect(creaseR.drawable!.outlineColor, isNull);
       expect(creaseL.drawable!.outlineWidth, 0);
@@ -102,6 +102,8 @@ void main() {
       final arm = rig.ribbons.singleWhere((ribbon) {
         return ribbon.id == 'arm.L.ribbon';
       });
+      final bicepPlane = rig.bone(CatBones.armBicepL)!.drawable!;
+      final forearmPlane = rig.bone(CatBones.armForearmL)!.drawable!;
       final cuff = rig.bone(CatBones.wristCuffL)!.drawable!;
       final hand = rig.bone(CatBones.handL)!.drawable!;
 
@@ -115,13 +117,13 @@ void main() {
           CatBones.handL,
         ],
       );
-      expect(arm.halfWidths, const [8.6, 10.4, 3.8, 5.8, 2.7]);
+      expect(arm.halfWidths, const [7.4, 11.2, 4.9, 6.8, 3.2]);
       expect(arm.formRound, isFalse);
       expect(arm.roundCaps, isFalse);
       expect(arm.halfWidths[1], greaterThan(arm.halfWidths.first));
       expect(
         arm.halfWidths[2],
-        lessThan(arm.halfWidths[1] * 0.45),
+        lessThan(arm.halfWidths[1] * 0.5),
         reason: 'the elbow should pinch clearly below the bicep mass',
       );
       expect(
@@ -134,6 +136,13 @@ void main() {
         greaterThan(arm.halfWidths[2] * 1.35),
         reason: 'the forearm should wedge back out after the elbow pinch',
       );
+      for (final plane in [bicepPlane, forearmPlane]) {
+        expect(plane.width, lessThan(arm.halfWidths[1] * 0.45));
+        expect(plane.height, greaterThan(plane.width * 3));
+        expect(plane.outlineColor, isNull);
+        expect(plane.outlineWidth, 0);
+        expect(plane.celShade, isFalse);
+      }
       expect(cuff.width, lessThan(hand.width));
       expect(cuff.width, lessThanOrEqualTo(18));
     });
@@ -263,10 +272,10 @@ void main() {
         greaterThan(leadLeg.halfWidths[2]),
         reason: 'the calf must bulge past the knee dip',
       );
-      expect(baseArm.halfWidths, const [8.6, 10.4, 3.8, 5.8, 2.7]);
+      expect(baseArm.halfWidths, const [7.4, 11.2, 4.9, 6.8, 3.2]);
       expect(
         leadArm.halfWidths[1],
-        closeTo(10.4 * kDanceLeadArmWidthScale, 0.001),
+        closeTo(11.2 * kDanceLeadArmWidthScale, 0.001),
       );
       expect(
         leadArm.halfWidths[2],
@@ -275,7 +284,7 @@ void main() {
       );
       expect(
         leadArm.halfWidths[3],
-        closeTo(5.8 * kDanceLeadArmWidthScale, 0.001),
+        closeTo(6.8 * kDanceLeadArmWidthScale, 0.001),
       );
       expect(leadTail.halfWidths, baseTail.halfWidths);
     });
