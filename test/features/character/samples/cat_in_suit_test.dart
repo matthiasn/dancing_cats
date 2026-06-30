@@ -580,15 +580,35 @@ void main() {
             'Zanku should drop into a stronger grounded stomp pocket, not hop '
             'or float after the right-leg flick',
       );
+      final rightHipLead = hips.sample(3.75 / phrase.frameCount).rotation;
+      final rightHipOnStomp = hips.sample(4 / phrase.frameCount).rotation;
       expect(
-        hips.sample(4 / phrase.frameCount).rotation,
+        rightHipLead,
         greaterThan(0.3),
-        reason: 'the right Zanku stomp should be hip-led',
+        reason:
+            'the right Zanku stomp should be led by a hip commit just before '
+            'the foot lands',
       );
       expect(
-        torso.sample(4.5 / phrase.frameCount).rotation,
-        lessThan(-0.28),
-        reason: 'the chest should counter after the hip instead of posing flat',
+        rightHipLead,
+        greaterThan(rightHipOnStomp),
+        reason: 'the hip should lead the stomp instead of peaking late',
+      );
+      final rightChestOnStomp = torso.sample(4 / phrase.frameCount).rotation;
+      final rightChestFollow = torso.sample(4.9 / phrase.frameCount).rotation;
+      expect(
+        rightChestOnStomp,
+        greaterThan(-0.24),
+        reason:
+            'the chest should not be fully parked in its counter-rotation on '
+            'the same frame as the hip-led stomp',
+      );
+      expect(
+        rightChestFollow,
+        lessThan(rightChestOnStomp - 0.08),
+        reason:
+            'the chest should keep answering after the hip instead of landing '
+            'as a simultaneous full-body pose',
       );
 
       final leftLift = footL.sample(21 / phrase.frameCount);
@@ -623,10 +643,35 @@ void main() {
             'Zanku should drop into a stronger grounded stomp pocket, not hop '
             'or float after the left-leg flick',
       );
+      final leftHipLead = hips.sample(23.75 / phrase.frameCount).rotation;
+      final leftHipOnStomp = hips.sample(24 / phrase.frameCount).rotation;
       expect(
-        hips.sample(24 / phrase.frameCount).rotation,
+        leftHipLead,
         lessThan(-0.34),
-        reason: 'the left Zanku stomp should visibly commit through the hip',
+        reason:
+            'the left Zanku stomp should be led by a mirrored hip commit just '
+            'before the foot lands',
+      );
+      expect(
+        leftHipLead,
+        lessThan(leftHipOnStomp),
+        reason:
+            'the mirrored hip should lead the stomp instead of peaking late',
+      );
+      final leftChestOnStomp = torso.sample(24 / phrase.frameCount).rotation;
+      final leftChestFollow = torso.sample(24.9 / phrase.frameCount).rotation;
+      expect(
+        leftChestOnStomp,
+        lessThan(0.24),
+        reason:
+            'the mirrored chest should also avoid arriving fully on the hip '
+            'stomp frame',
+      );
+      expect(
+        leftChestFollow,
+        greaterThan(leftChestOnStomp + 0.08),
+        reason:
+            'the mirrored chest counter should roll in after the hip commit',
       );
 
       final freezeLeftFoot = footL.sample(28 / phrase.frameCount);

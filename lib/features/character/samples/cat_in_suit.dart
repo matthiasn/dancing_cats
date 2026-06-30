@@ -5676,16 +5676,16 @@ class CatClips {
       root: LayeredRootChannel([
         _bodyRootLeadChannel(_danceBodyAccentKeys, smooth: true),
         // Per-BEAT weight commit that DWELLS over the stamping foot (replaces the
-        // sine sway that just passed through centre). See [_zankuCommitKeys].
+        // sine sway that just passed through centre). The root starts the drop
+        // just ahead of the beat; hips arrive first, chest answers behind them.
         _bodyRootLeadChannel(
           _zankuCommitKeys,
           smooth: true,
-          microFrames: -0.25,
         ),
         _bodyRootLeadChannel(
           _zankuPocketBoostKeys,
           smooth: true,
-          microFrames: -0.2,
+          microFrames: -0.3,
         ),
         const SineRootChannel(
           // Subtle beat compression only. A large hop made the move read
@@ -5702,12 +5702,12 @@ class CatClips {
           _bodyPelvisLeadChannel(
             _zankuCommitKeys,
             smooth: true,
-            microFrames: -0.7,
+            microFrames: -0.95,
           ),
           _bodyPelvisLeadChannel(
             _zankuPocketBoostKeys,
             smooth: true,
-            microFrames: -0.8,
+            microFrames: -1.05,
           ),
         ]),
         CatBones.torso: LayeredJointChannel([
@@ -5715,15 +5715,15 @@ class CatClips {
           _bodyChestFollowChannel(
             _zankuCommitKeys,
             smooth: true,
-            microFrames: 0.65,
-            rotationGain: 0.8,
+            microFrames: 0.9,
+            rotationGain: 0.72,
           ),
           _bodyChestFollowChannel(
             _zankuPocketBoostKeys,
             smooth: true,
-            microFrames: 0.8,
-            rotationGain: 0.78,
-            scaleGain: 0.9,
+            microFrames: 1.05,
+            rotationGain: 0.7,
+            scaleGain: 0.86,
           ),
           // Compact forward street-dance carriage: legs do the talking while
           // the chest stays over the planted support instead of leaning back
@@ -5733,7 +5733,7 @@ class CatClips {
           // with the COM sway, so the upper mass offsets the kicking leg each
           // beat instead of toppling toward the kick.
           const SineChannel(
-            harmonicAmplitude: 0.07,
+            harmonicAmplitude: 0.055,
             harmonicMultiplier: 4,
             harmonicPhase: 0.0825,
           ),
