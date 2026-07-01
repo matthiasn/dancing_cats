@@ -607,6 +607,96 @@ void main() {
       expect(clip.limbTargets.single.channel.sample(0).x, closeTo(0, 1e-9));
     });
 
+    test('blendedClip can window body, joint, and IK transition timing', () {
+      const from = Clip(
+        name: 'from',
+        duration: 2,
+        channels: {
+          'arm': KeyframeChannel([
+            Keyframe(p: 0, rotation: -1),
+            Keyframe(p: 1, rotation: -1),
+          ]),
+          'torso': KeyframeChannel([
+            Keyframe(p: 0),
+            Keyframe(p: 1),
+          ]),
+        },
+        root: KeyframeRootChannel([
+          RootKeyframe(p: 0, dx: -10),
+          RootKeyframe(p: 1, dx: -10),
+        ]),
+        limbTargets: [
+          LimbIkTarget(
+            upperBoneId: 'upper',
+            lowerBoneId: 'lower',
+            endBoneId: 'hand',
+            anchorBoneId: 'torso',
+            channel: FixedIkTargetChannel(x: -20, y: 0),
+          ),
+        ],
+      );
+      const to = Clip(
+        name: 'to',
+        duration: 2,
+        channels: {
+          'arm': KeyframeChannel([
+            Keyframe(p: 0, rotation: 1),
+            Keyframe(p: 1, rotation: 1),
+          ]),
+          'torso': KeyframeChannel([
+            Keyframe(p: 0, rotation: 1),
+            Keyframe(p: 1, rotation: 1),
+          ]),
+        },
+        root: KeyframeRootChannel([
+          RootKeyframe(p: 0, dx: 10),
+          RootKeyframe(p: 1, dx: 10),
+        ]),
+        limbTargets: [
+          LimbIkTarget(
+            upperBoneId: 'upper',
+            lowerBoneId: 'lower',
+            endBoneId: 'hand',
+            anchorBoneId: 'torso',
+            channel: FixedIkTargetChannel(x: 20, y: 0),
+          ),
+        ],
+      );
+
+      final clip = blendedClip(
+        from: from,
+        to: to,
+        weight: 0.5,
+        blendMask: const ClipBlendMask(
+          root: ClipBlendWindow(end: 0.5),
+          joints: {'arm': ClipBlendWindow(start: 0.5)},
+          limbTargets: {'hand': ClipBlendWindow(start: 0.5)},
+        ),
+      );
+
+      expect(
+        clip.root.sample(0).dx,
+        closeTo(10, 1e-9),
+        reason: 'the root/body layer can settle before hand action layers',
+      );
+      expect(
+        clip.channels['arm']!.sample(0).rotation,
+        closeTo(-1, 1e-9),
+        reason: 'a delayed joint window should keep the outgoing arm at first',
+      );
+      expect(
+        clip.channels['torso']!.sample(0).rotation,
+        closeTo(0.5, 1e-9),
+        reason: 'unmasked joints preserve the historical global blend weight',
+      );
+      expect(
+        clip.limbTargets.single.channel.sample(0).x,
+        closeTo(-20, 1e-9),
+        reason: 'hand IK targets can lag without creating an end pop',
+      );
+      expect(clip.transitionPlan!.weight, 0.5);
+    });
+
     test('blendedClip carries contact-aware transition metadata', () {
       const from = Clip(
         name: 'from',

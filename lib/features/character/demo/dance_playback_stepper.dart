@@ -5,6 +5,7 @@ import 'package:dancing_cats/features/character/demo/dance_performance.dart';
 import 'package:dancing_cats/features/character/model/clip.dart';
 import 'package:dancing_cats/features/character/model/face.dart';
 import 'package:dancing_cats/features/character/runtime/dance_timing.dart';
+import 'package:dancing_cats/features/character/samples/cat_in_suit.dart';
 
 /// The stateful, history-dependent half of one dance frame: the singing mouths
 /// (eased) and the virtual camera (smoothed — slow dollies with fast accent
@@ -128,6 +129,61 @@ class DancePlaybackStepper {
 /// robotic pose cuts, short enough to preserve Afrobeats hits and foot plants.
 const double kDanceMoveTransitionSeconds = 0.18;
 
+const _bodyBlendWindow = ClipBlendWindow(end: 0.72);
+const _shoulderBlendWindow = ClipBlendWindow(start: 0.06, end: 0.88);
+const _armBlendWindow = ClipBlendWindow(start: 0.12, end: 0.96);
+const _secondaryBlendWindow = ClipBlendWindow(start: 0.24);
+const _footBlendWindow = ClipBlendWindow(end: 0.7);
+const _handTargetBlendWindow = ClipBlendWindow(start: 0.14);
+
+/// Dance transitions layer the incoming move instead of replacing every track
+/// on the same tick. Weight-bearing body/feet settle first, arm targets arrive
+/// through the middle, and secondary parts follow last.
+const _danceMoveBlendMask = ClipBlendMask(
+  root: _bodyBlendWindow,
+  joints: {
+    CatBones.hips: _bodyBlendWindow,
+    CatBones.torso: _bodyBlendWindow,
+    CatBones.clavicleL: _shoulderBlendWindow,
+    CatBones.clavicleR: _shoulderBlendWindow,
+    CatBones.shoulderSocketL: _shoulderBlendWindow,
+    CatBones.shoulderSocketR: _shoulderBlendWindow,
+    CatBones.armBicepL: _shoulderBlendWindow,
+    CatBones.armBicepR: _shoulderBlendWindow,
+    CatBones.armUpperL: _armBlendWindow,
+    CatBones.armUpperR: _armBlendWindow,
+    CatBones.armLowerL: _armBlendWindow,
+    CatBones.armLowerR: _armBlendWindow,
+    CatBones.armForearmL: _armBlendWindow,
+    CatBones.armForearmR: _armBlendWindow,
+    CatBones.handL: _armBlendWindow,
+    CatBones.handR: _armBlendWindow,
+    CatBones.legUpperL: _footBlendWindow,
+    CatBones.legUpperR: _footBlendWindow,
+    CatBones.legLowerL: _footBlendWindow,
+    CatBones.legLowerR: _footBlendWindow,
+    CatBones.footL: _footBlendWindow,
+    CatBones.footR: _footBlendWindow,
+    CatBones.earL: _secondaryBlendWindow,
+    CatBones.earR: _secondaryBlendWindow,
+    CatBones.tail0: _secondaryBlendWindow,
+    CatBones.tail1: _secondaryBlendWindow,
+    CatBones.tail2: _secondaryBlendWindow,
+    CatBones.tail3: _secondaryBlendWindow,
+    CatBones.tail4: _secondaryBlendWindow,
+    CatBones.tail5: _secondaryBlendWindow,
+    CatBones.tail6: _secondaryBlendWindow,
+    CatBones.tie: _secondaryBlendWindow,
+    CatBones.tieLower: _secondaryBlendWindow,
+  },
+  limbTargets: {
+    CatBones.handL: _handTargetBlendWindow,
+    CatBones.handR: _handTargetBlendWindow,
+    CatBones.footL: _footBlendWindow,
+    CatBones.footR: _footBlendWindow,
+  },
+);
+
 class _DanceStageTransition {
   const _DanceStageTransition({required this.from, required this.elapsed});
 
@@ -165,6 +221,7 @@ DanceStage _blendStage({
     to: to.lead,
     weight: weight,
     name: '${from.lead.name}->${to.lead.name}',
+    blendMask: _danceMoveBlendMask,
   ),
   ensemble: [
     for (var i = 0; i < to.ensemble.length; i++)
@@ -173,6 +230,7 @@ DanceStage _blendStage({
         to: to.ensemble[i],
         weight: weight,
         name: '${from.ensemble[i].name}->${to.ensemble[i].name}',
+        blendMask: _danceMoveBlendMask,
       ),
   ],
   seconds: to.seconds,

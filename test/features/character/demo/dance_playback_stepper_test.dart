@@ -3,6 +3,7 @@ import 'package:dancing_cats/features/character/demo/dance_playback_stepper.dart
 import 'package:dancing_cats/features/character/model/beat_map.dart';
 import 'package:dancing_cats/features/character/model/clip.dart';
 import 'package:dancing_cats/features/character/model/face.dart';
+import 'package:dancing_cats/features/character/samples/cat_in_suit.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 BeatMap _beatMap() => BeatMap(
@@ -89,6 +90,27 @@ void main() {
       expect(
         mixed.lead.limbTargets.map((target) => target.channel),
         everyElement(isA<BlendedIkTargetChannel>()),
+      );
+      final root = mixed.lead.root as BlendedRootChannel;
+      final rightHand =
+          mixed.lead.limbTargets
+                  .singleWhere((target) => target.endBoneId == CatBones.handR)
+                  .channel
+              as BlendedIkTargetChannel;
+      final tail = mixed.lead.channels[CatBones.tail6]! as BlendedJointChannel;
+      expect(
+        root.weight,
+        greaterThan(rightHand.weight),
+        reason:
+            'dance move transitions should settle body/contact before hand IK '
+            'targets start chasing the incoming move',
+      );
+      expect(
+        tail.weight,
+        0,
+        reason:
+            'secondary tail/ear/tie motion should follow the transition last, '
+            'not reset on the same frame as the primary body',
       );
 
       for (var i = 0; i < 20; i++) {

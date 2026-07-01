@@ -66,6 +66,65 @@ class BlendedJointChannel extends JointChannel {
   }
 }
 
+/// Maps the global 0..1 transition progress into a local blend window.
+///
+/// A plain per-bone mask that never reaches `1` would pop when a temporary
+/// transition clip is replaced by the incoming clip. Windows solve that by
+/// letting layers start late or finish early while still arriving at the target
+/// by the end of the transition.
+class ClipBlendWindow {
+  const ClipBlendWindow({
+    this.start = 0,
+    this.end = 1,
+  }) : assert(start >= 0 && start <= 1, 'start must be in 0..1'),
+       assert(end >= 0 && end <= 1, 'end must be in 0..1'),
+       assert(start <= end, 'start must not be after end');
+
+  static const full = ClipBlendWindow();
+
+  final double start;
+  final double end;
+
+  double transform(double weight) {
+    assert(weight >= 0 && weight <= 1, 'weight must be in 0..1');
+    if (start == 0 && end == 1) return weight;
+    if (start == end) return weight < start ? 0 : 1;
+    final local = ((weight - start) / (end - start)).clamp(0.0, 1.0);
+    return _smoothUnit(local);
+  }
+}
+
+/// Per-layer blend timing for a temporary [blendedClip].
+///
+/// This is the first small DanceMixer primitive: body/root/support can settle on
+/// one timing, hands can lag, and tail/ears/tie can follow last without creating
+/// a hard jump when the transition clip expires.
+class ClipBlendMask {
+  const ClipBlendMask({
+    this.root = ClipBlendWindow.full,
+    this.defaultJoint = ClipBlendWindow.full,
+    this.joints = const <String, ClipBlendWindow>{},
+    this.defaultLimbTarget = ClipBlendWindow.full,
+    this.limbTargets = const <String, ClipBlendWindow>{},
+  });
+
+  static const full = ClipBlendMask();
+
+  final ClipBlendWindow root;
+  final ClipBlendWindow defaultJoint;
+  final Map<String, ClipBlendWindow> joints;
+  final ClipBlendWindow defaultLimbTarget;
+  final Map<String, ClipBlendWindow> limbTargets;
+
+  double rootWeight(double weight) => root.transform(weight);
+
+  double jointWeight(String boneId, double weight) =>
+      (joints[boneId] ?? defaultJoint).transform(weight);
+
+  double limbTargetWeight(String endBoneId, double weight) =>
+      (limbTargets[endBoneId] ?? defaultLimbTarget).transform(weight);
+}
+
 /// Cyclic joint motion as a phase-shifted sinusoid plus an optional second
 /// harmonic (for the sharper snap of a knee/elbow that a pure sine can't make).
 ///
@@ -1096,6 +1155,7 @@ Clip blendedClip({
   required Clip to,
   required double weight,
   String? name,
+  ClipBlendMask blendMask = ClipBlendMask.full,
 }) {
   assert(weight >= 0 && weight <= 1, 'weight must be in 0..1');
   final channelIds = {...from.channels.keys, ...to.channels.keys};
@@ -1112,6 +1172,7 @@ Clip blendedClip({
     to,
     transitionWeight,
   );
+  final rootWeight = blendMask.rootWeight(weight);
 
   return Clip(
     name: name ?? '${from.name}->${to.name}',
@@ -1122,11 +1183,19 @@ Clip blendedClip({
         id: BlendedJointChannel(
           from: from.channels[id],
           to: to.channels[id],
-          weight: weight,
+          weight: blendMask.jointWeight(id, weight),
         ),
     },
-    root: BlendedRootChannel(from: from.root, to: to.root, weight: weight),
-    locomotionSpeed: _lerp(from.locomotionSpeed, to.locomotionSpeed, weight),
+    root: BlendedRootChannel(
+      from: from.root,
+      to: to.root,
+      weight: rootWeight,
+    ),
+    locomotionSpeed: _lerp(
+      from.locomotionSpeed,
+      to.locomotionSpeed,
+      rootWeight,
+    ),
     groundSpans: _transitionSpans(from.groundSpans, to.groundSpans),
     contactSpans: _transitionSpans(from.contactSpans, to.contactSpans),
     contactPinning: _transitionContactPinning(from, to),
@@ -1135,7 +1204,7 @@ Clip blendedClip({
         _blendLimbTarget(
           fromTargets[id],
           toTargets[id],
-          weight,
+          blendMask.limbTargetWeight(id, weight),
         ),
     ],
     supportFootWorldAnchor: supportFootAnchorStrength > 0,
@@ -1143,7 +1212,7 @@ Clip blendedClip({
     danceHeadBobScale: _lerp(
       from.danceHeadBobScale,
       to.danceHeadBobScale,
-      weight,
+      rootWeight,
     ),
     transitionPlan: ClipTransitionPlan(from: from, to: to, weight: weight),
   );
