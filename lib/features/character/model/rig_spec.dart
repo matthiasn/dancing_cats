@@ -369,6 +369,7 @@ class LimbRibbonSpec {
     this.roundCaps = true,
     this.shadeGroup,
     this.inkOverFill = false,
+    this.inkStartFraction = 0,
   }) : jointBoneIds = List<String>.unmodifiable(jointBoneIds),
        hiddenBoneIds = List<String>.unmodifiable(hiddenBoneIds),
        halfWidths = List<double>.unmodifiable(halfWidths),
@@ -421,6 +422,13 @@ class LimbRibbonSpec {
   /// so without this an arm in the jacket's own colour would melt into the
   /// chest whenever it crosses.)
   final bool inkOverFill;
+
+  /// Where the ink line begins, as a fraction of the ribbon's centreline
+  /// (0 = the full closed boundary). A limb rooted in a garment starts its
+  /// line PAST the root — a sleeve's line leaves the armhole, it does not
+  /// enclose the shoulder — otherwise the limb reads as a pinned-on cut-out
+  /// with its own outline all the way around.
+  final double inkStartFraction;
 }
 
 /// A broad skinned surface made from weighted vertices.

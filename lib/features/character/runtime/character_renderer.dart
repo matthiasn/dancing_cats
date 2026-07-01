@@ -492,12 +492,25 @@ class CharacterRenderer {
     if (!ribbon.inkOverFill || outline == null || ribbon.outlineWidth <= 0) {
       return;
     }
-    final path = _ribbonPath(ribbon, world);
-    if (path == null) return;
+    final spine = <Offset>[];
+    for (final boneId in ribbon.jointBoneIds) {
+      final transform = world[boneId];
+      if (transform == null) return;
+      final origin = transform.origin;
+      spine.add(Offset(origin.x, origin.y));
+    }
+    final path = limbRibbonInkPath(
+      spine,
+      ribbon.halfWidths,
+      backHalfWidths: ribbon.backHalfWidths,
+      samplesPerSegment: ribbon.samplesPerSegment,
+      startFraction: ribbon.inkStartFraction,
+    );
     _paint
       ..style = PaintingStyle.stroke
       ..strokeWidth = ribbon.outlineWidth
       ..strokeJoin = StrokeJoin.round
+      ..strokeCap = StrokeCap.round
       ..color = Color(outline)
       ..isAntiAlias = antiAlias;
     canvas.drawPath(path, _paint);

@@ -1402,6 +1402,8 @@ RigSpec buildCatInSuitRig({
       samplesPerSegment: 12,
       shadeGroup: kTrouserShadeGroup,
       inkOverFill: true,
+      // The trouser leg's line starts below the pelvis panel.
+      inkStartFraction: 0.16,
     ),
     // Arms: the same continuous-ribbon treatment that already makes the legs
     // read as one bending limb. The centreline flows clavicle→shoulder→elbow→
@@ -1446,6 +1448,9 @@ RigSpec buildCatInSuitRig({
       formRound: false,
       shadeGroup: kJacketShadeGroup,
       inkOverFill: true,
+      // The sleeve's line leaves the armhole; it must not enclose the
+      // deltoid or the arm reads as pinned onto the jacket.
+      inkStartFraction: 0.2,
     ),
     LimbRibbonSpec(
       id: 'arm.L.ribbon',
@@ -1478,6 +1483,9 @@ RigSpec buildCatInSuitRig({
       formRound: false,
       shadeGroup: kJacketShadeGroup,
       inkOverFill: true,
+      // The sleeve's line leaves the armhole; it must not enclose the
+      // deltoid or the arm reads as pinned onto the jacket.
+      inkStartFraction: 0.2,
     ),
   ];
 

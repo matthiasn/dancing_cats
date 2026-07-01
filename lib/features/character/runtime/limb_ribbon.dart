@@ -106,6 +106,60 @@ Path limbRibbonPath(
   return path;
 }
 
+
+/// The hand-drawn INK LINE for a ribbon that overlaps its own body: an OPEN
+/// path tracing the limb's edges from [startFraction] of the centreline down
+/// to and around the tip — deliberately NOT closed over the root, so the
+/// shoulder/hip end of the limb merges into the garment it grows from
+/// instead of being enclosed in its own outline like a pinned-on cut-out.
+/// Stroke this (round caps) over the ribbon fill; the line fades in exactly
+/// where a drawn sleeve's line would leave the armhole.
+Path limbRibbonInkPath(
+  List<Offset> spine,
+  List<double> halfWidths, {
+  List<double>? backHalfWidths,
+  int samplesPerSegment = 10,
+  double startFraction = 0,
+}) {
+  assert(spine.length == halfWidths.length, 'spine/halfWidths length mismatch');
+  if (spine.length < 2) return Path();
+
+  final samples = _sampleCentreline(
+    spine,
+    halfWidths,
+    backHalfWidths ?? halfWidths,
+    samplesPerSegment,
+  );
+  final start = (samples.length * startFraction)
+      .round()
+      .clamp(0, samples.length - 2);
+
+  Offset frontEdge(_Sample s) => s.centre + s.normal * s.halfWidth;
+  Offset backEdge(_Sample s) => s.centre - s.normal * s.backHalfWidth;
+
+  final path = Path()
+    ..moveTo(frontEdge(samples[start]).dx, frontEdge(samples[start]).dy);
+  for (var i = start + 1; i < samples.length; i++) {
+    final p = frontEdge(samples[i]);
+    path.lineTo(p.dx, p.dy);
+  }
+  final last = samples.last;
+  final capCentre = (frontEdge(last) + backEdge(last)) / 2;
+  final capRadius = (last.halfWidth + last.backHalfWidth) / 2;
+  final endAngle = math.atan2(last.normal.dy, last.normal.dx);
+  path.arcTo(
+    Rect.fromCircle(center: capCentre, radius: capRadius),
+    endAngle,
+    -math.pi,
+    false,
+  );
+  for (var i = samples.length - 2; i >= start; i--) {
+    final p = backEdge(samples[i]);
+    path.lineTo(p.dx, p.dy);
+  }
+  return path;
+}
+
 class _Sample {
   _Sample(this.centre, this.normal, this.halfWidth, this.backHalfWidth);
   final Offset centre;
