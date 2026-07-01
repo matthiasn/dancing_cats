@@ -886,6 +886,46 @@ void main() {
       }
     });
 
+    test('catalogue tail tips carry reactive secondary motion', () {
+      for (final clip in [
+        CatClips.zanku,
+        CatClips.azonto,
+        CatClips.buga,
+        CatClips.pouncingCat,
+        CatClips.sekem,
+      ]) {
+        final mid = clip.channels[CatBones.tail3];
+        final tip = clip.channels[CatBones.tail6];
+
+        expect(mid, isA<SineChannel>());
+        expect(tip, isA<SineChannel>());
+        final midChannel = mid! as SineChannel;
+        final tipChannel = tip! as SineChannel;
+
+        expect(
+          midChannel.harmonicAmplitude.abs(),
+          greaterThan(0.006),
+          reason:
+              '${clip.name} mid-tail should react to the body groove instead '
+              'of moving as a single lazy sine',
+        );
+        expect(
+          tipChannel.harmonicMultiplier,
+          greaterThanOrEqualTo(4),
+          reason:
+              '${clip.name} tail tip should lag and flick behind the torso '
+              'instead of reading stiff',
+        );
+        expect(
+          tipChannel.harmonicAmplitude.abs(),
+          greaterThan(midChannel.harmonicAmplitude.abs() * 1.8),
+          reason:
+              '${clip.name} tail tip should lag and flick behind the torso '
+              'instead of reading stiff',
+        );
+      }
+    });
+
     test('catalogue arms stay seated in their shoulder sockets', () {
       final scene = CharacterScene(buildCatInSuitRig());
       for (final clip in [

@@ -2211,18 +2211,18 @@ class CatClips {
 
   static SineChannel _earFollow({
     required double side,
-    double amplitude = 0.024,
+    double amplitude = 0.028,
     double phase = 0.08,
   }) => SineChannel(
     amplitude: amplitude * side,
     phase: phase,
-    harmonicAmplitude: amplitude * 0.45 * side,
+    harmonicAmplitude: amplitude * 0.55 * side,
     harmonicMultiplier: 8,
     harmonicPhase: phase + 0.018,
-    scaleXAmplitude: 0.012,
+    scaleXAmplitude: 0.014,
     scaleXHarmonic: 8,
     scaleXPhase: phase + 0.018,
-    scaleYAmplitude: -0.01,
+    scaleYAmplitude: -0.012,
     scaleYHarmonic: 8,
     scaleYPhase: phase + 0.018,
   );
@@ -2233,33 +2233,54 @@ class CatClips {
     double phase = 0.05,
   }) => {
     CatBones.tail0: SineChannel(
-      amplitude: amplitude * 0.34,
+      amplitude: amplitude * 0.3,
       phase: phase,
       bias: bias,
+      harmonicAmplitude: amplitude * 0.035,
+      harmonicMultiplier: 4,
+      harmonicPhase: phase + 0.12,
     ),
     CatBones.tail1: SineChannel(
-      amplitude: amplitude * 0.52,
+      amplitude: amplitude * 0.48,
       phase: phase + 0.08,
       bias: -0.06,
+      harmonicAmplitude: amplitude * 0.05,
+      harmonicMultiplier: 4,
+      harmonicPhase: phase + 0.16,
     ),
     CatBones.tail2: SineChannel(
-      amplitude: amplitude * 0.68,
+      amplitude: amplitude * 0.66,
       phase: phase + 0.16,
       bias: -0.04,
+      harmonicAmplitude: amplitude * 0.07,
+      harmonicMultiplier: 4,
+      harmonicPhase: phase + 0.2,
     ),
     CatBones.tail3: SineChannel(
-      amplitude: amplitude * 0.84,
+      amplitude: amplitude * 0.86,
       phase: phase + 0.24,
+      harmonicAmplitude: amplitude * 0.09,
+      harmonicMultiplier: 4,
+      harmonicPhase: phase + 0.24,
     ),
-    CatBones.tail4: SineChannel(amplitude: amplitude, phase: phase + 0.32),
+    CatBones.tail4: SineChannel(
+      amplitude: amplitude * 1.02,
+      phase: phase + 0.32,
+      harmonicAmplitude: amplitude * 0.11,
+      harmonicMultiplier: 4,
+      harmonicPhase: phase + 0.28,
+    ),
     CatBones.tail5: SineChannel(
-      amplitude: amplitude * 0.88,
+      amplitude: amplitude * 0.98,
       phase: phase + 0.4,
+      harmonicAmplitude: amplitude * 0.14,
+      harmonicMultiplier: 4,
+      harmonicPhase: phase + 0.34,
     ),
     CatBones.tail6: SineChannel(
-      amplitude: amplitude * 1.08,
+      amplitude: amplitude * 1.12,
       phase: phase + 0.48,
-      harmonicAmplitude: amplitude * 0.16,
+      harmonicAmplitude: amplitude * 0.2,
       harmonicMultiplier: 4,
       harmonicPhase: phase + 0.22,
     ),
@@ -6927,9 +6948,9 @@ class CatClips {
         ),
         //
         //
-        CatBones.earL: _earFollow(side: 1, amplitude: 0.018, phase: 0.1),
-        CatBones.earR: _earFollow(side: -1, amplitude: 0.018, phase: 0.6),
-        ..._tailFollowThrough(amplitude: 0.085, phase: 0.06),
+        CatBones.earL: _earFollow(side: 1, amplitude: 0.022, phase: 0.1),
+        CatBones.earR: _earFollow(side: -1, amplitude: 0.022, phase: 0.6),
+        ..._tailFollowThrough(amplitude: 0.095, phase: 0.06),
       },
     );
   }
@@ -7286,9 +7307,9 @@ class CatClips {
           // them (hip-vs-shoulder isolation).
           const SineChannel(harmonicAmplitude: -0.11, harmonicPhase: 0.02),
         ]),
-        CatBones.earL: _earFollow(side: 1, amplitude: 0.018, phase: 0.12),
-        CatBones.earR: _earFollow(side: -1, amplitude: 0.018, phase: 0.62),
-        ..._tailFollowThrough(amplitude: 0.08, phase: 0.08),
+        CatBones.earL: _earFollow(side: 1, amplitude: 0.022, phase: 0.12),
+        CatBones.earR: _earFollow(side: -1, amplitude: 0.022, phase: 0.62),
+        ..._tailFollowThrough(amplitude: 0.09, phase: 0.08),
       },
     );
   }
@@ -7792,8 +7813,8 @@ class CatClips {
           _bugaLegLowerKeys,
           smooth: true,
         ),
-        CatBones.earL: _earFollow(side: 1, amplitude: 0.022),
-        CatBones.earR: _earFollow(side: -1, amplitude: 0.022, phase: 0.58),
+        CatBones.earL: _earFollow(side: 1, amplitude: 0.026),
+        CatBones.earR: _earFollow(side: -1, amplitude: 0.026, phase: 0.58),
         // Tail carries the follow-through off the rise — boosted so it lags and
         // whips behind the big presenting arm instead of reading stiff.
         ..._tailFollowThrough(amplitude: 0.13, phase: 0.09),
@@ -8169,9 +8190,9 @@ class CatClips {
         // Neck/head held flat (no inherited dance nod) so the head stays level.
         CatBones.neck: const SineChannel(),
         CatBones.head: const SineChannel(),
-        CatBones.earL: _earFollow(side: 1, amplitude: 0.016, phase: 0.16),
-        CatBones.earR: _earFollow(side: -1, amplitude: 0.016, phase: 0.66),
-        ..._tailFollowThrough(amplitude: 0.075, phase: 0.14),
+        CatBones.earL: _earFollow(side: 1, amplitude: 0.02, phase: 0.16),
+        CatBones.earR: _earFollow(side: -1, amplitude: 0.02, phase: 0.66),
+        ..._tailFollowThrough(amplitude: 0.085, phase: 0.14),
       },
     );
   }
@@ -8962,7 +8983,7 @@ class CatClips {
         ),
         CatBones.earL: _earFollow(side: 1),
         CatBones.earR: _earFollow(side: -1, phase: 0.58),
-        ..._tailFollowThrough(amplitude: 0.09, phase: 0.07),
+        ..._tailFollowThrough(amplitude: 0.1, phase: 0.07),
       },
     );
   }
