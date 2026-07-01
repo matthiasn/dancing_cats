@@ -62,9 +62,17 @@ typedef DanceStage = ({
   bool synchronous,
 });
 
-/// Number of bars the looping dance phrase spans; the loop stays beat-locked for
-/// the whole track once anchored on the first downbeat.
-const int kDancePhraseBars = 3;
+/// Number of bars the looping dance phrase spans; the loop stays beat-locked
+/// for the whole track once anchored on the first downbeat.
+///
+/// TWO bars: the 32-frame phrase then spans 8 beats — exactly 4 frames per
+/// beat — so the routines' authored quarter-note accents (frames 0/4/8/...,
+/// "per-beat stamps on 4/12/20/28") land ON the beats. The old 3-bar binding
+/// stretched the same phrase over 12 beats (2 2/3 frames per beat), which
+/// parked every other authored accent squarely BETWEEN beats — an accidental
+/// 4-against-3 that read as "not locked to the music". Measured BAS improved
+/// on every routine at 8 beats.
+const int kDancePhraseBars = 2;
 
 /// Fraction of the track's energy range below which a section counts as "calm"
 /// (and, if also long enough, eases the trio into idle). See [kMinCalmSeconds].

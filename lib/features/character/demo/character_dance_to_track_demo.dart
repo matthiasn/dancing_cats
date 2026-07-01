@@ -31,8 +31,8 @@ import 'package:window_manager/window_manager.dart';
 ///
 /// It plays a track (looped) and locks the looping dance phrase to the detected
 /// beats/downbeats: each frame the dance time is the audio playback position
-/// warped through [BeatMap.clipSecondsAt], so the 32-frame phrase (12 beats =
-/// 3 bars at the authored 120 BPM) lands on-beat and follows tempo drift for the
+/// warped through [BeatMap.clipSecondsAt], so the 32-frame phrase (8 beats =
+/// 2 bars, 4 frames per beat) lands on-beat and follows tempo drift for the
 /// whole track instead of free-running at a guessed BPM. The waveform below is a
 /// seek bar — tap or drag to scrub.
 ///
