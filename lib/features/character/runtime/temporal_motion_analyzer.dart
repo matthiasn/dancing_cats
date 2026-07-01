@@ -456,6 +456,78 @@ class TemporalMotionReport {
     return result;
   }
 
+  /// Compares the final sampled segment of a looping clip with the first.
+  ///
+  /// The frame-by-frame acceleration list only compares adjacent samples inside
+  /// `0..duration`. A dance loop can still have a visible tick if the last
+  /// segment's velocity does not line up with the first segment's velocity at
+  /// the phase-0 seam. This query makes that seam explicit for catalogue clips.
+  List<TemporalMotionLoopSeamJump> loopSeamVelocityJumps({
+    double minVelocityJump = 6,
+    double minSegmentDistance = 1,
+  }) {
+    if (minVelocityJump < 0) {
+      throw ArgumentError.value(
+        minVelocityJump,
+        'minVelocityJump',
+        'must be non-negative',
+      );
+    }
+    if (minSegmentDistance < 0) {
+      throw ArgumentError.value(
+        minSegmentDistance,
+        'minSegmentDistance',
+        'must be non-negative',
+      );
+    }
+
+    final byBone = <String, List<TemporalMotionSegment>>{};
+    for (final segment in segments) {
+      byBone.putIfAbsent(segment.boneId, () => []).add(segment);
+    }
+
+    final result = <TemporalMotionLoopSeamJump>[];
+    for (final entry in byBone.entries) {
+      final boneSegments = [...entry.value]
+        ..sort((a, b) => a.fromFrame.compareTo(b.fromFrame));
+      if (boneSegments.length < 2) continue;
+      final first = boneSegments.first;
+      final last = boneSegments.last;
+      final faster = math.max(first.distance, last.distance);
+      if (faster < minSegmentDistance) continue;
+
+      final dx = first.dx - last.dx;
+      final dy = first.dy - last.dy;
+      final velocityJump = math.sqrt(dx * dx + dy * dy);
+      if (velocityJump < minVelocityJump) continue;
+
+      final speedDelta = (first.distance - last.distance).abs();
+      final slower = math.min(first.distance, last.distance);
+      final speedRatio = slower <= 1e-9 ? double.infinity : faster / slower;
+      result.add(
+        TemporalMotionLoopSeamJump(
+          boneId: entry.key,
+          lastFromFrame: last.fromFrame,
+          lastToFrame: last.toFrame,
+          firstFromFrame: first.fromFrame,
+          firstToFrame: first.toFrame,
+          lastFromPhase: last.fromPhase,
+          lastToPhase: last.toPhase,
+          firstFromPhase: first.fromPhase,
+          firstToPhase: first.toPhase,
+          lastDistance: last.distance,
+          firstDistance: first.distance,
+          speedDelta: speedDelta,
+          speedRatio: speedRatio,
+          velocityJump: velocityJump,
+        ),
+      );
+    }
+
+    result.sort((a, b) => b.velocityJump.compareTo(a.velocityJump));
+    return result;
+  }
+
   static T _maxBy<T>(
     List<T> values,
     double Function(T value) score,
@@ -651,4 +723,38 @@ class TemporalMotionPathCorner {
   final double arcRatio;
   final double turnDegrees;
   final double accelerationMagnitude;
+}
+
+class TemporalMotionLoopSeamJump {
+  const TemporalMotionLoopSeamJump({
+    required this.boneId,
+    required this.lastFromFrame,
+    required this.lastToFrame,
+    required this.firstFromFrame,
+    required this.firstToFrame,
+    required this.lastFromPhase,
+    required this.lastToPhase,
+    required this.firstFromPhase,
+    required this.firstToPhase,
+    required this.lastDistance,
+    required this.firstDistance,
+    required this.speedDelta,
+    required this.speedRatio,
+    required this.velocityJump,
+  });
+
+  final String boneId;
+  final int lastFromFrame;
+  final int lastToFrame;
+  final int firstFromFrame;
+  final int firstToFrame;
+  final double lastFromPhase;
+  final double lastToPhase;
+  final double firstFromPhase;
+  final double firstToPhase;
+  final double lastDistance;
+  final double firstDistance;
+  final double speedDelta;
+  final double speedRatio;
+  final double velocityJump;
 }

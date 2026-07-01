@@ -8807,7 +8807,7 @@ class CatClips {
     DanceIkTargetKey(32, x: -94, y: 0),
   ];
   static const _sekemHandRTargetKeys = [
-    DanceIkTargetKey(0, x: 92, y: -38), // compact outward chest paddle
+    DanceIkTargetKey(0, x: 92, y: -44), // compact outward chest paddle
     DanceIkTargetKey(2, x: 96, y: -12),
     DanceIkTargetKey(4, x: 94, y: 0), // compact low scoop, right lane
     DanceIkTargetKey(6, x: 94, y: -4),
@@ -8823,7 +8823,7 @@ class CatClips {
     DanceIkTargetKey(26, x: 94, y: -40),
     DanceIkTargetKey(28, x: 96, y: -44), // bigger outward accent
     DanceIkTargetKey(30, x: 96, y: -12),
-    DanceIkTargetKey(32, x: 92, y: -38),
+    DanceIkTargetKey(32, x: 92, y: -44),
   ];
   static const _sekemHandLKeys = [
     DanceJointKey(0, rotation: -0.32),
@@ -8876,18 +8876,22 @@ class CatClips {
       _sekemHandLTargetKeys,
       smooth: true,
       microFrames: 0.55,
+      cyclic: true,
     ),
     radius: 0.45 / _dancePhrase.frameCount,
     passes: 2,
+    cyclic: true,
   );
   static final IkTargetChannel _sekemHandRTarget = SoftenedIkTargetChannel(
     _dancePhrase.ikTargetChannel(
       _sekemHandRTargetKeys,
       smooth: true,
       microFrames: 0.55,
+      cyclic: true,
     ),
     radius: 0.45 / _dancePhrase.frameCount,
     passes: 2,
+    cyclic: true,
   );
   static final List<LimbIkTarget> _sekemLimbTargets = [
     // Sekem is own-side paddles, not a crossed-arm pose. Use explicit OUTSIDE

@@ -314,6 +314,59 @@ void main() {
       );
     });
 
+    test('loopSeamVelocityJumps catches a discontinuous loop seam', () {
+      final analyzer = TemporalMotionAnalyzer(
+        _oneBoneScene(),
+      );
+      const clip = Clip(
+        name: 'synthetic-loop-seam-tick',
+        duration: 1,
+        root: KeyframeRootChannel([
+          RootKeyframe(p: 0),
+          RootKeyframe(p: 0.5, dx: 100, ease: Ease.linear),
+          RootKeyframe(p: 1, ease: Ease.linear),
+        ]),
+        channels: {},
+      );
+
+      final report = analyzer.analyze(
+        clip: clip,
+        samples: 4,
+        boneIds: const [CatBones.hips],
+      );
+      final jumps = report.loopSeamVelocityJumps(minVelocityJump: 80);
+
+      expect(jumps, hasLength(1));
+      expect(jumps.single.boneId, CatBones.hips);
+      expect(jumps.single.lastFromFrame, 3);
+      expect(jumps.single.lastToFrame, 4);
+      expect(jumps.single.firstFromFrame, 0);
+      expect(jumps.single.firstToFrame, 1);
+      expect(jumps.single.lastDistance, closeTo(50, 0.01));
+      expect(jumps.single.firstDistance, closeTo(50, 0.01));
+      expect(jumps.single.velocityJump, closeTo(100, 0.01));
+    });
+
+    test('loopSeamVelocityJumps ignores a continuous loop seam', () {
+      final analyzer = TemporalMotionAnalyzer(
+        _oneBoneScene(),
+      );
+      const clip = Clip(
+        name: 'synthetic-continuous-loop-seam',
+        duration: 1,
+        root: SineRootChannel(swayAmplitude: 100),
+        channels: {},
+      );
+
+      final report = analyzer.analyze(
+        clip: clip,
+        samples: 4,
+        boneIds: const [CatBones.hips],
+      );
+
+      expect(report.loopSeamVelocityJumps(minVelocityJump: 1), isEmpty);
+    });
+
     test('stutterTransitions finds a held pose followed by a snap', () {
       final analyzer = TemporalMotionAnalyzer(
         _oneBoneScene(),
@@ -499,6 +552,53 @@ void main() {
               'turn=${corners.isEmpty ? 'n/a' : corners.first.turnDegrees.toStringAsFixed(1)} '
               'arc=${corners.isEmpty ? 'n/a' : corners.first.arcRatio.toStringAsFixed(2)} '
               'accel=${corners.isEmpty ? 'n/a' : corners.first.accelerationMagnitude.toStringAsFixed(1)}',
+        );
+      }
+    });
+
+    test('catalogue loops avoid visible velocity ticks at the loop seam', () {
+      final analyzer = TemporalMotionAnalyzer(
+        CharacterScene(buildCatInSuitRig()),
+      );
+      const watchedBones = [
+        CatBones.hips,
+        CatBones.torso,
+        CatBones.head,
+        CatBones.handL,
+        CatBones.handR,
+        CatBones.footL,
+        CatBones.footR,
+        CatBones.tail6,
+        CatBones.earL,
+        CatBones.earR,
+      ];
+
+      for (final clip in [
+        CatClips.shaku,
+        CatClips.zanku,
+        CatClips.azonto,
+        CatClips.buga,
+        CatClips.sekem,
+      ]) {
+        final report = analyzer.analyze(
+          clip: clip,
+          samples: 192,
+          boneIds: watchedBones,
+        );
+        final jumps = report.loopSeamVelocityJumps(
+          minVelocityJump: 8,
+          minSegmentDistance: 1.5,
+        );
+
+        expect(
+          jumps,
+          isEmpty,
+          reason:
+              '${clip.name} should not tick at the loop seam; worst '
+              '${jumps.isEmpty ? 'none' : jumps.first.boneId} '
+              'jump=${jumps.isEmpty ? 'n/a' : jumps.first.velocityJump.toStringAsFixed(1)} '
+              'last=${jumps.isEmpty ? 'n/a' : jumps.first.lastDistance.toStringAsFixed(1)} '
+              'first=${jumps.isEmpty ? 'n/a' : jumps.first.firstDistance.toStringAsFixed(1)}',
         );
       }
     });
