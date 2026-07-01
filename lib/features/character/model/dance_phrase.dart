@@ -128,6 +128,7 @@ class DancePhrase {
     Ease ease = Ease.easeInOut,
     EaseCurve? easeFn,
     double microFrames = 0,
+    double tension = 0,
   }) => Keyframe(
     // [microFrames] nudges the key OFF the integer grid (sub-frame swing): a
     // positive value lands the gesture a fraction of a frame late ("laid-back"
@@ -139,6 +140,7 @@ class DancePhrase {
     scaleY: scaleY,
     ease: ease,
     easeFn: easeFn,
+    tension: tension,
   );
 
   KeyframeChannel jointChannel(
@@ -322,12 +324,14 @@ class DancePhrase {
     double weight = 1,
     Ease ease = Ease.easeInOut,
     double microFrames = 0,
+    double tension = 0,
   }) => IkTargetKeyframe(
     p: phaseOfFrame(frame, microFrames: microFrames),
     x: x,
     y: y,
     weight: weight,
     ease: ease,
+    tension: tension,
   );
 
   KeyframeIkTargetChannel ikTargetChannel(
@@ -603,6 +607,7 @@ class DanceJointKey {
     this.ease = Ease.easeInOut,
     this.easeFn,
     this.microFrames = 0,
+    this.tension = 0,
   });
 
   final int frame;
@@ -619,6 +624,11 @@ class DanceJointKey {
   /// places the key slightly off the integer grid. See [DancePhrase.jointKey].
   final double microFrames;
 
+  /// Smooth-path accent tension at this key — see [Keyframe.tension]. `1`
+  /// makes the motion ARRIVE DEAD on this count (a stamp/hit/hold) while the
+  /// rest of the channel still flows.
+  final double tension;
+
   Keyframe toKeyframe(DancePhrase phrase) => phrase.jointKey(
     frame,
     rotation: rotation,
@@ -627,6 +637,7 @@ class DanceJointKey {
     ease: ease,
     easeFn: easeFn,
     microFrames: microFrames,
+    tension: tension,
   );
 }
 
@@ -975,6 +986,7 @@ class DanceIkTargetKey {
     this.weight = 1,
     this.ease = Ease.easeInOut,
     this.microFrames = 0,
+    this.tension = 0,
   });
 
   final int frame;
@@ -983,6 +995,12 @@ class DanceIkTargetKey {
   final double weight;
   final Ease ease;
   final double microFrames;
+
+  /// Smooth-path accent tension at this key — see [Keyframe.tension]. `1`
+  /// plants the foot/hand DEAD on this count while the path between counts
+  /// still flows (the stamp that per-segment easing bought at the price of
+  /// stop-go everywhere).
+  final double tension;
 
   IkTargetKeyframe toIkTargetKeyframe(
     DancePhrase phrase, {
@@ -994,6 +1012,7 @@ class DanceIkTargetKey {
     weight: weight,
     ease: ease,
     microFrames: this.microFrames + microFrames,
+    tension: tension,
   );
 }
 

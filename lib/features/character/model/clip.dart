@@ -203,7 +203,11 @@ class Keyframe {
     this.scaleY = 1,
     this.ease = Ease.easeInOut,
     this.easeFn,
-  });
+    this.tension = 0,
+  }) : assert(
+         tension >= -1 && tension <= 1,
+         'tension must be in -1..1',
+       );
 
   /// Phase position of the key, 0..1.
   final double p;
@@ -219,9 +223,18 @@ class Keyframe {
   /// [ease] it may leave 0..1 to inject anticipation/overshoot — this is how a
   /// `DanceDynamics`-driven accent reshapes its drive-in. Honoured only on the
   /// per-segment (non-`smooth`) interpolation path; the Catmull-Rom `smooth`
-  /// path ignores per-key easing entirely, so dynamics accents must be compiled
-  /// into a non-smooth channel.
+  /// path ignores per-key easing entirely — accents on the smooth path are
+  /// authored with [tension] instead.
   final EaseCurve? easeFn;
+
+  /// Kochanek–Bartels-style tangent tension for the `smooth` path, applied to
+  /// THIS key's tangent in both adjacent segments (so continuity is kept by
+  /// construction). `0` = plain Catmull-Rom flow. `1` = zero tangent: the
+  /// motion ARRIVES DEAD at this key and accelerates away — a stamp, a hit, a
+  /// moving hold. Negative values loosen the tangent for overshoot. This is
+  /// what lets flow and beat-attack compose on one channel: flow between
+  /// keys, attack exactly at the accent keys.
+  final double tension;
 }
 
 /// One-shot joint motion as eased keyframes. Keys must be sorted by [Keyframe.p]
@@ -311,10 +324,11 @@ class KeyframeChannel extends JointChannel {
         rotation: _cyclicCatmullRom(
           cyclicKeys,
           (key) => key.rotation,
+          (key) => key.tension,
           segment,
-        ),
-        scaleX: _cyclicCatmullRom(cyclicKeys, (key) => key.scaleX, segment),
-        scaleY: _cyclicCatmullRom(cyclicKeys, (key) => key.scaleY, segment),
+          ),
+        scaleX: _cyclicCatmullRom(cyclicKeys, (key) => key.scaleX, (key) => key.tension, segment),
+        scaleY: _cyclicCatmullRom(cyclicKeys, (key) => key.scaleY, (key) => key.tension, segment),
       );
     }
     final t = k1.easeFn?.call(segment.local) ?? k1.ease.apply(segment.local);
@@ -330,7 +344,7 @@ class KeyframeChannel extends JointChannel {
   /// key p, assuming the endpoints coincide). This is C1-continuous, so the
   /// joint never stops at an intermediate key.
   double _spline(int i, double local, double dp, double Function(Keyframe) f) =>
-      _periodicCatmullRom(keys, (k) => k.p, f, i, local, dp);
+      _periodicCatmullRom(keys, (k) => k.p, f, (k) => k.tension, i, local, dp);
 }
 
 /// A sampled inverse-kinematics target for a two-bone limb chain.
@@ -495,13 +509,20 @@ class IkTargetKeyframe {
     required this.y,
     this.weight = 1,
     this.ease = Ease.easeInOut,
-  });
+    this.tension = 0,
+  }) : assert(
+         tension >= -1 && tension <= 1,
+         'tension must be in -1..1',
+       );
 
   final double p;
   final double x;
   final double y;
   final double weight;
   final Ease ease;
+
+  /// Smooth-path tangent tension at this key — see [Keyframe.tension].
+  final double tension;
 }
 
 class KeyframeIkTargetChannel extends IkTargetChannel {
@@ -566,13 +587,14 @@ class KeyframeIkTargetChannel extends IkTargetChannel {
     final k1 = segment.end.key;
     if (smooth) {
       return IkTargetPose(
-        x: _cyclicCatmullRom(cyclicKeys, (key) => key.x, segment),
-        y: _cyclicCatmullRom(cyclicKeys, (key) => key.y, segment),
+        x: _cyclicCatmullRom(cyclicKeys, (key) => key.x, (key) => key.tension, segment),
+        y: _cyclicCatmullRom(cyclicKeys, (key) => key.y, (key) => key.tension, segment),
         weight: _cyclicCatmullRom(
           cyclicKeys,
           (key) => key.weight,
+          (key) => key.tension,
           segment,
-        ).clamp(0.0, 1.0),
+          ).clamp(0.0, 1.0),
       );
     }
     final t = k1.ease.apply(segment.local);
@@ -588,7 +610,7 @@ class KeyframeIkTargetChannel extends IkTargetChannel {
     double local,
     double dp,
     double Function(IkTargetKeyframe) f,
-  ) => _periodicCatmullRom(keys, (k) => k.p, f, i, local, dp);
+  ) => _periodicCatmullRom(keys, (k) => k.p, f, (k) => k.tension, i, local, dp);
 }
 
 class LimbIkTarget {
@@ -734,13 +756,20 @@ class RootKeyframe {
     this.dy = 0,
     this.rotation = 0,
     this.ease = Ease.easeInOut,
-  });
+    this.tension = 0,
+  }) : assert(
+         tension >= -1 && tension <= 1,
+         'tension must be in -1..1',
+       );
 
   final double p;
   final double dx;
   final double dy;
   final double rotation;
   final Ease ease;
+
+  /// Smooth-path tangent tension at this key — see [Keyframe.tension].
+  final double tension;
 }
 
 /// Eased or smooth keyframed root motion. Keys must be sorted by phase.
@@ -804,7 +833,7 @@ class KeyframeRootChannel extends RootChannel {
     double local,
     double dp,
     double Function(RootKeyframe) f,
-  ) => _periodicCatmullRom(keys, (k) => k.p, f, i, local, dp);
+  ) => _periodicCatmullRom(keys, (k) => k.p, f, (k) => k.tension, i, local, dp);
 
   ({double dx, double dy, double rotation}) _sampleCyclic(double p) {
     final cyclicKeys = _normalizedCyclicKeys(keys, (key) => key.p);
@@ -819,13 +848,14 @@ class KeyframeRootChannel extends RootChannel {
     final k1 = segment.end.key;
     if (smooth) {
       return (
-        dx: _cyclicCatmullRom(cyclicKeys, (key) => key.dx, segment),
-        dy: _cyclicCatmullRom(cyclicKeys, (key) => key.dy, segment),
+        dx: _cyclicCatmullRom(cyclicKeys, (key) => key.dx, (key) => key.tension, segment),
+        dy: _cyclicCatmullRom(cyclicKeys, (key) => key.dy, (key) => key.tension, segment),
         rotation: _cyclicCatmullRom(
           cyclicKeys,
           (key) => key.rotation,
+          (key) => key.tension,
           segment,
-        ),
+          ),
       );
     }
     final t = k1.ease.apply(segment.local);
@@ -918,6 +948,7 @@ _CyclicSegment<K> _cyclicSegment<K>(List<_CyclicKey<K>> keys, double p) {
 double _cyclicCatmullRom<K>(
   List<_CyclicKey<K>> keys,
   double Function(K key) valueOf,
+  double Function(K key) tensionOf,
   _CyclicSegment<K> segment,
 ) {
   final n = keys.length;
@@ -946,8 +977,10 @@ double _cyclicCatmullRom<K>(
     return v1 + (v2 - v1) * segment.local;
   }
 
-  final m1 = segment.span * (v2 - v0) / denom1;
-  final m2 = segment.span * (v3 - v1) / denom2;
+  final m1 =
+      segment.span * (v2 - v0) / denom1 * (1 - tensionOf(keys[i].key));
+  final m2 =
+      segment.span * (v3 - v1) / denom2 * (1 - tensionOf(keys[j].key));
   final t = segment.local;
   final t2 = t * t;
   final t3 = t2 * t;
@@ -970,6 +1003,7 @@ double _periodicCatmullRom<K>(
   List<K> keys,
   double Function(K) phaseOf,
   double Function(K) valueOf,
+  double Function(K) tensionOf,
   int i,
   double local,
   double dp,
@@ -998,8 +1032,13 @@ double _periodicCatmullRom<K>(
     p3 = phaseOf(keys[i + 2]);
   }
   // Per-unit-p tangents (scaled by the segment span for the Hermite basis).
-  final m1 = dp * (v2 - v0) / (phaseOf(keys[i + 1]) - p0);
-  final m2 = dp * (v3 - v1) / (p3 - phaseOf(keys[i]));
+  // Each key's Kochanek–Bartels tension scales ITS tangent — used identically
+  // by both segments that share the key, so C1 continuity holds and a
+  // tension-1 key becomes a true zero-velocity arrival (a stamp / hold).
+  final m1 =
+      dp * (v2 - v0) / (phaseOf(keys[i + 1]) - p0) * (1 - tensionOf(keys[i]));
+  final m2 =
+      dp * (v3 - v1) / (p3 - phaseOf(keys[i])) * (1 - tensionOf(keys[i + 1]));
   final t = local;
   final t2 = t * t;
   final t3 = t2 * t;

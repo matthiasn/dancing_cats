@@ -5881,31 +5881,31 @@ class CatClips {
   // reading the old wide leg as a side kick; keeping the ankles near the pelvis
   // makes the groove plausible in a front-facing rig.
   static const _zankuFootLTargetKeys = [
-    DanceIkTargetKey(0, x: -62, y: 126), // heavy stamp/support
-    DanceIkTargetKey(2, x: -62, y: 125), // planted, held
-    DanceIkTargetKey(4, x: -62, y: 126), // plant end — swap
+    DanceIkTargetKey(0, x: -62, y: 126, tension: 1), // heavy stamp/support
+    DanceIkTargetKey(2, x: -62, y: 125, tension: 0.6), // planted, held
+    DanceIkTargetKey(4, x: -62, y: 126, tension: 0.4), // plant end — swap
     DanceIkTargetKey(5, x: -46, y: 110), // compact pickup, not a stride
     DanceIkTargetKey(6, x: -84, y: 124), // heel-toe knock under hip
     DanceIkTargetKey(7, x: -50, y: 124), // drag back under the knee
-    DanceIkTargetKey(8, x: -62, y: 126), // stamp
-    DanceIkTargetKey(10, x: -62, y: 125),
-    DanceIkTargetKey(12, x: -62, y: 126),
+    DanceIkTargetKey(8, x: -62, y: 126, tension: 1), // stamp
+    DanceIkTargetKey(10, x: -62, y: 125, tension: 0.6),
+    DanceIkTargetKey(12, x: -62, y: 126, tension: 0.4),
     DanceIkTargetKey(13, x: -46, y: 110),
     DanceIkTargetKey(14, x: -84, y: 124),
     DanceIkTargetKey(15, x: -50, y: 124),
-    DanceIkTargetKey(16, x: -62, y: 126), // stamp
-    DanceIkTargetKey(18, x: -62, y: 125),
-    DanceIkTargetKey(20, x: -62, y: 126),
+    DanceIkTargetKey(16, x: -62, y: 126, tension: 1), // stamp
+    DanceIkTargetKey(18, x: -62, y: 125, tension: 0.6),
+    DanceIkTargetKey(20, x: -62, y: 126, tension: 0.4),
     DanceIkTargetKey(21, x: -44, y: 108),
     DanceIkTargetKey(22, x: -82, y: 123),
     DanceIkTargetKey(23, x: -48, y: 123),
-    DanceIkTargetKey(24, x: -64, y: 126), // stamp/support
-    DanceIkTargetKey(26, x: -64, y: 125), // support holds while right kicks
+    DanceIkTargetKey(24, x: -64, y: 126, tension: 1), // stamp/support
+    DanceIkTargetKey(26, x: -64, y: 125, tension: 0.6), // support holds while right kicks
     DanceIkTargetKey(28, x: -86, y: 123), // exact-window heel-toe scrape
     DanceIkTargetKey(29, x: -52, y: 123),
     DanceIkTargetKey(30, x: -82, y: 123),
     DanceIkTargetKey(31, x: -52, y: 123),
-    DanceIkTargetKey(32, x: -62, y: 126), // == frame 0
+    DanceIkTargetKey(32, x: -62, y: 126, tension: 1), // == frame 0
   ];
   // RIGHT foot: opposite phase — digs out on 2/10/18/26, stamps on 4/12/20/28.
   static const _zankuFootRTargetKeys = [
@@ -5913,26 +5913,26 @@ class CatClips {
     DanceIkTargetKey(1, x: 44, y: 110), // compact pickup
     DanceIkTargetKey(2, x: 84, y: 124), // heel-toe knock under hip
     DanceIkTargetKey(3, x: 50, y: 124), // drag back under the knee
-    DanceIkTargetKey(4, x: 62, y: 126), // stamp/support
-    DanceIkTargetKey(6, x: 62, y: 125), // planted, held
+    DanceIkTargetKey(4, x: 62, y: 126, tension: 1), // stamp/support
+    DanceIkTargetKey(6, x: 62, y: 125, tension: 0.6), // planted, held
     DanceIkTargetKey(8, x: 50, y: 123),
     DanceIkTargetKey(9, x: 44, y: 110),
     DanceIkTargetKey(10, x: 84, y: 124),
     DanceIkTargetKey(11, x: 50, y: 124),
-    DanceIkTargetKey(12, x: 62, y: 126), // stamp
-    DanceIkTargetKey(14, x: 62, y: 125),
+    DanceIkTargetKey(12, x: 62, y: 126, tension: 1), // stamp
+    DanceIkTargetKey(14, x: 62, y: 125, tension: 0.6),
     DanceIkTargetKey(16, x: 50, y: 123),
     DanceIkTargetKey(17, x: 44, y: 110),
     DanceIkTargetKey(18, x: 84, y: 124),
     DanceIkTargetKey(19, x: 50, y: 124),
-    DanceIkTargetKey(20, x: 62, y: 126), // stamp
-    DanceIkTargetKey(22, x: 62, y: 125),
+    DanceIkTargetKey(20, x: 62, y: 126, tension: 1), // stamp
+    DanceIkTargetKey(22, x: 62, y: 125, tension: 0.6),
     DanceIkTargetKey(24, x: 50, y: 123),
     DanceIkTargetKey(25, x: 38, y: 102), // promoted knock-door pickup
     DanceIkTargetKey(26, x: 30, y: 84), // forward/up accent, not a side kick
     DanceIkTargetKey(27, x: 54, y: 114), // retract under the knee
-    DanceIkTargetKey(28, x: 64, y: 126), // exact-window support stamp
-    DanceIkTargetKey(30, x: 64, y: 125), // held support for loop
+    DanceIkTargetKey(28, x: 64, y: 126, tension: 1), // exact-window support stamp
+    DanceIkTargetKey(30, x: 64, y: 125, tension: 0.6), // held support for loop
     DanceIkTargetKey(32, x: 50, y: 123), // == frame 0
   ];
   // Per-beat support map: which foot stamps (and is world-anchored) each beat.
@@ -5946,10 +5946,14 @@ class CatClips {
     GroundSpan(CatBones.footL, 0.75, 0.875), // beat 7
     GroundSpan(CatBones.footR, 0.875, 1), // beat 8
   ];
+  // Smooth + per-key tension: the path FLOWS between counts and arrives DEAD
+  // on each stamp (tension 1 zeroes the spline tangent at that key) — the
+  // attack that per-segment easing used to buy at the cost of stop-go
+  // everywhere.
   static final KeyframeIkTargetChannel _zankuFootLTarget = _dancePhrase
-      .ikTargetChannel(_zankuFootLTargetKeys);
+      .ikTargetChannel(_zankuFootLTargetKeys, smooth: true);
   static final KeyframeIkTargetChannel _zankuFootRTarget = _dancePhrase
-      .ikTargetChannel(_zankuFootRTargetKeys);
+      .ikTargetChannel(_zankuFootRTargetKeys, smooth: true);
   static const _zankuFootLKeys = [
     DanceJointKey(0, rotation: 0.1),
     DanceJointKey(4, rotation: -0.28),
@@ -8420,42 +8424,42 @@ class CatClips {
   // footL lands on the downbeats (frames 0/8/16/24); footR on the 2/4 (4/12/
   // 20/28), mirroring the per-beat support map.
   static const _sekemFootLTargetKeys = [
-    DanceIkTargetKey(0, x: -60, y: 104), // grounded plant
-    DanceIkTargetKey(2, x: -60, y: 104), // planted through left support
-    DanceIkTargetKey(4, x: -60, y: 104),
+    DanceIkTargetKey(0, x: -60, y: 104, tension: 1), // grounded plant
+    DanceIkTargetKey(2, x: -60, y: 104, tension: 0.6), // planted through left support
+    DanceIkTargetKey(4, x: -60, y: 104, tension: 0.5),
     DanceIkTargetKey(6, x: -66, y: 103), // outward knee/ankle mark
-    DanceIkTargetKey(8, x: -60, y: 104, ease: Ease.easeIn),
-    DanceIkTargetKey(10, x: -60, y: 104),
-    DanceIkTargetKey(12, x: -60, y: 104),
+    DanceIkTargetKey(8, x: -60, y: 104, ease: Ease.easeIn, tension: 1),
+    DanceIkTargetKey(10, x: -60, y: 104, tension: 0.6),
+    DanceIkTargetKey(12, x: -60, y: 104, tension: 0.5),
     DanceIkTargetKey(14, x: -66, y: 103),
-    DanceIkTargetKey(16, x: -60, y: 104, ease: Ease.easeIn),
-    DanceIkTargetKey(18, x: -60, y: 104),
-    DanceIkTargetKey(20, x: -60, y: 104),
+    DanceIkTargetKey(16, x: -60, y: 104, ease: Ease.easeIn, tension: 1),
+    DanceIkTargetKey(18, x: -60, y: 104, tension: 0.6),
+    DanceIkTargetKey(20, x: -60, y: 104, tension: 0.5),
     DanceIkTargetKey(22, x: -66, y: 103),
-    DanceIkTargetKey(24, x: -64, y: 104, ease: Ease.easeIn),
-    DanceIkTargetKey(26, x: -64, y: 104),
-    DanceIkTargetKey(28, x: -62, y: 104),
+    DanceIkTargetKey(24, x: -64, y: 104, ease: Ease.easeIn, tension: 1),
+    DanceIkTargetKey(26, x: -64, y: 104, tension: 0.6),
+    DanceIkTargetKey(28, x: -62, y: 104, tension: 0.4),
     DanceIkTargetKey(30, x: -54, y: 103),
-    DanceIkTargetKey(32, x: -60, y: 104, ease: Ease.easeIn),
+    DanceIkTargetKey(32, x: -60, y: 104, ease: Ease.easeIn, tension: 1),
   ];
   static const _sekemFootRTargetKeys = [
-    DanceIkTargetKey(0, x: 60, y: 104), // grounded plant
+    DanceIkTargetKey(0, x: 60, y: 104, tension: 0.6), // grounded plant
     DanceIkTargetKey(2, x: 66, y: 103), // outward knee/ankle mark
-    DanceIkTargetKey(4, x: 60, y: 104, ease: Ease.easeIn),
-    DanceIkTargetKey(6, x: 60, y: 104), // planted through right support
-    DanceIkTargetKey(8, x: 60, y: 104),
+    DanceIkTargetKey(4, x: 60, y: 104, ease: Ease.easeIn, tension: 1),
+    DanceIkTargetKey(6, x: 60, y: 104, tension: 0.6), // planted through right support
+    DanceIkTargetKey(8, x: 60, y: 104, tension: 0.5),
     DanceIkTargetKey(10, x: 66, y: 103),
-    DanceIkTargetKey(12, x: 60, y: 104, ease: Ease.easeIn),
-    DanceIkTargetKey(14, x: 60, y: 104),
-    DanceIkTargetKey(16, x: 60, y: 104),
+    DanceIkTargetKey(12, x: 60, y: 104, ease: Ease.easeIn, tension: 1),
+    DanceIkTargetKey(14, x: 60, y: 104, tension: 0.6),
+    DanceIkTargetKey(16, x: 60, y: 104, tension: 0.5),
     DanceIkTargetKey(18, x: 66, y: 103),
-    DanceIkTargetKey(20, x: 60, y: 104, ease: Ease.easeIn),
-    DanceIkTargetKey(22, x: 60, y: 104),
-    DanceIkTargetKey(24, x: 60, y: 104),
+    DanceIkTargetKey(20, x: 60, y: 104, ease: Ease.easeIn, tension: 1),
+    DanceIkTargetKey(22, x: 60, y: 104, tension: 0.6),
+    DanceIkTargetKey(24, x: 60, y: 104, tension: 0.5),
     DanceIkTargetKey(26, x: 66, y: 103),
-    DanceIkTargetKey(28, x: 64, y: 104, ease: Ease.easeIn),
-    DanceIkTargetKey(30, x: 64, y: 104),
-    DanceIkTargetKey(32, x: 60, y: 104),
+    DanceIkTargetKey(28, x: 64, y: 104, ease: Ease.easeIn, tension: 1),
+    DanceIkTargetKey(30, x: 64, y: 104, tension: 0.6),
+    DanceIkTargetKey(32, x: 60, y: 104, tension: 0.6),
   ];
   static const _sekemFootLKeys = [
     DanceJointKey(0, rotation: 0.06), // planted flat
@@ -8571,10 +8575,12 @@ class CatClips {
   // Ease.easeIn (accelerate into the floor) for a hard-stop strike in the live
   // 60fps app, instead of the smooth path's symmetric ease that glided the foot
   // into contact between keys.
+  // Smooth + per-key tension — see the zanku foot channels: dead-on-arrival
+  // plants at the counts, flow in between.
   static final KeyframeIkTargetChannel _sekemFootLTarget = _dancePhrase
-      .ikTargetChannel(_sekemFootLTargetKeys);
+      .ikTargetChannel(_sekemFootLTargetKeys, smooth: true);
   static final KeyframeIkTargetChannel _sekemFootRTarget = _dancePhrase
-      .ikTargetChannel(_sekemFootRTargetKeys);
+      .ikTargetChannel(_sekemFootRTargetKeys, smooth: true);
   // Smooth spline hand path: flows through the authored keys with C1
   // continuity, so no corner-rounding blur wrapper is needed (the old
   // SoftenedIkTargetChannel blunted accent hits and shifted key poses).

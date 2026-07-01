@@ -771,4 +771,65 @@ void main() {
       expect(calls, 0, reason: 'the smooth path must not consult easeFn');
     });
   });
+  group('smooth tension', () {
+    const keys = [
+      Keyframe(p: 0, rotation: 0),
+      Keyframe(p: 0.25, rotation: 1, tension: 1),
+      Keyframe(p: 0.5, rotation: 0),
+      Keyframe(p: 0.75, rotation: -1),
+      Keyframe(p: 1, rotation: 0),
+    ];
+    const channel = KeyframeChannel(keys, smooth: true, cyclic: true);
+
+    test('tensioned keys still pass exactly through their values', () {
+      expect(channel.sample(0.25).rotation, closeTo(1, 1e-9));
+      expect(channel.sample(0.75).rotation, closeTo(-1, 1e-9));
+    });
+
+    test('tension 1 means a dead arrival: zero velocity at the key', () {
+      const eps = 1e-4;
+      final before =
+          (channel.sample(0.25).rotation - channel.sample(0.25 - eps).rotation) /
+          eps;
+      final after =
+          (channel.sample(0.25 + eps).rotation - channel.sample(0.25).rotation) /
+          eps;
+      expect(before.abs(), lessThan(0.02),
+          reason: 'the motion arrives dead at a tension-1 key');
+      expect(after.abs(), lessThan(0.02),
+          reason: 'and accelerates away from rest — no velocity jump');
+      // An untensioned PASS-THROUGH key keeps real velocity (0.5 sits
+      // between +1 and -1 — its finite-difference tangent is strong).
+      final through =
+          (channel.sample(0.5 + eps).rotation -
+              channel.sample(0.5 - eps).rotation) /
+          (2 * eps);
+      expect(through.abs(), greaterThan(0.5));
+    });
+
+    test('tension 0 reproduces the plain smooth spline', () {
+      const plain = KeyframeChannel([
+        Keyframe(p: 0, rotation: 0),
+        Keyframe(p: 0.25, rotation: 1),
+        Keyframe(p: 0.5, rotation: 0),
+        Keyframe(p: 0.75, rotation: -1),
+        Keyframe(p: 1, rotation: 0),
+      ], smooth: true, cyclic: true);
+      const explicit = KeyframeChannel([
+        Keyframe(p: 0, rotation: 0, tension: 0),
+        Keyframe(p: 0.25, rotation: 1, tension: 0),
+        Keyframe(p: 0.5, rotation: 0, tension: 0),
+        Keyframe(p: 0.75, rotation: -1, tension: 0),
+        Keyframe(p: 1, rotation: 0, tension: 0),
+      ], smooth: true, cyclic: true);
+      for (var i = 0; i <= 40; i++) {
+        final p = i / 40;
+        expect(
+          explicit.sample(p).rotation,
+          closeTo(plain.sample(p).rotation, 1e-12),
+        );
+      }
+    });
+  });
+
 }
