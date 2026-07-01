@@ -60,8 +60,8 @@ the farthest plane). Five planes, front to back:
 | Plane | depth | why it is separable |
 |---|---|---|
 | Lead cat ("front cat") | 1.00 | drawn live, the reference plane |
-| Backup cats | 0.90 | drawn live |
-| Stage / deck (+ deck glow) | 0.50 | a foreground occluder drawn over the scene |
+| Backup cats | 0.95 | drawn live |
+| Stage / deck (+ deck glow) | 0.35 | a foreground occluder drawn over the scene |
 | **Whole painted backdrop** | 0.12 | one plane → no re-draw leaves its baked twin |
 | Distant jet | 0.04 | dynamic, no baked twin; the farthest thing in frame |
 
@@ -142,10 +142,9 @@ size reads as a change in importance, which we do not want for a trio of near-
 equals. A uniform pan cancels in the inter-member gaps, so only the differential
 moves them: on a rightward truck the left gap widens and the right narrows by the
 same shear. Magnitude, so it is not a test-only no-op: at the widest clamped truck
-the backup shift is `(1-0.9)·maxDx = 0.1·width·(zoom-1)/2` ≈ 0.05·width·(zoom-1)
-— a handful of px per backup on a 1920-wide stage at a chorus zoom, perceptible on
-a sustained lateral move yet far below diorama territory (the cast is near-coplanar
-on the deck). It is a no-op on every non-dance surface.
+the backup shift is `(1-0.95)·maxDx = 0.05·width·(zoom-1)/2` — a couple of px per
+backup at a chorus zoom, deliberately kept **felt, not seen** (immersive, not
+obvious). It is a no-op on every non-dance surface.
 
 ### 5. Screen-space effects stay unwrapped; plates resample sharp
 
@@ -217,22 +216,21 @@ end (below).
   in a worse spot than the shear it replaced** (it sits directly under the hero's
   feet, the contact the eye reads for groundedness, where the old midground shear
   sat between non-focal elements). Magnitude: the plank slips by
-  `(depth_cat - depth_deck)·maxDx = 0.5·width·(zoom-1)/2` at the cat plane — up to
-  ~4-5% of frame width at a chorus zoom on the widest clamped truck. The feet do
-  not *float* (grounded contact shadows are painted on the **cat plane**, welded
-  to the feet), but the planks skate under them. Why 0.5: the deck must be far
-  enough from the backdrop (0.12) to read as its own tier, yet its near edge
-  physically wants ~1.0 so the feet do not slide — one scalar cannot serve both,
-  so 0.5 is the separation-vs-slip midpoint. We ship the deck as its own tier now
-  — rather than the zero-slip **2-tier fallback** (park the deck on the backdrop
-  too, so only the cast peels off a unified world) — because the pans are clamped
-  small (the slip stays a few percent) and deck-vs-backdrop is the strongest depth
-  cue the baked art can deliver today; the 2-tier retreat stays on the shelf if the
-  skate reads on export. An eventual deck/palms split lets a near contact band ride
-  nearer 1.0 while the far rail recedes, retiring the trade entirely.
+  `(depth_cat - depth_deck)·maxDx = 0.65·width·(zoom-1)/2` at the cat plane. Why
+  0.35 (down from 0.5): the goal is a depth cue that is **immersive, not obvious**
+  — the deck should recede into the gently-moving world behind the cast, not jump
+  at the viewer. So the deck was pulled toward the backdrop (0.12), trading a touch
+  more theoretical foot-slip for a subtler read; in practice the slip stays bounded
+  because the camera pans are deliberately small (see the companion camera work),
+  and the feet do not *float* (grounded contact shadows are painted on the **cat
+  plane**, welded to the feet). The zero-slip **2-tier fallback** (park the deck on
+  the backdrop too, so only the cast peels off a unified world) stays on the shelf
+  if the skate ever reads on export; an eventual deck/palms split lets a near
+  contact band ride nearer 1.0 while the far rail recedes, retiring the trade.
 - **The palms are baked into the deck plate**, so they ride the stage plane and
-  swing on a hard push-in (fronds scale up about the feet pivot); worse, at 0.5
-  they read *farther* than the cast they should frame — a mild depth inversion,
+  swing on a hard push-in (fronds scale up about the feet pivot); worse, at the
+  stage depth they read *farther* than the cast they should frame — a mild depth
+  inversion,
   since a framing foreground should be the *nearest* plane. The proper fix is an
   art split of `foreground.webp` into `deck` + `palms`, giving the palms their
   **own near-foreground plane** nearer than the cast — the single highest-value

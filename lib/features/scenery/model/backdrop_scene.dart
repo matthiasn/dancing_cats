@@ -28,7 +28,9 @@ import 'package:dancing_cats/features/scenery/model/scenery_assets.dart';
 /// front to back: lead cat (1.0) › backup cats (0.9) › stage › background › jet.
 const double _depthAircraft = 0.04; // the lone jet — farthest of all, near-locked
 const double _depthBackground = 0.12; // all backdrop art, moving as one plane
-const double _depthStage = 0.5; // the foreground deck + its lantern glow
+const double _depthStage = 0.35; // the foreground deck + its lantern glow —
+// kept gentle (was 0.5) so the deck reads as a subtle depth pleasure rather than
+// a foreground that jumps at the viewer; it moves nearer the background's rate.
 
 /// An ordered, back-to-front stack of [BackdropLayer]s plus the bitmap assets
 /// the scene needs decoded. [layers] are painted behind the consumer's content;

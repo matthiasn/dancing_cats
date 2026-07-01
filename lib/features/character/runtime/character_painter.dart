@@ -338,9 +338,9 @@ class CharacterPainter extends CustomPainter {
   /// 1.0 reference plane — the "front cat"). Below 1 so a lateral camera truck
   /// shears the lead against the upstage "background cats" — the trio gets its
   /// own shallow depth instead of sliding across the frame as one flat cut-out.
-  /// Kept close to 1: the cast is near-coplanar on the deck, so this reads as
-  /// depth, not diorama.
-  static const double _flankParallaxDepth = 0.9;
+  /// Kept very close to 1: the cast is near-coplanar on the deck, and the shear
+  /// should be felt, not seen — immersive, not obvious. (Was 0.9.)
+  static const double _flankParallaxDepth = 0.95;
 
   @override
   void paint(Canvas canvas, Size size) {

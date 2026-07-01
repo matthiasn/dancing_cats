@@ -222,9 +222,9 @@ void main() {
       // Brown feature: leans RIGHT (-dx), held flat across the second half.
       expect(lateA.dx, lessThan(0));
       expect(lateA.dx, closeTo(lateB.dx, 1e-9));
-      // The hand-off is a fast PUNCH: the TARGET dx flips by a big jump across
-      // 0.5 (the rig whips across it in ~0.14s), not a slow sweep through centre.
-      expect(earlyB.dx - lateA.dx, greaterThan(380));
+      // The hand-off is a fast PUNCH: the TARGET dx flips by a jump across 0.5
+      // (the rig whips across it), not a slow sweep through centre.
+      expect(earlyB.dx - lateA.dx, greaterThan(300));
       // Both features hold the same favoured-trio zoom, under the ceiling.
       expect(earlyA.zoom, closeTo(1.40, 1e-9));
       expect(lateA.zoom, closeTo(1.40, 1e-9));
@@ -328,7 +328,7 @@ void main() {
             phrasePhase: 0.25,
           ),
         ).dx.abs(),
-        greaterThan(50),
+        greaterThan(40),
       );
       expect(
         cameraShot(

@@ -216,7 +216,7 @@ Shot _chorusShot(DanceCameraContext c) {
     // enabled, the old 0.34 amplitude pushed a background dancer into a sliced
     // side crop during close post-chorus frames. Wider frames now, so it can
     // carry the parallax laterally rather than tightening.
-    final sway = math.sin(c.phrasePhase * 2 * math.pi) * 0.16; // beat-phrased
+    final sway = math.sin(c.phrasePhase * 2 * math.pi) * 0.09; // beat-phrased
     return (zoom: z, dx: sway * z * kSideCatCentreRef, dy: 0);
   }
 
@@ -241,7 +241,7 @@ Shot _chorusShot(DanceCameraContext c) {
     // shallower (0.38) so the bright yacht hull on this side doesn't pull focus
     // from the lead.
     final z = 1.36 + 0.05 * c.sectionPhase; // slow tighten across the section
-    return (zoom: z + breathe, dx: _lean(z, 0.34, left: false), dy: 0);
+    return (zoom: z + breathe, dx: _lean(z, 0.28, left: false), dy: 0);
   }
 
   // SECOND CHORUS: its signature HOME is a committed LEFT two-shot favouring the
@@ -249,7 +249,7 @@ Shot _chorusShot(DanceCameraContext c) {
   // never read as one looped centred shot. Held wider than before so the vista and
   // legwork breathe; the rig PUNCHES into it on the downbeat ([isCameraPunch]).
   final z = 1.36 + 0.05 * c.sectionPhase;
-  return (zoom: z + breathe, dx: _lean(z, 0.38, left: true), dy: 0);
+  return (zoom: z + breathe, dx: _lean(z, 0.32, left: true), dy: 0);
 }
 
 /// Bridge (background-only): TWO committed singer-feature framings with a fast
@@ -262,7 +262,7 @@ Shot _chorusShot(DanceCameraContext c) {
 Shot _bridgeShot(DanceCameraContext c) {
   final featuringLeft = c.sectionPhase < 0.5;
   const z = 1.40;
-  return (zoom: z, dx: _lean(z, 0.34, left: featuringLeft), dy: 0);
+  return (zoom: z, dx: _lean(z, 0.28, left: featuringLeft), dy: 0);
 }
 
 /// Pre-chorus: a strictly monotonic crane-push, crest capped (~1.52) just under
@@ -284,7 +284,7 @@ Shot _outroShot(DanceCameraContext c) {
   ); // smooth, 0 at phrase ends
   return (
     zoom: z,
-    dx: sway * 90 * (1 - p), // slow truck that fades out as it settles
+    dx: sway * 45 * (1 - p), // slow truck that fades out as it settles
     dy: kHorizonDropPx * p, // eases into the idle establish's wide trim
   );
 }
@@ -297,6 +297,6 @@ Shot _outroShot(DanceCameraContext c) {
 /// length (which read as the operator falling asleep).
 Shot _verseShot(DanceCameraContext c) {
   final z = 1.28 + 0.08 * c.sectionPhase; // slow push across the section
-  final drift = math.sin(c.phrasePhase * 2 * math.pi) * 0.12; // slow sway-truck
+  final drift = math.sin(c.phrasePhase * 2 * math.pi) * 0.05; // slow sway-truck
   return (zoom: z, dx: drift * z * kSideCatCentreRef, dy: 0);
 }
