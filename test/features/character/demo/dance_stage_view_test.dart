@@ -2,7 +2,9 @@ import 'package:dancing_cats/features/character/demo/dance_performance.dart';
 import 'package:dancing_cats/features/character/demo/dance_stage_view.dart';
 import 'package:dancing_cats/features/character/model/beat_map.dart';
 import 'package:dancing_cats/features/character/model/face.dart';
+import 'package:dancing_cats/features/character/model/rig_spec.dart';
 import 'package:dancing_cats/features/character/runtime/character_renderer.dart';
+import 'package:dancing_cats/features/character/samples/cat_in_suit.dart';
 import 'package:dancing_cats/features/scenery/layered_backdrop.dart';
 import 'package:dancing_cats/features/scenery/runtime/stage_lights.dart';
 import 'package:dancing_cats/features/scenery/scene_texture_overlay.dart';
@@ -186,6 +188,35 @@ void main() {
     });
   });
 
+  group('DanceCast', () {
+    test('uses widened sleeve meshes for the shipped trio', () {
+      final baseArm = _leftArmMesh(buildCatInSuitRig());
+      final cast = DanceCast.build();
+
+      expect(
+        _maxAbsLocalX(_leftArmMesh(cast.lead.rig).vertices[2]),
+        closeTo(
+          _maxAbsLocalX(baseArm.vertices[2]) * kDanceLeadArmWidthScale,
+          0.001,
+        ),
+      );
+      expect(
+        _maxAbsLocalX(_leftArmMesh(cast.left.rig).vertices[2]),
+        closeTo(
+          _maxAbsLocalX(baseArm.vertices[2]) * kDanceBackupArmWidthScale,
+          0.001,
+        ),
+      );
+      expect(
+        _maxAbsLocalX(_leftArmMesh(cast.right.rig).vertices[2]),
+        closeTo(
+          _maxAbsLocalX(baseArm.vertices[2]) * kDanceBackupArmWidthScale,
+          0.001,
+        ),
+      );
+    });
+  });
+
   group('danceCharacterPainter', () {
     test('front-locks the shipped trio while arm attachment is reviewed', () {
       final painter = danceCharacterPainter(
@@ -240,3 +271,11 @@ void main() {
     });
   });
 }
+
+SkinnedMeshSpec _leftArmMesh(RigSpec rig) =>
+    rig.meshes.singleWhere((mesh) => mesh.id == 'arm.L.mesh');
+
+double _maxAbsLocalX(SkinnedMeshVertex vertex) => vertex.influences.fold(
+  0,
+  (maxX, influence) => influence.x.abs() > maxX ? influence.x.abs() : maxX,
+);

@@ -1,5 +1,8 @@
+import 'package:dancing_cats/features/character/engine/autonomic.dart';
+import 'package:dancing_cats/features/character/model/bone.dart';
 import 'package:dancing_cats/features/character/model/clip.dart';
 import 'package:dancing_cats/features/character/model/easing.dart';
+import 'package:dancing_cats/features/character/model/rig_spec.dart';
 import 'package:dancing_cats/features/character/runtime/character_scene.dart';
 import 'package:dancing_cats/features/character/runtime/temporal_motion_analyzer.dart';
 import 'package:dancing_cats/features/character/samples/cat_in_suit.dart';
@@ -182,6 +185,110 @@ void main() {
       expect(report.worstJerk.magnitude, closeTo(60, 0.01));
     });
 
+    test('stutterTransitions finds a held pose followed by a snap', () {
+      final analyzer = TemporalMotionAnalyzer(
+        _oneBoneScene(),
+      );
+      const clip = Clip(
+        name: 'synthetic-hold-then-snap',
+        duration: 1,
+        loop: false,
+        root: KeyframeRootChannel([
+          RootKeyframe(p: 0),
+          RootKeyframe(p: 0.75, ease: Ease.linear),
+          RootKeyframe(p: 1, dx: 120, ease: Ease.linear),
+        ]),
+        channels: {},
+      );
+
+      final report = analyzer.analyze(
+        clip: clip,
+        samples: 4,
+        boneIds: const [CatBones.hips],
+      );
+      final stutters = report.stutterTransitions(
+        holdDistance: 0.01,
+        releaseDistance: 40,
+      );
+
+      expect(stutters, hasLength(1));
+      expect(stutters.single.boneId, CatBones.hips);
+      expect(stutters.single.holdSegments, 3);
+      expect(stutters.single.holdFromFrame, 0);
+      expect(stutters.single.holdToFrame, 3);
+      expect(stutters.single.exitDistance, closeTo(120, 0.01));
+      expect(stutters.single.adjacentTravel, closeTo(120, 0.01));
+    });
+
+    test('stutterTransitions ignores steady continuous travel', () {
+      final analyzer = TemporalMotionAnalyzer(
+        _oneBoneScene(),
+      );
+      const clip = Clip(
+        name: 'synthetic-steady-travel',
+        duration: 1,
+        loop: false,
+        root: KeyframeRootChannel([
+          RootKeyframe(p: 0),
+          RootKeyframe(p: 1, dx: 120, ease: Ease.linear),
+        ]),
+        channels: {},
+      );
+
+      final report = analyzer.analyze(
+        clip: clip,
+        samples: 4,
+        boneIds: const [CatBones.hips],
+      );
+
+      expect(
+        report.stutterTransitions(
+          holdDistance: 0.01,
+          releaseDistance: 40,
+        ),
+        isEmpty,
+      );
+    });
+
+    test('dance hands and torso avoid egregious hold-then-teleport pops', () {
+      final analyzer = TemporalMotionAnalyzer(
+        CharacterScene(buildCatInSuitRig()),
+      );
+      const watchedBones = [
+        CatBones.torso,
+        CatBones.handL,
+        CatBones.handR,
+      ];
+
+      for (final clip in [
+        CatClips.shaku,
+        CatClips.zanku,
+        CatClips.azonto,
+        CatClips.buga,
+        CatClips.sekem,
+      ]) {
+        final report = analyzer.analyze(
+          clip: clip,
+          samples: 128,
+          boneIds: watchedBones,
+        );
+        final stutters = report.stutterTransitions(
+          holdDistance: 0.05,
+          releaseDistance: 36,
+        );
+
+        expect(
+          stutters,
+          isEmpty,
+          reason:
+              '${clip.name} should not freeze a watched upper-body bone and '
+              'then teleport it; worst ${stutters.isEmpty ? 'none' : stutters.first.boneId} '
+              'hold=${stutters.isEmpty ? 'n/a' : '${stutters.first.holdFromFrame}-${stutters.first.holdToFrame}'} '
+              'travel=${stutters.isEmpty ? 'n/a' : stutters.first.adjacentTravel.toStringAsFixed(1)}',
+        );
+      }
+    });
+
     test('worstAcceleration throws when no acceleration was recorded', () {
       final analyzer = TemporalMotionAnalyzer(
         CharacterScene(buildCatInSuitRig()),
@@ -201,3 +308,15 @@ void main() {
     });
   });
 }
+
+RigSpec _oneBoneRig() => RigSpec(
+  name: 'one-bone-motion-probe',
+  bones: const [
+    Bone(id: CatBones.hips, parent: null, pivotX: 0, pivotY: 0, z: 0),
+  ],
+);
+
+CharacterScene _oneBoneScene() => CharacterScene(
+  _oneBoneRig(),
+  autonomic: AutonomicLayer(breathAmplitude: 0),
+);

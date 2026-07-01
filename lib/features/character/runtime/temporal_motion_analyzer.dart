@@ -167,6 +167,93 @@ class TemporalMotionReport {
   List<TemporalMotionJerk> topJerks(int count) =>
       _topBy(jerks, count, (jerk) => jerk.magnitude);
 
+  /// Finds robotic "hold, hold, snap" transitions.
+  ///
+  /// This is intentionally a query rather than a built-in violation: planted
+  /// feet and choreographed freezes can be valid, while a hand/torso that stays
+  /// nearly still for several samples and then jumps reads like a static
+  /// keyframe pop. Callers choose the watched bones and thresholds for the move.
+  List<TemporalMotionStutter> stutterTransitions({
+    double holdDistance = 0.25,
+    double releaseDistance = 8,
+    int minHoldSegments = 2,
+  }) {
+    if (holdDistance < 0) {
+      throw ArgumentError.value(
+        holdDistance,
+        'holdDistance',
+        'must be non-negative',
+      );
+    }
+    if (releaseDistance < 0) {
+      throw ArgumentError.value(
+        releaseDistance,
+        'releaseDistance',
+        'must be non-negative',
+      );
+    }
+    if (minHoldSegments <= 0) {
+      throw ArgumentError.value(
+        minHoldSegments,
+        'minHoldSegments',
+        'must be positive',
+      );
+    }
+
+    final byBone = <String, List<TemporalMotionSegment>>{};
+    for (final segment in segments) {
+      byBone.putIfAbsent(segment.boneId, () => []).add(segment);
+    }
+
+    final result = <TemporalMotionStutter>[];
+    for (final entry in byBone.entries) {
+      final boneSegments = [...entry.value]
+        ..sort((a, b) => a.fromFrame.compareTo(b.fromFrame));
+      var i = 0;
+      while (i < boneSegments.length) {
+        if (boneSegments[i].distance > holdDistance) {
+          i++;
+          continue;
+        }
+
+        final start = i;
+        while (i < boneSegments.length &&
+            boneSegments[i].distance <= holdDistance) {
+          i++;
+        }
+        final endExclusive = i;
+        final runLength = endExclusive - start;
+        if (runLength < minHoldSegments) continue;
+
+        final before = start > 0 ? boneSegments[start - 1] : null;
+        final after = endExclusive < boneSegments.length
+            ? boneSegments[endExclusive]
+            : null;
+        final entryDistance = before?.distance ?? 0;
+        final exitDistance = after?.distance ?? 0;
+        final adjacentTravel = math.max(entryDistance, exitDistance);
+        if (adjacentTravel < releaseDistance) continue;
+
+        result.add(
+          TemporalMotionStutter(
+            boneId: entry.key,
+            holdFromFrame: boneSegments[start].fromFrame,
+            holdToFrame: boneSegments[endExclusive - 1].toFrame,
+            holdFromPhase: boneSegments[start].fromPhase,
+            holdToPhase: boneSegments[endExclusive - 1].toPhase,
+            holdSegments: runLength,
+            entryDistance: entryDistance,
+            exitDistance: exitDistance,
+            adjacentTravel: adjacentTravel,
+          ),
+        );
+      }
+    }
+
+    result.sort((a, b) => b.adjacentTravel.compareTo(a.adjacentTravel));
+    return result;
+  }
+
   static T _maxBy<T>(
     List<T> values,
     double Function(T value) score,
@@ -274,4 +361,28 @@ class TemporalMotionJerk {
   final double dx;
   final double dy;
   final double magnitude;
+}
+
+class TemporalMotionStutter {
+  const TemporalMotionStutter({
+    required this.boneId,
+    required this.holdFromFrame,
+    required this.holdToFrame,
+    required this.holdFromPhase,
+    required this.holdToPhase,
+    required this.holdSegments,
+    required this.entryDistance,
+    required this.exitDistance,
+    required this.adjacentTravel,
+  });
+
+  final String boneId;
+  final int holdFromFrame;
+  final int holdToFrame;
+  final double holdFromPhase;
+  final double holdToPhase;
+  final int holdSegments;
+  final double entryDistance;
+  final double exitDistance;
+  final double adjacentTravel;
 }

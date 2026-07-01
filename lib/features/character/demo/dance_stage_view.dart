@@ -237,11 +237,17 @@ class DanceCast {
       autonomic: danceAutonomic(11),
     ),
     left: CharacterScene(
-      buildCatInSuitRig(palette: CatInSuitPalette.silverTabby),
+      buildCatInSuitRig(
+        palette: CatInSuitPalette.silverTabby,
+        armWidthScale: kDanceBackupArmWidthScale,
+      ),
       autonomic: danceAutonomic(29),
     ),
     right: CharacterScene(
-      buildCatInSuitRig(palette: CatInSuitPalette.darkBrown),
+      buildCatInSuitRig(
+        palette: CatInSuitPalette.darkBrown,
+        armWidthScale: kDanceBackupArmWidthScale,
+      ),
       autonomic: danceAutonomic(47),
     ),
   );

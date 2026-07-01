@@ -690,23 +690,26 @@ void main() {
     await tester.runAsync(() async {
       for (final name in selected) {
         final clip = clipsByName[name]!;
+        final catalogueDance = _isCatalogueDanceClip(clip);
         final scene = CharacterScene(
           buildCatInSuitRig(
-            legWidthScale: clip.name == CatClips.shaku.name
-                ? kDanceLeadLegWidthScale
-                : 1,
-            armWidthScale: clip.name == CatClips.shaku.name
-                ? kDanceLeadArmWidthScale
-                : 1,
+            legWidthScale: catalogueDance ? kDanceLeadLegWidthScale : 1,
+            armWidthScale: catalogueDance ? kDanceLeadArmWidthScale : 1,
           ),
           autonomic: _reviewAutonomic(11),
         );
         final partnerScene = CharacterScene(
-          buildCatInSuitRig(palette: CatInSuitPalette.silverTabby),
+          buildCatInSuitRig(
+            palette: CatInSuitPalette.silverTabby,
+            armWidthScale: catalogueDance ? kDanceBackupArmWidthScale : 1,
+          ),
           autonomic: _reviewAutonomic(29),
         );
         final thirdScene = CharacterScene(
-          buildCatInSuitRig(palette: CatInSuitPalette.darkBrown),
+          buildCatInSuitRig(
+            palette: CatInSuitPalette.darkBrown,
+            armWidthScale: catalogueDance ? kDanceBackupArmWidthScale : 1,
+          ),
           autonomic: _reviewAutonomic(47),
         );
         final frames =
