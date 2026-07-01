@@ -335,11 +335,12 @@ class CharacterPainter extends CustomPainter {
   static const double _builtInDancePivotFraction = 0.56;
 
   /// Inter-cat parallax depth for the flanking backups (the centred lead is the
-  /// 1.0 reference plane). Below 1 so a lateral camera truck shears the lead a
-  /// touch against the upstage backups — the trio gets its own shallow depth
-  /// instead of sliding across the frame as one flat cut-out. Small on purpose:
-  /// the cast is near-coplanar on the deck, so this reads as depth, not diorama.
-  static const double _flankParallaxDepth = 0.92;
+  /// 1.0 reference plane — the "front cat"). Below 1 so a lateral camera truck
+  /// shears the lead against the upstage "background cats" — the trio gets its
+  /// own shallow depth instead of sliding across the frame as one flat cut-out.
+  /// Kept close to 1: the cast is near-coplanar on the deck, so this reads as
+  /// depth, not diorama.
+  static const double _flankParallaxDepth = 0.9;
 
   @override
   void paint(Canvas canvas, Size size) {

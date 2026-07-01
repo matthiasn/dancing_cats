@@ -25,8 +25,9 @@ void main() {
       base as ParallaxLayer;
       expect(base.child, isA<ImageLayer>());
       expect((base.child as ImageLayer).assetKey, SceneryAssets.cloudlessPlate);
-      // The base plate sits on the far (sky) plane, so it barely drifts.
-      expect(base.depth, lessThan(0.1));
+      // The base plate rides the far background plane shared by all backdrop art
+      // (so a re-draw never slides off its baked twin).
+      expect(base.depth, lessThan(0.2));
     });
 
     test('declares cloud, light, and structure assets to decode', () {
@@ -85,14 +86,16 @@ void main() {
         final glow = layers.indexWhere((l) => l is DeckGlowLayer);
         final haze = layers.indexWhere((l) => l is AtmosphericHazeLayer);
         final police = layers.indexWhere((l) => l is BridgePoliceLayer);
-        // The depth ladder is a monotonic front-to-back stack: the deck tracks
-        // the cast most, then the near midground (yacht) beats the far skyline,
-        // which still drifts more than the base sky plate.
+        // Coarse depth PLANES, not a per-layer ladder: the whole backdrop
+        // (plate, skyline, yacht, ocean) shares ONE background depth so re-draws
+        // never slide off their baked twins. The deck rides a nearer stage plane;
+        // the dynamic jet — no baked twin — rides the farthest plane of all.
         double depthAt(int i) => (planes[i] as ParallaxLayer).depth;
-        expect(depthAt(deck), greaterThan(depthAt(yacht)));
-        expect(depthAt(yacht), greaterThan(depthAt(city)));
-        expect(depthAt(city), greaterThan(depthAt(plate)));
-        expect(depthAt(deck), greaterThan(depthAt(ocean)));
+        expect(depthAt(deck), greaterThan(depthAt(plate))); // stage nearer
+        expect(depthAt(city), closeTo(depthAt(plate), 1e-9)); // one backdrop plane
+        expect(depthAt(yacht), closeTo(depthAt(plate), 1e-9));
+        expect(depthAt(ocean), closeTo(depthAt(plate), 1e-9));
+        expect(depthAt(jet), lessThan(depthAt(plate))); // farthest of all
         expect(plate, 0);
         expect(cloud, greaterThan(plate));
         expect(jet, greaterThan(cloud));

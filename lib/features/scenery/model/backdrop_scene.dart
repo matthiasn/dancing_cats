@@ -15,21 +15,20 @@ import 'package:dancing_cats/features/scenery/layers/sky_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/vignette_layer.dart';
 import 'package:dancing_cats/features/scenery/model/scenery_assets.dart';
 
-/// Parallax depth ladder for the blue-hour scene: `0` locks a plane at infinity
-/// (no drift), `1` moves it fully with the dancers. Monotonic far → near, so as
-/// the dance camera dollies the planes drift and grow against one another and
-/// the scene reads as real depth instead of one flat plate. Fed to each layer's
-/// [ParallaxLayer] wrapper; the dance stage / offline composer inject the actual
-/// camera → matrix mapping (see `CharacterPainter.danceParallaxMatrixForShotAtDepth`).
-const double _depthSky = 0.06; // base plate, far clouds, the distant jet
-const double _depthCloudsMid = 0.09;
-const double _depthCloudsNear = 0.12;
-const double _depthCity = 0.13; // skyline, bridge, city lights, police strobes
-const double _depthOcean = 0.16;
-const double _depthYacht = 0.24; // moored nearer than the far skyline
-const double _depthDrones = 0.10; // hovering just off the bridge, near the sky
-const double _depthHaze = 0.30; // waterline aerial haze, between mid and deck
-const double _depthDeck = 0.5; // foreground deck, palms, planters, lantern glow
+/// Parallax depth PLANES — deliberately coarse. The painted base plate has the
+/// skyline, yacht and deck baked in, and the scene re-draws those same
+/// structures as separate layers over the animated clouds/ocean for correct
+/// depth ordering. Parallaxing a re-draw independently of the base would slide
+/// it off its baked twin and reveal a DOUBLED skyline / yacht. So the ENTIRE
+/// backdrop moves as ONE far plane; only the foreground deck (the stage the cast
+/// dances on) rides its own nearer plane, and the lone distant jet — a DYNAMIC
+/// layer with no baked twin — rides its own farthest plane behind everything.
+/// `0` locks a plane at infinity, `1` moves it with the dancers (see
+/// `CharacterPainter.danceParallaxMatrixForShotAtDepth`). Five planes in all,
+/// front to back: lead cat (1.0) › backup cats (0.9) › stage › background › jet.
+const double _depthAircraft = 0.04; // the lone jet — farthest of all, near-locked
+const double _depthBackground = 0.12; // all backdrop art, moving as one plane
+const double _depthStage = 0.5; // the foreground deck + its lantern glow
 
 /// An ordered, back-to-front stack of [BackdropLayer]s plus the bitmap assets
 /// the scene needs decoded. [layers] are painted behind the consumer's content;
@@ -53,12 +52,13 @@ class BackdropScene {
   /// the ascent. All sit behind the dancers (they are background layers).
   factory BackdropScene.blueHourWaterfront() {
     return const BackdropScene(
-      // Each background layer is wrapped in a [ParallaxLayer] at its depth on the
-      // ladder above, so the dance camera drifts every plane by a different
-      // amount (far barely moves, the deck tracks the cast). The foreground
+      // Each layer is wrapped in a [ParallaxLayer] on one of the coarse planes
+      // above — the whole backdrop shares _depthBackground so re-draws never
+      // slide off their baked twins; the deck rides _depthStage and the jet
+      // _depthAircraft. The dancers move most; far barely moves. The foreground
       // vignette is intentionally NOT wrapped — it is a screen-space effect.
       layers: [
-        ParallaxLayer(ImageLayer(SceneryAssets.cloudlessPlate), depth: _depthSky),
+        ParallaxLayer(ImageLayer(SceneryAssets.cloudlessPlate), depth: _depthBackground),
         ParallaxLayer(
           CloudParallaxLayer(
             SceneryAssets.cloudsFar,
@@ -68,7 +68,7 @@ class BackdropScene {
             dyCycleSeconds: 72,
             phase: 0.17,
           ),
-          depth: _depthSky,
+          depth: _depthBackground,
         ),
         ParallaxLayer(
           CloudParallaxLayer(
@@ -79,7 +79,7 @@ class BackdropScene {
             dyCycleSeconds: 58,
             phase: 0.43,
           ),
-          depth: _depthCloudsMid,
+          depth: _depthBackground,
         ),
         ParallaxLayer(
           CloudParallaxLayer(
@@ -89,20 +89,20 @@ class BackdropScene {
             dyCycleSeconds: 46,
             phase: 0.71,
           ),
-          depth: _depthCloudsNear,
+          depth: _depthBackground,
         ),
         // Small 747-ish wide-body crossing in the far sky. It sits behind the
         // fixed skyline/yacht redraws and far below the dancer plane, giving the
         // opening seconds a readable motion cue without becoming foreground
         // spectacle.
-        ParallaxLayer(DistantJetLayer(), depth: _depthSky),
+        ParallaxLayer(DistantJetLayer(), depth: _depthAircraft),
         // Animated water first; the additive ocean and additive city lights
         // commute, so the only thing the order buys us is letting the opaque
         // yacht sit BETWEEN them.
-        ParallaxLayer(OceanLayer(foamDensity: 0.3), depth: _depthOcean),
+        ParallaxLayer(OceanLayer(foamDensity: 0.3), depth: _depthBackground),
         // Re-draw fixed skyline + bridge over the drifting cloud layers and
         // ocean shimmer, preserving the original depth ordering.
-        ParallaxLayer(ImageLayer(SceneryAssets.cityBridge), depth: _depthCity),
+        ParallaxLayer(ImageLayer(SceneryAssets.cityBridge), depth: _depthBackground),
         // The moored yacht silhouette, re-drawn over the ocean so its hull
         // covers the foam that would otherwise wash up its side. The yacht sits
         // NEARER than the far skyline, so it must read at least as sharp and as
@@ -116,30 +116,30 @@ class BackdropScene {
             SceneryAssets.yacht,
             modulate: Color(0xFFD0D5DE),
           ),
-          depth: _depthYacht,
+          depth: _depthBackground,
         ),
         // More windows lit (brighter highrises) than the 0.6 default; drawn
         // after the yacht so the warm cabin glow reads on top of the hull.
-        ParallaxLayer(CityLightsLayer(windowAmount: 0.8), depth: _depthCity),
+        ParallaxLayer(CityLightsLayer(windowAmount: 0.8), depth: _depthBackground),
         // Aerial-perspective haze banded on the waterline: lifts + cools the
         // distant skyline/bridge/yacht so the midground recedes behind the
         // sharp, un-hazed foreground deck + trio (the establishing-shot depth
         // cue). Sits over the structures + lights but under the deck/palms.
-        ParallaxLayer(AtmosphericHazeLayer(), depth: _depthHaze),
-        ParallaxLayer(ImageLayer(SceneryAssets.foreground), depth: _depthDeck),
-        ParallaxLayer(DeckGlowLayer(), depth: _depthDeck),
+        ParallaxLayer(AtmosphericHazeLayer(), depth: _depthBackground),
+        ParallaxLayer(ImageLayer(SceneryAssets.foreground), depth: _depthStage),
+        ParallaxLayer(DeckGlowLayer(), depth: _depthStage),
         // Police cordon on the bridge roadway: blue (and a few red) emergency
         // strobes that stop traffic while the drones stage on the cleared deck,
         // timed to the drone loop so they roll in before launch and clear out as
         // the formation climbs away. Drawn just under the drones (both are the
         // post-haze "active light show" passes) so the dancers still occlude any
         // strobe behind them.
-        ParallaxLayer(BridgePoliceLayer(), depth: _depthCity),
+        ParallaxLayer(BridgePoliceLayer(), depth: _depthBackground),
         // Drones are the highest backdrop art pass: the takeoff starts as
         // unlit dark dots and switches on above the cable-stayed bridge, so
         // painted bridge cables/trees must not cut gaps through the aircraft.
-        ParallaxLayer(DroneShowLayer.sky(), depth: _depthDrones),
-        ParallaxLayer(DroneShowLayer.launchRoad(), depth: _depthCity),
+        ParallaxLayer(DroneShowLayer.sky(), depth: _depthBackground),
+        ParallaxLayer(DroneShowLayer.launchRoad(), depth: _depthBackground),
       ],
       foregroundLayers: [VignetteLayer(dim: 0.12)],
       imageAssets: [

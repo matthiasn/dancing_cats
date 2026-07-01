@@ -71,6 +71,11 @@ class ImageLayer implements BackdropLayer {
       image: image,
       fit: fit,
       opacity: opacity.clamp(0.0, 1.0),
+      // High-quality resampling: under per-plane parallax each plate is
+      // resampled at a fractional zoom every frame, so the default low (bilinear)
+      // filter crawls on the high-frequency skyline as the camera dollies. This
+      // matches the sharpness the legacy single-plate path used.
+      filterQuality: FilterQuality.high,
       colorFilter: modulate == null
           ? null
           : ColorFilter.mode(modulate!, BlendMode.modulate),
