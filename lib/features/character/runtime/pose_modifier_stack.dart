@@ -49,9 +49,14 @@ class PoseModifierStack {
 
   final List<PoseModifierPass> passes;
 
-  Pose apply(PoseModifierContext context, Pose initialPose) {
+  Pose apply(
+    PoseModifierContext context,
+    Pose initialPose, {
+    String? stopBefore,
+  }) {
     var pose = initialPose;
     for (final pass in passes) {
+      if (pass.id == stopBefore) break;
       if (pass.mix <= 0) continue;
       pose = pass.modifier(context, pose);
     }

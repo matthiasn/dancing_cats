@@ -96,6 +96,21 @@ class BoneDrawable {
   final bool inkOverFill;
 }
 
+/// Anatomical range of motion for a joint: bounds on the POSE rotation
+/// (the animated delta on top of the rest pose), in radians. The scene
+/// clamps every solved pose to these after IK - a knee can flex deep but
+/// can never bend backwards, no matter what a clip or solver asks for.
+class JointRotationLimit {
+  const JointRotationLimit(this.min, this.max)
+    : assert(min <= max, 'min must not exceed max');
+
+  final double min;
+  final double max;
+
+  double clamp(double rotation) =>
+      rotation < min ? min : (rotation > max ? max : rotation);
+}
+
 /// A single rigid bone in the skeleton.
 ///
 /// A bone rotates and scales about its pivot, expressed in its parent's local
@@ -113,6 +128,7 @@ class Bone {
     this.restScaleX = 1,
     this.restScaleY = 1,
     this.drawable,
+    this.rotationLimit,
   });
 
   /// Stable identifier, also the key used by clips and poses.
@@ -135,4 +151,8 @@ class Bone {
   /// What to draw for this bone, or null for a control/transform-only bone
   /// (e.g. a hip or neck that only positions its children).
   final BoneDrawable? drawable;
+
+  /// Optional anatomical range of motion, enforced at runtime by the
+  /// scene's joint-limits pass. Null = unconstrained.
+  final JointRotationLimit? rotationLimit;
 }

@@ -96,6 +96,12 @@ class CharacterScene {
             _limbTargetedPose(context.clip, context.timeSeconds, pose),
       ),
       PoseModifierPass(
+        id: 'joint-limits',
+        description:
+            'Clamp every limited joint into its anatomical range of motion.',
+        modifier: (context, pose) => _jointLimitedPose(pose),
+      ),
+      PoseModifierPass(
         id: 'contact-lock',
         description: 'Apply final support contact root correction.',
         modifier: (context, pose) =>
@@ -307,6 +313,7 @@ class CharacterScene {
     if (!includeAutonomic) {
       return _resolvedPose(clip, timeSeconds, breath: 0);
     }
+    // (see also [preClampPoseAt] for the joint-limit engagement meter)
     final auto = autonomic.sampleAt(timeSeconds);
     return _resolvedPose(
       clip,
@@ -314,6 +321,25 @@ class CharacterScene {
       breath: auto.breath,
       earTwitchLeft: auto.earTwitchLeft,
       earTwitchRight: auto.earTwitchRight,
+    );
+  }
+
+  /// The pose as it stands going INTO the joint-limits clamp — what the clip
+  /// and solvers actually asked for. The motion validator diffs this against
+  /// [poseAt] to measure LIMIT ENGAGEMENT: any difference means the routine
+  /// leaned on the runtime limiter (clipping) instead of being authored
+  /// inside the anatomical range, and should be re-choreographed.
+  Pose preClampPoseAt({required Clip clip, required double timeSeconds}) {
+    final pose = evaluator.evaluate(clip, timeSeconds);
+    final context = PoseModifierContext(
+      clip: clip,
+      timeSeconds: timeSeconds,
+      breath: 0,
+    );
+    return _poseModifierStack.apply(
+      context,
+      pose,
+      stopBefore: 'joint-limits',
     );
   }
 
@@ -669,6 +695,7 @@ class CharacterScene {
           commitSolution(refined);
         }
       }
+
     }
 
     return currentPose;
@@ -1336,29 +1363,48 @@ class CharacterScene {
     if (flexIds.isEmpty) return pose;
 
     final world = solver.solve(pose);
-    final floorY = restFeetOffset;
     Map<String, JointPose>? joints;
 
+    // The GROUND this frame is wherever the lowest sole point stands — the
+    // dance rides far below the rest-pose floor (root drop + contact locks),
+    // so a fixed rest-floor reference never triggers on real dig frames.
+    var frameFloorY = double.negativeInfinity;
+    final tips = <String, ({double x, double y})>{};
+    final heels = <String, ({double x, double y})>{};
     for (final flexId in flexIds) {
       final flexBone = rig.bone(flexId)!;
       final footWorld = world[flexBone.parent];
       final flexWorld = world[flexId];
       if (footWorld == null || flexWorld == null) continue;
+      final tip = flexWorld.transformPoint(-12, 1);
+      final heel = footWorld.transformPoint(8, 10);
+      tips[flexId] = tip;
+      heels[flexId] = heel;
+      frameFloorY = math.max(frameFloorY, math.max(tip.y, heel.y));
+    }
+
+    for (final flexId in flexIds) {
+      final flexBone = rig.bone(flexId)!;
+      final footWorld = world[flexBone.parent];
+      final tip = tips[flexId];
+      final heel = heels[flexId];
+      if (footWorld == null || tip == null || heel == null) continue;
 
       // Toe-down pitch: the foot's toe points local -x, so a NEGATIVE world
       // rotation drops the toe / raises the heel.
       final pitch = _worldRotation(footWorld);
-      if (pitch >= -0.06) continue;
+      if (pitch >= -0.04) continue;
 
-      // Ball proximity to the floor (the flex pivot sits at the ball, 2
-      // units above the sole plane).
-      final ball = flexWorld.origin;
-      final gap = (floorY - (ball.y + 2)).abs();
-      final proximity = (1 - (gap - 2) / 8).clamp(0.0, 1.0);
+      // The toe must be the WEIGHT-BEARING end: lower than the heel and
+      // near the frame's ground. An airborne pointed toe keeps its sole
+      // straight; a dig or heel-lift bends it.
+      if (tip.y <= heel.y + 2) continue;
+      final gap = frameFloorY - tip.y;
+      final proximity = (1 - gap / 18).clamp(0.0, 1.0);
       if (proximity <= 0) continue;
 
-      final flex = (-pitch - 0.06) * proximity;
-      final delta = flex.clamp(0.0, 0.75);
+      final flex = (-pitch - 0.04) * 1.15 * proximity;
+      final delta = flex.clamp(0.0, 0.8);
       if (delta < 0.01) continue;
 
       joints ??= Map<String, JointPose>.of(pose.joints);
@@ -1377,6 +1423,38 @@ class CharacterScene {
   late final List<String> _toeFlexBoneIds = [
     for (final bone in rig.bones)
       if (bone.id.toLowerCase().contains('toe_flex')) bone.id,
+  ];
+
+  /// Clamps every joint carrying a [JointRotationLimit] into its anatomical
+  /// range — the last word after clips, IK, and correctives. A pose that
+  /// violates a hinge (a backward knee, a wrap-around elbow) degrades to the
+  /// nearest legal configuration instead of rendering the impossible.
+  Pose _jointLimitedPose(Pose pose) {
+    Map<String, JointPose>? joints;
+    for (final bone in _limitedBones) {
+      final limit = bone.rotationLimit!;
+      final joint = pose.jointOf(bone.id);
+      final clamped = limit.clamp(joint.rotation);
+      if (clamped == joint.rotation) continue;
+      joints ??= Map<String, JointPose>.of(pose.joints);
+      joints[bone.id] = JointPose(
+        rotation: clamped,
+        scaleX: joint.scaleX,
+        scaleY: joint.scaleY,
+      );
+    }
+    if (joints == null) return pose;
+    return Pose(
+      joints: joints,
+      rootDx: pose.rootDx,
+      rootDy: pose.rootDy,
+      rootRotation: pose.rootRotation,
+    );
+  }
+
+  late final List<Bone> _limitedBones = [
+    for (final bone in rig.bones)
+      if (bone.rotationLimit != null) bone,
   ];
 
   double _clipPhase(Clip clip, double timeSeconds) {

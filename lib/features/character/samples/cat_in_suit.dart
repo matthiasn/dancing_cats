@@ -435,6 +435,10 @@ RigSpec buildCatInSuitRig({
       pivotX: 0,
       pivotY: 55,
       z: 4,
+      // The knee is a one-way hinge: deep flexion, never a backward bend
+      // (catalogue measures [-1.70, +0.02]; the runtime clamp makes reversed
+      // knees impossible rather than merely untested).
+      rotationLimit: const JointRotationLimit(-2.7, 0.1),
       drawable: _tapered(24, 16, 56, _trouserRear, dy: 23),
     ),
     const Bone(
@@ -450,6 +454,7 @@ RigSpec buildCatInSuitRig({
       pivotX: 0,
       pivotY: 48,
       z: 5,
+      rotationLimit: JointRotationLimit(-1.25, 1.25),
       drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
         // The vamp. Toe points -x (local), which — through the locomotion
@@ -622,6 +627,10 @@ RigSpec buildCatInSuitRig({
       pivotX: 0,
       pivotY: 55,
       z: 7,
+      // The knee is a one-way hinge: deep flexion, never a backward bend
+      // (catalogue measures [-1.70, +0.02]; the runtime clamp makes reversed
+      // knees impossible rather than merely untested).
+      rotationLimit: const JointRotationLimit(-2.7, 0.1),
       drawable: _tapered(24, 16, 56, _trouser, dy: 23),
     ),
     const Bone(
@@ -637,6 +646,7 @@ RigSpec buildCatInSuitRig({
       pivotX: 0,
       pivotY: 48,
       z: 8,
+      rotationLimit: JointRotationLimit(-1.25, 1.25),
       drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
         // The vamp. Toe points -x (local), which — through the locomotion
@@ -839,6 +849,9 @@ RigSpec buildCatInSuitRig({
       pivotX: 0,
       pivotY: 48,
       z: 16,
+      // Either bend side is a legal 2D stand-in for humeral rotation, but the
+      // fold caps just past buga's deepest authored curl — no wrap-arounds.
+      rotationLimit: const JointRotationLimit(-3.3, 3.3),
       drawable: _tapered(23, 17, 50, _sleeve, dy: 20),
     ),
     const Bone(
@@ -869,6 +882,7 @@ RigSpec buildCatInSuitRig({
       pivotX: 0,
       pivotY: 41,
       z: 17,
+      rotationLimit: const JointRotationLimit(-1, 1),
       drawable: BoneDrawable(
         kind: BoneShapeKind.ellipse,
         width: 22.5 * armWidthScale,
@@ -1217,6 +1231,9 @@ RigSpec buildCatInSuitRig({
       pivotX: 0,
       pivotY: 48,
       z: 17,
+      // Either bend side is a legal 2D stand-in for humeral rotation, but the
+      // fold caps just past buga's deepest authored curl — no wrap-arounds.
+      rotationLimit: const JointRotationLimit(-3.3, 3.3),
       drawable: _tapered(23, 17, 50, _sleeveNear, dy: 20),
     ),
     const Bone(
@@ -1243,6 +1260,7 @@ RigSpec buildCatInSuitRig({
       pivotX: 0,
       pivotY: 41,
       z: 18,
+      rotationLimit: const JointRotationLimit(-1, 1),
       drawable: BoneDrawable(
         kind: BoneShapeKind.ellipse,
         width: 22.5 * armWidthScale,
@@ -5446,10 +5464,10 @@ class CatClips {
     DanceJointKey(32, rotation: 0.12),
   ];
 
-  // Reuse the dance foot targets; give the HANDS the crossed-X channels with the
-  // elbow bend FLIPPED so the elbows break OUTWARD (the bent forearm clears the
-  // torso silhouette and reads as a diagonal, instead of the arm hiding inside
-  // the navy body) — the rig note that makes the X legible.
+  // Reuse the dance foot targets; the HANDS get the crossed-X channels with
+  // elbows on their natural OUTBOARD side. The old flip folded the elbows
+  // inboard of the shoulders while the forearms broke outboard-below — the
+  // anatomically impossible "broken W" the owner flagged on screen.
   static final List<LimbIkTarget> _shakuLimbTargets = [
     LimbIkTarget(
       upperBoneId: CatBones.armUpperL,
@@ -5457,7 +5475,6 @@ class CatClips {
       endBoneId: CatBones.handL,
       anchorBoneId: CatBones.torso,
       channel: _shakuHandLTarget,
-      bendDirection: -1,
     ),
     LimbIkTarget(
       upperBoneId: CatBones.armUpperR,
@@ -5465,6 +5482,7 @@ class CatClips {
       endBoneId: CatBones.handR,
       anchorBoneId: CatBones.torso,
       channel: _shakuHandRTarget,
+      bendDirection: -1,
     ),
     _danceLimbTargets[2].withChannel(_shakuFootLTarget),
     _danceLimbTargets[3].withChannel(_shakuFootRTarget),

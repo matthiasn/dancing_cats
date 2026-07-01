@@ -84,6 +84,7 @@ void main() {
           'girdle-follow',
           'shoulder-girdle',
           'limb-ik',
+          'joint-limits',
           'contact-lock',
           'sole-flex',
         ],
@@ -99,6 +100,34 @@ void main() {
       expect(
         scene.poseModifierPasses.map((pass) => pass.description),
         everyElement(isNotEmpty),
+      );
+    });
+
+    test('joint limits make reversed hinges impossible', () {
+      final scene = CharacterScene(buildCatInSuitRig());
+      // A clip that demands a BACKWARD knee and a wrap-around elbow.
+      const clip = Clip(
+        name: 'synthetic-reversed-hinges',
+        duration: 1,
+        channels: {
+          CatBones.legLowerL: SineChannel(bias: 1.4),
+          CatBones.armLowerR: SineChannel(bias: 3.9),
+        },
+      );
+      final posed = scene.poseAt(
+        clip: clip,
+        timeSeconds: 0,
+        includeAutonomic: false,
+      );
+      expect(
+        posed.jointOf(CatBones.legLowerL).rotation,
+        lessThanOrEqualTo(0.1),
+        reason: 'a knee can never bend backwards, whatever the clip asks',
+      );
+      expect(
+        posed.jointOf(CatBones.armLowerR).rotation,
+        lessThanOrEqualTo(3.3),
+        reason: 'an elbow cannot wrap past its deepest legal curl',
       );
     });
 

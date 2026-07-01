@@ -58,6 +58,11 @@ class MotionConstraintValidator {
       ikSamples,
     );
     final jointEnvelopes = _sampleJointEnvelopes(clip, profile, ikSamples);
+    final limitEngagements = _sampleJointLimitEngagement(
+      clip,
+      profile,
+      ikSamples,
+    );
 
     return MotionConstraintReport(
       clipName: clip.name,
@@ -71,7 +76,47 @@ class MotionConstraintValidator {
       shoulderResponses: shoulderResponses,
       shoulderMeshBridges: shoulderMeshBridges,
       jointEnvelopes: jointEnvelopes,
+      limitEngagements: limitEngagements,
     );
+  }
+
+  /// How hard each routine leans on the runtime joint-limit clamp. A non-zero
+  /// engagement means the clip/solver asked for a pose OUTSIDE the anatomical
+  /// range and the limiter clipped it — flat, dead motion at the bound. The
+  /// fix is always re-authoring the routine, never widening the limit.
+  List<MotionJointLimitEngagement> _sampleJointLimitEngagement(
+    Clip clip,
+    MotionConstraintProfile profile,
+    int samples,
+  ) {
+    final limited = [
+      for (final bone in scene.rig.bones)
+        if (bone.rotationLimit != null) bone,
+    ];
+    if (limited.isEmpty) return const [];
+    final checks = <MotionJointLimitEngagement>[];
+    for (var i = 0; i < samples; i++) {
+      final phase = i / samples;
+      final timeSeconds = _phaseTime(clip, phase);
+      final raw = scene.preClampPoseAt(clip: clip, timeSeconds: timeSeconds);
+      for (final bone in limited) {
+        final asked = raw.jointOf(bone.id).rotation;
+        final clamped = bone.rotationLimit!.clamp(asked);
+        final engagement = (asked - clamped).abs();
+        if (engagement < 0.001) continue;
+        checks.add(
+          MotionJointLimitEngagement(
+            clipName: clip.name,
+            boneId: bone.id,
+            phase: phase,
+            askedRotation: asked,
+            clampedRotation: clamped,
+            engagement: engagement,
+          ),
+        );
+      }
+    }
+    return checks;
   }
 
   List<MotionJointEnvelope> _sampleJointEnvelopes(
@@ -801,6 +846,26 @@ const defaultMotionJointEnvelopeRules = <MotionJointEnvelopeRule>[
   MotionJointEnvelopeRule(boneIdToken: 'toe_flex', maxAbsRotation: 0.8),
 ];
 
+/// One frame's worth of runtime joint-limit CLIPPING: the routine asked for
+/// [askedRotation] but anatomy allows only [clampedRotation].
+class MotionJointLimitEngagement {
+  const MotionJointLimitEngagement({
+    required this.clipName,
+    required this.boneId,
+    required this.phase,
+    required this.askedRotation,
+    required this.clampedRotation,
+    required this.engagement,
+  });
+
+  final String clipName;
+  final String boneId;
+  final double phase;
+  final double askedRotation;
+  final double clampedRotation;
+  final double engagement;
+}
+
 class MotionConstraintProfile {
   const MotionConstraintProfile({
     this.contactEdgeFraction = 0.24,
@@ -829,6 +894,7 @@ class MotionConstraintProfile {
     this.minRaisedShoulderToBicepRatio = 0.66,
     this.maxRaisedUpperArmMeshEdge = 40,
     this.jointEnvelopeRules = defaultMotionJointEnvelopeRules,
+    this.maxJointLimitEngagement = 0.45,
   }) : assert(
          contactEdgeFraction >= 0 && contactEdgeFraction < 0.5,
          'contact edge fraction must be in [0, 0.5)',
@@ -975,6 +1041,12 @@ class MotionConstraintProfile {
 
   /// Resolved local-joint envelopes used to catch impossible authored poses.
   final List<MotionJointEnvelopeRule> jointEnvelopeRules;
+
+  /// Maximum tolerated runtime joint-limit clipping (radians). Anything above
+  /// zero is choreography leaning on the limiter; the default is a WIDE
+  /// grandfather bound for the existing catalogue and should be ratcheted
+  /// toward ~0.05 as each routine is re-authored inside its anatomical range.
+  final double maxJointLimitEngagement;
 }
 
 class MotionConstraintReport {
@@ -990,6 +1062,7 @@ class MotionConstraintReport {
     required this.shoulderResponses,
     required this.shoulderMeshBridges,
     required this.jointEnvelopes,
+    required this.limitEngagements,
   });
 
   final String clipName;
@@ -1003,6 +1076,10 @@ class MotionConstraintReport {
   final List<MotionShoulderResponse> shoulderResponses;
   final List<MotionShoulderMeshBridge> shoulderMeshBridges;
   final List<MotionJointEnvelope> jointEnvelopes;
+  final List<MotionJointLimitEngagement> limitEngagements;
+
+  MotionJointLimitEngagement? get worstLimitEngagement =>
+      _maxOrNull(limitEngagements, (check) => check.engagement);
 
   MotionContactDrift? get worstContactDrift =>
       _maxOrNull(contactDrifts, (check) => check.distance);
@@ -1223,6 +1300,25 @@ class MotionConstraintReport {
                 'shoulder/bicep='
                 '${check.shoulderToBicepRatio.toStringAsFixed(2)}, '
                 'edge=${check.maxUpperArmEdge.toStringAsFixed(1)} px',
+          ),
+        );
+      }
+    }
+    for (final check in limitEngagements) {
+      final severity = check.engagement - profile.maxJointLimitEngagement;
+      if (severity > 0) {
+        result.add(
+          MotionConstraintViolation(
+            category: MotionConstraintCategory.jointLimitClipping,
+            clipName: clipName,
+            boneId: check.boneId,
+            phase: check.phase,
+            severity: severity,
+            message:
+                '${check.boneId} leans on the runtime joint limiter: asked '
+                '${check.askedRotation.toStringAsFixed(2)} rad, anatomy '
+                'allows ${check.clampedRotation.toStringAsFixed(2)} — '
+                're-author the routine inside its range',
           ),
         );
       }
@@ -1524,6 +1620,7 @@ class MotionJointEnvelope {
 }
 
 enum MotionConstraintCategory {
+  jointLimitClipping,
   footContact,
   supportBalance,
   ikReach,
