@@ -19,6 +19,7 @@ class DanceTransportBar extends StatelessWidget {
     required this.showCaptions,
     required this.captionsAvailable,
     required this.useNewBackdrop,
+    required this.muted,
     required this.bpm,
     required this.positionSec,
     required this.durationSec,
@@ -30,6 +31,7 @@ class DanceTransportBar extends StatelessWidget {
     required this.onToggleLoop,
     required this.onToggleCaptions,
     required this.onToggleBackdrop,
+    required this.onToggleMute,
     required this.onSeekToSeconds,
     super.key,
   });
@@ -44,6 +46,10 @@ class DanceTransportBar extends StatelessWidget {
   /// Whether a lyrics file is present — gates the captions toggle.
   final bool captionsAvailable;
   final bool useNewBackdrop;
+
+  /// Whether the track audio is muted (volume forced to zero); the video keeps
+  /// playing. Drives the speaker glyph in the control cluster.
+  final bool muted;
   final double bpm;
   final double positionSec;
   final double durationSec;
@@ -59,6 +65,7 @@ class DanceTransportBar extends StatelessWidget {
   final VoidCallback onToggleLoop;
   final VoidCallback onToggleCaptions;
   final VoidCallback onToggleBackdrop;
+  final VoidCallback onToggleMute;
   final ValueChanged<double> onSeekToSeconds;
 
   @override
@@ -185,6 +192,16 @@ class DanceTransportBar extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
+          _toggle(
+            // Speaker glyph flips to a struck-through icon when muted; the cell
+            // lights when sound is ON (the default), like the other toggles.
+            icon: muted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
+            active: !muted,
+            enabled: true,
+            tooltip: muted ? 'Unmute' : 'Mute',
+            onTap: onToggleMute,
+          ),
+          const _VRule(height: 40),
           _toggle(
             // Distinct on-glyph (repeat-on) so loop state reads by shape, not
             // only by the underline.

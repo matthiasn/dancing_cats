@@ -225,6 +225,9 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
   // Dev A/B switch: the new layered blue-hour scene vs. the old single-plate
   // waterfront backdrop.
   bool _useNewBackdrop = true;
+  // Mute forces the player volume to zero; the video keeps playing. The app has
+  // no volume slider, so unmuting restores full (100) volume.
+  bool _muted = false;
   ui.Image? _backdrop;
   ui.Image? _clouds;
   ui.Image? _waves;
@@ -552,6 +555,12 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
     if (mounted) setState(() {});
   }
 
+  Future<void> _toggleMute() async {
+    _muted = !_muted;
+    await _player.setVolume(_muted ? 0 : 100);
+    if (mounted) setState(() {});
+  }
+
   void _seekToTime(double tSec) {
     if (_trackDurationSec <= 0) return;
     final t = tSec < 0
@@ -671,6 +680,7 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
                   showCaptions: _showCaptions,
                   captionsAvailable: _words.isNotEmpty,
                   useNewBackdrop: _useNewBackdrop,
+                  muted: _muted,
                   bpm: _bpm,
                   positionSec: posSec,
                   durationSec: _trackDurationSec,
@@ -686,6 +696,7 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
                       setState(() => _showCaptions = !_showCaptions),
                   onToggleBackdrop: () =>
                       setState(() => _useNewBackdrop = !_useNewBackdrop),
+                  onToggleMute: () => unawaited(_toggleMute()),
                   onSeekToSeconds: _seekToTime,
                 ),
               ],
