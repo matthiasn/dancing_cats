@@ -78,12 +78,12 @@ const int _fur = 0xFFE8A55A; // orange tabby
 const int _furDark = 0xFFD08A3C; // tail tip / shading
 const int _shirt = 0xFFF3EFE6; // collar
 const int _tie = 0xFF7A2233; // maroon
-const int _shoe = 0xFFF2EFE7; // 90s basketball-boot WHITE leather upper
+const int _shoe = 0xFFF6F3EC; // 90s basketball-boot WHITE leather upper
 // — pops against the navy trousers and the dark deck, echoes the shirt
 // cuffs/collar, and reads instantly as the era.
-const int _shoeToe = 0xFFE8E3D5; // rubber toe bump — the rounded sneaker
-// toe cap, a shade under the midsole cream so the ink line reads between.
-const int _shoeSole = 0xFFDCD7C9; // sneaker midsole — the full-length rubber
+const int _shoeToe = 0xFFF6F3EC; // toe box — same clean white; the toe is
+// part of the boot's ONE silhouette, not a separately outlined blob.
+const int _shoeSole = 0xFFCFC9BB; // sneaker midsole — the full-length rubber
 // band along the bottom, a half-step grey under the white upper so the two
 // planes split by ink AND value, like a real AF1 wall.
 const int _outline = 0xFF1B1B2A;
@@ -445,24 +445,26 @@ RigSpec buildCatInSuitRig({
       z: 5,
       drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
-        // A chunky sneaker last. Toe points -x (local), which — through the
-        // locomotion mirror — makes the shoe LEAD the direction of travel
-        // instead of trailing it. The sole plane stays at local y=10: the
-        // contact solvers key off this drawable's bottom.
-        width: 38,
+        // The vamp. Toe points -x (local), which — through the locomotion
+        // mirror — makes the shoe LEAD the direction of travel instead of
+        // trailing it. The sole plane stays at local y=10: the contact
+        // solvers key off this drawable's bottom. FLAT white, no interior
+        // ink: the boot is ONE union silhouette, and cel gradients made the
+        // white leather look dingy.
+        width: 37,
         height: 12,
         dx: -9,
         dy: 4,
-        cornerRadius: 6,
+        cornerRadius: 5,
         color: _shoe,
         outlineColor: _outline,
         outlineWidth: 2,
-        inkOverFill: true,
+        celShade: false,
       ),
     ),
     // High-top collar: the 90s basketball-boot ankle wrap — rises well
     // above the vamp and hugs the ankle so the trouser breaks ON the boot.
-    // Bottom sits flush on the sole plane (contact untouched).
+    // Same white, NO interior ink: it melts into the boot's one silhouette.
     const Bone(
       id: CatBones.shoeCounterR,
       parent: CatBones.footR,
@@ -472,19 +474,18 @@ RigSpec buildCatInSuitRig({
       drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
         width: 15,
-        height: 20,
+        height: 19,
         dx: 2.5,
-        dy: -2,
+        dy: -1.5,
         cornerRadius: 6,
         color: _shoe,
         outlineColor: _outline,
         outlineWidth: 2,
-        inkOverFill: true,
+        celShade: false,
       ),
     ),
-    // Rubber toe bump: the rounded sneaker toe over the front of the last.
-    // Flat-shaded so the key cannot chrome the small volume; inked so it
-    // reads as a drawn part, not a sticker.
+    // Toe box: rounds the front of the boot as part of the ONE silhouette —
+    // same white, no interior circle line.
     const Bone(
       id: CatBones.shoeToeR,
       parent: CatBones.footR,
@@ -493,33 +494,31 @@ RigSpec buildCatInSuitRig({
       z: 6,
       drawable: BoneDrawable(
         kind: BoneShapeKind.ellipse,
-        width: 13,
-        height: 10.5,
-        dx: -24.5,
-        dy: 4.7,
+        width: 14,
+        height: 11,
+        dx: -23,
+        dy: 4.3,
         color: _shoeToe,
         outlineColor: _outline,
         outlineWidth: 2,
         celShade: false,
-        inkOverFill: true,
       ),
     ),
-    // Heel tab: a small maroon accent on the high-top's back — echoes the
-    // tie, and one colour pop is all the 90s boot needs.
+    // Lace bar: one thin diagonal stroke across the instep — the single
+    // detail (besides the sole line) that says sneaker without clutter.
     const Bone(
       id: CatBones.shoeTabR,
       parent: CatBones.footR,
-      pivotX: 0,
-      pivotY: 0,
+      pivotX: -6,
+      pivotY: 1,
       z: 7,
+      restRotation: -0.55,
       drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
-        width: 4.5,
-        height: 6.5,
-        dx: 7.5,
-        dy: -6,
-        cornerRadius: 2,
-        color: _tie,
+        width: 2,
+        height: 9,
+        cornerRadius: 1,
+        color: _outline,
         celShade: false,
       ),
     ),
@@ -534,11 +533,11 @@ RigSpec buildCatInSuitRig({
       z: 7,
       drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
-        width: 41,
-        height: 6.5,
-        dx: -9.5,
-        dy: 6.7,
-        cornerRadius: 3.2,
+        width: 40,
+        height: 6,
+        dx: -9,
+        dy: 6.9,
+        cornerRadius: 3,
         color: _shoeSole,
         outlineColor: _outline,
         outlineWidth: 2,
@@ -598,24 +597,26 @@ RigSpec buildCatInSuitRig({
       z: 8,
       drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
-        // A chunky sneaker last. Toe points -x (local), which — through the
-        // locomotion mirror — makes the shoe LEAD the direction of travel
-        // instead of trailing it. The sole plane stays at local y=10: the
-        // contact solvers key off this drawable's bottom.
-        width: 38,
+        // The vamp. Toe points -x (local), which — through the locomotion
+        // mirror — makes the shoe LEAD the direction of travel instead of
+        // trailing it. The sole plane stays at local y=10: the contact
+        // solvers key off this drawable's bottom. FLAT white, no interior
+        // ink: the boot is ONE union silhouette, and cel gradients made the
+        // white leather look dingy.
+        width: 37,
         height: 12,
         dx: -9,
         dy: 4,
-        cornerRadius: 6,
+        cornerRadius: 5,
         color: _shoe,
         outlineColor: _outline,
         outlineWidth: 2,
-        inkOverFill: true,
+        celShade: false,
       ),
     ),
     // High-top collar: the 90s basketball-boot ankle wrap — rises well
     // above the vamp and hugs the ankle so the trouser breaks ON the boot.
-    // Bottom sits flush on the sole plane (contact untouched).
+    // Same white, NO interior ink: it melts into the boot's one silhouette.
     const Bone(
       id: CatBones.shoeCounterL,
       parent: CatBones.footL,
@@ -625,19 +626,18 @@ RigSpec buildCatInSuitRig({
       drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
         width: 15,
-        height: 20,
+        height: 19,
         dx: 2.5,
-        dy: -2,
+        dy: -1.5,
         cornerRadius: 6,
         color: _shoe,
         outlineColor: _outline,
         outlineWidth: 2,
-        inkOverFill: true,
+        celShade: false,
       ),
     ),
-    // Rubber toe bump: the rounded sneaker toe over the front of the last.
-    // Flat-shaded so the key cannot chrome the small volume; inked so it
-    // reads as a drawn part, not a sticker.
+    // Toe box: rounds the front of the boot as part of the ONE silhouette —
+    // same white, no interior circle line.
     const Bone(
       id: CatBones.shoeToeL,
       parent: CatBones.footL,
@@ -646,33 +646,31 @@ RigSpec buildCatInSuitRig({
       z: 9,
       drawable: BoneDrawable(
         kind: BoneShapeKind.ellipse,
-        width: 13,
-        height: 10.5,
-        dx: -24.5,
-        dy: 4.7,
+        width: 14,
+        height: 11,
+        dx: -23,
+        dy: 4.3,
         color: _shoeToe,
         outlineColor: _outline,
         outlineWidth: 2,
         celShade: false,
-        inkOverFill: true,
       ),
     ),
-    // Heel tab: a small maroon accent on the high-top's back — echoes the
-    // tie, and one colour pop is all the 90s boot needs.
+    // Lace bar: one thin diagonal stroke across the instep — the single
+    // detail (besides the sole line) that says sneaker without clutter.
     const Bone(
       id: CatBones.shoeTabL,
       parent: CatBones.footL,
-      pivotX: 0,
-      pivotY: 0,
+      pivotX: -6,
+      pivotY: 1,
       z: 10,
+      restRotation: -0.55,
       drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
-        width: 4.5,
-        height: 6.5,
-        dx: 7.5,
-        dy: -6,
-        cornerRadius: 2,
-        color: _tie,
+        width: 2,
+        height: 9,
+        cornerRadius: 1,
+        color: _outline,
         celShade: false,
       ),
     ),
@@ -687,11 +685,11 @@ RigSpec buildCatInSuitRig({
       z: 10,
       drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
-        width: 41,
-        height: 6.5,
-        dx: -9.5,
-        dy: 6.7,
-        cornerRadius: 3.2,
+        width: 40,
+        height: 6,
+        dx: -9,
+        dy: 6.9,
+        cornerRadius: 3,
         color: _shoeSole,
         outlineColor: _outline,
         outlineWidth: 2,

@@ -487,34 +487,41 @@ void main() {
         final toe = rig.bone(side.toe)!.drawable!;
         final sole = rig.bone(side.sole)!.drawable!;
         final counter = rig.bone(side.counter)!.drawable!;
-        // The 90s boot is WHITE leather with a full-length rubber midsole a
-        // half-step under it — the planes split by ink and a value step.
+        // The 90s boot is ONE clean white silhouette (vamp, toe box, and
+        // high-top collar in the same flat white — no interior ink, no cel
+        // gradient dinging the leather) over a grey rubber midsole whose
+        // top edge is the boot's single interior line.
         expect(_luma(last.color), greaterThan(200));
+        expect(toe.color, last.color);
+        expect(counter.color, last.color);
+        for (final unionPart in [last, toe, counter]) {
+          expect(
+            unionPart.inkOverFill,
+            isFalse,
+            reason: 'the white upper is one union silhouette, not a cluster '
+                'of separately outlined blobs',
+          );
+          expect(unionPart.celShade, isFalse);
+          expect(unionPart.outlineColor, isNotNull);
+        }
         expect(_luma(sole.color), lessThan(_luma(last.color)));
+        expect(sole.inkOverFill, isTrue);
         expect(sole.width, greaterThanOrEqualTo(last.width));
         expect(
           sole.dy + sole.height / 2,
           lessThanOrEqualTo(last.dy + last.height / 2),
           reason: 'the midsole must not lower the contact plane',
         );
-        // Rounded rubber toe over the front of the last.
-        expect(_luma(toe.color), greaterThan(180));
         expect(
           toe.dx - toe.width / 2,
           lessThan(last.dx - last.width / 2 + 2),
-          reason: 'the toe bump rounds the very front of the last',
+          reason: 'the toe box rounds the very front of the last',
         );
-        // Heel collar rises above the vamp topline at the back.
         expect(
           counter.dy - counter.height / 2,
           lessThan(last.dy - last.height / 2),
-          reason: 'the collar step gives the sneaker its ankle silhouette',
+          reason: 'the collar step gives the boot its high-top silhouette',
         );
-        // Every shoe part is a drawn, inked shape.
-        for (final part in [last, toe, sole, counter]) {
-          expect(part.inkOverFill, isTrue);
-          expect(part.outlineColor, isNotNull);
-        }
       }
     });
 
