@@ -394,15 +394,15 @@ class CharacterScene {
       final clavicleId = upper.parent!;
       joints[clavicleId] = _ensureSignedRotationAndScale(
         pose: joints[clavicleId] ?? JointPose.identity,
-        signedRotation: side * 0.07 * engagement,
-        minScaleX: 1 + 0.018 * engagement,
-        maxScaleY: 1 - 0.01 * engagement,
+        signedRotation: side * 0.1 * engagement,
+        minScaleX: 1 + 0.026 * engagement,
+        maxScaleY: 1 - 0.014 * engagement,
       );
       joints[socketId] = _ensureSignedRotationAndScale(
         pose: joints[socketId] ?? JointPose.identity,
-        signedRotation: side * 0.14 * engagement,
-        minScaleX: 1 + 0.1 * engagement,
-        maxScaleY: 1 - 0.05 * engagement,
+        signedRotation: side * 0.18 * engagement,
+        minScaleX: 1 + 0.14 * engagement,
+        maxScaleY: 1 - 0.07 * engagement,
       );
 
       final bicepId = _childControlIdFor(upper.id, 'bicep');
@@ -410,8 +410,8 @@ class CharacterScene {
         joints[bicepId] = _ensureSignedRotationAndScale(
           pose: joints[bicepId] ?? JointPose.identity,
           signedRotation: 0,
-          minScaleX: 1 + 0.07 * engagement,
-          maxScaleY: 1 - 0.025 * engagement,
+          minScaleX: 1 + 0.12 * engagement,
+          maxScaleY: 1 - 0.04 * engagement,
         );
       }
       changed = true;
@@ -960,7 +960,7 @@ class CharacterScene {
 
   double _shoulderCorrectiveEngagement(IkTargetPose sample) {
     final raised = smoothstep((-sample.y - 42) / 56);
-    final wideReach = smoothstep((sample.x.abs() - 62) / 34) * 0.72;
+    final wideReach = smoothstep((sample.x.abs() - 62) / 34) * 0.55;
     return math.max(raised, wideReach).clamp(0.0, 1.0);
   }
 

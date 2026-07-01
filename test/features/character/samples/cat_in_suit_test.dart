@@ -1745,23 +1745,23 @@ void main() {
       final rightSocketPeak = shoulderSocketR.sample(13 / phrase.frameCount);
       expect(
         rightSocketPeak.rotation,
-        lessThan(-0.16),
+        lessThan(-0.22),
         reason:
             'the right Buga sleeve cap should rotate/deform with the raised '
             'arm instead of staying as a static shoulder patch',
       );
-      expect(rightSocketPeak.scaleX, greaterThan(1.12));
-      expect(rightSocketPeak.scaleY, lessThan(0.94));
+      expect(rightSocketPeak.scaleX, greaterThan(1.19));
+      expect(rightSocketPeak.scaleY, lessThan(0.92));
       final leftSocketPeak = shoulderSocketL.sample(29 / phrase.frameCount);
       expect(
         leftSocketPeak.rotation,
-        greaterThan(0.16),
+        greaterThan(0.22),
         reason:
             'the mirrored Buga sleeve cap should rotate/deform with the raised '
             'left arm instead of staying as a static shoulder patch',
       );
-      expect(leftSocketPeak.scaleX, greaterThan(1.12));
-      expect(leftSocketPeak.scaleY, lessThan(0.94));
+      expect(leftSocketPeak.scaleX, greaterThan(1.19));
+      expect(leftSocketPeak.scaleY, lessThan(0.92));
       expect(
         shoulderSocketR.sample(0).rotation,
         lessThan(-0.07),
@@ -1778,12 +1778,12 @@ void main() {
       );
       expect(
         bicepR.sample(13 / phrase.frameCount).scaleX,
-        greaterThan(1.08),
+        greaterThan(1.14),
         reason:
             'the upper sleeve should carry bicep mass during the raised-arm '
             'show-off instead of tapering into a thin rotating strip',
       );
-      expect(bicepL.sample(29 / phrase.frameCount).scaleX, greaterThan(1.08));
+      expect(bicepL.sample(29 / phrase.frameCount).scaleX, greaterThan(1.14));
       final rootHit = buga.root.sample(12 / phrase.frameCount);
       final rootMirrorHit = buga.root.sample(28 / phrase.frameCount);
       expect(

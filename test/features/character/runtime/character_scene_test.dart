@@ -53,17 +53,17 @@ void main() {
 
       expect(
         socket.rotation,
-        lessThan(-0.1),
+        lessThan(-0.15),
         reason:
             'a high right-hand target should lift the right shoulder socket '
             'even when the clip did not author socket keys',
       );
-      expect(socket.scaleX, greaterThan(1.07));
-      expect(socket.scaleY, lessThan(0.97));
-      expect(bicep.scaleX, greaterThan(1.04));
+      expect(socket.scaleX, greaterThan(1.11));
+      expect(socket.scaleY, lessThan(0.94));
+      expect(bicep.scaleX, greaterThan(1.08));
       expect(
         clavicle.rotation,
-        lessThan(-0.04),
+        lessThan(-0.06),
         reason:
             'the shoulder girdle should answer a raised arm before IK solves '
             'the elbow/wrist',
