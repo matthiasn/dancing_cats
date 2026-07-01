@@ -1434,7 +1434,7 @@ class CharacterScene {
     for (final bone in _limitedBones) {
       final limit = bone.rotationLimit!;
       final joint = pose.jointOf(bone.id);
-      final clamped = limit.clamp(joint.rotation);
+      final clamped = limit.clampAngle(joint.rotation);
       if (clamped == joint.rotation) continue;
       joints ??= Map<String, JointPose>.of(pose.joints);
       joints[bone.id] = JointPose(

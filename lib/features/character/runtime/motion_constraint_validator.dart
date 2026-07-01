@@ -101,7 +101,7 @@ class MotionConstraintValidator {
       final raw = scene.preClampPoseAt(clip: clip, timeSeconds: timeSeconds);
       for (final bone in limited) {
         final asked = raw.jointOf(bone.id).rotation;
-        final clamped = bone.rotationLimit!.clamp(asked);
+        final clamped = bone.rotationLimit!.clampAngle(asked);
         final engagement = (asked - clamped).abs();
         if (engagement < 0.001) continue;
         checks.add(
@@ -894,7 +894,7 @@ class MotionConstraintProfile {
     this.minRaisedShoulderToBicepRatio = 0.66,
     this.maxRaisedUpperArmMeshEdge = 40,
     this.jointEnvelopeRules = defaultMotionJointEnvelopeRules,
-    this.maxJointLimitEngagement = 0.45,
+    this.maxJointLimitEngagement = 0.15,
   }) : assert(
          contactEdgeFraction >= 0 && contactEdgeFraction < 0.5,
          'contact edge fraction must be in [0, 0.5)',
@@ -1043,9 +1043,9 @@ class MotionConstraintProfile {
   final List<MotionJointEnvelopeRule> jointEnvelopeRules;
 
   /// Maximum tolerated runtime joint-limit clipping (radians). Anything above
-  /// zero is choreography leaning on the limiter; the default is a WIDE
-  /// grandfather bound for the existing catalogue and should be ratcheted
-  /// toward ~0.05 as each routine is re-authored inside its anatomical range.
+  /// zero is choreography leaning on the limiter. Ratcheted 0.45 → 0.15 once
+  /// the catalogue was re-authored clean (worst remaining: shaku's crossed-X
+  /// at ~0.11); push toward ~0.05 with the next choreography pass.
   final double maxJointLimitEngagement;
 }
 

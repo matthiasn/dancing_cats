@@ -544,14 +544,9 @@ void main() {
           reason: '${clip.name} should expose high-weight hand IK samples',
         );
         final worst = handResiduals.first;
-        // Bound loosened 14 -> 15.5 when runtime joint limits landed: buga's
-        // deepest curl asks the elbow past its anatomical cap, and the hand
-        // correctly degrades ~14px rather than wrap the forearm. The real fix
-        // is re-authoring that target (see the jointLimitClipping meter);
-        // this bound still catches genuine solver misses.
         expect(
           worst.distance,
-          lessThan(15.5),
+          lessThan(14),
           reason:
               '${clip.name} ${worst.endBoneId} should visibly land near its '
               'high-weight IK control; p=${worst.phase.toStringAsFixed(4)} '

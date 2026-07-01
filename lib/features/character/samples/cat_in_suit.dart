@@ -849,9 +849,11 @@ RigSpec buildCatInSuitRig({
       pivotX: 0,
       pivotY: 48,
       z: 16,
-      // Either bend side is a legal 2D stand-in for humeral rotation, but the
-      // fold caps just past buga's deepest authored curl — no wrap-arounds.
-      rotationLimit: const JointRotationLimit(-3.3, 3.3),
+      // Either bend side is a legal 2D stand-in for humeral rotation; the
+      // WRAPPED fold caps at ~166° (limits are applied on the circle — see
+      // JointRotationLimit.clampAngle — so an IK solution that lands on the
+      // +2π representation of a legal pose is never corrupted).
+      rotationLimit: const JointRotationLimit(-2.9, 2.9),
       drawable: _tapered(23, 17, 50, _sleeve, dy: 20),
     ),
     const Bone(
@@ -1231,9 +1233,11 @@ RigSpec buildCatInSuitRig({
       pivotX: 0,
       pivotY: 48,
       z: 17,
-      // Either bend side is a legal 2D stand-in for humeral rotation, but the
-      // fold caps just past buga's deepest authored curl — no wrap-arounds.
-      rotationLimit: const JointRotationLimit(-3.3, 3.3),
+      // Either bend side is a legal 2D stand-in for humeral rotation; the
+      // WRAPPED fold caps at ~166° (limits are applied on the circle — see
+      // JointRotationLimit.clampAngle — so an IK solution that lands on the
+      // +2π representation of a legal pose is never corrupted).
+      rotationLimit: const JointRotationLimit(-2.9, 2.9),
       drawable: _tapered(23, 17, 50, _sleeveNear, dy: 20),
     ),
     const Bone(
@@ -7859,6 +7863,8 @@ class CatClips {
     DanceIkTargetKey(0, x: -42, y: -8),
     DanceIkTargetKey(4, x: -52, y: -24),
     DanceIkTargetKey(6, x: -44, y: -54),
+    // Mirrored cross-body guide — see the right hand's frame-23 key.
+    DanceIkTargetKey(7, x: -12, y: -86),
     DanceIkTargetKey(8, x: 18, y: -74, ease: Ease.easeOutBack),
     DanceIkTargetKey(10, x: 30, y: -58),
     DanceIkTargetKey(12, x: -52, y: -34),
@@ -7883,6 +7889,10 @@ class CatClips {
     DanceIkTargetKey(16, x: 48, y: -24),
     DanceIkTargetKey(20, x: 52, y: -24),
     DanceIkTargetKey(22, x: 44, y: -54),
+    // Guide the cross-body sweep OVER the chest: without this key the smooth
+    // path between 22 and 24 dips within ~6 units of the shoulder, demanding
+    // an impossible fold (the clipping meter flagged it).
+    DanceIkTargetKey(23, x: 12, y: -86),
     DanceIkTargetKey(24, x: -18, y: -74, ease: Ease.easeOutBack),
     DanceIkTargetKey(26, x: -30, y: -58),
     DanceIkTargetKey(28, x: 52, y: -34),

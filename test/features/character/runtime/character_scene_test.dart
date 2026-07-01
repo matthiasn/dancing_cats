@@ -111,7 +111,7 @@ void main() {
         duration: 1,
         channels: {
           CatBones.legLowerL: SineChannel(bias: 1.4),
-          CatBones.armLowerR: SineChannel(bias: 3.9),
+          CatBones.armLowerR: SineChannel(bias: 3.05),
         },
       );
       final posed = scene.poseAt(
@@ -121,13 +121,15 @@ void main() {
       );
       expect(
         posed.jointOf(CatBones.legLowerL).rotation,
-        lessThanOrEqualTo(0.1),
+        closeTo(0.1, 1e-9),
         reason: 'a knee can never bend backwards, whatever the clip asks',
       );
       expect(
         posed.jointOf(CatBones.armLowerR).rotation,
-        lessThanOrEqualTo(3.3),
-        reason: 'an elbow cannot wrap past its deepest legal curl',
+        lessThanOrEqualTo(2.9),
+        reason: 'an elbow cannot fold past its deepest legal curl (the limit '
+            'applies to the WRAPPED angle, so a +2pi representation of a '
+            'legal pose is never corrupted)',
       );
     });
 

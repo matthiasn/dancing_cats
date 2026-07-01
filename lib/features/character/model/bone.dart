@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 /// The geometric primitive used to draw a bone in Phase 1.
 ///
 /// Phase 1 deliberately draws bones as simple vector shapes (capsules,
@@ -109,6 +111,19 @@ class JointRotationLimit {
 
   double clamp(double rotation) =>
       rotation < min ? min : (rotation > max ? max : rotation);
+
+  /// Clamps [rotation] as an ANGLE: the value is wrapped to (-pi, pi] before
+  /// testing the limit, and the correction is applied to the original number
+  /// so its branch (representation) is preserved. IK solutions legitimately
+  /// land on the +/-2pi representation of a continuous pose; clamping the raw
+  /// number would corrupt legal poses and let illegal ones through.
+  double clampAngle(double rotation) {
+    var wrapped = rotation % (2 * math.pi);
+    if (wrapped > math.pi) wrapped -= 2 * math.pi;
+    if (wrapped <= -math.pi) wrapped += 2 * math.pi;
+    final clamped = clamp(wrapped);
+    return rotation + (clamped - wrapped);
+  }
 }
 
 /// A single rigid bone in the skeleton.
