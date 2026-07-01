@@ -143,25 +143,26 @@ const double kDanceDemoAspectRatio = 16 / 9;
 /// cool split; a cool overall temperature, a touch more contrast and slightly
 /// lowered saturation seat the mood. The grade console adjusts from here.
 const GradeWheel _kBlueHourLift = GradeWheel(
-  balance: Offset(0.02, 0.32),
-  master: 0.05,
+  balance: Offset(0.03, 0.30),
+  master: -0.03,
 );
 const GradeWheel _kBlueHourGamma = GradeWheel(
-  balance: Offset(0.04, 0.17),
-  master: -0.13,
+  balance: Offset(0.05, 0.17),
+  master: -0.26,
 );
 const GradeWheel _kBlueHourGain = GradeWheel(
-  balance: Offset(0.17, -0.23),
-  master: -0.74,
+  balance: Offset(0.16, -0.22),
+  master: -0.9,
 );
-const double _kBlueHourSaturation = 0.74;
-const double _kBlueHourTemperature = -0.5;
+const double _kBlueHourSaturation = 0.86;
+const double _kBlueHourTemperature = -0.54;
 const double _kBlueHourTint = 0.06;
-// Low-key but gently compressed: a below-neutral contrast pulls the blown cloud
-// tops DOWN toward the field and lifts the dark zenith UP toward it, so the sky
-// reads as luminous dusk rather than white cumulus over a near-night top.
-const double _kBlueHourContrast = 0.94;
-const double _kBlueHourPivot = 0.5;
+// Low-key dusk: a hard gain pull-down deepens the sky and water, a modest above-
+// neutral contrast about a low pivot deepens the mids/silhouettes (rich blue, not
+// bright daytime blue), while the shadows stay just off the floor with a cool
+// teal cast so it reads as moody dusk rather than crushed night.
+const double _kBlueHourContrast = 1.12;
+const double _kBlueHourPivot = 0.4;
 
 // The beat-synced choreography derivation (which move, warped clock, beat,
 // camera context), its data types, the track-config constants and the side-file

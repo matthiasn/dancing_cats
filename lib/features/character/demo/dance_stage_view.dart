@@ -179,7 +179,8 @@ class DanceStageView extends StatelessWidget {
                       dancerAnchors: dancerAnchors,
                       rig: rig,
                     ),
-                  if (useNewBackdrop) const SceneTextureOverlay(),
+                  if (useNewBackdrop)
+                    const SceneTextureOverlay(grainOpacity: 0.085),
                   CustomPaint(
                     painter: danceCharacterPainter(
                       cast: cast,

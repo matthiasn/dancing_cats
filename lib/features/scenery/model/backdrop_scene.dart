@@ -258,8 +258,10 @@ class BackdropScene {
         ParallaxLayer(
           AtmosphericHazeLayer(
             waterline: 0.44,
-            strength: 0.42,
-            skyReach: 0.26,
+            strength: 0.52,
+            skyReach: 0.32,
+            waterReach: 0.06,
+            paleLift: 0.32,
           ),
           depth: _depthCity,
         ),
