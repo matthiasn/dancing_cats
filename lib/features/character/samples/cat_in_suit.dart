@@ -43,8 +43,12 @@ class SuitFabric {
 
 const SuitFabric kSuitFabric = SuitFabric(0xFF2E3A59);
 final int _suit = kSuitFabric.plane(1); // navy jacket (torso)
-final int _sleeve = kSuitFabric.plane(0.92); // far sleeve, a step upstage
-final int _sleeveNear = kSuitFabric.plane(1.06); // near sleeve catches the key
+// The sleeve planes step JUST far enough from the jacket to separate an arm
+// crossing the chest (the unified silhouette pass draws no internal outlines,
+// so value is the only depth cue there). Wider steps read as different
+// fabrics where the deltoid overlaps the yoke.
+final int _sleeve = kSuitFabric.plane(0.955); // far sleeve, a step upstage
+final int _sleeveNear = kSuitFabric.plane(1.04); // near sleeve catches the key
 const int _button = 0xFFAE955C; // muted brass placket button — a dark horn
 // button vanished on the navy front; a metal tone reads as a button line.
 final int _lapel = kSuitFabric.plane(1.94); // lapel — a CLEAR step lighter
@@ -1417,6 +1421,7 @@ RigSpec buildCatInSuitRig({
       outlineColor: _outline,
       outlineWidth: 2,
       samplesPerSegment: 12,
+      formRound: false,
     ),
     LimbRibbonSpec(
       id: 'arm.L.ribbon',
@@ -1446,6 +1451,7 @@ RigSpec buildCatInSuitRig({
       outlineColor: _outline,
       outlineWidth: 2,
       samplesPerSegment: 12,
+      formRound: false,
     ),
   ];
 
