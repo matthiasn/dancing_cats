@@ -130,35 +130,31 @@ class DanceStageView extends StatelessWidget {
           aspectRatio: 16 / 9,
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final size = Size(constraints.maxWidth, constraints.maxHeight);
               final scale = danceCastScale(constraints.maxHeight);
-              // Parallax the scene behind the dancers, lagged, matching the
-              // foreground camera the painter applies.
-              final backdropTransform =
-                  CharacterPainter.danceParallaxTransformForShot(
-                    shot: shot,
-                    size: size,
-                  );
               return Stack(
                 fit: StackFit.expand,
                 children: [
                   if (useNewBackdrop)
-                    // Clip the parallax-zoomed backdrop to the 16:9 stage so it
-                    // never breathes past the frame as the camera pushes in. The
+                    // Clip the parallax-driven backdrop to the 16:9 stage so no
+                    // plane breathes past the frame as the camera pushes in. The
                     // grain/lights overlays are screen-fixed to this same 16:9
-                    // box, so without this the zoomed scene edges (e.g. the side
+                    // box, so without this a zoomed plane's edges (e.g. the side
                     // planters) could fall outside the grained region. Mirrors the
-                    // offline composer's `clipRect(size)` around the backdrop.
+                    // offline composer's `clipRect(size)` around the backdrop. The
+                    // parallax now lives PER LAYER (each plane lags by its depth),
+                    // injected into the scene rather than one transform over all.
                     ClipRect(
-                      child: Transform(
-                        transform: backdropTransform,
-                        filterQuality: FilterQuality.low,
-                        child: LayeredBackdrop(
-                          scene: BackdropScene.blueHourWaterfront(),
-                          timeSeconds: backdropTimeSeconds,
-                          beatPulse: beat,
-                          onReady: onBackdropReady,
-                        ),
+                      child: LayeredBackdrop(
+                        scene: BackdropScene.blueHourWaterfront(),
+                        timeSeconds: backdropTimeSeconds,
+                        beatPulse: beat,
+                        onReady: onBackdropReady,
+                        parallaxForDepth: (depth, s) =>
+                            CharacterPainter.danceParallaxMatrixForShotAtDepth(
+                              shot: shot,
+                              size: s,
+                              depth: depth,
+                            ),
                       ),
                     ),
                   // Aerial-perspective haze band at the waterline (frame-fixed,

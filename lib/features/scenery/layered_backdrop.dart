@@ -48,6 +48,7 @@ class LayeredBackdrop extends StatefulWidget {
     this.imageLoader,
     this.onReady,
     this.timeOverride,
+    this.parallaxForDepth,
     super.key,
   });
 
@@ -76,6 +77,11 @@ class LayeredBackdrop extends StatefulWidget {
 
   /// Pins the clock for golden/unit tests.
   final double? timeOverride;
+
+  /// Injected camera → per-plane parallax mapping, forwarded to every layer's
+  /// [BackdropContext.parallaxForDepth] so parallax-wrapped layers drift by
+  /// depth. Null → the scene paints flat (no camera).
+  final Matrix4 Function(double depth, Size size)? parallaxForDepth;
 
   @override
   State<LayeredBackdrop> createState() => _LayeredBackdropState();
@@ -260,6 +266,7 @@ class _LayeredBackdropState extends State<LayeredBackdrop>
           cityLightsProgram: _cityLightsProgram,
           images: _images,
           imagesVersion: _imagesVersion,
+          parallaxForDepth: widget.parallaxForDepth,
         ),
         child: const SizedBox.expand(),
       ),
@@ -279,6 +286,7 @@ class _BackdropPainter extends CustomPainter {
     this.skyProgram,
     this.oceanProgram,
     this.cityLightsProgram,
+    this.parallaxForDepth,
   });
 
   final List<BackdropLayer> layers;
@@ -291,6 +299,7 @@ class _BackdropPainter extends CustomPainter {
   final ui.FragmentProgram? skyProgram;
   final ui.FragmentProgram? oceanProgram;
   final ui.FragmentProgram? cityLightsProgram;
+  final Matrix4 Function(double depth, Size size)? parallaxForDepth;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -305,6 +314,7 @@ class _BackdropPainter extends CustomPainter {
       oceanProgram: oceanProgram,
       cityLightsProgram: cityLightsProgram,
       images: images,
+      parallaxForDepth: parallaxForDepth,
     );
     for (final layer in layers) {
       layer.paint(canvas, ctx);
@@ -321,6 +331,7 @@ class _BackdropPainter extends CustomPainter {
         old.skyProgram != skyProgram ||
         old.oceanProgram != oceanProgram ||
         old.cityLightsProgram != cityLightsProgram ||
-        old.imagesVersion != imagesVersion;
+        old.imagesVersion != imagesVersion ||
+        old.parallaxForDepth != parallaxForDepth;
   }
 }

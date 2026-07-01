@@ -7,6 +7,7 @@ import 'package:dancing_cats/features/scenery/layers/distant_jet_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/drone_show_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/image_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/ocean_layer.dart';
+import 'package:dancing_cats/features/scenery/layers/parallax_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/sky_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/vignette_layer.dart';
 import 'package:dancing_cats/features/scenery/model/backdrop_scene.dart';
@@ -15,14 +16,17 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('BackdropScene.blueHourWaterfront', () {
-    test('uses the cloudless painted plate as its base layer', () {
+    test('wraps the cloudless painted plate as its base parallax plane', () {
       final scene = BackdropScene.blueHourWaterfront();
       expect(scene.layers, isNotEmpty);
-      expect(scene.layers.first, isA<ImageLayer>());
-      expect(
-        (scene.layers.first as ImageLayer).assetKey,
-        SceneryAssets.cloudlessPlate,
-      );
+      // Every background layer is a depth-assigning ParallaxLayer now.
+      final base = scene.layers.first;
+      expect(base, isA<ParallaxLayer>());
+      base as ParallaxLayer;
+      expect(base.child, isA<ImageLayer>());
+      expect((base.child as ImageLayer).assetKey, SceneryAssets.cloudlessPlate);
+      // The base plate sits on the far (sky) plane, so it barely drifts.
+      expect(base.depth, lessThan(0.1));
     });
 
     test('declares cloud, light, and structure assets to decode', () {
@@ -47,7 +51,13 @@ void main() {
     test(
       'composites plate -> clouds -> jet -> ocean -> city/yacht -> deck -> drones',
       () {
-        final layers = BackdropScene.blueHourWaterfront().layers;
+        final planes = BackdropScene.blueHourWaterfront().layers;
+        // Every background layer is wrapped in a ParallaxLayer; assert ordering
+        // on the wrapped children.
+        for (final l in planes) {
+          expect(l, isA<ParallaxLayer>());
+        }
+        final layers = [for (final p in planes.cast<ParallaxLayer>()) p.child];
         final plate = layers.indexWhere(
           (l) => l is ImageLayer && l.assetKey == SceneryAssets.cloudlessPlate,
         );
@@ -75,6 +85,14 @@ void main() {
         final glow = layers.indexWhere((l) => l is DeckGlowLayer);
         final haze = layers.indexWhere((l) => l is AtmosphericHazeLayer);
         final police = layers.indexWhere((l) => l is BridgePoliceLayer);
+        // The depth ladder is a monotonic front-to-back stack: the deck tracks
+        // the cast most, then the near midground (yacht) beats the far skyline,
+        // which still drifts more than the base sky plate.
+        double depthAt(int i) => (planes[i] as ParallaxLayer).depth;
+        expect(depthAt(deck), greaterThan(depthAt(yacht)));
+        expect(depthAt(yacht), greaterThan(depthAt(city)));
+        expect(depthAt(city), greaterThan(depthAt(plate)));
+        expect(depthAt(deck), greaterThan(depthAt(ocean)));
         expect(plate, 0);
         expect(cloud, greaterThan(plate));
         expect(jet, greaterThan(cloud));

@@ -973,7 +973,9 @@ class CharacterPainter extends CustomPainter {
   }
 
   /// Reduces a scene camera to the gentler backdrop parallax (it lags the
-  /// foreground so the scene reads as deeper).
+  /// foreground so the scene reads as deeper). The legacy single-plane factor
+  /// used for the built-in keyframe path ([danceParallaxTransform]); the layered
+  /// scene uses [_parallaxCameraAtDepth] for a per-plane depth ladder instead.
   static ({double zoom, double dx, double dy}) _parallaxCamera(
     ({double zoom, double dx, double dy}) camera,
   ) {
@@ -981,6 +983,23 @@ class CharacterPainter extends CustomPainter {
       zoom: 1 + (camera.zoom - 1) * 0.34,
       dx: camera.dx * 0.28,
       dy: camera.dy * 0.18,
+    );
+  }
+
+  /// Scales a scene [camera] to the fraction of its motion a plane at [depth]
+  /// receives: `0` locks the plane at infinity (no drift), `1` moves it fully
+  /// with the dancers (the foreground camera). Applied uniformly to zoom, pan
+  /// and crane so a monotonic depth ladder (far → near) reads as stacked planes
+  /// drifting against one another. Zoom stays >= 1 for any depth (the layer only
+  /// ever grows about the pivot), so a plane never reveals its edges.
+  static ({double zoom, double dx, double dy}) _parallaxCameraAtDepth(
+    ({double zoom, double dx, double dy}) camera,
+    double depth,
+  ) {
+    return (
+      zoom: 1 + (camera.zoom - 1) * depth,
+      dx: camera.dx * depth,
+      dy: camera.dy * depth,
     );
   }
 
@@ -1013,23 +1032,26 @@ class CharacterPainter extends CustomPainter {
     );
   }
 
-  /// The reduced parallax transform a *separate* backdrop widget should apply
-  /// for an explicit virtual-director [shot]. The dance-to-track demo drives the
-  /// dance camera from `dance_camera_director.dart` (per-section framings with
-  /// fast accent punches) rather than the built-in [danceCameraShot] keyframes,
-  /// and feeds the same
-  /// shot here so the scenery lags the dancers exactly as it does under the
-  /// in-painter parallax. Mirrors [_applySceneCamera] reduced by
-  /// [_parallaxCamera]. Returns identity when [active] is false, the stage is
-  /// empty, or the parallax is neutral.
-  static Matrix4 danceParallaxTransformForShot({
+  /// The parallax transform a single background layer at [depth] applies for an
+  /// explicit virtual-director [shot], so the layered scene reads as stacked
+  /// depth planes: far layers (depth → 0) barely drift while the near deck
+  /// (depth → 1) tracks the cast. depth `1` matches the foreground camera
+  /// ([_applySceneCamera]); intermediate depths scale the whole move linearly
+  /// (see [_parallaxCameraAtDepth]). The dance-to-track demo drives the camera
+  /// from `dance_camera_director.dart` (per-section framings with fast accent
+  /// punches) and injects this per layer, so the live stage and the offline
+  /// composer lag every plane identically. Mirrors [_applySceneCamera]'s pivot +
+  /// pan clamp. Returns identity when [active] is false, the stage is empty, or
+  /// [depth] <= 0 (a locked plane).
+  static Matrix4 danceParallaxMatrixForShotAtDepth({
     required ({double zoom, double dx, double dy}) shot,
     required Size size,
+    required double depth,
     bool active = true,
   }) {
-    if (!active || size.isEmpty) return Matrix4.identity();
+    if (!active || size.isEmpty || depth <= 0) return Matrix4.identity();
     return _parallaxMatrix(
-      _parallaxCamera(shot),
+      _parallaxCameraAtDepth(shot, depth),
       size,
       _directorPivotFraction,
       scaleDy: true,

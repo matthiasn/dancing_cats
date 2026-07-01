@@ -180,16 +180,14 @@ class DanceFrameComposer {
   void _paintFrame(Canvas canvas, double pos) {
     final stage = _stepper.stage ?? perf.stageAt(pos);
     final beat = perf.beatPulse(pos);
-    final parallax = CharacterPainter.danceParallaxTransformForShot(
-      shot: _stepper.shot,
-      size: size,
-    );
 
+    // Parallax now lives PER LAYER (each plane lags by its depth) via the
+    // scene's ParallaxLayer wrappers + the injected closure below, instead of
+    // one transform over the whole backdrop — kept identical to the live stage.
     canvas
       ..drawRect(Offset.zero & size, Paint()..color = Colors.black)
       ..save()
-      ..clipRect(Offset.zero & size)
-      ..transform(parallax.storage);
+      ..clipRect(Offset.zero & size);
     _paintBackdropLayers(
       canvas,
       BackdropScene.blueHourWaterfront().layers,
@@ -253,6 +251,12 @@ class DanceFrameComposer {
       oceanProgram: oceanProgram,
       cityLightsProgram: cityLightsProgram,
       images: images,
+      parallaxForDepth: (depth, s) =>
+          CharacterPainter.danceParallaxMatrixForShotAtDepth(
+            shot: _stepper.shot,
+            size: s,
+            depth: depth,
+          ),
     );
     for (final layer in layers) {
       layer.paint(canvas, ctx);
