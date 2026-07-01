@@ -42,6 +42,15 @@ class SuitFabric {
 }
 
 const SuitFabric kSuitFabric = SuitFabric(0xFF2E3A59);
+
+/// Shared-lighting group ids, one per GARMENT: each garment is lit by ONE
+/// cel ramp spanning its union bounds (see LimbRibbonSpec.shadeGroup), so a
+/// junction inside a garment (a sleeve on the jacket yoke, a thigh out of the
+/// pelvis) carries the same tone on both sides. The jacket and the trousers
+/// are separate pieces of clothing and keep separate ramps; the shirt, tie,
+/// and cuffs are small flat-shaded pieces and need no group.
+const String kJacketShadeGroup = 'jacket';
+const String kTrouserShadeGroup = 'trousers';
 final int _suit = kSuitFabric.plane(1); // navy jacket (torso)
 // The sleeve planes step JUST far enough from the jacket to separate an arm
 // crossing the chest (the unified silhouette pass draws no internal outlines,
@@ -1357,6 +1366,7 @@ RigSpec buildCatInSuitRig({
       outlineColor: _outline,
       outlineWidth: 2,
       samplesPerSegment: 12,
+      shadeGroup: kTrouserShadeGroup,
     ),
     LimbRibbonSpec(
       id: 'leg.L.ribbon',
@@ -1380,6 +1390,7 @@ RigSpec buildCatInSuitRig({
       outlineColor: _outline,
       outlineWidth: 2,
       samplesPerSegment: 12,
+      shadeGroup: kTrouserShadeGroup,
     ),
     // Arms: the same continuous-ribbon treatment that already makes the legs
     // read as one bending limb. The centreline flows clavicle→shoulder→elbow→
@@ -1422,6 +1433,7 @@ RigSpec buildCatInSuitRig({
       outlineWidth: 2,
       samplesPerSegment: 12,
       formRound: false,
+      shadeGroup: kJacketShadeGroup,
     ),
     LimbRibbonSpec(
       id: 'arm.L.ribbon',
@@ -1452,6 +1464,7 @@ RigSpec buildCatInSuitRig({
       outlineWidth: 2,
       samplesPerSegment: 12,
       formRound: false,
+      shadeGroup: kJacketShadeGroup,
     ),
   ];
 
@@ -1504,6 +1517,7 @@ RigSpec buildCatInSuitRig({
       hiddenBoneIds: const [CatBones.hips],
       z: 9,
       color: _trouser,
+      shadeGroup: kTrouserShadeGroup,
       // NO outline and NO form-rounding: an outlined / contour-darkened pelvis
       // read as a separate "plate" stamped between the jacket and the legs. The
       // jacket caps its top and the same-tone leg ribbons flow out of its bottom,
@@ -1547,6 +1561,7 @@ RigSpec buildCatInSuitRig({
       outlineColor: _outline,
       outlineWidth: 1,
       hiddenBoneIds: const [CatBones.torso],
+      shadeGroup: kJacketShadeGroup,
     ),
   ];
 

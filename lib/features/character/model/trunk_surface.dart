@@ -60,6 +60,7 @@ SkinnedMeshSpec buildTrunkSurface({
   bool formRound = false,
   double boundaryCornerSmoothing = 0.22,
   List<String> hiddenBoneIds = const [],
+  String? shadeGroup,
 }) {
   assert(stations.length >= 2, 'a trunk surface needs at least two stations');
   final origins = _restWorldOrigins(bones);
@@ -159,6 +160,7 @@ SkinnedMeshSpec buildTrunkSurface({
     outlineWidth: outlineWidth,
     formRound: formRound,
     boundaryCornerSmoothing: boundaryCornerSmoothing,
+    shadeGroup: shadeGroup,
   );
 }
 

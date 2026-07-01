@@ -127,20 +127,35 @@ class CharacterRenderer {
     final ribbons = rig.ribbonDrawOrder;
     final meshes = rig.meshDrawOrder;
     final celShade = rig.celShade;
+    final groupBounds = celShade == null
+        ? const <String, Rect>{}
+        : _shadeGroupBounds(rig, world);
     var ribbonIndex = 0;
     var meshIndex = 0;
     for (final bone in rig.drawOrder) {
       while (ribbonIndex < ribbons.length && ribbons[ribbonIndex].z <= bone.z) {
         _drawRibbonFill(canvas, ribbons[ribbonIndex], world);
         if (celShade != null) {
-          _celShadeRibbon(canvas, ribbons[ribbonIndex], world, celShade);
+          _celShadeRibbon(
+            canvas,
+            ribbons[ribbonIndex],
+            world,
+            celShade,
+            shadeBounds: groupBounds[ribbons[ribbonIndex].shadeGroup],
+          );
         }
         ribbonIndex++;
       }
       while (meshIndex < meshes.length && meshes[meshIndex].z <= bone.z) {
         _drawMeshFill(canvas, meshes[meshIndex], world);
         if (celShade != null) {
-          _celShadeMesh(canvas, meshes[meshIndex], world, celShade);
+          _celShadeMesh(
+            canvas,
+            meshes[meshIndex],
+            world,
+            celShade,
+            shadeBounds: groupBounds[meshes[meshIndex].shadeGroup],
+          );
         }
         meshIndex++;
       }
@@ -161,17 +176,56 @@ class CharacterRenderer {
     while (ribbonIndex < ribbons.length) {
       _drawRibbonFill(canvas, ribbons[ribbonIndex], world);
       if (celShade != null) {
-        _celShadeRibbon(canvas, ribbons[ribbonIndex], world, celShade);
+        _celShadeRibbon(
+          canvas,
+          ribbons[ribbonIndex],
+          world,
+          celShade,
+          shadeBounds: groupBounds[ribbons[ribbonIndex].shadeGroup],
+        );
       }
       ribbonIndex++;
     }
     while (meshIndex < meshes.length) {
       _drawMeshFill(canvas, meshes[meshIndex], world);
       if (celShade != null) {
-        _celShadeMesh(canvas, meshes[meshIndex], world, celShade);
+        _celShadeMesh(
+          canvas,
+          meshes[meshIndex],
+          world,
+          celShade,
+          shadeBounds: groupBounds[meshes[meshIndex].shadeGroup],
+        );
       }
       meshIndex++;
     }
+  }
+
+  /// Union bounds of all surfaces sharing a [LimbRibbonSpec.shadeGroup] /
+  /// [SkinnedMeshSpec.shadeGroup], per group and per frame. A group is lit by
+  /// ONE directional ramp spanning these bounds — one garment under one key —
+  /// so the tone at a junction (a sleeve on the jacket yoke) is identical on
+  /// both sides instead of each panel bringing its own gradient.
+  Map<String, Rect> _shadeGroupBounds(
+    RigSpec rig,
+    Map<String, Affine2D> world,
+  ) {
+    final bounds = <String, Rect>{};
+    void include(String? group, Path? path) {
+      if (group == null || path == null) return;
+      final b = path.getBounds();
+      if (b.isEmpty) return;
+      final existing = bounds[group];
+      bounds[group] = existing == null ? b : existing.expandToInclude(b);
+    }
+
+    for (final ribbon in rig.ribbonDrawOrder) {
+      include(ribbon.shadeGroup, _ribbonPath(ribbon, world));
+    }
+    for (final mesh in rig.meshDrawOrder) {
+      include(mesh.shadeGroup, _meshPath(mesh, world));
+    }
+    return bounds;
   }
 
   // ---- Cel-shading: a per-shape form shadow clipped to each volume ----------
@@ -319,39 +373,60 @@ class CharacterRenderer {
     Canvas canvas,
     LimbRibbonSpec ribbon,
     Map<String, Affine2D> world,
-    CelShadeSpec s,
-  ) {
+    CelShadeSpec s, {
+    Rect? shadeBounds,
+  }) {
     final path = _ribbonPath(ribbon, world);
     if (path == null) return;
-    _celShadePath(canvas, path, ribbon.color, s, formRound: ribbon.formRound);
+    _celShadePath(
+      canvas,
+      path,
+      ribbon.color,
+      s,
+      formRound: ribbon.formRound,
+      shadeBounds: shadeBounds,
+    );
   }
 
   void _celShadeMesh(
     Canvas canvas,
     SkinnedMeshSpec mesh,
     Map<String, Affine2D> world,
-    CelShadeSpec s,
-  ) {
+    CelShadeSpec s, {
+    Rect? shadeBounds,
+  }) {
     final path = _meshPath(mesh, world);
     if (path == null) return;
-    _celShadePath(canvas, path, mesh.color, s, formRound: mesh.formRound);
+    _celShadePath(
+      canvas,
+      path,
+      mesh.color,
+      s,
+      formRound: mesh.formRound,
+      shadeBounds: shadeBounds,
+    );
   }
 
   /// Cel-shades an arbitrary world-space [path] (ribbon/mesh): clip to it and
-  /// paint the form-shadow gradient across its bounds.
+  /// paint the form-shadow gradient across its bounds — or across the shared
+  /// [shadeBounds] when the surface belongs to a shade group, so one ramp
+  /// lights the whole garment. The form-rounding radial stays per-shape (it
+  /// models the individual volume, not the garment's key light).
   void _celShadePath(
     Canvas canvas,
     Path path,
     int baseArgb,
     CelShadeSpec s, {
     bool formRound = true,
+    Rect? shadeBounds,
   }) {
     final bounds = path.getBounds();
     if (bounds.isEmpty) return;
+    final ramp = shadeBounds ?? bounds;
     canvas
       ..save()
       ..clipPath(path)
-      ..drawRect(bounds, _celShadePaint(bounds, baseArgb, s));
+      ..drawRect(ramp, _celShadePaint(ramp, baseArgb, s));
     final round = formRound ? _formRoundPaint(bounds, baseArgb, s) : null;
     if (round != null) canvas.drawRect(bounds, round);
     canvas.restore();

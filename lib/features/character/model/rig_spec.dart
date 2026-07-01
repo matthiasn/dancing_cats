@@ -367,6 +367,7 @@ class LimbRibbonSpec {
     this.samplesPerSegment = 10,
     this.formRound = true,
     this.roundCaps = true,
+    this.shadeGroup,
   }) : jointBoneIds = List<String>.unmodifiable(jointBoneIds),
        hiddenBoneIds = List<String>.unmodifiable(hiddenBoneIds),
        halfWidths = List<double>.unmodifiable(halfWidths),
@@ -403,6 +404,13 @@ class LimbRibbonSpec {
   /// Whether the ribbon ends use capsule-style semicircles. Default true for
   /// organic limbs; false gives sleeves or cloth bands a flatter cut edge.
   final bool roundCaps;
+
+  /// Optional shared-lighting group. Surfaces with the same group are shaded
+  /// by ONE directional cel ramp spanning their union bounds — one garment
+  /// under one key — instead of each piece computing its own ramp on its own
+  /// bounds (which tinted a raised sleeve differently from the jacket it
+  /// touches and read as patched-together fabrics).
+  final String? shadeGroup;
 }
 
 /// A broad skinned surface made from weighted vertices.
@@ -424,6 +432,7 @@ class SkinnedMeshSpec {
     this.formRound = true,
     this.smoothBoundary = true,
     this.boundaryCornerSmoothing = 0.5,
+    this.shadeGroup,
   }) : assert(
          boundaryCornerSmoothing >= 0 && boundaryCornerSmoothing <= 0.5,
          'boundaryCornerSmoothing must be between 0 and 0.5',
@@ -457,6 +466,9 @@ class SkinnedMeshSpec {
   /// `0.5` is midpoint smoothing (the historic organic mesh look), while lower
   /// values keep more of the authored edge length between curved corners.
   final double boundaryCornerSmoothing;
+
+  /// Optional shared-lighting group — see [LimbRibbonSpec.shadeGroup].
+  final String? shadeGroup;
 }
 
 class SkinnedMeshVertex {
