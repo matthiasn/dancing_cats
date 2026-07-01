@@ -149,7 +149,7 @@ class CharacterRenderer {
             shadeBounds: groupBounds[ribbons[ribbonIndex].shadeGroup],
           );
         }
-        _drawRibbonInk(canvas, ribbons[ribbonIndex], world);
+        _drawRibbonInk(canvas, rig, ribbons[ribbonIndex], world);
         ribbonIndex++;
       }
       while (meshIndex < meshes.length && meshes[meshIndex].z <= bone.z) {
@@ -196,7 +196,7 @@ class CharacterRenderer {
           shadeBounds: groupBounds[ribbons[ribbonIndex].shadeGroup],
         );
       }
-      _drawRibbonInk(canvas, ribbons[ribbonIndex], world);
+      _drawRibbonInk(canvas, rig, ribbons[ribbonIndex], world);
       ribbonIndex++;
     }
     while (meshIndex < meshes.length) {
@@ -542,12 +542,53 @@ class CharacterRenderer {
         (paint) => _drawKind(canvas, d, paint),
       );
 
+  /// Union path of every visible fill painted BELOW [z]: bone drawables,
+  /// ribbons, and meshes with a lower z. An inked limb clips its line to this
+  /// region, so the line exists only where the limb actually overlaps the
+  /// body — its ends land exactly ON the silhouette, never floating
+  /// mid-cloth and never enclosing the limb's root.
+  Path _bodyBelowZPath(
+    RigSpec rig,
+    Map<String, Affine2D> world,
+    int z,
+  ) {
+    var union = Path();
+    final hiddenBones = rig.hiddenDrawableBoneIds;
+    for (final bone in rig.drawOrder) {
+      if (bone.z >= z) break;
+      if (hiddenBones.contains(bone.id)) continue;
+      final drawable = bone.drawable;
+      if (drawable == null) continue;
+      final transform = world[bone.id];
+      if (transform == null) continue;
+      final path = _kindPath(
+        drawable,
+      ).transform(transform.toMatrix4Storage(_matrix));
+      union = Path.combine(PathOperation.union, union, path);
+    }
+    for (final other in rig.ribbonDrawOrder) {
+      if (other.z >= z) continue;
+      final path = _ribbonPath(other, world);
+      if (path == null) continue;
+      union = Path.combine(PathOperation.union, union, path);
+    }
+    for (final mesh in rig.meshDrawOrder) {
+      if (mesh.z >= z) continue;
+      final path = _meshPath(mesh, world);
+      if (path == null) continue;
+      union = Path.combine(PathOperation.union, union, path);
+    }
+    return union;
+  }
+
   /// The hand-drawn ink line over an overlapping limb (see
   /// [LimbRibbonSpec.inkOverFill]): strokes the ribbon's own outline on TOP
-  /// of its fill and cel shade, so the limb separates from same-colour cloth
-  /// behind it by line instead of by a fabric value shift.
+  /// of its fill and cel shade — CLIPPED to the union of body shapes behind
+  /// it, so the limb separates from same-colour cloth exactly where it
+  /// overlaps and nowhere else.
   void _drawRibbonInk(
     Canvas canvas,
+    RigSpec rig,
     LimbRibbonSpec ribbon,
     Map<String, Affine2D> world,
   ) {
@@ -576,7 +617,11 @@ class CharacterRenderer {
       ..strokeCap = StrokeCap.round
       ..color = Color(outline)
       ..isAntiAlias = antiAlias;
-    canvas.drawPath(path, _paint);
+    canvas
+      ..save()
+      ..clipPath(_bodyBelowZPath(rig, world, ribbon.z))
+      ..drawPath(path, _paint)
+      ..restore();
   }
 
   void _drawRibbonFill(
@@ -736,6 +781,34 @@ class CharacterRenderer {
   }
 
   /// Draws the shape geometry of [d] with [paint] (fill or stroke).
+  /// The drawable's shape as a local-space [Path] (same geometry _drawKind
+  /// paints) — used to build the union of body shapes behind an inked limb.
+  Path _kindPath(BoneDrawable d) {
+    final rect = Rect.fromCenter(
+      center: Offset(d.dx, d.dy),
+      width: d.width,
+      height: d.height,
+    );
+    switch (d.kind) {
+      case BoneShapeKind.capsule:
+        final r = Radius.circular(
+          (d.width < d.height ? d.width : d.height) / 2,
+        );
+        return Path()..addRRect(RRect.fromRectAndRadius(rect, r));
+      case BoneShapeKind.ellipse:
+        return Path()..addOval(rect);
+      case BoneShapeKind.roundedRect:
+        return Path()
+          ..addRRect(
+            RRect.fromRectAndRadius(rect, Radius.circular(d.cornerRadius)),
+          );
+      case BoneShapeKind.triangle:
+        return _trianglePath(rect);
+      case BoneShapeKind.taperedCapsule:
+        return _taperedCapsulePath(d);
+    }
+  }
+
   void _drawKind(Canvas canvas, BoneDrawable d, Paint paint) {
     final rect = Rect.fromCenter(
       center: Offset(d.dx, d.dy),

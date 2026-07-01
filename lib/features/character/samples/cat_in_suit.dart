@@ -1478,11 +1478,10 @@ RigSpec buildCatInSuitRig({
       formRound: false,
       shadeGroup: kJacketShadeGroup,
       inkOverFill: true,
-      // The sleeve's line starts below mid-arm: the shoulder area belongs
-      // to the jacket's seam stroke alone — two nearly-parallel pencil lines
-      // up there read as sloppy sketching (even bent poses must not push the
-      // ink's open ends up onto the shoulder).
-      inkStartFraction: 0.45,
+      // Below the deltoid: the root must merge with the jacket. The ink is
+      // clipped to actual body overlap at render time, so its ends land ON
+      // the silhouette rather than floating mid-cloth.
+      inkStartFraction: 0.2,
     ),
     LimbRibbonSpec(
       id: 'arm.L.ribbon',
@@ -1515,11 +1514,10 @@ RigSpec buildCatInSuitRig({
       formRound: false,
       shadeGroup: kJacketShadeGroup,
       inkOverFill: true,
-      // The sleeve's line starts below mid-arm: the shoulder area belongs
-      // to the jacket's seam stroke alone — two nearly-parallel pencil lines
-      // up there read as sloppy sketching (even bent poses must not push the
-      // ink's open ends up onto the shoulder).
-      inkStartFraction: 0.45,
+      // Below the deltoid: the root must merge with the jacket. The ink is
+      // clipped to actual body overlap at render time, so its ends land ON
+      // the silhouette rather than floating mid-cloth.
+      inkStartFraction: 0.2,
     ),
   ];
 
@@ -1617,18 +1615,11 @@ RigSpec buildCatInSuitRig({
       outlineWidth: 1,
       hiddenBoneIds: const [CatBones.torso],
       shadeGroup: kJacketShadeGroup,
-      // Drawn shoulder seams: ONE visible stroke per side, joined to the
-      // sleeve by OCCLUSION rather than curve alignment. The seam is stroked
-      // UNDER the sleeves (z14 — above the jacket, below both arms): its
-      // outer tip hides beneath the deltoid dome, so the visible line always
-      // emerges from exactly behind the sleeve's edge and runs to the collar
-      // — no two strokes to keep aligned, in any pose. (Stroking it ABOVE
-      // the sleeves drew a line ACROSS every raised arm.)
-      crownSeamWidth: 2,
-      crownSeamZ: 14,
-      crownSeamTip: (x: -35 - 7.4 * armWidthScale, y: -64 - 6.8 * armWidthScale),
-      crownSeamTipWeights: const {CatBones.clavicleL: 1},
-      crownSeamTipWeightsMirrored: const {CatBones.clavicleR: 1},
+      // NO drawn shoulder seam: the outline is the outer border of the
+      // fabric, nothing else. Every attempt to run a decorative seam near
+      // the shoulder produced stray pencil-stroke reads in some pose; the
+      // limb ink below is clipped to actual overlap, so the shoulder always
+      // carries exactly ONE line — the silhouette.
     ),
   ];
 
