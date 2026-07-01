@@ -4471,7 +4471,7 @@ class CatClips {
       // mostly locked to the viewer so the dance reads as body rhythm instead
       // of a wobbling face.
       CatBones.hips: LayeredJointChannel([
-        _bodyPelvisLeadChannel(_danceBodyGrooveKeys),
+        _bodyPelvisLeadChannel(_danceBodyGrooveKeys, smooth: true),
         _bodyPelvisLeadChannel(_danceBodyAccentKeys, smooth: true),
         const SineChannel(
           harmonicAmplitude: 0.004,
@@ -4486,7 +4486,7 @@ class CatClips {
         ),
       ]),
       CatBones.torso: LayeredJointChannel([
-        _bodyChestFollowChannel(_danceBodyGrooveKeys),
+        _bodyChestFollowChannel(_danceBodyGrooveKeys, smooth: true),
         _bodyChestFollowChannel(_danceBodyAccentKeys, smooth: true),
         const SineChannel(
           harmonicAmplitude: 0.003,
@@ -5418,7 +5418,11 @@ class CatClips {
       channels: {
         ...base.channels,
         CatBones.hips: LayeredJointChannel([
-          _bodyPelvisLeadChannel(_shakuGrooveCalm, microFrames: -0.3),
+          _bodyPelvisLeadChannel(
+            _shakuGrooveCalm,
+            smooth: true,
+            microFrames: -0.3,
+          ),
           _bodyPelvisLeadChannel(
             _danceBodyAccentKeys,
             smooth: true,
@@ -5449,6 +5453,7 @@ class CatClips {
         CatBones.torso: LayeredJointChannel([
           _bodyChestFollowChannel(
             _shakuGrooveCalm,
+            smooth: true,
             microFrames: 0.25,
             rotationGain: 0.68,
           ),
@@ -5597,24 +5602,22 @@ class CatClips {
     DanceIkTargetKey(31, x: 72, y: -44),
     DanceIkTargetKey(32, x: 98, y: -10, ease: Ease.easeOutBack),
   ];
-  static final IkTargetChannel _zankuHandLTarget = SoftenedIkTargetChannel(
-    _dancePhrase.ikTargetChannel(
+  // Smooth spline hand path: flows through the authored keys with C1
+  // continuity, so no corner-rounding blur wrapper is needed (the old
+  // SoftenedIkTargetChannel blunted accent hits and shifted key poses).
+  static final IkTargetChannel _zankuHandLTarget = _dancePhrase.ikTargetChannel(
       _zankuHandLTargetKeys,
+      smooth: true,
       cyclic: true,
-    ),
-    radius: 0.45 / _dancePhrase.frameCount,
-    passes: 2,
-    cyclic: true,
-  );
-  static final IkTargetChannel _zankuHandRTarget = SoftenedIkTargetChannel(
-    _dancePhrase.ikTargetChannel(
+    );
+  // Smooth spline hand path: flows through the authored keys with C1
+  // continuity, so no corner-rounding blur wrapper is needed (the old
+  // SoftenedIkTargetChannel blunted accent hits and shifted key poses).
+  static final IkTargetChannel _zankuHandRTarget = _dancePhrase.ikTargetChannel(
       _zankuHandRTargetKeys,
+      smooth: true,
       cyclic: true,
-    ),
-    radius: 0.45 / _dancePhrase.frameCount,
-    passes: 2,
-    cyclic: true,
-  );
+    );
 
   // Low tap-dig-pop-stomp Zanku legwork. The visible story is SHOE ROTATION and
   // COM drop, not a lateral leg extension: the foot stays under the hips, knocks
@@ -6509,18 +6512,22 @@ class CatClips {
     DanceIkTargetKey(30, x: 48, y: -16),
     DanceIkTargetKey(32, x: 34, y: -20),
   ];
-  static final IkTargetChannel _azontoHandLTarget = SoftenedIkTargetChannel(
-    _dancePhrase.ikTargetChannel(_azontoHandLTargetKeys, cyclic: true),
-    radius: 0.45 / _dancePhrase.frameCount,
-    passes: 2,
-    cyclic: true,
-  );
-  static final IkTargetChannel _azontoHandRTarget = SoftenedIkTargetChannel(
-    _dancePhrase.ikTargetChannel(_azontoHandRTargetKeys, cyclic: true),
-    radius: 0.45 / _dancePhrase.frameCount,
-    passes: 2,
-    cyclic: true,
-  );
+  // Smooth spline hand path: flows through the authored keys with C1
+  // continuity, so no corner-rounding blur wrapper is needed (the old
+  // SoftenedIkTargetChannel blunted accent hits and shifted key poses).
+  static final IkTargetChannel _azontoHandLTarget = _dancePhrase.ikTargetChannel(
+      _azontoHandLTargetKeys,
+      smooth: true,
+      cyclic: true,
+    );
+  // Smooth spline hand path: flows through the authored keys with C1
+  // continuity, so no corner-rounding blur wrapper is needed (the old
+  // SoftenedIkTargetChannel blunted accent hits and shifted key poses).
+  static final IkTargetChannel _azontoHandRTarget = _dancePhrase.ikTargetChannel(
+      _azontoHandRTargetKeys,
+      smooth: true,
+      cyclic: true,
+    );
   static const _azontoFootLTargetKeys = [
     DanceIkTargetKey(0, x: -56, y: 103),
     DanceIkTargetKey(2, x: -56, y: 103), // planted through left support
@@ -6767,7 +6774,7 @@ class CatClips {
       channels: {
         ...base.channels,
         CatBones.hips: LayeredJointChannel([
-          _bodyPelvisLeadChannel(_shakuGrooveCalm),
+          _bodyPelvisLeadChannel(_shakuGrooveCalm, smooth: true),
           _bodyPelvisLeadChannel(_danceBodyAccentKeys, smooth: true),
           _bodyPelvisLeadChannel(
             _azontoPocketKeys,
@@ -6780,7 +6787,11 @@ class CatClips {
           const SineChannel(harmonicAmplitude: 0.17),
         ]),
         CatBones.torso: LayeredJointChannel([
-          _bodyChestFollowChannel(_shakuGrooveCalm, rotationGain: 0.9),
+          _bodyChestFollowChannel(
+            _shakuGrooveCalm,
+            smooth: true,
+            rotationGain: 0.9,
+          ),
           _bodyChestFollowChannel(_danceBodyAccentKeys, smooth: true),
           _bodyChestFollowChannel(
             _azontoPocketKeys,
@@ -7161,26 +7172,22 @@ class CatClips {
       ],
     ),
   ];
-  static final IkTargetChannel _bugaHandLTarget = SoftenedIkTargetChannel(
-    _dancePhrase.ikTargetChannel(
+  // Smooth spline hand path: flows through the authored keys with C1
+  // continuity, so no corner-rounding blur wrapper is needed (the old
+  // SoftenedIkTargetChannel blunted accent hits and shifted key poses).
+  static final IkTargetChannel _bugaHandLTarget = _dancePhrase.ikTargetChannel(
       _bugaHandLTargetKeys,
       smooth: true,
       cyclic: true,
-    ),
-    radius: 0.5 / _dancePhrase.frameCount,
-    passes: 2,
-    cyclic: true,
-  );
-  static final IkTargetChannel _bugaHandRTarget = SoftenedIkTargetChannel(
-    _dancePhrase.ikTargetChannel(
+    );
+  // Smooth spline hand path: flows through the authored keys with C1
+  // continuity, so no corner-rounding blur wrapper is needed (the old
+  // SoftenedIkTargetChannel blunted accent hits and shifted key poses).
+  static final IkTargetChannel _bugaHandRTarget = _dancePhrase.ikTargetChannel(
       _bugaHandRTargetKeys,
       smooth: true,
       cyclic: true,
-    ),
-    radius: 0.5 / _dancePhrase.frameCount,
-    passes: 2,
-    cyclic: true,
-  );
+    );
   static const _bugaFootLTargetKeys = [
     DanceIkTargetKey(0, x: -58, y: 101),
     DanceIkTargetKey(4, x: -72, y: 102),
@@ -7258,11 +7265,12 @@ class CatClips {
       channels: {
         ...base.channels,
         CatBones.hips: LayeredJointChannel([
-          _bodyPelvisLeadChannel(_bugaBodyKeys, microFrames: -0.65),
+          _bodyPelvisLeadChannel(_bugaBodyKeys, smooth: true, microFrames: -0.65),
         ]),
         CatBones.torso: LayeredJointChannel([
           _bodyChestFollowChannel(
             _bugaBodyKeys,
+            smooth: true,
             microFrames: 0.75,
             rotationGain: 0.94,
             scaleGain: 0.98,
@@ -7626,9 +7634,9 @@ class CatClips {
   static final KeyframeIkTargetChannel _pounceFootRTarget = _dancePhrase
       .ikTargetChannel(_pounceFootRTargetKeys, smooth: true);
   static final KeyframeIkTargetChannel _pounceHandLTarget = _dancePhrase
-      .ikTargetChannel(_pounceHandLTargetKeys);
+      .ikTargetChannel(_pounceHandLTargetKeys, smooth: true);
   static final KeyframeIkTargetChannel _pounceHandRTarget = _dancePhrase
-      .ikTargetChannel(_pounceHandRTargetKeys);
+      .ikTargetChannel(_pounceHandRTargetKeys, smooth: true);
   static final List<LimbIkTarget> _pounceLimbTargets = [
     _danceLimbTargets[0].withChannel(_pounceHandLTarget),
     _danceLimbTargets[1].withChannel(_pounceHandRTarget),
@@ -8311,28 +8319,24 @@ class CatClips {
       .ikTargetChannel(_sekemFootLTargetKeys);
   static final KeyframeIkTargetChannel _sekemFootRTarget = _dancePhrase
       .ikTargetChannel(_sekemFootRTargetKeys);
-  static final IkTargetChannel _sekemHandLTarget = SoftenedIkTargetChannel(
-    _dancePhrase.ikTargetChannel(
+  // Smooth spline hand path: flows through the authored keys with C1
+  // continuity, so no corner-rounding blur wrapper is needed (the old
+  // SoftenedIkTargetChannel blunted accent hits and shifted key poses).
+  static final IkTargetChannel _sekemHandLTarget = _dancePhrase.ikTargetChannel(
       _sekemHandLTargetKeys,
       smooth: true,
       microFrames: 0.55,
       cyclic: true,
-    ),
-    radius: 0.45 / _dancePhrase.frameCount,
-    passes: 2,
-    cyclic: true,
-  );
-  static final IkTargetChannel _sekemHandRTarget = SoftenedIkTargetChannel(
-    _dancePhrase.ikTargetChannel(
+    );
+  // Smooth spline hand path: flows through the authored keys with C1
+  // continuity, so no corner-rounding blur wrapper is needed (the old
+  // SoftenedIkTargetChannel blunted accent hits and shifted key poses).
+  static final IkTargetChannel _sekemHandRTarget = _dancePhrase.ikTargetChannel(
       _sekemHandRTargetKeys,
       smooth: true,
       microFrames: 0.55,
       cyclic: true,
-    ),
-    radius: 0.45 / _dancePhrase.frameCount,
-    passes: 2,
-    cyclic: true,
-  );
+    );
   static final List<LimbIkTarget> _sekemLimbTargets = [
     // Sekem is own-side paddles, not a crossed-arm pose. Use explicit OUTSIDE
     // elbow bends so the sleeve ribbon stays on the same anatomical side as the

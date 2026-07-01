@@ -684,7 +684,12 @@ void main() {
       expect(channels.containsKey(CatBones.armUpperR), isTrue);
     });
 
-    test('high-arm catalogue moves use rounded multi-pass hand paths', () {
+    test('catalogue hand paths flow through their keys (C1 smooth)', () {
+      // Hands used to be per-segment eased (a dead stop at every key) with a
+      // SoftenedIkTargetChannel blur stacked on top to hide the corners — a
+      // workaround that also blunted accent hits and shifted key poses. The
+      // channels are smooth splines now: velocity-continuous THROUGH the
+      // authored keys, no blur wrapper.
       for (final clip in [
         CatClips.zanku,
         CatClips.azonto,
@@ -692,16 +697,17 @@ void main() {
         CatClips.sekem,
       ]) {
         for (final hand in [CatBones.handL, CatBones.handR]) {
+          final channel = _targetFor(clip, hand).channel;
           expect(
-            _targetFor(clip, hand).channel,
-            isA<SoftenedIkTargetChannel>().having(
-              (channel) => channel.passes,
-              'passes',
-              greaterThanOrEqualTo(2),
+            channel,
+            isA<KeyframeIkTargetChannel>().having(
+              (channel) => channel.smooth,
+              'smooth',
+              isTrue,
             ),
             reason:
-                '${clip.name} $hand should round nearby hand targets enough '
-                'to avoid robotic shoulder/arm pops',
+                '${clip.name} $hand must interpolate smoothly through its '
+                'keys, not stop at each one behind a corner blur',
           );
         }
       }

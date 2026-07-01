@@ -532,7 +532,7 @@ class CharacterScene {
       if (!clavicleId.toLowerCase().contains('clavicle')) continue;
       joints[clavicleId] = _ensureSignedRotation(
         pose: joints[clavicleId] ?? JointPose.identity,
-        signedRotation: side * 0.09 * engagement,
+        signedRotation: side * 0.13 * engagement,
       );
       changed = true;
     }
@@ -1124,7 +1124,10 @@ class CharacterScene {
   }
 
   double _shoulderCorrectiveEngagement(IkTargetPose sample) {
-    final raised = smoothstep((-sample.y - 42) / 56);
+    // Ramp begins just below shoulder height so a hand AT the shoulder line
+    // (y ≈ -60, where the motion validator starts expecting girdle response)
+    // already carries a slight shrug, reaching the full response overhead.
+    final raised = smoothstep((-sample.y - 34) / 56);
     final wideReach = smoothstep((sample.x.abs() - 62) / 34) * 0.55;
     return math.max(raised, wideReach).clamp(0.0, 1.0);
   }
