@@ -1,5 +1,6 @@
 import 'dart:ui' show BlendMode, Color, Offset, Size;
 
+import 'package:dancing_cats/features/scenery/layers/aircraft_beacon_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/atmospheric_haze_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/backdrop_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/bridge_police_layer.dart';
@@ -224,6 +225,12 @@ class BackdropScene {
           ),
           grade: sky,
         ),
+        // The lone 747 crossing the far sky (timed to the loop). Graded with the
+        // sky so it reads as a dark dusk silhouette, not a bright day plane.
+        GradedLayer(
+          const ParallaxLayer(DistantJetLayer(), depth: _depthSkyOcean),
+          grade: sky,
+        ),
         // Warm sunset-glow band on the horizon (the sun-just-set residual),
         // held out of the grade so it stays warm, and drawn BEFORE the city so
         // the skyline silhouettes against it — the signature of the old plate.
@@ -251,9 +258,9 @@ class BackdropScene {
             ImageLayer(
               SceneryAssets.lagosCityWindows,
               blend: BlendMode.plus,
-              modulate: Color(0xFF6F5730),
+              modulate: Color(0xFFAD8442),
               blurSigma: 11,
-              opacity: 0.55,
+              opacity: 0.8,
             ),
             depth: _depthCity,
           ),
@@ -263,12 +270,13 @@ class BackdropScene {
             ImageLayer(
               SceneryAssets.lagosCityWindows,
               blend: BlendMode.plus,
-              modulate: Color(0xFFBC8C4C),
-              opacity: 0.6,
+              modulate: Color(0xFFFFD27A),
             ),
             depth: _depthCity,
           ),
         ),
+        // Blinking red aircraft-warning beacons on the tower tops + bridge pylon.
+        const ParallaxLayer(AircraftBeaconLayer(), depth: _depthCity),
         // The yacht rides its own nearer plane, drawn AFTER the city windows so
         // it occludes them (no bleed onto the hull).
         GradedLayer(
@@ -313,6 +321,12 @@ class BackdropScene {
           ),
           depth: _depthCity,
         ),
+        // The night-time light SHOW (all timed to the loop, drawn ungraded so the
+        // lights glow against the dusk): the bridge police cordon strobes, then
+        // the drone ascent above the bridge and its launch road.
+        const ParallaxLayer(BridgePoliceLayer(), depth: _depthCity),
+        const ParallaxLayer(DroneShowLayer.sky(), depth: _depthCity),
+        const ParallaxLayer(DroneShowLayer.launchRoad(), depth: _depthCity),
         GradedLayer(
           const ParallaxLayer(
             ImageLayer(SceneryAssets.lagosDeck),
@@ -351,6 +365,7 @@ class BackdropScene {
         SceneryAssets.lagosYachtWindows,
         SceneryAssets.lagosDeck,
         SceneryAssets.lagosPalms,
+        SceneryAssets.lufthansa747, // the far-sky 747
       ],
     );
   }

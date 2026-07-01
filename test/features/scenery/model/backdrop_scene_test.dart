@@ -1,5 +1,6 @@
 import 'dart:ui' show BlendMode;
 
+import 'package:dancing_cats/features/scenery/layers/aircraft_beacon_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/atmospheric_haze_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/backdrop_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/bridge_police_layer.dart';
@@ -341,6 +342,24 @@ void main() {
       expect(
         BackdropScene.lagosLayeredWaterfront().foregroundLayers,
         [isA<VignetteLayer>()],
+      );
+    });
+
+    test('restores the night light show (747, drones, police, beacons)', () {
+      final children = [
+        for (final l in BackdropScene.lagosLayeredWaterfront().layers)
+          parallaxOf(l)?.child,
+      ];
+      expect(children.whereType<DistantJetLayer>(), isNotEmpty);
+      expect(children.whereType<DroneShowLayer>().length, greaterThanOrEqualTo(2));
+      expect(children.whereType<BridgePoliceLayer>(), isNotEmpty);
+      expect(children.whereType<AircraftBeaconLayer>(), isNotEmpty);
+    });
+
+    test('the far-sky 747 asset is declared for decoding', () {
+      expect(
+        BackdropScene.lagosLayeredWaterfront().imageAssets,
+        contains(SceneryAssets.lufthansa747),
       );
     });
   });
