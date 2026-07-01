@@ -214,6 +214,13 @@ void main() {
           0.001,
         ),
       );
+      expect(
+        kDanceBackupArmWidthScale,
+        greaterThan(1.1),
+        reason:
+            'scaled-down background cats need enough sleeve volume to avoid '
+            'turning their arms into dark wires',
+      );
     });
   });
 

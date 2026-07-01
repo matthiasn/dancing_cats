@@ -353,6 +353,13 @@ void main() {
 
       expect(arm.boundary, hasLength(12));
       expect(arm.formRound, isFalse);
+      expect(
+        arm.smoothBoundary,
+        isFalse,
+        reason:
+            'tailored sleeves should keep crisp taper planes instead of '
+            'midpoint-smoothed sausage contours',
+      );
       expect(arm.outlineWidth, greaterThanOrEqualTo(2));
       expect(
         arm.hiddenBoneIds,

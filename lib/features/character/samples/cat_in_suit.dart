@@ -48,7 +48,7 @@ const int _whisker = 0xFF8A765C; // muted whisker
 
 const double kDanceLeadLegWidthScale = 1.36;
 const double kDanceLeadArmWidthScale = 1.18;
-const double kDanceBackupArmWidthScale = 1.1;
+const double kDanceBackupArmWidthScale = 1.14;
 
 /// Fur/face colours for a cat-in-suit rig variant.
 ///
@@ -1250,16 +1250,22 @@ RigSpec buildCatInSuitRig({
         ]),
         SkinnedMeshVertex([
           MeshInfluence(
+            boneId: clavicle,
+            x: s * 9,
+            y: -11,
+            weight: 0.18,
+          ),
+          MeshInfluence(
             boneId: socket,
             x: s * shoulderCapOuter,
             y: 11,
-            weight: 0.45,
+            weight: 0.34,
           ),
           MeshInfluence(
             boneId: upper,
             x: s * (shoulderCapOuter * 0.72),
             y: 12,
-            weight: 0.55,
+            weight: 0.48,
           ),
         ]),
         SkinnedMeshVertex([
@@ -1345,6 +1351,7 @@ RigSpec buildCatInSuitRig({
       outlineColor: _outline,
       outlineWidth: 2.2,
       formRound: false,
+      smoothBoundary: false,
     );
   }
 
@@ -1470,6 +1477,7 @@ RigSpec buildCatInSuitRig({
       z: z,
       color: _sleeveContour,
       formRound: false,
+      smoothBoundary: false,
     );
   }
 

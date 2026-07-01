@@ -480,7 +480,24 @@ class CharacterRenderer {
       }
       points.add(Offset(x, y));
     }
-    return _smoothClosedPath(points, mesh.boundary);
+    return mesh.smoothBoundary
+        ? _smoothClosedPath(points, mesh.boundary)
+        : _closedPath(points, mesh.boundary);
+  }
+
+  /// Builds a closed contour through the authored mesh boundary without
+  /// smoothing. This is useful for tailored cloth planes where midpoint
+  /// smoothing rounds a deliberate elbow/wrist taper into a sausage tube.
+  Path _closedPath(List<Offset> points, List<int> boundary) {
+    final path = Path();
+    final first = points[boundary.first];
+    path.moveTo(first.dx, first.dy);
+    for (final index in boundary.skip(1)) {
+      final p = points[index];
+      path.lineTo(p.dx, p.dy);
+    }
+    path.close();
+    return path;
   }
 
   /// Builds a soft closed contour through a mesh boundary.

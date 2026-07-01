@@ -391,6 +391,7 @@ class SkinnedMeshSpec {
     this.outlineColor,
     this.outlineWidth = 0,
     this.formRound = true,
+    this.smoothBoundary = true,
   }) : vertices = List<SkinnedMeshVertex>.unmodifiable(vertices),
        boundary = List<int>.unmodifiable(boundary),
        hiddenBoneIds = List<String>.unmodifiable(hiddenBoneIds);
@@ -410,6 +411,11 @@ class SkinnedMeshSpec {
   /// between the jacket and the trouser ribbons and should flow into them
   /// seamlessly, not look like a stamped panel.
   final bool formRound;
+
+  /// Whether the boundary should be midpoint-smoothed. Organic broad forms
+  /// default to true; tailored surfaces such as suit sleeves can opt out so the
+  /// silhouette keeps visible planes and tapers instead of becoming a tube.
+  final bool smoothBoundary;
 }
 
 class SkinnedMeshVertex {
