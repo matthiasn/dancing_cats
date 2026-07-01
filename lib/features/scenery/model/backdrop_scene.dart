@@ -52,10 +52,10 @@ const double _depthPalms = 0.56; // foreground palms / planters / lanterns
 /// hard multiply darkens the bright wood into deep brown; the warm slope (r > b)
 /// keeps it warm; a little offset holds it just off the crush floor.
 const BackdropGrade _kDeckGrade = BackdropGrade(
-  slope: (r: 0.58, g: 0.45, b: 0.33),
-  offset: (r: 0.012, g: 0.008, b: 0.004),
-  saturation: 0.96,
-  contrast: 1.06,
+  slope: (r: 0.4, g: 0.32, b: 0.26),
+  offset: (r: 0.008, g: 0.005, b: 0.004),
+  saturation: 0.82,
+  contrast: 1.05,
 );
 
 /// Lantern positions on the de-baked deck (normalized cover-fit art space),
@@ -301,9 +301,9 @@ class BackdropScene {
             DeckGlowLayer(
               lanterns: _kLagosLanterns,
               deckTop: 0.6,
-              intensity: 1.15,
-              poolRadiusFraction: 0.2,
-              sheen: 0.22,
+              intensity: 1.5,
+              poolRadiusFraction: 0.24,
+              sheen: 0.4,
             ),
             depth: _depthDeck,
           ),
