@@ -30,7 +30,8 @@ import 'package:dancing_cats/features/scenery/model/scenery_assets.dart';
 /// `0` locks a plane at infinity, `1` moves it with the dancers (see
 /// `CharacterPainter.danceParallaxMatrixForShotAtDepth`). Five planes in all,
 /// front to back: lead cat (1.0) › backup cats (0.9) › stage › background › jet.
-const double _depthAircraft = 0.04; // the lone jet — farthest of all, near-locked
+const double _depthAircraft =
+    0.04; // the lone jet — farthest of all, near-locked
 const double _depthBackground = 0.12; // all backdrop art, moving as one plane
 const double _depthStage = 0.35; // the foreground deck + its lantern glow —
 // kept gentle (was 0.5) so the deck reads as a subtle depth pleasure rather than
@@ -100,7 +101,10 @@ class BackdropScene {
       // _depthAircraft. The dancers move most; far barely moves. The foreground
       // vignette is intentionally NOT wrapped — it is a screen-space effect.
       layers: [
-        ParallaxLayer(ImageLayer(SceneryAssets.cloudlessPlate), depth: _depthBackground),
+        ParallaxLayer(
+          ImageLayer(SceneryAssets.cloudlessPlate),
+          depth: _depthBackground,
+        ),
         ParallaxLayer(
           CloudParallaxLayer(
             SceneryAssets.cloudsFar,
@@ -144,7 +148,10 @@ class BackdropScene {
         ParallaxLayer(OceanLayer(foamDensity: 0.3), depth: _depthBackground),
         // Re-draw fixed skyline + bridge over the drifting cloud layers and
         // ocean shimmer, preserving the original depth ordering.
-        ParallaxLayer(ImageLayer(SceneryAssets.cityBridge), depth: _depthBackground),
+        ParallaxLayer(
+          ImageLayer(SceneryAssets.cityBridge),
+          depth: _depthBackground,
+        ),
         // The moored yacht silhouette, re-drawn over the ocean so its hull
         // covers the foam that would otherwise wash up its side. The yacht sits
         // NEARER than the far skyline, so it must read at least as sharp and as
@@ -162,7 +169,10 @@ class BackdropScene {
         ),
         // More windows lit (brighter highrises) than the 0.6 default; drawn
         // after the yacht so the warm cabin glow reads on top of the hull.
-        ParallaxLayer(CityLightsLayer(windowAmount: 0.8), depth: _depthBackground),
+        ParallaxLayer(
+          CityLightsLayer(windowAmount: 0.8),
+          depth: _depthBackground,
+        ),
         // Aerial-perspective haze banded on the waterline: lifts + cools the
         // distant skyline/bridge/yacht so the midground recedes behind the
         // sharp, un-hazed foreground deck + trio (the establishing-shot depth
@@ -240,10 +250,10 @@ class BackdropScene {
           ParallaxLayer(
             AtmosphericHazeLayer(
               waterline: 0.43,
-              strength: 0.6,
+              strength: 0.74,
               color: Color(0xFFCE8A4E),
-              skyReach: 0.1,
-              waterReach: 0.02,
+              skyReach: 0.14,
+              waterReach: 0.035,
             ),
             depth: _depthCity,
           ),
@@ -316,10 +326,11 @@ class BackdropScene {
         const ParallaxLayer(
           AtmosphericHazeLayer(
             waterline: 0.44,
-            strength: 0.24,
-            skyReach: 0.2,
-            waterReach: 0.03,
-            paleLift: 0.28,
+            strength: 0.38,
+            coolMix: 0.7,
+            skyReach: 0.28,
+            waterReach: 0.055,
+            paleLift: 0.36,
           ),
           depth: _depthCity,
         ),

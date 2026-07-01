@@ -185,8 +185,8 @@ class DanceStageView extends StatelessWidget {
                     ),
                   if (useNewBackdrop)
                     const SceneTextureOverlay(
-                      grainOpacity: 0.15,
-                      vignetteStrength: 0.14,
+                      grainOpacity: 0.2,
+                      vignetteStrength: 0.16,
                     ),
                   CustomPaint(
                     painter: danceCharacterPainter(

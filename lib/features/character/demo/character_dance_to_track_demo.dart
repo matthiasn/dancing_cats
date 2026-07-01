@@ -145,18 +145,45 @@ const List<String> kGradeLayerNames = ['Sky', 'City', 'Yacht', 'Deck', 'Palms'];
 /// Per-layer base grades FITTED to the old `blue_hour_master.webp`: each source
 /// plate and the master were sampled at the same pixels (they are the same scene)
 /// and a per-channel slope solved that maps the bright day plate onto the master's
-/// dusk colour. Pure multiplies — the differing per-channel slopes carry the
-/// darkening AND the desaturation/temperature shift:
+/// dusk colour. The slope does the heavy blue-hour pull; saturation/contrast
+/// deliberately keep the split plates dirty and low-contrast enough to sit in
+/// the old smoggy master instead of reading as a clean daytime render:
 ///   sky/ocean → deep muted navy · city → cool blue silhouette · yacht → grey-blue
 ///   dim · deck → dark near-neutral (its warmth is the lantern pool, not the wood)
 ///   · palms → dark cool near-silhouette.
 const List<BackdropGrade> kLayerBaseGrades = [
-  BackdropGrade(slope: (r: 0.12, g: 0.19, b: 0.32)), // sky + ocean
-  BackdropGrade(slope: (r: 0.2, g: 0.4, b: 0.82)), // city + bridge (lifted a
+  BackdropGrade(
+    slope: (r: 0.1, g: 0.17, b: 0.3),
+    saturation: 0.74,
+    contrast: 0.82,
+    pivot: 0.32,
+  ), // sky + ocean
+  BackdropGrade(
+    slope: (r: 0.17, g: 0.34, b: 0.72),
+    offset: (r: -0.01, g: -0.005, b: 0.0),
+    saturation: 0.58,
+    contrast: 0.76,
+    pivot: 0.34,
+  ), // city + bridge (lifted a
   // touch so the cable-stayed bridge reads instead of sinking into the dark city)
-  BackdropGrade(slope: (r: 0.56, g: 0.7, b: 0.97)), // yacht
-  BackdropGrade(slope: (r: 0.21, g: 0.3, b: 0.72)), // deck
-  BackdropGrade(slope: (r: 0.16, g: 0.2, b: 0.42)), // palms (blue held back so
+  BackdropGrade(
+    slope: (r: 0.42, g: 0.55, b: 0.82),
+    saturation: 0.62,
+    contrast: 0.82,
+    pivot: 0.36,
+  ), // yacht
+  BackdropGrade(
+    slope: (r: 0.17, g: 0.24, b: 0.56),
+    saturation: 0.64,
+    contrast: 0.78,
+    pivot: 0.34,
+  ), // deck
+  BackdropGrade(
+    slope: (r: 0.13, g: 0.16, b: 0.34),
+    saturation: 0.58,
+    contrast: 0.76,
+    pivot: 0.32,
+  ), // palms (blue held back so
   // the warm lantern baked into this layer doesn't go cold)
 ];
 
@@ -187,9 +214,9 @@ class LayerGradeState {
   double contrast;
   double pivot;
 
-  /// The fitted [base] multiply with the wheel grade composed on top. Because the
-  /// base is a pure slope applied first, composing is just multiplying the slopes
-  /// (neutral wheels → the base itself).
+  /// The fitted [base] grade with the wheel grade composed on top. Neutral wheels
+  /// preserve the fitted blue-hour match; console trims multiply the slope,
+  /// saturation and contrast, and add lift.
   BackdropGrade toGrade() {
     final w = gradeFromWheels(
       lift: lift,
@@ -207,10 +234,18 @@ class LayerGradeState {
         g: base.slope.g * w.slope.g,
         b: base.slope.b * w.slope.b,
       ),
-      offset: w.offset,
-      power: w.power,
-      saturation: w.saturation,
-      contrast: w.contrast,
+      offset: (
+        r: base.offset.r + w.offset.r,
+        g: base.offset.g + w.offset.g,
+        b: base.offset.b + w.offset.b,
+      ),
+      power: (
+        r: base.power.r * w.power.r,
+        g: base.power.g * w.power.g,
+        b: base.power.b * w.power.b,
+      ),
+      saturation: base.saturation * w.saturation,
+      contrast: base.contrast * w.contrast,
       pivot: w.pivot,
     );
   }

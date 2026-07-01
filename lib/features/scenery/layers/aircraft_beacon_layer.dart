@@ -13,7 +13,10 @@ import 'package:flutter/rendering.dart';
 /// staggered ~1.6 s phase so they don't pulse in unison. Freezes with reduced
 /// motion.
 class AircraftBeaconLayer implements BackdropLayer {
-  const AircraftBeaconLayer({this.beacons = kLagosBeacons, this.periodSeconds = 1.6});
+  const AircraftBeaconLayer({
+    this.beacons = kLagosBeacons,
+    this.periodSeconds = 1.6,
+  });
 
   /// Tower-top positions in normalized cover-fit art space.
   final List<Offset> beacons;
@@ -31,7 +34,9 @@ class AircraftBeaconLayer implements BackdropLayer {
     for (var i = 0; i < beacons.length; i++) {
       final phase = ((time / periodSeconds) + i * 0.41) % 1.0;
       // Sharp on-pulse for the first ~40% of the cycle, a dim ember otherwise.
-      final amp = phase < 0.4 ? 0.5 + 0.5 * math.sin(phase / 0.4 * math.pi) : 0.06;
+      final amp = phase < 0.4
+          ? 0.5 + 0.5 * math.sin(phase / 0.4 * math.pi)
+          : 0.06;
       final c = cover.project(beacons[i].dx, beacons[i].dy);
       canvas
         ..drawCircle(
@@ -57,8 +62,14 @@ class AircraftBeaconLayer implements BackdropLayer {
 
 /// Tower-top + bridge-pylon beacon anchors for the de-baked Lagos skyline.
 const List<Offset> kLagosBeacons = [
-  Offset(0.145, 0.235), // the tall spire (left cluster)
-  Offset(0.225, 0.27),
-  Offset(0.295, 0.26),
-  Offset(0.63, 0.35), // cable-stayed bridge pylon
+  Offset(0.019, 0.358),
+  Offset(0.086, 0.369),
+  Offset(0.175, 0.319),
+  Offset(0.244, 0.238), // the tall spire (left cluster)
+  Offset(0.294, 0.357),
+  Offset(0.344, 0.385),
+  Offset(0.394, 0.353),
+  Offset(0.483, 0.356),
+  Offset(0.630, 0.350), // cable-stayed bridge pylon
+  Offset(0.728, 0.367),
 ];

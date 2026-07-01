@@ -6,12 +6,13 @@ import 'package:dancing_cats/features/scenery/model/backdrop_palette.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-BackdropContext _ctx({double time = 0, bool reduced = false}) => BackdropContext(
-  size: const Size(320, 180),
-  timeSeconds: time,
-  palette: kBlueHourPalette,
-  reducedMotion: reduced,
-);
+BackdropContext _ctx({double time = 0, bool reduced = false}) =>
+    BackdropContext(
+      size: const Size(320, 180),
+      timeSeconds: time,
+      palette: kBlueHourPalette,
+      reducedMotion: reduced,
+    );
 
 /// Rasterizes the layer and returns the max red channel over the frame — a
 /// blinking red beacon shows up as red pixels.
@@ -34,6 +35,15 @@ Future<int> _maxRed(AircraftBeaconLayer layer, BackdropContext ctx) async {
 }
 
 void main() {
+  test('default Lagos beacon anchors cover the high-rise field', () {
+    expect(kLagosBeacons.length, greaterThanOrEqualTo(8));
+    for (final beacon in kLagosBeacons) {
+      expect(beacon.dx, inInclusiveRange(0, 1));
+      expect(beacon.dy, inInclusiveRange(0, 1));
+      expect(beacon.dy, lessThan(0.42));
+    }
+  });
+
   testWidgets('lights red beacons on the towers', (tester) async {
     await tester.runAsync(() async {
       // At the start of the cycle the first beacon is on → red pixels appear.

@@ -99,7 +99,10 @@ void main() {
         // the dynamic jet — no baked twin — rides the farthest plane of all.
         double depthAt(int i) => (planes[i] as ParallaxLayer).depth;
         expect(depthAt(deck), greaterThan(depthAt(plate))); // stage nearer
-        expect(depthAt(city), closeTo(depthAt(plate), 1e-9)); // one backdrop plane
+        expect(
+          depthAt(city),
+          closeTo(depthAt(plate), 1e-9),
+        ); // one backdrop plane
         expect(depthAt(yacht), closeTo(depthAt(plate), 1e-9));
         expect(depthAt(ocean), closeTo(depthAt(plate), 1e-9));
         expect(depthAt(jet), lessThan(depthAt(plate))); // farthest of all
@@ -199,9 +202,12 @@ void main() {
       // A cool aerial haze (no colour override) plus a warm sunset band (a
       // colour override, held out of the grade so it stays warm).
       final hazes = hazeLayers();
-      expect(hazes.any((h) => h.color == null), isTrue); // cool aerial haze
+      final cool = hazes.firstWhere((h) => h.color == null);
+      expect(cool.strength, greaterThanOrEqualTo(0.35));
+      expect(cool.skyReach, greaterThanOrEqualTo(0.25));
       final warm = hazes.firstWhere((h) => h.color != null);
       expect(warm.color!.r, greaterThan(warm.color!.b)); // warm sunset glow
+      expect(warm.strength, greaterThanOrEqualTo(0.7));
     });
 
     test('the warm sunset band is emissive and behind the city', () {
@@ -219,15 +225,21 @@ void main() {
       expect(bandIndex, lessThan(cityIndex));
     });
 
-    test('composites base -> city -> yacht -> deck -> palms, front to back', () {
-      expect([for (final l in normalImages()) l.assetKey], [
-        SceneryAssets.lagosSkyOcean,
-        SceneryAssets.lagosCityBridge,
-        SceneryAssets.lagosYacht,
-        SceneryAssets.lagosDeck,
-        SceneryAssets.lagosPalms,
-      ]);
-    });
+    test(
+      'composites base -> city -> yacht -> deck -> palms, front to back',
+      () {
+        expect(
+          [for (final l in normalImages()) l.assetKey],
+          [
+            SceneryAssets.lagosSkyOcean,
+            SceneryAssets.lagosCityBridge,
+            SceneryAssets.lagosYacht,
+            SceneryAssets.lagosDeck,
+            SceneryAssets.lagosPalms,
+          ],
+        );
+      },
+    );
 
     test('each painted plane is graded on its own curve (GradedLayer)', () {
       final scene = BackdropScene.lagosLayeredWaterfront();
@@ -238,7 +250,9 @@ void main() {
         SceneryAssets.lagosDeck,
         SceneryAssets.lagosPalms,
       ]) {
-        final layer = scene.layers.firstWhere((l) => imageOf(l)?.assetKey == key);
+        final layer = scene.layers.firstWhere(
+          (l) => imageOf(l)?.assetKey == key,
+        );
         expect(layer, isA<GradedLayer>());
       }
     });
@@ -259,45 +273,51 @@ void main() {
       expect(gradedFor(SceneryAssets.lagosYacht).grade, BackdropGrade.identity);
     });
 
-    test('lit windows are emissive: held out of the grade, added, and warm', () {
-      final emissive = emissiveImages();
-      // Both window fields are present (each as a crisp layer plus a blurred
-      // bloom twin) and nothing else is emissive.
-      expect(
-        emissive.map((l) => l.assetKey).toSet(),
-        {SceneryAssets.lagosCityWindows, SceneryAssets.lagosYachtWindows},
-      );
-      // Every emissive layer is an additive, warm (amber) practical.
-      for (final l in emissive) {
-        expect(l.blend, BlendMode.plus);
-        expect(l.modulate, isNotNull);
-        expect(l.modulate!.r, greaterThan(l.modulate!.b)); // warm
-      }
-      // Each field has a blurred bloom twin for halation.
-      expect(
-        emissive.where((l) => l.blurSigma > 0).length,
-        greaterThanOrEqualTo(2),
-      );
-    });
+    test(
+      'lit windows are emissive: held out of the grade, added, and warm',
+      () {
+        final emissive = emissiveImages();
+        // Both window fields are present (each as a crisp layer plus a blurred
+        // bloom twin) and nothing else is emissive.
+        expect(
+          emissive.map((l) => l.assetKey).toSet(),
+          {SceneryAssets.lagosCityWindows, SceneryAssets.lagosYachtWindows},
+        );
+        // Every emissive layer is an additive, warm (amber) practical.
+        for (final l in emissive) {
+          expect(l.blend, BlendMode.plus);
+          expect(l.modulate, isNotNull);
+          expect(l.modulate!.r, greaterThan(l.modulate!.b)); // warm
+        }
+        // Each field has a blurred bloom twin for halation.
+        expect(
+          emissive.where((l) => l.blurSigma > 0).length,
+          greaterThanOrEqualTo(2),
+        );
+      },
+    );
 
-    test('the nearer yacht is drawn after the city windows, so it occludes them', () {
-      // The city-window EmissiveLayers sit BEFORE the (normal, graded) yacht in
-      // the stack, so the yacht grades and draws over them — no city lights bleed
-      // onto the hull.
-      final layers = BackdropScene.lagosLayeredWaterfront().layers;
-      final lastCityLight = layers.lastIndexWhere(
-        (l) =>
-            l is EmissiveLayer &&
-            imageOf(l)?.assetKey == SceneryAssets.lagosCityWindows,
-      );
-      final yachtIndex = layers.indexWhere(
-        (l) =>
-            l is! EmissiveLayer &&
-            imageOf(l)?.assetKey == SceneryAssets.lagosYacht,
-      );
-      expect(lastCityLight, greaterThanOrEqualTo(0));
-      expect(yachtIndex, greaterThan(lastCityLight));
-    });
+    test(
+      'the nearer yacht is drawn after the city windows, so it occludes them',
+      () {
+        // The city-window EmissiveLayers sit BEFORE the (normal, graded) yacht in
+        // the stack, so the yacht grades and draws over them — no city lights bleed
+        // onto the hull.
+        final layers = BackdropScene.lagosLayeredWaterfront().layers;
+        final lastCityLight = layers.lastIndexWhere(
+          (l) =>
+              l is EmissiveLayer &&
+              imageOf(l)?.assetKey == SceneryAssets.lagosCityWindows,
+        );
+        final yachtIndex = layers.indexWhere(
+          (l) =>
+              l is! EmissiveLayer &&
+              imageOf(l)?.assetKey == SceneryAssets.lagosYacht,
+        );
+        expect(lastCityLight, greaterThanOrEqualTo(0));
+        expect(yachtIndex, greaterThan(lastCityLight));
+      },
+    );
 
     test('warm lantern light pools on the deck as an emissive practical', () {
       final hasDeckGlow = BackdropScene.lagosLayeredWaterfront().layers.any(
@@ -351,9 +371,13 @@ void main() {
           parallaxOf(l)?.child,
       ];
       expect(children.whereType<DistantJetLayer>(), isNotEmpty);
-      expect(children.whereType<DroneShowLayer>().length, greaterThanOrEqualTo(2));
+      expect(
+        children.whereType<DroneShowLayer>().length,
+        greaterThanOrEqualTo(2),
+      );
       expect(children.whereType<BridgePoliceLayer>(), isNotEmpty);
-      expect(children.whereType<AircraftBeaconLayer>(), isNotEmpty);
+      final beacons = children.whereType<AircraftBeaconLayer>().single;
+      expect(beacons.beacons.length, greaterThanOrEqualTo(8));
     });
 
     test('the far-sky 747 asset is declared for decoding', () {
