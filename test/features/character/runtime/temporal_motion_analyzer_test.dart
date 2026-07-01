@@ -185,6 +185,72 @@ void main() {
       expect(report.worstJerk.magnitude, closeTo(60, 0.01));
     });
 
+    test('velocitySpikes finds an abrupt speed pulse without a full hold', () {
+      final analyzer = TemporalMotionAnalyzer(
+        _oneBoneScene(),
+      );
+      const clip = Clip(
+        name: 'synthetic-speed-pulse',
+        duration: 1,
+        loop: false,
+        root: KeyframeRootChannel([
+          RootKeyframe(p: 0),
+          RootKeyframe(p: 0.4, dx: 20, ease: Ease.linear),
+          RootKeyframe(p: 0.6, dx: 100, ease: Ease.linear),
+          RootKeyframe(p: 1, dx: 120, ease: Ease.linear),
+        ]),
+        channels: {},
+      );
+
+      final report = analyzer.analyze(
+        clip: clip,
+        samples: 5,
+        boneIds: const [CatBones.hips],
+      );
+      final spikes = report.velocitySpikes(
+        minAcceleration: 40,
+        minSpeedDelta: 40,
+        minSpeedRatio: 3,
+      );
+
+      expect(spikes, hasLength(2));
+      expect(spikes.first.boneId, CatBones.hips);
+      expect(spikes.first.accelerationMagnitude, closeTo(70, 0.01));
+      expect(spikes.first.speedDelta, closeTo(70, 0.01));
+      expect(spikes.first.speedRatio, closeTo(8, 0.01));
+    });
+
+    test('velocitySpikes ignores steady continuous travel', () {
+      final analyzer = TemporalMotionAnalyzer(
+        _oneBoneScene(),
+      );
+      const clip = Clip(
+        name: 'synthetic-steady-speed',
+        duration: 1,
+        loop: false,
+        root: KeyframeRootChannel([
+          RootKeyframe(p: 0),
+          RootKeyframe(p: 1, dx: 120, ease: Ease.linear),
+        ]),
+        channels: {},
+      );
+
+      final report = analyzer.analyze(
+        clip: clip,
+        samples: 5,
+        boneIds: const [CatBones.hips],
+      );
+
+      expect(
+        report.velocitySpikes(
+          minAcceleration: 40,
+          minSpeedDelta: 40,
+          minSpeedRatio: 3,
+        ),
+        isEmpty,
+      );
+    });
+
     test('stutterTransitions finds a held pose followed by a snap', () {
       final analyzer = TemporalMotionAnalyzer(
         _oneBoneScene(),
@@ -285,6 +351,48 @@ void main() {
               'then teleport it; worst ${stutters.isEmpty ? 'none' : stutters.first.boneId} '
               'hold=${stutters.isEmpty ? 'n/a' : '${stutters.first.holdFromFrame}-${stutters.first.holdToFrame}'} '
               'travel=${stutters.isEmpty ? 'n/a' : stutters.first.adjacentTravel.toStringAsFixed(1)}',
+        );
+      }
+    });
+
+    test('dance hands and torso avoid egregious speed-pulse pops', () {
+      final analyzer = TemporalMotionAnalyzer(
+        CharacterScene(buildCatInSuitRig()),
+      );
+      const watchedBones = [
+        CatBones.torso,
+        CatBones.handL,
+        CatBones.handR,
+      ];
+
+      for (final clip in [
+        CatClips.shaku,
+        CatClips.zanku,
+        CatClips.azonto,
+        CatClips.buga,
+        CatClips.sekem,
+      ]) {
+        final report = analyzer.analyze(
+          clip: clip,
+          samples: 128,
+          boneIds: watchedBones,
+        );
+        final spikes = report.velocitySpikes(
+          minAcceleration: 24,
+          minSpeedDelta: 14,
+          minSpeedRatio: 2.5,
+          minSegmentDistance: 3,
+        );
+
+        expect(
+          spikes,
+          isEmpty,
+          reason:
+              '${clip.name} should not hit a robotic upper-body speed pulse; '
+              'worst ${spikes.isEmpty ? 'none' : spikes.first.boneId} '
+              'frames=${spikes.isEmpty ? 'n/a' : '${spikes.first.fromFrame}-${spikes.first.toFrame}'} '
+              'accel=${spikes.isEmpty ? 'n/a' : spikes.first.accelerationMagnitude.toStringAsFixed(1)} '
+              'ratio=${spikes.isEmpty ? 'n/a' : spikes.first.speedRatio.toStringAsFixed(1)}',
         );
       }
     });

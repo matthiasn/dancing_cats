@@ -318,8 +318,10 @@ class SoftenedIkTargetChannel extends IkTargetChannel {
   const SoftenedIkTargetChannel(
     this.channel, {
     this.radius = 0.01,
+    this.passes = 1,
     this.cyclic = false,
-  }) : assert(radius >= 0, 'radius must be non-negative');
+  }) : assert(radius >= 0, 'radius must be non-negative'),
+       assert(passes > 0, 'passes must be positive');
 
   final IkTargetChannel channel;
 
@@ -327,15 +329,26 @@ class SoftenedIkTargetChannel extends IkTargetChannel {
   /// is half a frame.
   final double radius;
 
+  /// Number of smoothing passes. `1` preserves the original 3-tap behavior;
+  /// `2` applies the same kernel again, producing a gentler 5-tap-style curve
+  /// for hand paths that should flow through nearby targets without visibly
+  /// snapping from count to count.
+  final int passes;
+
   /// Wrap smoothing samples across the loop seam instead of clamping them.
   final bool cyclic;
 
   @override
   IkTargetPose sample(double p) {
     if (radius == 0) return channel.sample(p);
-    final before = channel.sample(_samplePhase(p - radius));
-    final centre = channel.sample(p);
-    final after = channel.sample(_samplePhase(p + radius));
+    return _samplePass(p, passes);
+  }
+
+  IkTargetPose _samplePass(double p, int pass) {
+    if (pass <= 0) return channel.sample(_samplePhase(p));
+    final before = _samplePass(p - radius, pass - 1);
+    final centre = _samplePass(p, pass - 1);
+    final after = _samplePass(p + radius, pass - 1);
     return IkTargetPose(
       x: before.x * 0.25 + centre.x * 0.5 + after.x * 0.25,
       y: before.y * 0.25 + centre.y * 0.5 + after.y * 0.25,

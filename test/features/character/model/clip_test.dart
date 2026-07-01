@@ -344,6 +344,23 @@ void main() {
       expect(roundedCorner.y, greaterThan(0));
     });
 
+    test('additional softened passes round target corners more gently', () {
+      const base = KeyframeIkTargetChannel([
+        IkTargetKeyframe(p: 0, x: 0, y: 0),
+        IkTargetKeyframe(p: 0.5, x: 20, y: 0, ease: Ease.linear),
+        IkTargetKeyframe(p: 1, x: 20, y: 20, ease: Ease.linear),
+      ]);
+      const singlePass = SoftenedIkTargetChannel(base, radius: 0.1);
+      const twoPass = SoftenedIkTargetChannel(base, radius: 0.1, passes: 2);
+
+      final single = singlePass.sample(0.5);
+      final doubled = twoPass.sample(0.5);
+
+      expect(doubled.x, lessThan(single.x));
+      expect(doubled.y, greaterThan(single.y));
+      expect(doubled.weight, closeTo(1, 1e-9));
+    });
+
     test('softened cyclic targets round the loop seam', () {
       const base = KeyframeIkTargetChannel(
         [

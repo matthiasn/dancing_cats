@@ -254,6 +254,97 @@ class TemporalMotionReport {
     return result;
   }
 
+  /// Finds abrupt speed pulses that are not necessarily preceded by a full hold.
+  ///
+  /// A limb can avoid the "hold, hold, snap" pattern and still read robotic if
+  /// adjacent segment speeds jump sharply. This query catches that second case:
+  /// consecutive world-space segments for the same bone whose vector change,
+  /// speed delta, and speed ratio all exceed caller-selected thresholds.
+  List<TemporalMotionVelocitySpike> velocitySpikes({
+    double minAcceleration = 8,
+    double minSpeedDelta = 4,
+    double minSpeedRatio = 1.75,
+    double minSegmentDistance = 1,
+  }) {
+    if (minAcceleration < 0) {
+      throw ArgumentError.value(
+        minAcceleration,
+        'minAcceleration',
+        'must be non-negative',
+      );
+    }
+    if (minSpeedDelta < 0) {
+      throw ArgumentError.value(
+        minSpeedDelta,
+        'minSpeedDelta',
+        'must be non-negative',
+      );
+    }
+    if (minSpeedRatio < 1) {
+      throw ArgumentError.value(
+        minSpeedRatio,
+        'minSpeedRatio',
+        'must be at least 1',
+      );
+    }
+    if (minSegmentDistance < 0) {
+      throw ArgumentError.value(
+        minSegmentDistance,
+        'minSegmentDistance',
+        'must be non-negative',
+      );
+    }
+
+    final byBone = <String, List<TemporalMotionSegment>>{};
+    for (final segment in segments) {
+      byBone.putIfAbsent(segment.boneId, () => []).add(segment);
+    }
+
+    final result = <TemporalMotionVelocitySpike>[];
+    for (final entry in byBone.entries) {
+      final boneSegments = [...entry.value]
+        ..sort((a, b) => a.fromFrame.compareTo(b.fromFrame));
+      for (var i = 1; i < boneSegments.length; i++) {
+        final before = boneSegments[i - 1];
+        final after = boneSegments[i];
+        final faster = math.max(before.distance, after.distance);
+        if (faster < minSegmentDistance) continue;
+
+        final speedDelta = (after.distance - before.distance).abs();
+        final slower = math.min(before.distance, after.distance);
+        final speedRatio = slower <= 1e-9 ? double.infinity : faster / slower;
+        final ax = after.dx - before.dx;
+        final ay = after.dy - before.dy;
+        final acceleration = math.sqrt(ax * ax + ay * ay);
+        if (acceleration < minAcceleration) continue;
+        if (speedDelta < minSpeedDelta) continue;
+        if (speedRatio < minSpeedRatio) continue;
+
+        result.add(
+          TemporalMotionVelocitySpike(
+            boneId: entry.key,
+            fromFrame: before.fromFrame,
+            throughFrame: before.toFrame,
+            toFrame: after.toFrame,
+            fromPhase: before.fromPhase,
+            throughPhase: before.toPhase,
+            toPhase: after.toPhase,
+            beforeDistance: before.distance,
+            afterDistance: after.distance,
+            speedDelta: speedDelta,
+            speedRatio: speedRatio,
+            accelerationMagnitude: acceleration,
+          ),
+        );
+      }
+    }
+
+    result.sort(
+      (a, b) => b.accelerationMagnitude.compareTo(a.accelerationMagnitude),
+    );
+    return result;
+  }
+
   static T _maxBy<T>(
     List<T> values,
     double Function(T value) score,
@@ -385,4 +476,34 @@ class TemporalMotionStutter {
   final double entryDistance;
   final double exitDistance;
   final double adjacentTravel;
+}
+
+class TemporalMotionVelocitySpike {
+  const TemporalMotionVelocitySpike({
+    required this.boneId,
+    required this.fromFrame,
+    required this.throughFrame,
+    required this.toFrame,
+    required this.fromPhase,
+    required this.throughPhase,
+    required this.toPhase,
+    required this.beforeDistance,
+    required this.afterDistance,
+    required this.speedDelta,
+    required this.speedRatio,
+    required this.accelerationMagnitude,
+  });
+
+  final String boneId;
+  final int fromFrame;
+  final int throughFrame;
+  final int toFrame;
+  final double fromPhase;
+  final double throughPhase;
+  final double toPhase;
+  final double beforeDistance;
+  final double afterDistance;
+  final double speedDelta;
+  final double speedRatio;
+  final double accelerationMagnitude;
 }

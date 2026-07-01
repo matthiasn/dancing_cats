@@ -5714,7 +5714,7 @@ class CatClips {
     DanceIkTargetKey(25, x: -68, y: -44),
     DanceIkTargetKey(26, x: -56, y: -30),
     DanceIkTargetKey(27, x: -72, y: -44),
-    DanceIkTargetKey(28, x: -98, y: -10, ease: Ease.easeOutBack),
+    DanceIkTargetKey(28, x: -98, y: -7, ease: Ease.easeOutBack),
     DanceIkTargetKey(29, x: -78, y: -48),
     DanceIkTargetKey(30, x: -66, y: -58),
     DanceIkTargetKey(31, x: -72, y: -48),
@@ -5761,6 +5761,7 @@ class CatClips {
       cyclic: true,
     ),
     radius: 0.45 / _dancePhrase.frameCount,
+    passes: 2,
     cyclic: true,
   );
   static final IkTargetChannel _zankuHandRTarget = SoftenedIkTargetChannel(
@@ -5769,6 +5770,7 @@ class CatClips {
       cyclic: true,
     ),
     radius: 0.45 / _dancePhrase.frameCount,
+    passes: 2,
     cyclic: true,
   );
 
@@ -6692,11 +6694,13 @@ class CatClips {
   static final IkTargetChannel _azontoHandLTarget = SoftenedIkTargetChannel(
     _dancePhrase.ikTargetChannel(_azontoHandLTargetKeys, cyclic: true),
     radius: 0.45 / _dancePhrase.frameCount,
+    passes: 2,
     cyclic: true,
   );
   static final IkTargetChannel _azontoHandRTarget = SoftenedIkTargetChannel(
     _dancePhrase.ikTargetChannel(_azontoHandRTargetKeys, cyclic: true),
     radius: 0.45 / _dancePhrase.frameCount,
+    passes: 2,
     cyclic: true,
   );
   static const _azontoFootLTargetKeys = [
