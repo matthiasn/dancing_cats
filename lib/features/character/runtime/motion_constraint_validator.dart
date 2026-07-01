@@ -4,6 +4,7 @@ import 'package:dancing_cats/features/character/model/clip.dart';
 import 'package:dancing_cats/features/character/model/pose.dart';
 import 'package:dancing_cats/features/character/model/rig_spec.dart';
 import 'package:dancing_cats/features/character/runtime/character_scene.dart';
+import 'package:dancing_cats/features/character/runtime/skinned_mesh_solver.dart';
 
 /// Test-time anatomy and contact validator for resolved character motion.
 ///
@@ -51,6 +52,11 @@ class MotionConstraintValidator {
       profile,
       ikSamples,
     );
+    final shoulderMeshBridges = _sampleRaisedShoulderMeshBridges(
+      clip,
+      profile,
+      ikSamples,
+    );
 
     return MotionConstraintReport(
       clipName: clip.name,
@@ -62,6 +68,7 @@ class MotionConstraintValidator {
       limbBends: limbBends,
       limbLanes: limbLanes,
       shoulderResponses: shoulderResponses,
+      shoulderMeshBridges: shoulderMeshBridges,
     );
   }
 
@@ -435,6 +442,55 @@ class MotionConstraintValidator {
     return checks;
   }
 
+  List<MotionShoulderMeshBridge> _sampleRaisedShoulderMeshBridges(
+    Clip clip,
+    MotionConstraintProfile profile,
+    int samples,
+  ) {
+    if (clip.limbTargets.isEmpty || scene.rig.meshes.isEmpty) return const [];
+    final checks = <MotionShoulderMeshBridge>[];
+    for (var i = 0; i < samples; i++) {
+      final phase = i / samples;
+      final timeSeconds = _phaseTime(clip, phase);
+      final frame = scene.frameAt(clip: clip, timeSeconds: timeSeconds);
+      for (final target in clip.limbTargets) {
+        if (!_isHand(target.endBoneId)) continue;
+        final targetPose = target.channel.sample(phase);
+        if (targetPose.weight < profile.minIkWeight ||
+            targetPose.y > profile.raisedHandTargetY) {
+          continue;
+        }
+        final suffix = _sideSuffix(target.endBoneId);
+        if (suffix == null) continue;
+        final side = suffix.substring(1);
+        final armMesh = _meshById('arm.$side.mesh');
+        final foldMesh = _meshById('shoulder.$side.fold');
+        if (armMesh == null || foldMesh == null) continue;
+
+        final arm = resolveSkinnedMeshVertices(armMesh, frame.world);
+        final fold = resolveSkinnedMeshVertices(foldMesh, frame.world);
+        if (arm == null || fold == null) continue;
+        final armShoulder = _vertexSubset(arm, const [0, 1, 2, 3]);
+        final foldBridge = _vertexSubset(fold, const [0, 1, 2, 3]);
+        if (armShoulder.isEmpty || foldBridge.isEmpty) continue;
+
+        final gap = _minPointSetDistance(armShoulder, foldBridge);
+        checks.add(
+          MotionShoulderMeshBridge(
+            clipName: clip.name,
+            endBoneId: target.endBoneId,
+            armMeshId: armMesh.id,
+            foldMeshId: foldMesh.id,
+            phase: phase,
+            targetY: targetPose.y,
+            gap: gap,
+          ),
+        );
+      }
+    }
+    return checks;
+  }
+
   double _phaseTime(Clip clip, double phase) {
     if (clip.duration <= 0) return 0;
     final p = clip.loop ? _unitPhase(phase) : phase.clamp(0.0, 1.0);
@@ -478,6 +534,34 @@ class MotionConstraintValidator {
 
   bool _isHand(String boneId) => boneId.toLowerCase().contains('hand');
 
+  SkinnedMeshSpec? _meshById(String id) {
+    for (final mesh in scene.rig.meshes) {
+      if (mesh.id == id) return mesh;
+    }
+    return null;
+  }
+
+  List<({double x, double y})> _vertexSubset(
+    List<({double x, double y})> vertices,
+    List<int> indices,
+  ) => [
+    for (final index in indices)
+      if (index >= 0 && index < vertices.length) vertices[index],
+  ];
+
+  double _minPointSetDistance(
+    List<({double x, double y})> a,
+    List<({double x, double y})> b,
+  ) {
+    var best = double.infinity;
+    for (final pa in a) {
+      for (final pb in b) {
+        best = math.min(best, _pointDistance(pa, pb));
+      }
+    }
+    return best;
+  }
+
   String? _shoulderSocketIdFor(String clavicleId, String upperBoneId) {
     final suffix = _sideSuffix(upperBoneId);
     for (final bone in scene.rig.bones) {
@@ -513,6 +597,7 @@ class MotionConstraintProfile {
     this.raisedHandTargetY = -60,
     this.minRaisedShoulderResponse = 0.18,
     this.minRaisedSocketResponse = 0.06,
+    this.maxRaisedShoulderMeshGap = 24,
   }) : assert(
          contactEdgeFraction >= 0 && contactEdgeFraction < 0.5,
          'contact edge fraction must be in [0, 0.5)',
@@ -556,6 +641,10 @@ class MotionConstraintProfile {
        assert(
          minRaisedSocketResponse >= 0,
          'raised socket response must be non-negative',
+       ),
+       assert(
+         maxRaisedShoulderMeshGap >= 0,
+         'raised shoulder mesh gap must be non-negative',
        );
 
   /// Fraction at each contact-span edge ignored as handoff/toe-roll time.
@@ -623,6 +712,10 @@ class MotionConstraintProfile {
 
   /// Minimum socket/corrective deformation for an overhead hand target.
   final double minRaisedSocketResponse;
+
+  /// Maximum nearest visible gap between a raised sleeve mesh and its shoulder
+  /// fold bridge.
+  final double maxRaisedShoulderMeshGap;
 }
 
 class MotionConstraintReport {
@@ -636,6 +729,7 @@ class MotionConstraintReport {
     required this.limbBends,
     required this.limbLanes,
     required this.shoulderResponses,
+    required this.shoulderMeshBridges,
   });
 
   final String clipName;
@@ -647,6 +741,7 @@ class MotionConstraintReport {
   final List<MotionLimbBend> limbBends;
   final List<MotionLimbLane> limbLanes;
   final List<MotionShoulderResponse> shoulderResponses;
+  final List<MotionShoulderMeshBridge> shoulderMeshBridges;
 
   MotionContactDrift? get worstContactDrift =>
       _maxOrNull(contactDrifts, (check) => check.distance);
@@ -673,6 +768,9 @@ class MotionConstraintReport {
     shoulderResponses,
     (check) => -math.min(check.totalResponse, check.socketResponse),
   );
+
+  MotionShoulderMeshBridge? get worstShoulderMeshBridge =>
+      _maxOrNull(shoulderMeshBridges, (check) => check.gap);
 
   List<MotionConstraintViolation> get violations {
     final result = <MotionConstraintViolation>[];
@@ -827,6 +925,23 @@ class MotionConstraintReport {
                 '${check.endBoneId} targets high at y='
                 '${check.targetY.toStringAsFixed(1)} without enough '
                 'clavicle/socket response',
+          ),
+        );
+      }
+    }
+    for (final check in shoulderMeshBridges) {
+      final severity = check.gap - profile.maxRaisedShoulderMeshGap;
+      if (severity > 0) {
+        result.add(
+          MotionConstraintViolation(
+            category: MotionConstraintCategory.shoulderMeshBridge,
+            clipName: clipName,
+            boneId: check.endBoneId,
+            phase: check.phase,
+            severity: severity,
+            message:
+                '${check.armMeshId} is ${check.gap.toStringAsFixed(1)} px '
+                'from ${check.foldMeshId} during a raised-arm target',
           ),
         );
       }
@@ -1045,6 +1160,26 @@ class MotionShoulderResponse {
   final double totalResponse;
 }
 
+class MotionShoulderMeshBridge {
+  const MotionShoulderMeshBridge({
+    required this.clipName,
+    required this.endBoneId,
+    required this.armMeshId,
+    required this.foldMeshId,
+    required this.phase,
+    required this.targetY,
+    required this.gap,
+  });
+
+  final String clipName;
+  final String endBoneId;
+  final String armMeshId;
+  final String foldMeshId;
+  final double phase;
+  final double targetY;
+  final double gap;
+}
+
 enum MotionConstraintCategory {
   footContact,
   supportBalance,
@@ -1054,6 +1189,7 @@ enum MotionConstraintCategory {
   limbBendDirection,
   limbLane,
   shoulderResponse,
+  shoulderMeshBridge,
 }
 
 class MotionConstraintViolation {

@@ -7,6 +7,7 @@ import 'package:dancing_cats/features/character/model/bone.dart';
 import 'package:dancing_cats/features/character/model/face.dart';
 import 'package:dancing_cats/features/character/model/rig_spec.dart';
 import 'package:dancing_cats/features/character/runtime/limb_ribbon.dart';
+import 'package:dancing_cats/features/character/runtime/skinned_mesh_solver.dart';
 import 'package:flutter/rendering.dart';
 
 /// Draws a posed [RigSpec] onto a [Canvas]. Stateless and Flutter-only at the
@@ -467,19 +468,11 @@ class CharacterRenderer {
 
   /// The world-space contour of [mesh], or null if an influence bone is missing.
   Path? _meshPath(SkinnedMeshSpec mesh, Map<String, Affine2D> world) {
-    final points = <Offset>[];
-    for (final vertex in mesh.vertices) {
-      var x = 0.0;
-      var y = 0.0;
-      for (final influence in vertex.influences) {
-        final transform = world[influence.boneId];
-        if (transform == null) return null;
-        final p = transform.transformPoint(influence.x, influence.y);
-        x += p.x * influence.weight;
-        y += p.y * influence.weight;
-      }
-      points.add(Offset(x, y));
-    }
+    final resolved = resolveSkinnedMeshVertices(mesh, world);
+    if (resolved == null) return null;
+    final points = [
+      for (final point in resolved) Offset(point.x, point.y),
+    ];
     return mesh.smoothBoundary
         ? _smoothClosedPath(
             points,

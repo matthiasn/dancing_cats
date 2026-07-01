@@ -306,6 +306,7 @@ void main() {
         ],
         limbLanes: [],
         shoulderResponses: [],
+        shoulderMeshBridges: [],
       );
 
       expect(
@@ -589,6 +590,45 @@ void main() {
       expect(leftResponses.first.socketResponse, greaterThan(0.28));
       expect(rightResponses.first.clavicleRotation, lessThan(-0.2));
       expect(leftResponses.first.clavicleRotation, greaterThan(0.2));
+    });
+
+    test('buga raised presents keep sleeve meshes bridged into shoulders', () {
+      final validator = MotionConstraintValidator(
+        CharacterScene(buildCatInSuitRig()),
+      );
+
+      final report = validator.analyze(
+        clip: CatClips.buga,
+        ikSamples: 64,
+      );
+      final bridgeViolations = report.violations.where(
+        (violation) =>
+            violation.category == MotionConstraintCategory.shoulderMeshBridge,
+      );
+      final rightBridges = report.shoulderMeshBridges
+          .where((bridge) => bridge.endBoneId == CatBones.handR)
+          .toList();
+      final leftBridges = report.shoulderMeshBridges
+          .where((bridge) => bridge.endBoneId == CatBones.handL)
+          .toList();
+
+      expect(rightBridges, isNotEmpty);
+      expect(leftBridges, isNotEmpty);
+      expect(
+        bridgeViolations,
+        isEmpty,
+        reason:
+            'raised Buga sleeves should stay visually welded to the shoulder '
+            'fold mesh, not just rotate anatomically: '
+            '${bridgeViolations.take(4).map((v) => '${v.boneId}@${v.phase.toStringAsFixed(3)} ${v.message}').join(' | ')}',
+      );
+      expect(
+        report.worstShoulderMeshBridge!.gap,
+        lessThan(24),
+        reason:
+            'worst raised sleeve/fold bridge should remain within the current '
+            'cartoon fabric overlap envelope',
+      );
     });
 
     test('sekem same-side hand targets keep a solved anatomical lane', () {
