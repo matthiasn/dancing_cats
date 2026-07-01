@@ -9,11 +9,17 @@ class PoseModifierContext {
     required this.clip,
     required this.timeSeconds,
     required this.breath,
+    this.earTwitchLeft = 0,
+    this.earTwitchRight = 0,
   });
 
   final Clip clip;
   final double timeSeconds;
   final double breath;
+
+  /// Autonomic ear twitch pulses (0 when autonomics are excluded).
+  final double earTwitchLeft;
+  final double earTwitchRight;
 }
 
 /// One named pass in the local-space pose solve.

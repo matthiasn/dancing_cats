@@ -187,7 +187,9 @@ class CatBones {
   static const earL = 'ear.L';
   static const earR = 'ear.R';
   static const earInnerL = 'ear_inner.L';
+  static const earTipL = 'ear_tip.L';
   static const earInnerR = 'ear_inner.R';
+  static const earTipR = 'ear_tip.R';
   static const armUpperL = 'arm_upper.L';
   static const shoulderSocketL = 'shoulder_socket.L';
   static const armBicepL = 'arm_bicep.L';
@@ -1331,13 +1333,35 @@ RigSpec buildCatInSuitRig({
       pivotY: -52,
       z: 18,
       restRotation: -0.22,
+      // Ear BASE: a shorter wedge with the same deep root behind the crown
+      // (z18 < head z20) so rotation never exposes a background gap. The
+      // upper part of the ear lives on the TIP joint below and bends.
       drawable: BoneDrawable(
         kind: BoneShapeKind.triangle,
         width: 32,
-        // Taller + lower base (dy -11) so the ear extends DEEP behind the head
-        // (z18 < head z20): rotation slides the base around behind the crown
-        // instead of swinging it out to expose a background gap.
-        height: 54,
+        height: 44,
+        dy: -6,
+        color: palette.fur,
+        outlineColor: _outline,
+        outlineWidth: 2,
+      ),
+    ),
+    // Ear TIP: the bendy upper half — lags the groove harder than the base
+    // (a miniature of the tail gradient) and carries the autonomic flicks,
+    // so the ears read as live cartilage instead of stiff felt.
+    Bone(
+      id: CatBones.earTipL,
+      parent: CatBones.earL,
+      pivotX: 0,
+      pivotY: -18,
+      z: 18,
+      // Sized to CONTINUE the base's taper at the hinge (the base is ~8
+      // wide where the tip takes over) — a wider tip reads as a kinked
+      // arrowhead stuck on a stalk, even at rest.
+      drawable: BoneDrawable(
+        kind: BoneShapeKind.triangle,
+        width: 9,
+        height: 24,
         dy: -11,
         color: palette.fur,
         outlineColor: _outline,
@@ -1352,9 +1376,9 @@ RigSpec buildCatInSuitRig({
       z: 19,
       drawable: BoneDrawable(
         kind: BoneShapeKind.triangle,
-        width: 15,
-        height: 24,
-        dy: -19,
+        width: 14,
+        height: 17,
+        dy: -13,
         color: palette.innerEar,
       ),
     ),
@@ -1365,10 +1389,35 @@ RigSpec buildCatInSuitRig({
       pivotY: -52,
       z: 18,
       restRotation: 0.22,
+      // Ear BASE: a shorter wedge with the same deep root behind the crown
+      // (z18 < head z20) so rotation never exposes a background gap. The
+      // upper part of the ear lives on the TIP joint below and bends.
       drawable: BoneDrawable(
         kind: BoneShapeKind.triangle,
         width: 32,
-        height: 54, // deep base behind the head — see earL (no rotation gap)
+        height: 44,
+        dy: -6,
+        color: palette.fur,
+        outlineColor: _outline,
+        outlineWidth: 2,
+      ),
+    ),
+    // Ear TIP: the bendy upper half — lags the groove harder than the base
+    // (a miniature of the tail gradient) and carries the autonomic flicks,
+    // so the ears read as live cartilage instead of stiff felt.
+    Bone(
+      id: CatBones.earTipR,
+      parent: CatBones.earR,
+      pivotX: 0,
+      pivotY: -18,
+      z: 18,
+      // Sized to CONTINUE the base's taper at the hinge (the base is ~8
+      // wide where the tip takes over) — a wider tip reads as a kinked
+      // arrowhead stuck on a stalk, even at rest.
+      drawable: BoneDrawable(
+        kind: BoneShapeKind.triangle,
+        width: 9,
+        height: 24,
         dy: -11,
         color: palette.fur,
         outlineColor: _outline,
@@ -1383,9 +1432,9 @@ RigSpec buildCatInSuitRig({
       z: 19,
       drawable: BoneDrawable(
         kind: BoneShapeKind.triangle,
-        width: 15,
-        height: 24,
-        dy: -19,
+        width: 14,
+        height: 17,
+        dy: -13,
         color: palette.innerEar,
       ),
     ),

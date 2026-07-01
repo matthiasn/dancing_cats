@@ -61,6 +61,13 @@ class CharacterScene {
             _secondaryFollowPose(context.clip, context.timeSeconds, pose),
       ),
       PoseModifierPass(
+        id: 'ear-life',
+        description:
+            'Flick the ear tips on sparse autonomic twitches — always on, '
+            'dance or idle.',
+        modifier: _earLifePose,
+      ),
+      PoseModifierPass(
         id: 'spine-distribute',
         description:
             'Split the authored torso rotation across the lumbar and '
@@ -259,6 +266,8 @@ class CharacterScene {
       clip,
       timeSeconds,
       breath: auto.breath,
+      earTwitchLeft: auto.earTwitchLeft,
+      earTwitchRight: auto.earTwitchRight,
     );
 
     final rawWorld = solver.solve(posed, base: base);
@@ -295,22 +304,33 @@ class CharacterScene {
     required double timeSeconds,
     bool includeAutonomic = true,
   }) {
-    final breath = includeAutonomic
-        ? autonomic.sampleAt(timeSeconds).breath
-        : 0.0;
-    return _resolvedPose(clip, timeSeconds, breath: breath);
+    if (!includeAutonomic) {
+      return _resolvedPose(clip, timeSeconds, breath: 0);
+    }
+    final auto = autonomic.sampleAt(timeSeconds);
+    return _resolvedPose(
+      clip,
+      timeSeconds,
+      breath: auto.breath,
+      earTwitchLeft: auto.earTwitchLeft,
+      earTwitchRight: auto.earTwitchRight,
+    );
   }
 
   Pose _resolvedPose(
     Clip clip,
     double timeSeconds, {
     required double breath,
+    double earTwitchLeft = 0,
+    double earTwitchRight = 0,
   }) {
     final pose = evaluator.evaluate(clip, timeSeconds);
     final context = PoseModifierContext(
       clip: clip,
       timeSeconds: timeSeconds,
       breath: breath,
+      earTwitchLeft: earTwitchLeft,
+      earTwitchRight: earTwitchRight,
     );
     return _poseModifierStack.apply(context, pose);
   }
@@ -375,7 +395,12 @@ class CharacterScene {
           math.sin(2 * math.pi * (phase * 4 + sidePhase)) *
           followDrive.abs() *
           0.18;
-      final delta = side * earDrive + flick;
+      // The TIP lags and whips well past the base — the tail's gradient,
+      // in miniature: bendy cartilage, not a stiff felt triangle.
+      final isTip = earId.toLowerCase().contains('tip');
+      final gain = isTip ? 2.6 : 1.0;
+      final clampAt = isTip ? 0.2 : 0.06;
+      final delta = _clampMagnitude(side * earDrive * gain + flick * gain, clampAt);
       if (delta.abs() < 0.0001) continue;
       joints[earId] = _addJointRotation(pose.jointOf(earId), delta);
       changed = true;
@@ -510,6 +535,40 @@ class CharacterScene {
   /// meshes whose profile collapsed outside their tuned range; the ribbon
   /// sleeve keeps its anatomical width profile in every pose, so no fabric
   /// inflation exists anymore.
+  /// Autonomic ear twitches: a quick flick-and-settle on the ear TIP (with a
+  /// small echo at the base), each ear on its own sparse schedule. Runs for
+  /// every clip — an idle cat that never flicks an ear reads as a plush toy.
+  Pose _earLifePose(PoseModifierContext context, Pose pose) {
+    if (context.earTwitchLeft <= 0 && context.earTwitchRight <= 0) return pose;
+    final joints = Map<String, JointPose>.of(pose.joints);
+    var changed = false;
+    void twitch(String tipToken, double pulse, double side) {
+      if (pulse <= 0) return;
+      for (final bone in rig.bones) {
+        final id = bone.id.toLowerCase();
+        if (!id.contains('ear')) continue;
+        final isTip = id.contains('tip');
+        final suffixMatch = tipToken == '.l'
+            ? id.endsWith('.l')
+            : id.endsWith('.r');
+        if (!suffixMatch || id.contains('inner')) continue;
+        final delta = side * pulse * (isTip ? 0.24 : 0.07);
+        joints[bone.id] = _addJointRotation(pose.jointOf(bone.id), delta);
+        changed = true;
+      }
+    }
+
+    twitch('.l', context.earTwitchLeft, -1);
+    twitch('.r', context.earTwitchRight, 1);
+    if (!changed) return pose;
+    return Pose(
+      joints: joints,
+      rootDx: pose.rootDx,
+      rootDy: pose.rootDy,
+      rootRotation: pose.rootRotation,
+    );
+  }
+
   Pose _shoulderCorrectedPose(Clip clip, double timeSeconds, Pose pose) {
     if (clip.limbTargets.isEmpty) return pose;
 
@@ -1497,6 +1556,8 @@ class CharacterScene {
 
   bool _isOuterEarBone(String boneId) {
     final id = boneId.toLowerCase();
+    // Outer ear BASE and TIP joints both follow the groove (with different
+    // gains); inner-ear detail shapes ride their parents.
     return id.contains('ear') && !id.contains('inner');
   }
 

@@ -79,6 +79,7 @@ void main() {
           'breath',
           'support-balance',
           'secondary-follow',
+          'ear-life',
           'spine-distribute',
           'girdle-follow',
           'shoulder-girdle',
