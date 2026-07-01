@@ -187,11 +187,11 @@ void main() {
         final arm = rig.meshes.singleWhere((m) => m.id == side.armId);
         final drawOrder = rig.meshDrawOrder.map((m) => m.id).toList();
 
-        expect(fold.boundary, hasLength(7));
+        expect(fold.boundary, hasLength(9));
         expect(fold.formRound, isFalse);
         expect(fold.outlineColor, isNull);
         expect(fold.z, lessThanOrEqualTo(arm.z));
-        expect(fold.boundaryCornerSmoothing, greaterThanOrEqualTo(0.32));
+        expect(fold.boundaryCornerSmoothing, greaterThanOrEqualTo(0.4));
         expect(
           fold.vertices[1].influences.map((i) => i.boneId),
           containsAll([side.socket, side.upper, side.bicep]),
@@ -205,6 +205,21 @@ void main() {
           reason:
               '${side.foldId} should keep the armpit cloth connected across '
               'torso, clavicle, upper arm, and bicep controls',
+        );
+        expect(
+          fold.vertices[2].influences.map((i) => i.boneId),
+          containsAll([side.socket, side.upper, side.bicep]),
+          reason:
+              '${side.foldId} needs an intermediate deltoid point so the '
+              'raised shoulder fold rounds into the sleeve instead of cutting '
+              'one triangular edge',
+        );
+        expect(
+          fold.vertices[4].influences.map((i) => i.boneId),
+          containsAll([CatBones.torso, side.clavicle, side.upper, side.bicep]),
+          reason:
+              '${side.foldId} needs a lower armpit bridge so the raised sleeve '
+              'stays connected without forming a bat-wing dent',
         );
         expect(
           drawOrder.indexOf(side.foldId),
