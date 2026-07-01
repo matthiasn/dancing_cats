@@ -156,6 +156,34 @@ void main() {
         expect(speedAt(smooth, 0.5), greaterThan(0.05));
         expect(speedAt(eased, 0.5), lessThan(0.02));
       });
+
+      test('cyclic mode wraps offset key loops through the seam', () {
+        const offsetLoop = KeyframeChannel(
+          [
+            Keyframe(p: 0.1, rotation: 1),
+            Keyframe(p: 0.35),
+            Keyframe(p: 0.6, rotation: -1),
+            Keyframe(p: 0.85),
+          ],
+          smooth: true,
+          cyclic: true,
+        );
+
+        double velocityAt(double p) =>
+            (offsetLoop.sample(p + 0.001).rotation -
+                offsetLoop.sample(p - 0.001).rotation) /
+            0.002;
+
+        expect(
+          offsetLoop.sample(1.1).rotation,
+          closeTo(offsetLoop.sample(0.1).rotation, 1e-9),
+        );
+        expect(
+          offsetLoop.sample(-0.15).rotation,
+          closeTo(offsetLoop.sample(0.85).rotation, 1e-9),
+        );
+        expect(velocityAt(0), closeTo(velocityAt(1), 1e-9));
+      });
     });
   });
 
@@ -230,6 +258,26 @@ void main() {
       expect(smooth.sample(0.625).dx, lessThan(0));
     });
 
+    test('cyclic root mode wraps shifted loops through frame zero', () {
+      const root = KeyframeRootChannel(
+        [
+          RootKeyframe(p: 0.125, dx: 10),
+          RootKeyframe(p: 0.375),
+          RootKeyframe(p: 0.625, dx: -10),
+          RootKeyframe(p: 0.875),
+        ],
+        smooth: true,
+        cyclic: true,
+      );
+
+      double velocityAt(double p) =>
+          (root.sample(p + 0.001).dx - root.sample(p - 0.001).dx) / 0.002;
+
+      expect(root.sample(1.125).dx, closeTo(10, 1e-9));
+      expect(root.sample(-0.375).dx, closeTo(-10, 1e-9));
+      expect(velocityAt(0), closeTo(velocityAt(1), 1e-9));
+    });
+
     test('empty channel yields no motion', () {
       const empty = KeyframeRootChannel(<RootKeyframe>[]);
       final s = empty.sample(0.4);
@@ -294,6 +342,34 @@ void main() {
       expect(hardCorner.y, closeTo(0, 1e-9));
       expect(roundedCorner.x, lessThan(20));
       expect(roundedCorner.y, greaterThan(0));
+    });
+
+    test('softened cyclic targets round the loop seam', () {
+      const base = KeyframeIkTargetChannel(
+        [
+          IkTargetKeyframe(p: 0.1, x: 20, y: 0),
+          IkTargetKeyframe(p: 0.35, x: 0, y: 20),
+          IkTargetKeyframe(p: 0.6, x: -20, y: 0),
+          IkTargetKeyframe(p: 0.85, x: 0, y: -20),
+        ],
+        smooth: true,
+        cyclic: true,
+      );
+      const softened = SoftenedIkTargetChannel(
+        base,
+        radius: 0.04,
+        cyclic: true,
+      );
+
+      expect(
+        softened.sample(1.02).x,
+        closeTo(softened.sample(0.02).x, 1e-9),
+      );
+      expect(
+        softened.sample(-0.02).y,
+        closeTo(softened.sample(0.98).y, 1e-9),
+      );
+      expect(softened.sample(0).y, lessThan(0));
     });
 
     test('keyframed targets interpolate position and blend weight', () {

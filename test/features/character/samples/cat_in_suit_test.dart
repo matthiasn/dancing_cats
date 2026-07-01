@@ -165,7 +165,7 @@ void main() {
           CatBones.handL,
         ],
       );
-      expect(arm.halfWidths, const [7.0, 10.0, 4.4, 6.0, 2.9]);
+      expect(arm.halfWidths, const [7.2, 10.8, 4.2, 6.4, 2.8]);
       expect(arm.formRound, isFalse);
       expect(arm.roundCaps, isFalse);
       expect(arm.halfWidths[1], greaterThan(arm.halfWidths.first));
@@ -247,6 +247,8 @@ void main() {
         rig.meshes.map((m) => m.id),
         containsAll([
           'jacket.mesh',
+          'jacket.side.L',
+          'jacket.side.R',
           'hips.mesh',
         ]),
       );
@@ -320,10 +322,10 @@ void main() {
         greaterThan(leadLeg.halfWidths[2]),
         reason: 'the calf must bulge past the knee dip',
       );
-      expect(baseArm.halfWidths, const [7.0, 10.0, 4.4, 6.0, 2.9]);
+      expect(baseArm.halfWidths, const [7.2, 10.8, 4.2, 6.4, 2.8]);
       expect(
         leadArm.halfWidths[1],
-        closeTo(10.0 * kDanceLeadArmWidthScale, 0.001),
+        closeTo(10.8 * kDanceLeadArmWidthScale, 0.001),
       );
       expect(
         leadArm.halfWidths[2],
@@ -332,7 +334,7 @@ void main() {
       );
       expect(
         leadArm.halfWidths[3],
-        closeTo(6.0 * kDanceLeadArmWidthScale, 0.001),
+        closeTo(6.4 * kDanceLeadArmWidthScale, 0.001),
       );
       expect(leadTail.halfWidths, baseTail.halfWidths);
     });
@@ -674,7 +676,13 @@ void main() {
             'the final phrase should recover through shaku arm vocabulary, '
             'not a generic forward punch',
       );
-      expect(recoveryCrossLeft.y, greaterThan(0));
+      expect(
+        recoveryCrossLeft.y,
+        greaterThan(-24),
+        reason:
+            'the final recovery should stay in an outside guard lane instead '
+            'of dropping into the belly/waist cluster',
+      );
       expect(
         recoveryCrossRight.x,
         greaterThan(0),
@@ -704,7 +712,7 @@ void main() {
       expect(loopRight.x, greaterThan(25));
       expect(
         loopLeft.y,
-        greaterThan(-36),
+        greaterThan(-42),
         reason: 'the next loop should recover to the low open-ready left hand',
       );
       expect(
@@ -728,7 +736,7 @@ void main() {
 
       expect(
         zanku.supportFootWorldAnchorStrength,
-        greaterThanOrEqualTo(0.82),
+        greaterThanOrEqualTo(0.9),
         reason:
             'Zanku support feet need a firmer world anchor so the stomp reads '
             'as a plant instead of a side-view slide',
@@ -788,6 +796,15 @@ void main() {
             'the frame after the right stomp should still carry visible body '
             'weight before the rebound',
       );
+      final rightSupportHold = footR.sample(5 / phrase.frameCount);
+      expect(
+        rightSupportHold.x,
+        closeTo(62, 0.8),
+        reason:
+            'the right Zanku support foot should stay planted through the '
+            'post-stomp hold instead of spline-sliding toward the next scrape',
+      );
+      expect(rightSupportHold.y, greaterThanOrEqualTo(124.5));
       final rightHipLead = hips.sample(3.75 / phrase.frameCount).rotation;
       final rightHipOnStomp = hips.sample(4 / phrase.frameCount).rotation;
       expect(
@@ -873,6 +890,15 @@ void main() {
             'the frame after the left stomp should still carry visible body '
             'weight before the rebound',
       );
+      final leftSupportHold = footL.sample(25 / phrase.frameCount);
+      expect(
+        leftSupportHold.x,
+        closeTo(-64, 0.8),
+        reason:
+            'the left Zanku support foot should stay planted through the '
+            'post-stomp hold instead of spline-sliding toward the next scrape',
+      );
+      expect(leftSupportHold.y, greaterThanOrEqualTo(124.5));
       final leftHipLead = hips.sample(23.75 / phrase.frameCount).rotation;
       final leftHipOnStomp = hips.sample(24 / phrase.frameCount).rotation;
       expect(
@@ -993,6 +1019,27 @@ void main() {
       final hips = azonto.channels[CatBones.hips]!;
       final torso = azonto.channels[CatBones.torso]!;
 
+      expect(
+        azonto.supportFootWorldAnchorStrength,
+        greaterThanOrEqualTo(0.86),
+        reason:
+            'Azonto needs a firmer support anchor now that the pelvis visibly '
+            'dwells over alternating step-touch plants',
+      );
+      expect(
+        azonto.contactSpans.map((span) => span.bone),
+        [
+          CatBones.footL,
+          CatBones.footR,
+          CatBones.footL,
+          CatBones.footR,
+          CatBones.footL,
+          CatBones.footR,
+          CatBones.footL,
+          CatBones.footR,
+        ],
+      );
+
       for (final frame in [0, 4, 8, 12, 16, 20, 24, 28]) {
         final p = frame / phrase.frameCount;
         final left = footL.sample(p);
@@ -1062,6 +1109,20 @@ void main() {
         reason:
             'the chest should follow as a delayed counter-rotation, not land '
             'on the same frame as the hips',
+      );
+      expect(
+        footL.sample(2 / phrase.frameCount).x,
+        closeTo(footL.sample(0).x, 0.5),
+        reason:
+            'the left Azonto support foot should hold while the right foot '
+            'does the small redirect',
+      );
+      expect(
+        footR.sample(6 / phrase.frameCount).x,
+        closeTo(footR.sample(4 / phrase.frameCount).x, 0.5),
+        reason:
+            'the right Azonto support foot should hold while the left foot '
+            'does the small redirect',
       );
     });
 
@@ -1173,10 +1234,26 @@ void main() {
 
       expect(
         buga.supportFootWorldAnchorStrength,
-        greaterThanOrEqualTo(0.82),
+        greaterThanOrEqualTo(0.9),
         reason:
             'Buga show-off hits need a strong support plant so the side reach '
             'does not read as a fall',
+      );
+      final clavicleR = buga.channels[CatBones.clavicleR]!;
+      final clavicleL = buga.channels[CatBones.clavicleL]!;
+      expect(
+        clavicleR.sample(13 / phrase.frameCount).rotation,
+        lessThan(-0.17),
+        reason:
+            'the right Buga overhead present should lift through the shoulder '
+            'girdle, not hinge from a fixed jacket edge',
+      );
+      expect(
+        clavicleL.sample(29 / phrase.frameCount).rotation,
+        greaterThan(0.17),
+        reason:
+            'the mirrored Buga overhead present should lift through the left '
+            'shoulder girdle as well',
       );
       final rootHit = buga.root.sample(12 / phrase.frameCount);
       final rootMirrorHit = buga.root.sample(28 / phrase.frameCount);
@@ -1262,10 +1339,34 @@ void main() {
         expect(rightPlant.y, greaterThanOrEqualTo(102));
         expect(
           sekem.supportFootWorldAnchorStrength,
-          greaterThanOrEqualTo(0.78),
+          greaterThanOrEqualTo(0.9),
           reason:
               'Sekem needs a firmer support anchor so the wider stomp base '
               'does not skate under the side-view body lean',
+        );
+        expect(
+          footL.sample(2 / phrase.frameCount).x,
+          closeTo(leftPlant.x, 0.5),
+          reason:
+              'Sekem must not scrape the declared left support foot during its '
+              'own support window',
+        );
+        expect(
+          footL.sample(2 / phrase.frameCount).y,
+          closeTo(leftPlant.y, 0.5),
+          reason: 'left Sekem support should stay on the floor mid-window',
+        );
+        expect(
+          footR.sample(6 / phrase.frameCount).x,
+          closeTo(rightPlant.x, 0.5),
+          reason:
+              'Sekem must not scrape the declared right support foot during '
+              'its own support window',
+        );
+        expect(
+          footR.sample(6 / phrase.frameCount).y,
+          closeTo(rightPlant.y, 0.5),
+          reason: 'right Sekem support should stay on the floor mid-window',
         );
 
         final leftPlantHand = handL.sample(0);

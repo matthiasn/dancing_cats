@@ -211,6 +211,7 @@ class DancePhrase {
         if (key.hasRoot) key.toRootKeyframe(this),
     ],
     smooth: smooth,
+    cyclic: true,
   );
 
   List<DanceBodyKey> bodyAccentKeys(List<DanceBodyAccent> accents) {
@@ -299,6 +300,7 @@ class DancePhrase {
         if (key.hasPelvis) key.toPelvisKeyframe(this),
     ],
     smooth: smooth,
+    cyclic: true,
   );
 
   KeyframeChannel bodyChestChannel(
@@ -310,6 +312,7 @@ class DancePhrase {
         if (key.hasChest) key.toChestKeyframe(this),
     ],
     smooth: smooth,
+    cyclic: true,
   );
 
   IkTargetKeyframe ikTargetKey(
@@ -331,12 +334,14 @@ class DancePhrase {
     List<DanceIkTargetKey> keys, {
     bool smooth = false,
     double microFrames = 0,
+    bool cyclic = false,
   }) => KeyframeIkTargetChannel(
     [
       for (final key in keys)
         key.toIkTargetKeyframe(this, microFrames: microFrames),
     ],
     smooth: smooth,
+    cyclic: cyclic,
   );
 
   List<DanceIkTargetKey> ikTargetArcKeys(List<DanceIkTargetArc> arcs) {

@@ -32,7 +32,9 @@ class TemporalMotionAnalyzer {
 
     final segments = <TemporalMotionSegment>[];
     final accelerations = <TemporalMotionAcceleration>[];
+    final jerks = <TemporalMotionJerk>[];
     final previousByBone = <String, TemporalMotionSegment>{};
+    final previousAccelerationByBone = <String, TemporalMotionAcceleration>{};
 
     var previous = scene.frameAt(
       clip: clip,
@@ -74,20 +76,42 @@ class TemporalMotionAnalyzer {
         if (previousSegment != null) {
           final ax = segment.dx - previousSegment.dx;
           final ay = segment.dy - previousSegment.dy;
-          accelerations.add(
-            TemporalMotionAcceleration(
-              boneId: boneId,
-              fromFrame: previousSegment.fromFrame,
-              throughFrame: previousSegment.toFrame,
-              toFrame: segment.toFrame,
-              fromPhase: previousSegment.fromPhase,
-              throughPhase: previousSegment.toPhase,
-              toPhase: segment.toPhase,
-              dx: ax,
-              dy: ay,
-              magnitude: math.sqrt(ax * ax + ay * ay),
-            ),
+          final acceleration = TemporalMotionAcceleration(
+            boneId: boneId,
+            fromFrame: previousSegment.fromFrame,
+            throughFrame: previousSegment.toFrame,
+            toFrame: segment.toFrame,
+            fromPhase: previousSegment.fromPhase,
+            throughPhase: previousSegment.toPhase,
+            toPhase: segment.toPhase,
+            dx: ax,
+            dy: ay,
+            magnitude: math.sqrt(ax * ax + ay * ay),
           );
+          accelerations.add(acceleration);
+
+          final previousAcceleration = previousAccelerationByBone[boneId];
+          if (previousAcceleration != null) {
+            final jx = acceleration.dx - previousAcceleration.dx;
+            final jy = acceleration.dy - previousAcceleration.dy;
+            jerks.add(
+              TemporalMotionJerk(
+                boneId: boneId,
+                fromFrame: previousAcceleration.fromFrame,
+                throughFrameA: previousAcceleration.throughFrame,
+                throughFrameB: acceleration.throughFrame,
+                toFrame: acceleration.toFrame,
+                fromPhase: previousAcceleration.fromPhase,
+                throughPhaseA: previousAcceleration.throughPhase,
+                throughPhaseB: acceleration.throughPhase,
+                toPhase: acceleration.toPhase,
+                dx: jx,
+                dy: jy,
+                magnitude: math.sqrt(jx * jx + jy * jy),
+              ),
+            );
+          }
+          previousAccelerationByBone[boneId] = acceleration;
         }
         previousByBone[boneId] = segment;
       }
@@ -99,6 +123,7 @@ class TemporalMotionAnalyzer {
       samples: samples,
       segments: segments,
       accelerations: accelerations,
+      jerks: jerks,
     );
   }
 }
@@ -109,12 +134,14 @@ class TemporalMotionReport {
     required this.samples,
     required this.segments,
     required this.accelerations,
+    required this.jerks,
   });
 
   final String clipName;
   final int samples;
   final List<TemporalMotionSegment> segments;
   final List<TemporalMotionAcceleration> accelerations;
+  final List<TemporalMotionJerk> jerks;
 
   TemporalMotionSegment get worstDisplacement => _maxBy(
     segments,
@@ -128,11 +155,17 @@ class TemporalMotionReport {
     'accelerations',
   );
 
+  TemporalMotionJerk get worstJerk =>
+      _maxBy(jerks, (jerk) => jerk.magnitude, 'jerks');
+
   List<TemporalMotionSegment> topDisplacements(int count) =>
       _topBy(segments, count, (segment) => segment.distance);
 
   List<TemporalMotionAcceleration> topAccelerations(int count) =>
       _topBy(accelerations, count, (acceleration) => acceleration.magnitude);
+
+  List<TemporalMotionJerk> topJerks(int count) =>
+      _topBy(jerks, count, (jerk) => jerk.magnitude);
 
   static T _maxBy<T>(
     List<T> values,
@@ -207,6 +240,36 @@ class TemporalMotionAcceleration {
   final int toFrame;
   final double fromPhase;
   final double throughPhase;
+  final double toPhase;
+  final double dx;
+  final double dy;
+  final double magnitude;
+}
+
+class TemporalMotionJerk {
+  const TemporalMotionJerk({
+    required this.boneId,
+    required this.fromFrame,
+    required this.throughFrameA,
+    required this.throughFrameB,
+    required this.toFrame,
+    required this.fromPhase,
+    required this.throughPhaseA,
+    required this.throughPhaseB,
+    required this.toPhase,
+    required this.dx,
+    required this.dy,
+    required this.magnitude,
+  });
+
+  final String boneId;
+  final int fromFrame;
+  final int throughFrameA;
+  final int throughFrameB;
+  final int toFrame;
+  final double fromPhase;
+  final double throughPhaseA;
+  final double throughPhaseB;
   final double toPhase;
   final double dx;
   final double dy;

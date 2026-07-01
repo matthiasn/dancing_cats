@@ -382,6 +382,44 @@ void main() {
       expect(chest.sample(7.5 / 32).rotation, greaterThan(-1));
     });
 
+    test('body micro-timing wraps through the loop seam', () {
+      const leadKeys = [
+        DanceBodyKey(0, rootDx: 12, pelvisRotation: 1, microFrames: -1),
+        DanceBodyKey(8, rootDx: -12, pelvisRotation: -1, microFrames: -1),
+        DanceBodyKey(16, rootDx: 12, pelvisRotation: 1, microFrames: -1),
+        DanceBodyKey(24, rootDx: -12, pelvisRotation: -1, microFrames: -1),
+        DanceBodyKey(32, rootDx: 12, pelvisRotation: 1, microFrames: -1),
+      ];
+      const followKeys = [
+        DanceBodyKey(0, chestRotation: 1, microFrames: 1),
+        DanceBodyKey(8, chestRotation: -1, microFrames: 1),
+        DanceBodyKey(16, chestRotation: 1, microFrames: 1),
+        DanceBodyKey(24, chestRotation: -1, microFrames: 1),
+        DanceBodyKey(32, chestRotation: 1, microFrames: 1),
+      ];
+
+      final root = phrase.bodyRootChannel(leadKeys);
+      final pelvis = phrase.bodyPelvisChannel(leadKeys);
+      final chest = phrase.bodyChestChannel(followKeys);
+
+      expect(root.sample(31 / 32).dx, closeTo(12, 1e-9));
+      expect(pelvis.sample(31 / 32).rotation, closeTo(1, 1e-9));
+      expect(chest.sample(1 / 32).rotation, closeTo(1, 1e-9));
+
+      expect(
+        root.sample(0.99).dx,
+        lessThan(11.99),
+        reason:
+            'late seam samples should keep travelling, not clamp at frame 31',
+      );
+      expect(
+        chest.sample(0).rotation,
+        lessThan(0.99),
+        reason:
+            'early seam samples should approach the delayed key, not hold it',
+      );
+    });
+
     test('builds neutralized body accent pulses', () {
       final keys = phrase.bodyAccentKeys(
         const [

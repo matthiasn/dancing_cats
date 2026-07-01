@@ -153,6 +153,35 @@ void main() {
       },
     );
 
+    test('topJerks returns acceleration-change spikes sorted descending', () {
+      final analyzer = TemporalMotionAnalyzer(
+        CharacterScene(buildCatInSuitRig()),
+      );
+      const clip = Clip(
+        name: 'synthetic-root-snap',
+        duration: 1,
+        loop: false,
+        root: KeyframeRootChannel([
+          RootKeyframe(p: 0),
+          RootKeyframe(p: 0.5, dx: 120, ease: Ease.linear),
+          RootKeyframe(p: 1, dx: 120, ease: Ease.linear),
+        ]),
+        channels: {},
+      );
+      final report = analyzer.analyze(
+        clip: clip,
+        samples: 4,
+        boneIds: const [CatBones.hips],
+      );
+
+      final top = report.topJerks(2);
+      expect(top, hasLength(2));
+      expect(report.jerks, hasLength(2));
+      expect(top.first.magnitude, greaterThanOrEqualTo(top.last.magnitude));
+      expect(top.first.magnitude, closeTo(report.worstJerk.magnitude, 1e-9));
+      expect(report.worstJerk.magnitude, closeTo(60, 0.01));
+    });
+
     test('worstAcceleration throws when no acceleration was recorded', () {
       final analyzer = TemporalMotionAnalyzer(
         CharacterScene(buildCatInSuitRig()),
@@ -165,8 +194,10 @@ void main() {
         boneIds: const [CatBones.hips],
       );
       expect(report.accelerations, isEmpty);
+      expect(report.jerks, isEmpty);
       expect(report.segments, hasLength(1));
       expect(() => report.worstAcceleration, throwsStateError);
+      expect(() => report.worstJerk, throwsStateError);
     });
   });
 }

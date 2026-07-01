@@ -145,7 +145,12 @@ class Keyframe {
 /// one step cycle, the right at `phase: 0.5`. It is only meaningful for looping
 /// clips whose first and last keys match; one-shots leave it at 0.
 class KeyframeChannel extends JointChannel {
-  const KeyframeChannel(this.keys, {this.phase = 0, this.smooth = false});
+  const KeyframeChannel(
+    this.keys, {
+    this.phase = 0,
+    this.smooth = false,
+    this.cyclic = false,
+  });
 
   final List<Keyframe> keys;
   final double phase;
@@ -161,12 +166,21 @@ class KeyframeChannel extends JointChannel {
   /// ease, incl. `*Back` settles, is intentional).
   final bool smooth;
 
+  /// When true, key phases are treated as a wrapping cycle instead of a clamped
+  /// range. This is for looping dance channels whose authored keys may land a
+  /// fraction before frame 0 or after the last frame because of micro-timing.
+  final bool cyclic;
+
   @override
   JointPose sample(double rawP) {
-    final p = phase == 0
+    final shifted = rawP + phase;
+    final p = cyclic
+        ? _unitPhase(shifted)
+        : phase == 0
         ? rawP
-        : (rawP + phase) - (rawP + phase).floorToDouble();
+        : _unitPhase(shifted);
     if (keys.isEmpty) return JointPose.identity;
+    if (cyclic) return _sampleCyclic(p);
     if (p <= keys.first.p) return _poseOf(keys.first);
     if (p >= keys.last.p) return _poseOf(keys.last);
 
@@ -197,12 +211,39 @@ class KeyframeChannel extends JointChannel {
   JointPose _poseOf(Keyframe k) =>
       JointPose(rotation: k.rotation, scaleX: k.scaleX, scaleY: k.scaleY);
 
+  JointPose _sampleCyclic(double p) {
+    final cyclicKeys = _normalizedCyclicKeys(keys, (key) => key.p);
+    if (cyclicKeys.isEmpty) return JointPose.identity;
+    if (cyclicKeys.length == 1) return _poseOf(cyclicKeys.single.key);
+
+    final segment = _cyclicSegment(cyclicKeys, p);
+    final k0 = segment.start.key;
+    final k1 = segment.end.key;
+    if (smooth) {
+      return JointPose(
+        rotation: _cyclicCatmullRom(
+          cyclicKeys,
+          (key) => key.rotation,
+          segment,
+        ),
+        scaleX: _cyclicCatmullRom(cyclicKeys, (key) => key.scaleX, segment),
+        scaleY: _cyclicCatmullRom(cyclicKeys, (key) => key.scaleY, segment),
+      );
+    }
+    final t = k1.easeFn?.call(segment.local) ?? k1.ease.apply(segment.local);
+    return JointPose(
+      rotation: k0.rotation + (k1.rotation - k0.rotation) * t,
+      scaleX: k0.scaleX + (k1.scaleX - k0.scaleX) * t,
+      scaleY: k0.scaleY + (k1.scaleY - k0.scaleY) * t,
+    );
+  }
+
   /// Cubic Hermite for the segment [i,i+1] at [local] (0..1, span [dp]), with
   /// finite-difference tangents that wrap around the cycle (period = last-first
   /// key p, assuming the endpoints coincide). This is C1-continuous, so the
   /// joint never stops at an intermediate key.
   double _spline(int i, double local, double dp, double Function(Keyframe) f) =>
-      periodicCatmullRom(keys, (k) => k.p, f, i, local, dp);
+      _periodicCatmullRom(keys, (k) => k.p, f, i, local, dp);
 }
 
 /// A sampled inverse-kinematics target for a two-bone limb chain.
@@ -274,8 +315,11 @@ class LayeredIkTargetChannel extends IkTargetChannel {
 /// useful for dance hands, where an exact pose hit should still arrive in time
 /// but the wrist path should not read as a hard keyframe step.
 class SoftenedIkTargetChannel extends IkTargetChannel {
-  const SoftenedIkTargetChannel(this.channel, {this.radius = 0.01})
-    : assert(radius >= 0, 'radius must be non-negative');
+  const SoftenedIkTargetChannel(
+    this.channel, {
+    this.radius = 0.01,
+    this.cyclic = false,
+  }) : assert(radius >= 0, 'radius must be non-negative');
 
   final IkTargetChannel channel;
 
@@ -283,12 +327,15 @@ class SoftenedIkTargetChannel extends IkTargetChannel {
   /// is half a frame.
   final double radius;
 
+  /// Wrap smoothing samples across the loop seam instead of clamping them.
+  final bool cyclic;
+
   @override
   IkTargetPose sample(double p) {
     if (radius == 0) return channel.sample(p);
-    final before = channel.sample((p - radius).clamp(0.0, 1.0));
+    final before = channel.sample(_samplePhase(p - radius));
     final centre = channel.sample(p);
-    final after = channel.sample((p + radius).clamp(0.0, 1.0));
+    final after = channel.sample(_samplePhase(p + radius));
     return IkTargetPose(
       x: before.x * 0.25 + centre.x * 0.5 + after.x * 0.25,
       y: before.y * 0.25 + centre.y * 0.5 + after.y * 0.25,
@@ -296,6 +343,8 @@ class SoftenedIkTargetChannel extends IkTargetChannel {
           .clamp(0.0, 1.0),
     );
   }
+
+  double _samplePhase(double p) => cyclic ? _unitPhase(p) : p.clamp(0.0, 1.0);
 }
 
 class IkTargetKeyframe {
@@ -315,7 +364,11 @@ class IkTargetKeyframe {
 }
 
 class KeyframeIkTargetChannel extends IkTargetChannel {
-  const KeyframeIkTargetChannel(this.keys, {this.smooth = false});
+  const KeyframeIkTargetChannel(
+    this.keys, {
+    this.smooth = false,
+    this.cyclic = false,
+  });
 
   final List<IkTargetKeyframe> keys;
 
@@ -324,9 +377,14 @@ class KeyframeIkTargetChannel extends IkTargetChannel {
   /// with continuous velocity instead of stopping on every beat key.
   final bool smooth;
 
+  /// Treats target key phases as a wrapping cycle. This keeps sub-frame dance
+  /// target offsets continuous across the frame-0 seam.
+  final bool cyclic;
+
   @override
   IkTargetPose sample(double p) {
     if (keys.isEmpty) return const IkTargetPose(x: 0, y: 0, weight: 0);
+    if (cyclic) return _sampleCyclic(_unitPhase(p));
     if (p <= keys.first.p) return _poseOf(keys.first);
     if (p >= keys.last.p) return _poseOf(keys.last);
 
@@ -357,12 +415,39 @@ class KeyframeIkTargetChannel extends IkTargetChannel {
   IkTargetPose _poseOf(IkTargetKeyframe key) =>
       IkTargetPose(x: key.x, y: key.y, weight: key.weight);
 
+  IkTargetPose _sampleCyclic(double p) {
+    final cyclicKeys = _normalizedCyclicKeys(keys, (key) => key.p);
+    if (cyclicKeys.isEmpty) return const IkTargetPose(x: 0, y: 0, weight: 0);
+    if (cyclicKeys.length == 1) return _poseOf(cyclicKeys.single.key);
+
+    final segment = _cyclicSegment(cyclicKeys, p);
+    final k0 = segment.start.key;
+    final k1 = segment.end.key;
+    if (smooth) {
+      return IkTargetPose(
+        x: _cyclicCatmullRom(cyclicKeys, (key) => key.x, segment),
+        y: _cyclicCatmullRom(cyclicKeys, (key) => key.y, segment),
+        weight: _cyclicCatmullRom(
+          cyclicKeys,
+          (key) => key.weight,
+          segment,
+        ).clamp(0.0, 1.0),
+      );
+    }
+    final t = k1.ease.apply(segment.local);
+    return IkTargetPose(
+      x: k0.x + (k1.x - k0.x) * t,
+      y: k0.y + (k1.y - k0.y) * t,
+      weight: k0.weight + (k1.weight - k0.weight) * t,
+    );
+  }
+
   double _spline(
     int i,
     double local,
     double dp,
     double Function(IkTargetKeyframe) f,
-  ) => periodicCatmullRom(keys, (k) => k.p, f, i, local, dp);
+  ) => _periodicCatmullRom(keys, (k) => k.p, f, i, local, dp);
 }
 
 class LimbIkTarget {
@@ -495,7 +580,11 @@ class RootKeyframe {
 
 /// Eased or smooth keyframed root motion. Keys must be sorted by phase.
 class KeyframeRootChannel extends RootChannel {
-  const KeyframeRootChannel(this.keys, {this.smooth = false});
+  const KeyframeRootChannel(
+    this.keys, {
+    this.smooth = false,
+    this.cyclic = false,
+  });
 
   final List<RootKeyframe> keys;
 
@@ -505,9 +594,14 @@ class KeyframeRootChannel extends RootChannel {
   /// count.
   final bool smooth;
 
+  /// Treats root key phases as a wrapping cycle instead of a clamped one-shot.
+  /// Dance body channels use this so micro-timed keys flow through the seam.
+  final bool cyclic;
+
   @override
   ({double dx, double dy, double rotation}) sample(double p) {
     if (keys.isEmpty) return (dx: 0, dy: 0, rotation: 0);
+    if (cyclic) return _sampleCyclic(_unitPhase(p));
     if (p <= keys.first.p) {
       final k = keys.first;
       return (dx: k.dx, dy: k.dy, rotation: k.rotation);
@@ -545,7 +639,157 @@ class KeyframeRootChannel extends RootChannel {
     double local,
     double dp,
     double Function(RootKeyframe) f,
-  ) => periodicCatmullRom(keys, (k) => k.p, f, i, local, dp);
+  ) => _periodicCatmullRom(keys, (k) => k.p, f, i, local, dp);
+
+  ({double dx, double dy, double rotation}) _sampleCyclic(double p) {
+    final cyclicKeys = _normalizedCyclicKeys(keys, (key) => key.p);
+    if (cyclicKeys.isEmpty) return (dx: 0, dy: 0, rotation: 0);
+    if (cyclicKeys.length == 1) {
+      final k = cyclicKeys.single.key;
+      return (dx: k.dx, dy: k.dy, rotation: k.rotation);
+    }
+
+    final segment = _cyclicSegment(cyclicKeys, p);
+    final k0 = segment.start.key;
+    final k1 = segment.end.key;
+    if (smooth) {
+      return (
+        dx: _cyclicCatmullRom(cyclicKeys, (key) => key.dx, segment),
+        dy: _cyclicCatmullRom(cyclicKeys, (key) => key.dy, segment),
+        rotation: _cyclicCatmullRom(
+          cyclicKeys,
+          (key) => key.rotation,
+          segment,
+        ),
+      );
+    }
+    final t = k1.ease.apply(segment.local);
+    return (
+      dx: k0.dx + (k1.dx - k0.dx) * t,
+      dy: k0.dy + (k1.dy - k0.dy) * t,
+      rotation: k0.rotation + (k1.rotation - k0.rotation) * t,
+    );
+  }
+}
+
+double _unitPhase(double p) => p - p.floorToDouble();
+
+class _CyclicKey<K> {
+  const _CyclicKey({required this.p, required this.key});
+
+  final double p;
+  final K key;
+}
+
+class _CyclicSegment<K> {
+  const _CyclicSegment({
+    required this.startIndex,
+    required this.start,
+    required this.end,
+    required this.local,
+    required this.span,
+  });
+
+  final int startIndex;
+  final _CyclicKey<K> start;
+  final _CyclicKey<K> end;
+  final double local;
+  final double span;
+}
+
+List<_CyclicKey<K>> _normalizedCyclicKeys<K>(
+  List<K> keys,
+  double Function(K key) phaseOf,
+) {
+  const epsilon = 1e-9;
+  final normalized = <_CyclicKey<K>>[];
+  for (final key in keys) {
+    final p = _unitPhase(phaseOf(key));
+    final duplicate = normalized.indexWhere(
+      (entry) => (entry.p - p).abs() <= epsilon,
+    );
+    final cyclicKey = _CyclicKey(p: p, key: key);
+    if (duplicate == -1) {
+      normalized.add(cyclicKey);
+    } else {
+      normalized[duplicate] = cyclicKey;
+    }
+  }
+  normalized.sort((a, b) => a.p.compareTo(b.p));
+  return normalized;
+}
+
+_CyclicSegment<K> _cyclicSegment<K>(List<_CyclicKey<K>> keys, double p) {
+  assert(keys.length >= 2, 'cyclic segments need at least two keys');
+  for (var i = 0; i < keys.length - 1; i++) {
+    final start = keys[i];
+    final end = keys[i + 1];
+    if (p >= start.p && p <= end.p) {
+      final span = end.p - start.p;
+      return _CyclicSegment(
+        startIndex: i,
+        start: start,
+        end: end,
+        local: span == 0 ? 0 : (p - start.p) / span,
+        span: span,
+      );
+    }
+  }
+
+  final start = keys.last;
+  final end = keys.first;
+  final endP = end.p + 1;
+  final sampleP = p < start.p ? p + 1 : p;
+  final span = endP - start.p;
+  return _CyclicSegment(
+    startIndex: keys.length - 1,
+    start: start,
+    end: end,
+    local: span == 0 ? 0 : (sampleP - start.p) / span,
+    span: span,
+  );
+}
+
+double _cyclicCatmullRom<K>(
+  List<_CyclicKey<K>> keys,
+  double Function(K key) valueOf,
+  _CyclicSegment<K> segment,
+) {
+  final n = keys.length;
+  final i = segment.startIndex;
+  final j = (i + 1) % n;
+  final prev = (i - 1 + n) % n;
+  final next = (j + 1) % n;
+
+  final p1 = keys[i].p;
+  var p2 = keys[j].p;
+  if (p2 <= p1) p2 += 1;
+  var p0 = keys[prev].p;
+  if (p0 >= p1) p0 -= 1;
+  var p3 = keys[next].p;
+  while (p3 <= p2) {
+    p3 += 1;
+  }
+
+  final v0 = valueOf(keys[prev].key);
+  final v1 = valueOf(keys[i].key);
+  final v2 = valueOf(keys[j].key);
+  final v3 = valueOf(keys[next].key);
+  final denom1 = p2 - p0;
+  final denom2 = p3 - p1;
+  if (denom1.abs() < 1e-12 || denom2.abs() < 1e-12) {
+    return v1 + (v2 - v1) * segment.local;
+  }
+
+  final m1 = segment.span * (v2 - v0) / denom1;
+  final m2 = segment.span * (v3 - v1) / denom2;
+  final t = segment.local;
+  final t2 = t * t;
+  final t3 = t2 * t;
+  return (2 * t3 - 3 * t2 + 1) * v1 +
+      (t3 - 2 * t2 + t) * m1 +
+      (-2 * t3 + 3 * t2) * v2 +
+      (t3 - t2) * m2;
 }
 
 /// Periodic Catmull-Rom (Hermite) interpolation of one channel value across the
@@ -557,7 +801,7 @@ class KeyframeRootChannel extends RootChannel {
 /// endpoints coincide (`keys.first` == `keys.last`), so neighbours wrap around
 /// by one period. Shared by the joint / IK-target / root keyframe channels so
 /// the spline math lives in exactly one place.
-double periodicCatmullRom<K>(
+double _periodicCatmullRom<K>(
   List<K> keys,
   double Function(K) phaseOf,
   double Function(K) valueOf,

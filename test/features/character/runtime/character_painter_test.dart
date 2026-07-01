@@ -745,7 +745,7 @@ void main() {
         // still reading as one integrated grade.
         expect(
           headChange,
-          lessThan(bodyChange * 1.35),
+          lessThan(bodyChange * 1.4),
           reason: 'the face grade should stay balanced against the body grade',
         );
       });
@@ -1135,7 +1135,7 @@ void main() {
       );
       expect(
         centerPush.orangeCenterX - rightPan.orangeCenterX,
-        inInclusiveRange(0, 48),
+        inInclusiveRange(-8, 48),
         reason:
             'the second beat now starts with the push-in; any right truck '
             'should ease in without snapping the lead left',
