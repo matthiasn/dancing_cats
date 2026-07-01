@@ -1582,10 +1582,10 @@ RigSpec buildCatInSuitRig({
       // rather than bodybuilder-wide so the dance reads agile in quarter view.
       // FRONT profile: the quad carries the thigh mass and holds it almost
       // to the knee; the shin's front is near-straight (bone, not muscle).
-      halfWidths: scaledLegWidths(const [13.0, 12.6, 13.4, 8.6, 9.0, 5.5]),
+      halfWidths: scaledLegWidths(const [15.0, 14.2, 15.6, 8.6, 9.2, 5.5]),
       // BACK profile: hamstring eases off the seat, then the CALF bulge —
       // the S-curve that reads athletic where a symmetric tube reads stuffed.
-      backHalfWidths: scaledLegWidths(const [13.0, 11.8, 10.2, 8.2, 12.0, 5.3]),
+      backHalfWidths: scaledLegWidths(const [15.0, 13.0, 11.2, 8.2, 12.2, 5.3]),
       z: 3,
       color: _trouserRear,
       outlineColor: _outline,
@@ -1608,10 +1608,10 @@ RigSpec buildCatInSuitRig({
       hiddenBoneIds: const [CatBones.legUpperL, CatBones.legLowerL],
       // FRONT profile: the quad carries the thigh mass and holds it almost
       // to the knee; the shin's front is near-straight (bone, not muscle).
-      halfWidths: scaledLegWidths(const [13.0, 12.6, 13.4, 8.6, 9.0, 5.5]),
+      halfWidths: scaledLegWidths(const [15.0, 14.2, 15.6, 8.6, 9.2, 5.5]),
       // BACK profile: hamstring eases off the seat, then the CALF bulge —
       // the S-curve that reads athletic where a symmetric tube reads stuffed.
-      backHalfWidths: scaledLegWidths(const [13.0, 11.8, 10.2, 8.2, 12.0, 5.3]),
+      backHalfWidths: scaledLegWidths(const [15.0, 13.0, 11.2, 8.2, 12.2, 5.3]),
       z: 6,
       color: _trouser,
       outlineColor: _outline,
@@ -1729,28 +1729,28 @@ RigSpec buildCatInSuitRig({
           MeshInfluence(boneId: CatBones.hips, x: 22, y: 2, weight: 0.7),
         ]),
         SkinnedMeshVertex([
-          MeshInfluence(boneId: CatBones.hips, x: 25, y: 10, weight: 1),
+          MeshInfluence(boneId: CatBones.hips, x: 27.5, y: 10, weight: 1),
         ]),
         SkinnedMeshVertex([
-          MeshInfluence(boneId: CatBones.hips, x: 22, y: 21, weight: 1),
+          MeshInfluence(boneId: CatBones.hips, x: 26, y: 19, weight: 1),
         ]),
         // Bottom edge is an M, not a U: two thigh-tops with a CROTCH NOTCH
         // between them, so the legs emerge from hips with a V-crotch instead of
         // hanging off a filled rounded "disk" that reads as no real body part.
         SkinnedMeshVertex([
-          MeshInfluence(boneId: CatBones.hips, x: 16, y: 26, weight: 1),
+          MeshInfluence(boneId: CatBones.hips, x: 19, y: 26, weight: 1),
         ]),
         SkinnedMeshVertex([
           MeshInfluence(boneId: CatBones.hips, x: 0, y: 13, weight: 1),
         ]),
         SkinnedMeshVertex([
-          MeshInfluence(boneId: CatBones.hips, x: -16, y: 26, weight: 1),
+          MeshInfluence(boneId: CatBones.hips, x: -19, y: 26, weight: 1),
         ]),
         SkinnedMeshVertex([
-          MeshInfluence(boneId: CatBones.hips, x: -22, y: 21, weight: 1),
+          MeshInfluence(boneId: CatBones.hips, x: -26, y: 19, weight: 1),
         ]),
         SkinnedMeshVertex([
-          MeshInfluence(boneId: CatBones.hips, x: -25, y: 10, weight: 1),
+          MeshInfluence(boneId: CatBones.hips, x: -27.5, y: 10, weight: 1),
         ]),
       ],
       boundary: const [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
@@ -1775,7 +1775,7 @@ RigSpec buildCatInSuitRig({
       id: 'jacket.mesh',
       bones: bones,
       stations: const [
-        TrunkStation(boneId: CatBones.hips, y: 17, halfWidth: 23),
+        TrunkStation(boneId: CatBones.hips, y: 14, halfWidth: 22.5),
         TrunkStation(boneId: CatBones.torso, y: -8, halfWidth: 19.5),
         TrunkStation(boneId: CatBones.torso, y: -34, halfWidth: 24.5),
         TrunkStation(boneId: CatBones.chest, y: -60, halfWidth: 32.5),
