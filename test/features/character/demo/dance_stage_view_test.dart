@@ -222,6 +222,23 @@ void main() {
             'turning their arms into dark wires',
       );
     });
+
+    test('keeps the lead lower-body silhouette stronger than backups', () {
+      final cast = DanceCast.build();
+      final leadLeg = _leftLegRibbon(cast.lead.rig);
+      final leftLeg = _leftLegRibbon(cast.left.rig);
+      final rightLeg = _leftLegRibbon(cast.right.rig);
+
+      expect(
+        leadLeg.halfWidths.first,
+        greaterThan(leftLeg.halfWidths.first),
+        reason:
+            'the front dancer should not read thinner than the backup dancers',
+      );
+      expect(leadLeg.halfWidths.first, greaterThan(rightLeg.halfWidths.first));
+      expect(leadLeg.halfWidths[3], greaterThan(leftLeg.halfWidths[3]));
+      expect(leadLeg.halfWidths[3], greaterThan(rightLeg.halfWidths[3]));
+    });
   });
 
   group('danceCharacterPainter', () {
@@ -281,6 +298,9 @@ void main() {
 
 SkinnedMeshSpec _leftArmMesh(RigSpec rig) =>
     rig.meshes.singleWhere((mesh) => mesh.id == 'arm.L.mesh');
+
+LimbRibbonSpec _leftLegRibbon(RigSpec rig) =>
+    rig.ribbons.singleWhere((ribbon) => ribbon.id == 'leg.L.ribbon');
 
 double _maxAbsLocalX(SkinnedMeshVertex vertex) => vertex.influences.fold(
   0,

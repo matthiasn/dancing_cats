@@ -621,11 +621,15 @@ class MotionConstraintValidator {
       if (index >= 0 && index < vertices.length) vertices[index],
   ];
 
-  List<int> _armShoulderCapIndices(int vertexCount) => vertexCount >= 18
+  List<int> _armShoulderCapIndices(int vertexCount) => vertexCount >= 20
+      ? const [0, 1, 2, 17, 18, 19]
+      : vertexCount >= 18
       ? const [0, 1, 2, 15, 16, 17]
       : const [0, 1, 2, 13, 14, 15];
 
-  List<int> _armBicepIndices(int vertexCount) => vertexCount >= 18
+  List<int> _armBicepIndices(int vertexCount) => vertexCount >= 20
+      ? const [2, 3, 4, 5, 6, 14, 15, 16, 17]
+      : vertexCount >= 18
       ? const [2, 3, 4, 5, 13, 14, 15]
       : const [2, 3, 4, 11, 12, 13];
 
@@ -789,8 +793,8 @@ class MotionConstraintProfile {
     this.minRaisedShoulderResponse = 0.18,
     this.minRaisedSocketResponse = 0.06,
     this.maxRaisedShoulderMeshGap = 24,
-    this.minRaisedShoulderMeshSpan = 29,
-    this.minRaisedShoulderToBicepRatio = 0.83,
+    this.minRaisedShoulderMeshSpan = 23,
+    this.minRaisedShoulderToBicepRatio = 0.73,
     this.maxRaisedUpperArmMeshEdge = 34,
     this.jointEnvelopeRules = defaultMotionJointEnvelopeRules,
   }) : assert(
@@ -925,6 +929,9 @@ class MotionConstraintProfile {
   final double maxRaisedShoulderMeshGap;
 
   /// Minimum cross-axis width of the resolved sleeve shoulder cap.
+  ///
+  /// This stays deliberately below the bicep span target: the validator should
+  /// catch wire-thin detachment, not force padded shoulder blocks.
   final double minRaisedShoulderMeshSpan;
 
   /// Minimum shoulder-cap width relative to the resolved bicep width.

@@ -417,15 +417,17 @@ void main() {
       final hand = rig.bone(CatBones.handL)!.drawable!;
 
       const outerDeltoid = 2;
-      const outerBicepCrown = 3;
-      const outerBicep = 4;
-      const outerUpperArmTransition = 5;
-      const outerElbow = 6;
-      const outerForearm = 7;
-      const outerWrist = 8;
-      const innerBicep = 13;
+      const outerBicepCrown = 4;
+      const outerBicep = 5;
+      const outerUpperArmTransition = 6;
+      const outerElbow = 7;
+      const outerForearm = 8;
+      const outerWrist = 9;
+      const innerBicep = 14;
+      const collarSideShoulder = 18;
+      const topShoulderCrown = 19;
 
-      expect(arm.boundary, hasLength(18));
+      expect(arm.boundary, hasLength(20));
       expect(arm.formRound, isFalse);
       expect(
         arm.smoothBoundary,
@@ -475,6 +477,31 @@ void main() {
       expect(_maxAbsLocalX(arm.vertices[outerDeltoid]), greaterThan(13));
       expect(_maxAbsLocalX(arm.vertices[outerBicepCrown]), greaterThan(14));
       expect(_maxAbsLocalX(arm.vertices[outerBicep]), greaterThan(13));
+      expect(
+        arm.vertices[topShoulderCrown].influences.map((i) => i.boneId),
+        containsAll([
+          CatBones.clavicleL,
+          CatBones.shoulderSocketL,
+          CatBones.armUpperL,
+        ]),
+        reason:
+            'the top shoulder crown must be a blended sleeve edge, not a '
+            'clavicle-only spike above a raised arm',
+      );
+      expect(
+        _maxAbsLocalX(arm.vertices[topShoulderCrown]),
+        lessThan(_maxAbsLocalX(arm.vertices[outerDeltoid]) * 0.75),
+        reason:
+            'the collar-side shoulder point should sit inside the deltoid '
+            'curve instead of protruding like a bat-wing point',
+      );
+      expect(
+        _maxAbsLocalX(arm.vertices[collarSideShoulder]),
+        lessThan(_maxAbsLocalX(arm.vertices[outerDeltoid]) * 0.95),
+        reason:
+            'the inner shoulder bridge should round into the sleeve rather '
+            'than forming a hard top-corner peak',
+      );
       expect(
         arm.vertices[outerUpperArmTransition].influences.map((i) => i.boneId),
         containsAll([CatBones.armBicepL, CatBones.armLowerL]),
@@ -663,9 +690,9 @@ void main() {
         greaterThan(leadLeg.halfWidths[2]),
         reason: 'the calf must bulge past the knee dip',
       );
-      const outerBicep = 4;
-      const outerElbow = 6;
-      const outerForearm = 7;
+      const outerBicep = 5;
+      const outerElbow = 7;
+      const outerForearm = 8;
 
       expect(
         _maxAbsLocalX(leadArm.vertices[outerBicep]),
