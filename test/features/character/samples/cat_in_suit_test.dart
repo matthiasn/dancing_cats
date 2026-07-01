@@ -187,10 +187,25 @@ void main() {
         final arm = rig.meshes.singleWhere((m) => m.id == side.armId);
         final drawOrder = rig.meshDrawOrder.map((m) => m.id).toList();
 
-        expect(fold.boundary, hasLength(5));
+        expect(fold.boundary, hasLength(7));
         expect(fold.formRound, isFalse);
         expect(fold.outlineColor, isNull);
         expect(fold.z, lessThanOrEqualTo(arm.z));
+        expect(fold.boundaryCornerSmoothing, greaterThanOrEqualTo(0.32));
+        expect(
+          fold.vertices[1].influences.map((i) => i.boneId),
+          containsAll([side.socket, side.upper, side.bicep]),
+          reason:
+              '${side.foldId} needs a deltoid bridge under the raised sleeve, '
+              'not only a torso shadow patch',
+        );
+        expect(
+          fold.vertices[3].influences.map((i) => i.boneId),
+          containsAll([CatBones.torso, side.clavicle, side.upper, side.bicep]),
+          reason:
+              '${side.foldId} should keep the armpit cloth connected across '
+              'torso, clavicle, upper arm, and bicep controls',
+        );
         expect(
           drawOrder.indexOf(side.foldId),
           lessThan(drawOrder.indexOf(side.armId)),
@@ -401,7 +416,15 @@ void main() {
       final cuff = rig.bone(CatBones.wristCuffL)!.drawable!;
       final hand = rig.bone(CatBones.handL)!.drawable!;
 
-      expect(arm.boundary, hasLength(14));
+      const outerDeltoid = 2;
+      const outerBicepCrown = 3;
+      const outerBicep = 4;
+      const outerElbow = 5;
+      const outerForearm = 6;
+      const outerWrist = 7;
+      const innerBicep = 11;
+
+      expect(arm.boundary, hasLength(16));
       expect(arm.formRound, isFalse);
       expect(
         arm.smoothBoundary,
@@ -431,7 +454,7 @@ void main() {
       );
       expect(_maxAbsLocalX(arm.vertices[0]), greaterThan(13));
       expect(
-        arm.vertices[2].influences.map((i) => i.boneId),
+        arm.vertices[outerDeltoid].influences.map((i) => i.boneId),
         containsAll([
           CatBones.shoulderSocketL,
           CatBones.armUpperL,
@@ -441,37 +464,45 @@ void main() {
             'the sleeve needs a deltoid transition vertex between the shoulder '
             'cap and bicep; otherwise raised arms collapse into triangles',
       );
-      expect(_maxAbsLocalX(arm.vertices[2]), greaterThan(13));
-      expect(_maxAbsLocalX(arm.vertices[3]), greaterThan(12));
       expect(
-        _maxAbsLocalX(arm.vertices[3]),
-        greaterThan(_maxAbsLocalX(arm.vertices[5]) * 1.42),
+        arm.vertices[outerBicepCrown].influences.map((i) => i.boneId),
+        containsAll([CatBones.armUpperL, CatBones.armBicepL]),
+        reason:
+            'a raised sleeve needs an intermediate bicep crown, otherwise the '
+            'cap-to-bicep transition renders as one triangular side',
+      );
+      expect(_maxAbsLocalX(arm.vertices[outerDeltoid]), greaterThan(13));
+      expect(_maxAbsLocalX(arm.vertices[outerBicepCrown]), greaterThan(14));
+      expect(_maxAbsLocalX(arm.vertices[outerBicep]), greaterThan(13));
+      expect(
+        _maxAbsLocalX(arm.vertices[outerBicep]),
+        greaterThan(_maxAbsLocalX(arm.vertices[outerForearm]) * 1.42),
         reason:
             'the upper sleeve should carry a real bicep/upper-arm mass before '
             'tapering into the forearm',
       );
       expect(
-        _maxAbsLocalX(arm.vertices[4]),
-        lessThan(_maxAbsLocalX(arm.vertices[3]) * 0.5),
+        _maxAbsLocalX(arm.vertices[outerElbow]),
+        lessThan(_maxAbsLocalX(arm.vertices[outerBicep]) * 0.5),
         reason:
             'the elbow should pinch below the bicep mass without becoming a '
             'thin hinge',
       );
       expect(
-        _maxAbsLocalX(arm.vertices[6]),
-        lessThan(_maxAbsLocalX(arm.vertices[5]) * 0.7),
+        _maxAbsLocalX(arm.vertices[outerWrist]),
+        lessThan(_maxAbsLocalX(arm.vertices[outerForearm]) * 0.7),
         reason:
             'the wrist should taper after the forearm while still connecting to '
             'the larger paw/cuff',
       );
       expect(
-        _maxAbsLocalX(arm.vertices[5]),
-        greaterThan(_maxAbsLocalX(arm.vertices[4]) * 1.5),
+        _maxAbsLocalX(arm.vertices[outerForearm]),
+        greaterThan(_maxAbsLocalX(arm.vertices[outerElbow]) * 1.5),
         reason: 'the forearm should wedge back out after the elbow pinch',
       );
       expect(
-        _maxAbsLocalX(arm.vertices[10]),
-        lessThan(_maxAbsLocalX(arm.vertices[3])),
+        _maxAbsLocalX(arm.vertices[innerBicep]),
+        lessThan(_maxAbsLocalX(arm.vertices[outerBicep])),
         reason:
             'the inner bicep edge should be flatter than the outer shoulder '
             'bulge, avoiding a constant-width tube',
@@ -611,24 +642,29 @@ void main() {
         greaterThan(leadLeg.halfWidths[2]),
         reason: 'the calf must bulge past the knee dip',
       );
+      const outerBicep = 4;
+      const outerElbow = 5;
+      const outerForearm = 6;
+
       expect(
-        _maxAbsLocalX(leadArm.vertices[3]),
+        _maxAbsLocalX(leadArm.vertices[outerBicep]),
         closeTo(
-          _maxAbsLocalX(baseArm.vertices[3]) * kDanceLeadArmWidthScale,
+          _maxAbsLocalX(baseArm.vertices[outerBicep]) * kDanceLeadArmWidthScale,
           0.001,
         ),
       );
       expect(
-        _maxAbsLocalX(leadArm.vertices[4]),
-        lessThan(_maxAbsLocalX(leadArm.vertices[3]) * 0.5),
+        _maxAbsLocalX(leadArm.vertices[outerElbow]),
+        lessThan(_maxAbsLocalX(leadArm.vertices[outerBicep]) * 0.5),
         reason:
             'the elbow valley should keep crossed arms readable without '
             'becoming stringy',
       );
       expect(
-        _maxAbsLocalX(leadArm.vertices[5]),
+        _maxAbsLocalX(leadArm.vertices[outerForearm]),
         closeTo(
-          _maxAbsLocalX(baseArm.vertices[5]) * kDanceLeadArmWidthScale,
+          _maxAbsLocalX(baseArm.vertices[outerForearm]) *
+              kDanceLeadArmWidthScale,
           0.001,
         ),
       );

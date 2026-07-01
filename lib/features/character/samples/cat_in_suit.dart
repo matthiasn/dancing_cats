@@ -1214,12 +1214,12 @@ RigSpec buildCatInSuitRig({
     required int color,
   }) {
     final s = side.toDouble();
-    final shoulderCapOuter = 21.0 * armWidthScale;
-    final shoulderCapInner = 15.0 * armWidthScale;
-    final bicepOuter = 16.2 * armWidthScale;
-    final bicepInner = 11.8 * armWidthScale;
-    final elbowOuter = 5.2 * armWidthScale;
-    final elbowInner = 4.2 * armWidthScale;
+    final shoulderCapOuter = 22.5 * armWidthScale;
+    final shoulderCapInner = 16.4 * armWidthScale;
+    final bicepOuter = 18.0 * armWidthScale;
+    final bicepInner = 12.8 * armWidthScale;
+    final elbowOuter = 5.6 * armWidthScale;
+    final elbowInner = 4.6 * armWidthScale;
     final forearmOuter = 9.6 * armWidthScale;
     final forearmInner = 7.5 * armWidthScale;
     final wristOuter = 5.8 * armWidthScale;
@@ -1289,6 +1289,26 @@ RigSpec buildCatInSuitRig({
           ),
         ]),
         SkinnedMeshVertex([
+          MeshInfluence(
+            boneId: upper,
+            x: s * (shoulderCapOuter * 0.66),
+            y: 20,
+            weight: 0.24,
+          ),
+          MeshInfluence(
+            boneId: bicep,
+            x: s * (bicepOuter * 1.08),
+            y: -8,
+            weight: 0.58,
+          ),
+          MeshInfluence(
+            boneId: lower,
+            x: s * (elbowOuter * 0.75),
+            y: -5,
+            weight: 0.18,
+          ),
+        ]),
+        SkinnedMeshVertex([
           MeshInfluence(boneId: bicep, x: s * bicepOuter, y: -2, weight: 1),
         ]),
         SkinnedMeshVertex([
@@ -1321,6 +1341,26 @@ RigSpec buildCatInSuitRig({
         ]),
         SkinnedMeshVertex([
           MeshInfluence(boneId: bicep, x: -s * bicepInner, y: -3, weight: 1),
+        ]),
+        SkinnedMeshVertex([
+          MeshInfluence(
+            boneId: bicep,
+            x: -s * (bicepInner * 1.08),
+            y: -7,
+            weight: 0.62,
+          ),
+          MeshInfluence(
+            boneId: upper,
+            x: -s * (shoulderCapInner * 0.68),
+            y: 15,
+            weight: 0.26,
+          ),
+          MeshInfluence(
+            boneId: socket,
+            x: -s * (shoulderCapInner * 0.72),
+            y: 9,
+            weight: 0.12,
+          ),
         ]),
         SkinnedMeshVertex([
           MeshInfluence(
@@ -1377,7 +1417,7 @@ RigSpec buildCatInSuitRig({
           ),
         ]),
       ],
-      boundary: const [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
+      boundary: const [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
       hiddenBoneIds: [
         socket,
         upper,
@@ -1541,59 +1581,85 @@ RigSpec buildCatInSuitRig({
             boneId: CatBones.torso,
             x: s * 43,
             y: -66,
-            weight: 0.25,
+            weight: 0.22,
           ),
           MeshInfluence(
             boneId: clavicle,
-            x: s * 10,
-            y: -10,
-            weight: 0.55,
+            x: s * 11,
+            y: -12,
+            weight: 0.56,
           ),
           MeshInfluence(
             boneId: socket,
-            x: s * 16 * scale,
-            y: -6,
-            weight: 0.2,
+            x: s * 18 * scale,
+            y: -7,
+            weight: 0.22,
           ),
         ]),
         SkinnedMeshVertex([
           MeshInfluence(
             boneId: socket,
-            x: s * 19 * scale,
-            y: 8,
-            weight: 0.14,
+            x: s * 21 * scale,
+            y: 4,
+            weight: 0.32,
           ),
           MeshInfluence(
             boneId: upper,
-            x: s * 20 * scale,
-            y: 13,
-            weight: 0.66,
-          ),
-          MeshInfluence(
-            boneId: bicep,
-            x: s * 12 * scale,
-            y: -6,
-            weight: 0.2,
-          ),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(
-            boneId: upper,
-            x: s * 8 * scale,
-            y: 23,
-            weight: 0.3,
-          ),
-          MeshInfluence(
-            boneId: bicep,
-            x: s * 6 * scale,
-            y: 3,
-            weight: 0.55,
-          ),
-          MeshInfluence(
-            boneId: clavicle,
-            x: s * 12,
+            x: s * 22 * scale,
             y: 12,
-            weight: 0.15,
+            weight: 0.5,
+          ),
+          MeshInfluence(
+            boneId: bicep,
+            x: s * 14 * scale,
+            y: -8,
+            weight: 0.18,
+          ),
+        ]),
+        SkinnedMeshVertex([
+          MeshInfluence(
+            boneId: upper,
+            x: s * 17 * scale,
+            y: 20,
+            weight: 0.34,
+          ),
+          MeshInfluence(
+            boneId: bicep,
+            x: s * 15 * scale,
+            y: -4,
+            weight: 0.56,
+          ),
+          MeshInfluence(
+            boneId: clavicle,
+            x: s * 13,
+            y: 7,
+            weight: 0.1,
+          ),
+        ]),
+        SkinnedMeshVertex([
+          MeshInfluence(
+            boneId: bicep,
+            x: s * 8 * scale,
+            y: 3,
+            weight: 0.45,
+          ),
+          MeshInfluence(
+            boneId: upper,
+            x: s * 6 * scale,
+            y: 23,
+            weight: 0.28,
+          ),
+          MeshInfluence(
+            boneId: clavicle,
+            x: s * 11,
+            y: 15,
+            weight: 0.16,
+          ),
+          MeshInfluence(
+            boneId: CatBones.torso,
+            x: s * 35,
+            y: -48,
+            weight: 0.11,
           ),
         ]),
         SkinnedMeshVertex([
@@ -1619,6 +1685,26 @@ RigSpec buildCatInSuitRig({
         SkinnedMeshVertex([
           MeshInfluence(
             boneId: CatBones.torso,
+            x: s * 29,
+            y: -56,
+            weight: 0.52,
+          ),
+          MeshInfluence(
+            boneId: clavicle,
+            x: -s * 3,
+            y: -4,
+            weight: 0.42,
+          ),
+          MeshInfluence(
+            boneId: socket,
+            x: s * 6 * scale,
+            y: 2,
+            weight: 0.06,
+          ),
+        ]),
+        SkinnedMeshVertex([
+          MeshInfluence(
+            boneId: CatBones.torso,
             x: s * 30,
             y: -64,
             weight: 0.5,
@@ -1631,7 +1717,7 @@ RigSpec buildCatInSuitRig({
           ),
         ]),
       ],
-      boundary: const [0, 1, 2, 3, 4],
+      boundary: const [0, 1, 2, 3, 4, 5, 6],
       z: z,
       color: _suitShadow,
       formRound: false,
