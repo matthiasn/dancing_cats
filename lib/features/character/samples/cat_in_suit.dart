@@ -1351,7 +1351,7 @@ RigSpec buildCatInSuitRig({
       outlineColor: _outline,
       outlineWidth: 2.2,
       formRound: false,
-      smoothBoundary: false,
+      boundaryCornerSmoothing: 0.28,
     );
   }
 
@@ -1477,7 +1477,7 @@ RigSpec buildCatInSuitRig({
       z: z,
       color: _sleeveContour,
       formRound: false,
-      smoothBoundary: false,
+      boundaryCornerSmoothing: 0.28,
     );
   }
 

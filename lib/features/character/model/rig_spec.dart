@@ -392,7 +392,12 @@ class SkinnedMeshSpec {
     this.outlineWidth = 0,
     this.formRound = true,
     this.smoothBoundary = true,
-  }) : vertices = List<SkinnedMeshVertex>.unmodifiable(vertices),
+    this.boundaryCornerSmoothing = 0.5,
+  }) : assert(
+         boundaryCornerSmoothing >= 0 && boundaryCornerSmoothing <= 0.5,
+         'boundaryCornerSmoothing must be between 0 and 0.5',
+       ),
+       vertices = List<SkinnedMeshVertex>.unmodifiable(vertices),
        boundary = List<int>.unmodifiable(boundary),
        hiddenBoneIds = List<String>.unmodifiable(hiddenBoneIds);
 
@@ -412,10 +417,15 @@ class SkinnedMeshSpec {
   /// seamlessly, not look like a stamped panel.
   final bool formRound;
 
-  /// Whether the boundary should be midpoint-smoothed. Organic broad forms
-  /// default to true; tailored surfaces such as suit sleeves can opt out so the
-  /// silhouette keeps visible planes and tapers instead of becoming a tube.
+  /// Whether the boundary should be smoothed. Organic broad forms default to
+  /// true; tailored surfaces can lower [boundaryCornerSmoothing] to keep visible
+  /// planes and tapers without rendering raw polygon facets.
   final bool smoothBoundary;
+
+  /// How far each smoothed boundary corner is rounded toward the adjacent edges.
+  /// `0.5` is midpoint smoothing (the historic organic mesh look), while lower
+  /// values keep more of the authored edge length between curved corners.
+  final double boundaryCornerSmoothing;
 }
 
 class SkinnedMeshVertex {

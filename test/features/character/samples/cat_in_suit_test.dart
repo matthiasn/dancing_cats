@@ -355,10 +355,17 @@ void main() {
       expect(arm.formRound, isFalse);
       expect(
         arm.smoothBoundary,
-        isFalse,
+        isTrue,
         reason:
-            'tailored sleeves should keep crisp taper planes instead of '
-            'midpoint-smoothed sausage contours',
+            'tailored sleeves still need curved contours; raw polygon edges '
+            'read as triangular arms',
+      );
+      expect(
+        arm.boundaryCornerSmoothing,
+        inInclusiveRange(0.2, 0.35),
+        reason:
+            'sleeves need lower-tension smoothing than the organic body meshes '
+            'so they keep taper without returning to sausage tubes',
       );
       expect(arm.outlineWidth, greaterThanOrEqualTo(2));
       expect(

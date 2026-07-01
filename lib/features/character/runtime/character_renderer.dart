@@ -481,7 +481,11 @@ class CharacterRenderer {
       points.add(Offset(x, y));
     }
     return mesh.smoothBoundary
-        ? _smoothClosedPath(points, mesh.boundary)
+        ? _smoothClosedPath(
+            points,
+            mesh.boundary,
+            mesh.boundaryCornerSmoothing,
+          )
         : _closedPath(points, mesh.boundary);
   }
 
@@ -504,24 +508,34 @@ class CharacterRenderer {
   ///
   /// The mesh primitive is used for organic character surfaces (jacket, pelvis,
   /// shoulder mass), where hard polygon corners immediately read as cardboard.
-  /// Quadratic midpoint smoothing keeps every authored boundary vertex on the
-  /// curve while rounding the transitions between them.
-  Path _smoothClosedPath(List<Offset> points, List<int> boundary) {
+  /// Quadratic corner smoothing keeps every authored boundary vertex on the
+  /// curve while rounding the transitions between them. A lower [cornerSmoothing]
+  /// keeps more straight edge between corners for tailored cloth such as suit
+  /// sleeves, avoiding both raw triangles and fully rounded tubes.
+  Path _smoothClosedPath(
+    List<Offset> points,
+    List<int> boundary,
+    double cornerSmoothing,
+  ) {
+    final t = cornerSmoothing.clamp(0.0, 0.5);
+    if (t <= 0) return _closedPath(points, boundary);
+
     final path = Path();
     Offset pointAt(int i) => points[boundary[i % boundary.length]];
-    Offset midpoint(Offset a, Offset b) => Offset(
-      (a.dx + b.dx) * 0.5,
-      (a.dy + b.dy) * 0.5,
+    Offset cutToward(Offset from, Offset toward) => Offset(
+      from.dx + (toward.dx - from.dx) * t,
+      from.dy + (toward.dy - from.dy) * t,
     );
 
     final last = pointAt(boundary.length - 1);
     final first = pointAt(0);
-    path.moveTo(midpoint(last, first).dx, midpoint(last, first).dy);
+    final start = cutToward(first, last);
+    path.moveTo(start.dx, start.dy);
     for (var i = 0; i < boundary.length; i++) {
       final current = pointAt(i);
       final next = pointAt(i + 1);
-      final mid = midpoint(current, next);
-      path.quadraticBezierTo(current.dx, current.dy, mid.dx, mid.dy);
+      final exit = cutToward(current, next);
+      path.quadraticBezierTo(current.dx, current.dy, exit.dx, exit.dy);
     }
     path.close();
     return path;
