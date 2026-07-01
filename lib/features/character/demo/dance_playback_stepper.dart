@@ -5,13 +5,14 @@ import 'package:dancing_cats/features/character/demo/dance_performance.dart';
 import 'package:dancing_cats/features/character/model/face.dart';
 
 /// The stateful, history-dependent half of one dance frame: the singing mouths
-/// (eased) and the virtual camera (smoothed, with cuts). The pure half — which
-/// move, the warped clock, the beat, the director context — is [DancePerformance].
+/// (eased) and the virtual camera (smoothed — slow dollies with fast accent
+/// punches). The pure half — which move, the warped clock, the beat, the
+/// director context — is [DancePerformance].
 ///
 /// Both the live player and every offline renderer own one stepper and call
 /// [advance] once per frame, so the per-frame orchestration (voice gating →
-/// mouth ease → stage → director → camera cut) is a single code path that cannot
-/// drift between them. Because the camera and mouths integrate over `dt`, an
+/// mouth ease → stage → director → camera glide/punch) is a single code path
+/// that cannot drift between them. Because the camera and mouths integrate over `dt`, an
 /// offline renderer must **preroll** (advance without rendering) from a lead-in
 /// before the first frame it cares about to settle the framing.
 class DancePlaybackStepper {
@@ -77,9 +78,7 @@ class DancePlaybackStepper {
     final target = ctx == null ? _shot : cameraShot(ctx);
     _shot = _cameraRig.update(
       target: target,
-      cut:
-          ctx != null &&
-          (isHardCut(ctx) || isChorusDrop(ctx) || isBridgeCut(ctx)),
+      punch: ctx != null && isCameraPunch(ctx),
       dt: dt,
     );
     _stage = stage;

@@ -90,53 +90,55 @@ void main() {
     });
   });
 
-  group('isHardCut', () {
-    test('stays disabled now that the tight climax crop is removed', () {
-      for (final section in _sections) {
-        for (final sp in [0.0, 0.5, 0.95, 1.0]) {
-          expect(
-            isHardCut(
-              _ctx(section: section, build: 0.9, sectionPhase: sp),
-            ),
-            isFalse,
-            reason: '$section sp=$sp',
-          );
-        }
+  group('isCameraPunch — the fast accent zooms', () {
+    test('fires on the downbeat of a chorus, then holds', () {
+      // The rig zooms FAST into the chorus home on the opening beats, then glides.
+      expect(isCameraPunch(_ctx()), isTrue); // sectionPhase 0 = the downbeat
+      expect(isCameraPunch(_ctx(sectionPhase: 0.01)), isTrue);
+      expect(isCameraPunch(_ctx(sectionPhase: 0.2)), isFalse);
+      expect(isCameraPunch(_ctx(sectionPhase: 0.9)), isFalse);
+    });
+
+    test('fires at the bridge open and the mid-bridge hand-off', () {
+      // A fast whip onto the silver singer at the open, then onto the brown
+      // singer at the hand-off — the two frames where the feature changes.
+      expect(isCameraPunch(_ctx(section: 'bridge')), isTrue); // open (sp 0)
+      expect(isCameraPunch(_ctx(section: 'bridge', sectionPhase: 0.01)), isTrue);
+      expect(isCameraPunch(_ctx(section: 'bridge', sectionPhase: 0.5)), isTrue);
+      expect(isCameraPunch(_ctx(section: 'bridge', sectionPhase: 0.51)), isTrue);
+    });
+
+    test('does not fire mid-feature — the rig glides between the punches', () {
+      for (final sp in [0.2, 0.45, 0.7, 0.99]) {
+        expect(
+          isCameraPunch(_ctx(section: 'bridge', sectionPhase: sp)),
+          isFalse,
+          reason: 'bridge sp=$sp',
+        );
       }
     });
-  });
 
-  group('isChorusDrop — the Afrobeats cut on the "1"', () {
-    test('fires on the downbeat of a chorus, not mid-section', () {
-      // The rig snaps to the chorus home on the opening beats, then holds.
-      expect(isChorusDrop(_ctx()), isTrue); // sectionPhase 0 = the downbeat
-      expect(isChorusDrop(_ctx(sectionPhase: 0.01)), isTrue);
-      expect(isChorusDrop(_ctx(sectionPhase: 0.2)), isFalse);
-      expect(isChorusDrop(_ctx(sectionPhase: 0.9)), isFalse);
-    });
-
-    test('only choruses fire the chorus drop — other sections do not', () {
-      // The bridge cuts too, but via its own [isBridgeCut], not this predicate.
-      for (final section in ['verse', 'bridge', 'pre-chorus', 'outro']) {
+    test('only choruses and the bridge punch, and only while performing', () {
+      for (final section in ['verse', 'pre-chorus', 'outro', 'intro']) {
+        expect(isCameraPunch(_ctx(section: section)), isFalse, reason: section);
         expect(
-          isChorusDrop(_ctx(section: section)),
+          isCameraPunch(_ctx(section: section, sectionPhase: 0.5)),
           isFalse,
           reason: section,
         );
       }
-      // post-chorus is reached by a dolly too.
-      expect(isChorusDrop(_ctx(section: 'post-chorus', build: 0.9)), isFalse);
+      // The closing hook (post-chorus) is a continuous coil reached by a glide.
+      expect(isCameraPunch(_ctx(section: 'post-chorus', build: 0.9)), isFalse);
+      // A calm section never punches, even a calm bridge.
+      expect(isCameraPunch(_ctx(energetic: false)), isFalse);
+      expect(isCameraPunch(_ctx(section: 'bridge', energetic: false)), isFalse);
     });
 
-    test('does not fire when the section is calm', () {
-      expect(isChorusDrop(_ctx(energetic: false)), isFalse);
-    });
-
-    test('the chorus target is continuous across the drop (only the rig cuts)', () {
-      // The cut lives in the rig, not the director: cameraShot for a chorus does
+    test('the target stays continuous across the drop (only the rig punches)', () {
+      // The punch lives in the rig, not the director: cameraShot for a chorus does
       // not jump across the downbeat — sweeping sectionPhase through the drop, the
-      // target moves smoothly, so the snap is purely [isChorusDrop] telling the
-      // rig to arrive by a cut.
+      // target moves smoothly, so the fast arrival is purely [isCameraPunch]
+      // telling the rig to zoom in fast.
       var prev = cameraShot(_ctx(build: 0.45));
       for (var sp = 0.0; sp <= 0.1; sp += 0.005) {
         final s = cameraShot(_ctx(build: 0.45, sectionPhase: sp));
@@ -145,48 +147,14 @@ void main() {
         prev = s;
       }
     });
-  });
 
-  group('isBridgeCut — the bridge singer-feature cuts', () {
-    test('fires at the bridge open and the mid-bridge hand-off', () {
-      // The rig snaps onto the silver singer at the open, then onto the brown
-      // singer at the hand-off — the two frames where the feature changes.
-      expect(isBridgeCut(_ctx(section: 'bridge')), isTrue); // open (sp 0)
-      expect(isBridgeCut(_ctx(section: 'bridge', sectionPhase: 0.01)), isTrue);
-      expect(isBridgeCut(_ctx(section: 'bridge', sectionPhase: 0.5)), isTrue);
-      expect(isBridgeCut(_ctx(section: 'bridge', sectionPhase: 0.51)), isTrue);
-    });
-
-    test('does not fire mid-feature — the rig holds between the cuts', () {
-      for (final sp in [0.2, 0.45, 0.7, 0.99]) {
-        expect(
-          isBridgeCut(_ctx(section: 'bridge', sectionPhase: sp)),
-          isFalse,
-          reason: 'sp=$sp',
-        );
-      }
-    });
-
-    test('only the bridge cuts this way, and only while it performs', () {
-      for (final section in ['verse', 'chorus', 'pre-chorus', 'outro']) {
-        expect(isBridgeCut(_ctx(section: section)), isFalse, reason: section);
-        expect(
-          isBridgeCut(_ctx(section: section, sectionPhase: 0.5)),
-          isFalse,
-          reason: section,
-        );
-      }
-      // A calm bridge performs no singer-features, so it is not cut to either.
-      expect(isBridgeCut(_ctx(section: 'bridge', energetic: false)), isFalse);
-    });
-
-    test('the cut aligns with the dx sign-flip in the bridge target', () {
-      // isBridgeCut must fire exactly where the bridge home swaps singer, or the
-      // hand-off snaps on the wrong frame.
+    test('the bridge punch aligns with the dx sign-flip in the bridge target', () {
+      // isCameraPunch must fire exactly where the bridge home swaps singer, or the
+      // hand-off punches on the wrong frame.
       final before = cameraShot(_ctx(section: 'bridge', sectionPhase: 0.49));
       final after = cameraShot(_ctx(section: 'bridge', sectionPhase: 0.5));
       expect(before.dx.sign, isNot(after.dx.sign));
-      expect(isBridgeCut(_ctx(section: 'bridge', sectionPhase: 0.5)), isTrue);
+      expect(isCameraPunch(_ctx(section: 'bridge', sectionPhase: 0.5)), isTrue);
     });
   });
 
@@ -237,12 +205,12 @@ void main() {
       expect(end.zoom - start.zoom, lessThan(0.1)); // gentle, not a jump
     });
 
-    test('bridge is two committed singer-features with a cut between', () {
+    test('bridge is two committed singer-features with a fast punch between', () {
       // The bridge follows the VOICE: first half spotlights the silver (left)
       // backup (+dx), second half the brown (right) backup (-dx), while keeping
       // the full trio readable. Each home is CONSTANT across its half (the rig
-      // holds it after the cut), and dx flips sign at the mid-bridge hand-off —
-      // the cut (see [isBridgeCut]).
+      // holds it after the punch), and dx flips sign at the mid-bridge hand-off —
+      // the punch (see [isCameraPunch]).
       final earlyA = cameraShot(_ctx(section: 'bridge', sectionPhase: 0.1));
       final earlyB = cameraShot(_ctx(section: 'bridge', sectionPhase: 0.4));
       final lateA = cameraShot(_ctx(section: 'bridge', sectionPhase: 0.6));
@@ -254,8 +222,8 @@ void main() {
       // Brown feature: leans RIGHT (-dx), held flat across the second half.
       expect(lateA.dx, lessThan(0));
       expect(lateA.dx, closeTo(lateB.dx, 1e-9));
-      // The hand-off is a hard CUT: dx flips by a big jump across 0.5, not a
-      // continuous sweep through centre.
+      // The hand-off is a fast PUNCH: the TARGET dx flips by a big jump across
+      // 0.5 (the rig whips across it in ~0.14s), not a slow sweep through centre.
       expect(earlyB.dx - lateA.dx, greaterThan(380));
       // Both features hold the same favoured-trio zoom, under the ceiling.
       expect(earlyA.zoom, closeTo(1.50, 1e-9));
@@ -293,13 +261,13 @@ void main() {
 
   group('cameraShot — continuous (dolly) within every dollied section', () {
     // The director's TARGET moves continuously within every DOLLIED section — the
-    // genre cuts (chorus drops and the bridge singer hand-off) live in the rig,
-    // not here. So sweeping sectionPhase finely (phrasePhase fixed so the
+    // genre punches (chorus drops and the bridge singer hand-off) live in the
+    // rig, not here. So sweeping sectionPhase finely (phrasePhase fixed so the
     // breathe term is constant), the target never jumps: a real per-bar cut (the
     // old homes jumped dx by ~300 / zoom by ~0.15) would blow these bounds; the
-    // smooth coil sweep stays well inside them. The bridge is EXCLUDED — it is now
-    // cut-driven (a dx sign-flip at the mid-bridge hand-off), covered by its own
-    // singer-feature test above.
+    // smooth coil sweep stays well inside them. The bridge is EXCLUDED — its
+    // target steps (a dx sign-flip at the mid-bridge hand-off) for the rig to
+    // whip across, covered by its own singer-feature test above.
     const cases = <({String section, double build})>[
       (section: 'chorus', build: 0.15), // chorus 1
       (section: 'chorus', build: 0.45), // chorus 2 (left)
@@ -434,14 +402,6 @@ void main() {
         expect(s.zoom.isFinite, isTrue, reason: '$c');
         expect(s.dx.isFinite, isTrue, reason: '$c');
         expect(s.dy.isFinite, isTrue, reason: '$c');
-      },
-      tags: 'glados',
-    );
-
-    glados.Glados(glados.any.danceCtx, glados.ExploreConfig(numRuns: 300)).test(
-      'hard cuts stay disabled while the close-crop hero is removed',
-      (c) {
-        expect(isHardCut(c), isFalse, reason: '$c');
       },
       tags: 'glados',
     );

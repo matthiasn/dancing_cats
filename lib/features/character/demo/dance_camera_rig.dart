@@ -1,10 +1,17 @@
 import 'package:dancing_cats/features/character/demo/dance_camera_director.dart';
 
-/// Default smoothing time (seconds) for the dance camera rig. Roughly how long a
-/// framing change takes to resolve, so re-stagings read as deliberate dolly
-/// moves rather than snaps. Tuned for a graceful, high-production-value glide;
-/// the one hard cut in the piece bypasses it (see [DanceCameraRig.update]).
+/// Default smoothing time (seconds) for the dance camera rig's ordinary moves.
+/// Roughly how long a framing change takes to resolve, so re-stagings read as
+/// deliberate dolly moves rather than snaps. Tuned for a graceful, high-
+/// production-value glide.
 const double kDanceCameraSmoothTime = 0.7;
+
+/// Fast smoothing time (seconds) for an accented PUNCH — the quick zoom/whip the
+/// director calls for on the Afrobeats chorus drop and the bridge singer
+/// hand-offs (see [DanceCameraRig.update]'s `punch`). Short enough to arrive in
+/// a few tenths of a second so it reads as a deliberate snap-zoom, yet still a
+/// continuous move: it replaces the old hard cut without ever teleporting.
+const double kDanceCameraPunchTime = 0.14;
 
 /// Critically-damped smoothing toward [target] — the standard SmoothDamp. Unlike
 /// a first-order lag it eases BOTH in and out (an S-shaped approach) with no
@@ -40,15 +47,23 @@ const double kDanceCameraSmoothTime = 0.7;
 
 /// The dolly operator: holds the live camera [current] and eases it toward the
 /// director's per-frame [Shot] target so every framing change becomes a smooth,
-/// motivated move. A flagged cut snaps instantly for section-level music-video
-/// edits. Stateful by design (a dolly has momentum); the director that produces
-/// the targets stays pure.
+/// motivated move. It runs at two speeds: the slow [smoothTime] for ordinary
+/// dollies, and the fast [punchTime] for the director's accent punches — a quick
+/// zoom in place of the old hard cut. Stateful by design (a dolly has momentum);
+/// the director that produces the targets stays pure.
 class DanceCameraRig {
-  DanceCameraRig({this.smoothTime = kDanceCameraSmoothTime});
+  DanceCameraRig({
+    this.smoothTime = kDanceCameraSmoothTime,
+    this.punchTime = kDanceCameraPunchTime,
+  });
 
-  /// Seconds-scale smoothing constant shared by all three shot components, so
-  /// zoom and pan arrive together as one coordinated move.
+  /// Seconds-scale smoothing constant for ordinary moves, shared by all three
+  /// shot components so zoom and pan arrive together as one coordinated move.
   final double smoothTime;
+
+  /// Faster smoothing constant applied on the frames the director flags a
+  /// `punch`, so an accent whips to its new framing instead of gliding.
+  final double punchTime;
 
   Shot _current = (zoom: 1, dx: 0, dy: 0);
   double _velZoom = 0;
@@ -63,16 +78,18 @@ class DanceCameraRig {
   /// meaningful momentum).
   bool get isInitialized => _initialized;
 
-  /// Advance one frame toward [target]. A [cut] (or the very first frame) snaps
-  /// instantly and clears momentum; otherwise each component eases as a
-  /// critically-damped dolly over [smoothTime]. A non-positive [dt] holds the
-  /// current framing (unless it is a snap). Returns the new [current].
+  /// Advance one frame toward [target]. The very first frame snaps (the camera
+  /// has nowhere to ease from); after that nothing teleports. Each component
+  /// eases as a critically-damped dolly — over the fast [punchTime] when [punch]
+  /// is set (an accent zoom), otherwise over the slow [smoothTime] (the normal
+  /// glide). A non-positive [dt] holds the current framing. Returns the new
+  /// [current].
   Shot update({
     required Shot target,
-    required bool cut,
+    required bool punch,
     required double dt,
   }) {
-    if (!_initialized || cut) {
+    if (!_initialized) {
       _current = target;
       _velZoom = 0;
       _velDx = 0;
@@ -81,25 +98,26 @@ class DanceCameraRig {
       return _current;
     }
     if (dt <= 0) return _current;
+    final st = punch ? punchTime : smoothTime;
     final z = smoothDamp(
       current: _current.zoom,
       target: target.zoom,
       velocity: _velZoom,
-      smoothTime: smoothTime,
+      smoothTime: st,
       dt: dt,
     );
     final x = smoothDamp(
       current: _current.dx,
       target: target.dx,
       velocity: _velDx,
-      smoothTime: smoothTime,
+      smoothTime: st,
       dt: dt,
     );
     final y = smoothDamp(
       current: _current.dy,
       target: target.dy,
       velocity: _velDy,
-      smoothTime: smoothTime,
+      smoothTime: st,
       dt: dt,
     );
     _velZoom = z.velocity;
