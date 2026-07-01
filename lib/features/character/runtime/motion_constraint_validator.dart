@@ -386,7 +386,11 @@ class MotionConstraintValidator {
     for (var i = 0; i < samples; i++) {
       final phase = i / samples;
       final timeSeconds = _phaseTime(clip, phase);
-      final pose = scene.evaluator.evaluate(clip, timeSeconds);
+      final pose = scene.poseAt(
+        clip: clip,
+        timeSeconds: timeSeconds,
+        includeAutonomic: false,
+      );
       for (final target in clip.limbTargets) {
         if (!_isHand(target.endBoneId)) continue;
         final targetPose = target.channel.sample(phase);

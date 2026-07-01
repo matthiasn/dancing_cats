@@ -216,7 +216,41 @@ void main() {
 
     test('detects a high hand target without shoulder-girdle response', () {
       final validator = MotionConstraintValidator(
-        CharacterScene(buildCatInSuitRig()),
+        CharacterScene(
+          RigSpec(
+            name: 'no-shoulder-socket',
+            bones: const [
+              Bone(
+                id: CatBones.hips,
+                parent: null,
+                pivotX: 0,
+                pivotY: 0,
+                z: 0,
+              ),
+              Bone(
+                id: CatBones.armUpperL,
+                parent: CatBones.hips,
+                pivotX: 0,
+                pivotY: 0,
+                z: 1,
+              ),
+              Bone(
+                id: CatBones.armLowerL,
+                parent: CatBones.armUpperL,
+                pivotX: 0,
+                pivotY: 60,
+                z: 2,
+              ),
+              Bone(
+                id: CatBones.handL,
+                parent: CatBones.armLowerL,
+                pivotX: 0,
+                pivotY: 40,
+                z: 3,
+              ),
+            ],
+          ),
+        ),
       );
       const clip = Clip(
         name: 'synthetic-static-raised-shoulder',
@@ -227,7 +261,7 @@ void main() {
             upperBoneId: CatBones.armUpperL,
             lowerBoneId: CatBones.armLowerL,
             endBoneId: CatBones.handL,
-            anchorBoneId: CatBones.torso,
+            anchorBoneId: CatBones.hips,
             channel: FixedIkTargetChannel(x: -72, y: -90),
           ),
         ],

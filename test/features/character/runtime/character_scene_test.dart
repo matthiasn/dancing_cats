@@ -21,6 +21,55 @@ void main() {
       }
     });
 
+    test('raised hand targets automatically engage shoulder volume', () {
+      final scene = CharacterScene(buildCatInSuitRig());
+      const clip = Clip(
+        name: 'synthetic-raised-hand',
+        duration: 1,
+        channels: {},
+        limbTargets: [
+          LimbIkTarget(
+            upperBoneId: CatBones.armUpperR,
+            lowerBoneId: CatBones.armLowerR,
+            endBoneId: CatBones.handR,
+            anchorBoneId: CatBones.torso,
+            channel: FixedIkTargetChannel(x: 74, y: -96),
+          ),
+        ],
+      );
+
+      final raw = scene.evaluator.evaluate(clip, 0);
+      expect(raw.jointOf(CatBones.shoulderSocketR).rotation, 0);
+      expect(raw.jointOf(CatBones.armBicepR).scaleX, 1);
+
+      final posed = scene.poseAt(
+        clip: clip,
+        timeSeconds: 0,
+        includeAutonomic: false,
+      );
+      final socket = posed.jointOf(CatBones.shoulderSocketR);
+      final bicep = posed.jointOf(CatBones.armBicepR);
+      final clavicle = posed.jointOf(CatBones.clavicleR);
+
+      expect(
+        socket.rotation,
+        lessThan(-0.1),
+        reason:
+            'a high right-hand target should lift the right shoulder socket '
+            'even when the clip did not author socket keys',
+      );
+      expect(socket.scaleX, greaterThan(1.07));
+      expect(socket.scaleY, lessThan(0.97));
+      expect(bicep.scaleX, greaterThan(1.04));
+      expect(
+        clavicle.rotation,
+        lessThan(-0.04),
+        reason:
+            'the shoulder girdle should answer a raised arm before IK solves '
+            'the elbow/wrist',
+      );
+    });
+
     test('public character clips animate in place', () {
       final scene = CharacterScene(buildCatInSuitRig());
 

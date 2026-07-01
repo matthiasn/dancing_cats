@@ -11,6 +11,7 @@ import 'package:dancing_cats/features/character/model/clip.dart';
 import 'package:dancing_cats/features/character/model/face.dart';
 import 'package:dancing_cats/features/character/model/pose.dart';
 import 'package:dancing_cats/features/character/model/rig_spec.dart';
+import 'package:dancing_cats/features/character/runtime/dance_timing.dart';
 
 /// One fully-resolved frame: world transforms for every bone, the face state to
 /// draw, and how far the character has travelled (locomotion). Everything the
@@ -187,19 +188,12 @@ class CharacterScene {
     Affine2D base = Affine2D.identity,
     double eyeOpenScale = 1,
   }) {
-    final pose = evaluator.evaluate(clip, timeSeconds);
     final auto = autonomic.sampleAt(timeSeconds);
-
-    // Breathing nudges the whole body subtly, even mid-walk.
-    final breathed = Pose(
-      joints: pose.joints,
-      rootDx: pose.rootDx,
-      rootDy: pose.rootDy + auto.breath * 1.4,
-      rootRotation: pose.rootRotation,
+    final posed = _resolvedPose(
+      clip,
+      timeSeconds,
+      breath: auto.breath,
     );
-    final balanced = _supportBalancedPose(clip, timeSeconds, breathed);
-    final targeted = _limbTargetedPose(clip, timeSeconds, balanced);
-    final posed = _contactLockedPose(clip, timeSeconds, targeted);
 
     final rawWorld = solver.solve(posed, base: base);
     final footStabilizedWorld = _danceSupportFootStabilizedWorld(
@@ -224,6 +218,100 @@ class CharacterScene {
     }
     final locomotion = locomotionOffset(clip, timeSeconds);
     return CharacterFrame(world: world, face: face, locomotionX: locomotion);
+  }
+
+  /// Returns the final local-space pose that [frameAt] will solve and draw.
+  ///
+  /// Validators use this instead of raw clip sampling so runtime correctives
+  /// such as shoulder-girdle response are checked against rendered behavior.
+  Pose poseAt({
+    required Clip clip,
+    required double timeSeconds,
+    bool includeAutonomic = true,
+  }) {
+    final breath = includeAutonomic
+        ? autonomic.sampleAt(timeSeconds).breath
+        : 0.0;
+    return _resolvedPose(clip, timeSeconds, breath: breath);
+  }
+
+  Pose _resolvedPose(
+    Clip clip,
+    double timeSeconds, {
+    required double breath,
+  }) {
+    final pose = evaluator.evaluate(clip, timeSeconds);
+
+    // Breathing nudges the whole body subtly, even mid-walk.
+    final breathed = Pose(
+      joints: pose.joints,
+      rootDx: pose.rootDx,
+      rootDy: pose.rootDy + breath * 1.4,
+      rootRotation: pose.rootRotation,
+    );
+    final balanced = _supportBalancedPose(clip, timeSeconds, breathed);
+    final shouldered = _shoulderCorrectedPose(clip, timeSeconds, balanced);
+    final targeted = _limbTargetedPose(clip, timeSeconds, shouldered);
+    return _contactLockedPose(clip, timeSeconds, targeted);
+  }
+
+  Pose _shoulderCorrectedPose(Clip clip, double timeSeconds, Pose pose) {
+    if (clip.limbTargets.isEmpty) return pose;
+
+    final phase = evaluator.phaseAt(clip, timeSeconds);
+    final joints = Map<String, JointPose>.of(pose.joints);
+    var changed = false;
+
+    for (final target in clip.limbTargets) {
+      if (!_isHandBone(target.endBoneId)) continue;
+      final sample = target.channel.sample(phase);
+      final weight = sample.weight.clamp(0.0, 1.0);
+      if (weight <= 0) continue;
+
+      final engagement = _shoulderCorrectiveEngagement(sample) * weight;
+      if (engagement <= 0) continue;
+
+      final upper = rig.bone(target.upperBoneId);
+      if (upper == null || upper.parent == null) continue;
+      final socketId = _shoulderSocketIdFor(upper.parent!, upper.id);
+      if (socketId == null) continue;
+
+      final side = _sideSign(target.endBoneId);
+      if (side == 0) continue;
+
+      final clavicleId = upper.parent!;
+      joints[clavicleId] = _ensureSignedRotationAndScale(
+        pose: joints[clavicleId] ?? JointPose.identity,
+        signedRotation: side * 0.07 * engagement,
+        minScaleX: 1 + 0.018 * engagement,
+        maxScaleY: 1 - 0.01 * engagement,
+      );
+      joints[socketId] = _ensureSignedRotationAndScale(
+        pose: joints[socketId] ?? JointPose.identity,
+        signedRotation: side * 0.14 * engagement,
+        minScaleX: 1 + 0.1 * engagement,
+        maxScaleY: 1 - 0.05 * engagement,
+      );
+
+      final bicepId = _childControlIdFor(upper.id, 'bicep');
+      if (bicepId != null) {
+        joints[bicepId] = _ensureSignedRotationAndScale(
+          pose: joints[bicepId] ?? JointPose.identity,
+          signedRotation: 0,
+          minScaleX: 1 + 0.07 * engagement,
+          maxScaleY: 1 - 0.025 * engagement,
+        );
+      }
+      changed = true;
+    }
+
+    if (!changed) return pose;
+    return Pose(
+      joints: joints,
+      rootDx: pose.rootDx,
+      rootDy: pose.rootDy,
+      rootRotation: pose.rootRotation,
+    );
   }
 
   Pose _limbTargetedPose(Clip clip, double timeSeconds, Pose pose) {
@@ -679,6 +767,66 @@ class CharacterScene {
       parent = rig.bone(parent)?.parent;
     }
     return false;
+  }
+
+  double _shoulderCorrectiveEngagement(IkTargetPose sample) {
+    final raised = smoothstep((-sample.y - 42) / 56);
+    final wideReach = smoothstep((sample.x.abs() - 62) / 34) * 0.72;
+    return math.max(raised, wideReach).clamp(0.0, 1.0);
+  }
+
+  JointPose _ensureSignedRotationAndScale({
+    required JointPose pose,
+    required double signedRotation,
+    required double minScaleX,
+    required double maxScaleY,
+  }) {
+    var rotation = pose.rotation;
+    if (signedRotation != 0 &&
+        (rotation * signedRotation < 0 ||
+            rotation.abs() < signedRotation.abs())) {
+      rotation = signedRotation;
+    }
+    return JointPose(
+      rotation: rotation,
+      scaleX: math.max(pose.scaleX, minScaleX),
+      scaleY: math.min(pose.scaleY, maxScaleY),
+    );
+  }
+
+  String? _shoulderSocketIdFor(String clavicleId, String upperBoneId) {
+    final suffix = _sideSuffix(upperBoneId);
+    for (final bone in rig.bones) {
+      if (bone.parent != clavicleId) continue;
+      if (!bone.id.toLowerCase().contains('shoulder')) continue;
+      if (suffix != null && !bone.id.endsWith(suffix)) continue;
+      return bone.id;
+    }
+    return null;
+  }
+
+  String? _childControlIdFor(String parentId, String token) {
+    final needle = token.toLowerCase();
+    for (final bone in rig.bones) {
+      if (bone.parent == parentId && bone.id.toLowerCase().contains(needle)) {
+        return bone.id;
+      }
+    }
+    return null;
+  }
+
+  bool _isHandBone(String boneId) => boneId.toLowerCase().contains('hand');
+
+  int _sideSign(String boneId) {
+    if (boneId.endsWith('.L')) return 1;
+    if (boneId.endsWith('.R')) return -1;
+    return 0;
+  }
+
+  String? _sideSuffix(String boneId) {
+    final index = boneId.lastIndexOf('.');
+    if (index < 0 || index == boneId.length - 1) return null;
+    return boneId.substring(index);
   }
 
   /// In-place performance clips do not locomote, but their support foot still
