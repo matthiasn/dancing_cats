@@ -899,12 +899,12 @@ void main() {
         final earRRange = _rotationRange(clip.channels[CatBones.earR]!);
         expect(
           earLRange,
-          greaterThan(0.03),
+          greaterThan(0.055),
           reason: '${clip.name} left ear should not look pinned to the skull',
         );
         expect(
           earRRange,
-          greaterThan(0.03),
+          greaterThan(0.055),
           reason: '${clip.name} right ear should not look pinned to the skull',
         );
         expect(
@@ -915,6 +915,7 @@ void main() {
 
         final rootRange = _rotationRange(clip.channels[CatBones.tail0]!);
         final midRange = _rotationRange(clip.channels[CatBones.tail3]!);
+        final lateRange = _rotationRange(clip.channels[CatBones.tail5]!);
         final tipRange = _rotationRange(clip.channels[CatBones.tail6]!);
         expect(
           midRange,
@@ -922,8 +923,14 @@ void main() {
           reason: '${clip.name} tail should build motion away from the hips',
         );
         expect(
+          lateRange,
+          greaterThan(midRange * 1.04),
+          reason:
+              '${clip.name} late tail should keep building drag before the tip',
+        );
+        expect(
           tipRange,
-          greaterThan(midRange * 1.05),
+          greaterThan(lateRange * 1.05),
           reason: '${clip.name} tail tip should lag as follow-through',
         );
         expect(
@@ -943,13 +950,29 @@ void main() {
         CatClips.sekem,
       ]) {
         final mid = clip.channels[CatBones.tail3];
+        final late = clip.channels[CatBones.tail5];
         final tip = clip.channels[CatBones.tail6];
 
         expect(mid, isA<SineChannel>());
+        expect(late, isA<SineChannel>());
         expect(tip, isA<SineChannel>());
         final midChannel = mid! as SineChannel;
+        final lateChannel = late! as SineChannel;
         final tipChannel = tip! as SineChannel;
 
+        expect(
+          lateChannel.phase,
+          greaterThan(midChannel.phase + 0.1),
+          reason:
+              '${clip.name} late tail links need phase delay so the tail reads '
+              'as a drag chain, not one rigid curved plank',
+        );
+        expect(
+          tipChannel.phase,
+          greaterThan(lateChannel.phase + 0.12),
+          reason:
+              '${clip.name} tail tip should be visibly delayed behind the hips',
+        );
         expect(
           midChannel.harmonicAmplitude.abs(),
           greaterThan(0.006),
@@ -959,7 +982,7 @@ void main() {
         );
         expect(
           tipChannel.harmonicMultiplier,
-          greaterThanOrEqualTo(4),
+          greaterThanOrEqualTo(8),
           reason:
               '${clip.name} tail tip should lag and flick behind the torso '
               'instead of reading stiff',
