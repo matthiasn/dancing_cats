@@ -793,8 +793,8 @@ class MotionConstraintProfile {
     this.minRaisedShoulderResponse = 0.18,
     this.minRaisedSocketResponse = 0.06,
     this.maxRaisedShoulderMeshGap = 24,
-    this.minRaisedShoulderMeshSpan = 17,
-    this.minRaisedShoulderToBicepRatio = 0.73,
+    this.minRaisedShoulderMeshSpan = 12,
+    this.minRaisedShoulderToBicepRatio = 0.66,
     this.maxRaisedUpperArmMeshEdge = 34,
     this.jointEnvelopeRules = defaultMotionJointEnvelopeRules,
   }) : assert(

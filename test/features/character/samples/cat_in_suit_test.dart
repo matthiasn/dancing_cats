@@ -157,10 +157,10 @@ void main() {
         );
         expect(
           _maxAbsLocalX(mesh.vertices.first),
-          greaterThanOrEqualTo(socket.drawable!.width * 0.55),
+          greaterThanOrEqualTo(socket.drawable!.width * 0.5),
           reason:
-              '${side.meshId} must overlap the shoulder cap enough that the '
-              'sleeve cannot render as a loose appendage',
+              '${side.meshId} keeps socket landmarks for cap overlap, while the '
+              'visible sleeve boundary stays compact enough to avoid a wing',
         );
       }
     });
@@ -188,14 +188,14 @@ void main() {
         final arm = rig.meshes.singleWhere((m) => m.id == side.armId);
         final drawOrder = rig.meshDrawOrder.map((m) => m.id).toList();
 
-        expect(fold.boundary, hasLength(9));
+        expect(fold.boundary, hasLength(5));
         expect(fold.formRound, isFalse);
         expect(fold.outlineColor, isNull);
         expect(
           _alpha(fold.color),
           lessThan(0x58),
           reason:
-              '${side.foldId} should read as a soft armpit shadow, not an '
+              '${side.foldId} should read as a soft armpit crease, not an '
               'opaque bat-wing cloth panel',
         );
         expect(fold.z, lessThanOrEqualTo(arm.z));
@@ -211,8 +211,8 @@ void main() {
           fold.vertices[3].influences.map((i) => i.boneId),
           containsAll([CatBones.torso, side.clavicle, side.upper, side.bicep]),
           reason:
-              '${side.foldId} should keep the armpit cloth connected across '
-              'torso, clavicle, upper arm, and bicep controls',
+              '${side.foldId} should keep the armpit crease near the socket '
+              'instead of spanning through the torso shell',
         );
         expect(
           fold.vertices[2].influences.map((i) => i.boneId),
@@ -237,8 +237,8 @@ void main() {
           fold.vertices[4].influences.map((i) => i.boneId),
           containsAll([CatBones.torso, side.clavicle, side.upper, side.bicep]),
           reason:
-              '${side.foldId} needs a lower armpit bridge so the raised sleeve '
-              'stays connected without forming a bat-wing dent',
+              '${side.foldId} keeps a lower armpit landmark for attachment math, '
+              'but only the compact socket-side crease is drawn',
         );
         expect(
           _maxAbsLocalXForBones(fold.vertices[4], {
@@ -267,8 +267,8 @@ void main() {
             side.bicep,
           ]),
           reason:
-              '${side.foldId} needs torso/clavicle and upper-arm weights so '
-              'raised sleeves stay visually welded to the jacket',
+              '${side.foldId} keeps torso/clavicle and upper-arm landmarks for '
+              'attachment while drawing only the compact shoulder crease',
         );
       }
     });
@@ -299,7 +299,8 @@ void main() {
         final drawOrder = rig.meshDrawOrder.map((m) => m.id).toList();
 
         expect(cap.boundary, hasLength(7));
-        expect(cap.outlineColor, isNull);
+        expect(cap.outlineColor, isNotNull);
+        expect(cap.outlineWidth, greaterThanOrEqualTo(1));
         expect(cap.formRound, isTrue);
         expect(cap.color, arm.color);
         expect(cap.z, arm.z);
@@ -308,7 +309,7 @@ void main() {
           greaterThan(drawOrder.indexOf(side.armId)),
           reason:
               '${side.capId} should paint over the sleeve root seam without '
-              'adding another outline',
+              'restoring the broad shoulder-fold panel',
         );
         expect(
           drawOrder.indexOf(side.capId),
@@ -587,7 +588,7 @@ void main() {
       const collarSideShoulder = 18;
       const topShoulderCrown = 19;
 
-      expect(arm.boundary, hasLength(20));
+      expect(arm.boundary, hasLength(16));
       expect(arm.formRound, isFalse);
       expect(
         arm.smoothBoundary,
@@ -617,6 +618,20 @@ void main() {
       );
       expect(_maxAbsLocalX(arm.vertices[0]), greaterThan(13));
       expect(
+        arm.boundary,
+        isNot(contains(0)),
+        reason:
+            'socket landmarks stay available for attachment checks, but the '
+            'visible sleeve contour must not close through the clavicle root',
+      );
+      expect(
+        arm.boundary,
+        isNot(contains(19)),
+        reason:
+            'the collar-side root landmark should not be part of the filled '
+            'sleeve contour; including it recreates the bat-wing closure',
+      );
+      expect(
         arm.vertices[outerDeltoid].influences.map((i) => i.boneId),
         containsAll([
           CatBones.shoulderSocketL,
@@ -634,7 +649,7 @@ void main() {
             'a raised sleeve needs an intermediate bicep crown, otherwise the '
             'cap-to-bicep transition renders as one triangular side',
       );
-      expect(_maxAbsLocalX(arm.vertices[outerDeltoid]), greaterThan(11));
+      expect(_maxAbsLocalX(arm.vertices[outerDeltoid]), greaterThan(9));
       expect(_maxAbsLocalX(arm.vertices[outerBicepCrown]), greaterThan(9));
       expect(_maxAbsLocalX(arm.vertices[outerBicep]), greaterThan(9));
       expect(
