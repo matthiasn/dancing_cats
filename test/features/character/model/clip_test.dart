@@ -82,6 +82,40 @@ void main() {
     });
   });
 
+  group('BlendedJointChannel', () {
+    test('interpolates rotation and scale between two channels', () {
+      const from = KeyframeChannel([
+        Keyframe(p: 0, rotation: -1, scaleX: 0.8, scaleY: 1.2),
+        Keyframe(p: 1, rotation: -1, scaleX: 0.8, scaleY: 1.2),
+      ]);
+      const to = KeyframeChannel([
+        Keyframe(p: 0, rotation: 1, scaleX: 1.2, scaleY: 0.8),
+        Keyframe(p: 1, rotation: 1, scaleX: 1.2, scaleY: 0.8),
+      ]);
+
+      const blend = BlendedJointChannel(from: from, to: to, weight: 0.25);
+      final pose = blend.sample(0.5);
+
+      expect(pose.rotation, closeTo(-0.5, 1e-9));
+      expect(pose.scaleX, closeTo(0.9, 1e-9));
+      expect(pose.scaleY, closeTo(1.1, 1e-9));
+    });
+
+    test('fades missing channels against identity pose', () {
+      const to = KeyframeChannel([
+        Keyframe(p: 0, rotation: 1, scaleX: 1.2, scaleY: 0.8),
+        Keyframe(p: 1, rotation: 1, scaleX: 1.2, scaleY: 0.8),
+      ]);
+
+      const blend = BlendedJointChannel(to: to, weight: 0.5);
+      final pose = blend.sample(0.5);
+
+      expect(pose.rotation, closeTo(0.5, 1e-9));
+      expect(pose.scaleX, closeTo(1.1, 1e-9));
+      expect(pose.scaleY, closeTo(0.9, 1e-9));
+    });
+  });
+
   group('KeyframeChannel', () {
     const ch = KeyframeChannel([
       Keyframe(p: 0),
@@ -231,6 +265,26 @@ void main() {
     });
   });
 
+  group('BlendedRootChannel', () {
+    test('interpolates body offset and lean', () {
+      const from = KeyframeRootChannel([
+        RootKeyframe(p: 0, dx: -10, dy: 4, rotation: -0.2),
+        RootKeyframe(p: 1, dx: -10, dy: 4, rotation: -0.2),
+      ]);
+      const to = KeyframeRootChannel([
+        RootKeyframe(p: 0, dx: 10, dy: -4, rotation: 0.2),
+        RootKeyframe(p: 1, dx: 10, dy: -4, rotation: 0.2),
+      ]);
+
+      const blend = BlendedRootChannel(from: from, to: to, weight: 0.75);
+      final sample = blend.sample(0.5);
+
+      expect(sample.dx, closeTo(5, 1e-9));
+      expect(sample.dy, closeTo(-2, 1e-9));
+      expect(sample.rotation, closeTo(0.1, 1e-9));
+    });
+  });
+
   group('KeyframeRootChannel', () {
     const root = KeyframeRootChannel([
       RootKeyframe(p: 0),
@@ -325,6 +379,36 @@ void main() {
       expect(sample.x, 0);
       expect(sample.y, 0);
       expect(sample.weight, 0);
+    });
+
+    test('blended target interpolates position and solve weight', () {
+      const from = FixedIkTargetChannel(x: -20, y: 10);
+      const to = FixedIkTargetChannel(x: 20, y: -10, weight: 0.5);
+
+      const blend = BlendedIkTargetChannel(from: from, to: to, weight: 0.25);
+      final sample = blend.sample(0.5);
+
+      expect(sample.x, closeTo(-10, 1e-9));
+      expect(sample.y, closeTo(5, 1e-9));
+      expect(sample.weight, closeTo(0.875, 1e-9));
+    });
+
+    test('blended target fades single-sided IK weight in or out', () {
+      const target = FixedIkTargetChannel(x: 20, y: -10, weight: 0.8);
+
+      final fadeIn = const BlendedIkTargetChannel(
+        to: target,
+        weight: 0.25,
+      ).sample(0.5);
+      final fadeOut = const BlendedIkTargetChannel(
+        from: target,
+        weight: 0.25,
+      ).sample(0.5);
+
+      expect(fadeIn.x, 20);
+      expect(fadeIn.weight, closeTo(0.2, 1e-9));
+      expect(fadeOut.x, 20);
+      expect(fadeOut.weight, closeTo(0.6, 1e-9));
     });
 
     test('softened targets round hard target corners', () {
@@ -434,6 +518,7 @@ void main() {
     expect(const SineChannel(amplitude: 1), isA<JointChannel>());
     expect(const KeyframeChannel(<Keyframe>[]), isA<JointChannel>());
     expect(const LayeredJointChannel([]), isA<JointChannel>());
+    expect(const BlendedJointChannel(weight: 0), isA<JointChannel>());
   });
 
   group('Clip', () {
@@ -462,6 +547,64 @@ void main() {
 
       expect(clip.contactPinning, ContactPinning.lowestContact);
       expect(clip.locomotes, isFalse);
+    });
+
+    test('blendedClip builds a sparse transition clip over both poses', () {
+      const from = Clip(
+        name: 'from',
+        duration: 2,
+        channels: {
+          'arm': KeyframeChannel([
+            Keyframe(p: 0, rotation: -1),
+            Keyframe(p: 1, rotation: -1),
+          ]),
+        },
+        root: KeyframeRootChannel([
+          RootKeyframe(p: 0, dx: -10),
+          RootKeyframe(p: 1, dx: -10),
+        ]),
+        limbTargets: [
+          LimbIkTarget(
+            upperBoneId: 'upper',
+            lowerBoneId: 'lower',
+            endBoneId: 'hand',
+            anchorBoneId: 'torso',
+            channel: FixedIkTargetChannel(x: -20, y: 0),
+          ),
+        ],
+      );
+      const to = Clip(
+        name: 'to',
+        duration: 2,
+        channels: {
+          'torso': KeyframeChannel([
+            Keyframe(p: 0, rotation: 1),
+            Keyframe(p: 1, rotation: 1),
+          ]),
+        },
+        root: KeyframeRootChannel([
+          RootKeyframe(p: 0, dx: 10),
+          RootKeyframe(p: 1, dx: 10),
+        ]),
+        limbTargets: [
+          LimbIkTarget(
+            upperBoneId: 'upper',
+            lowerBoneId: 'lower',
+            endBoneId: 'hand',
+            anchorBoneId: 'torso',
+            channel: FixedIkTargetChannel(x: 20, y: 0),
+          ),
+        ],
+      );
+
+      final clip = blendedClip(from: from, to: to, weight: 0.5);
+
+      expect(clip.name, 'from->to');
+      expect(clip.channels.keys, containsAll(['arm', 'torso']));
+      expect(clip.root.sample(0).dx, closeTo(0, 1e-9));
+      expect(clip.channels['arm']!.sample(0).rotation, closeTo(-0.5, 1e-9));
+      expect(clip.channels['torso']!.sample(0).rotation, closeTo(0.5, 1e-9));
+      expect(clip.limbTargets.single.channel.sample(0).x, closeTo(0, 1e-9));
     });
   });
 

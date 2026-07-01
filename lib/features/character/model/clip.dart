@@ -38,6 +38,34 @@ class LayeredJointChannel extends JointChannel {
   }
 }
 
+/// Blends two sampled joint channels.
+///
+/// This is the small runtime mixer primitive used for dance transitions: the
+/// painter and solver still receive a normal [Clip], but its channels can fade
+/// from one move into the next instead of hard-cutting between unrelated poses.
+class BlendedJointChannel extends JointChannel {
+  const BlendedJointChannel({
+    required this.weight,
+    this.from,
+    this.to,
+  }) : assert(weight >= 0 && weight <= 1, 'weight must be in 0..1');
+
+  final JointChannel? from;
+  final JointChannel? to;
+  final double weight;
+
+  @override
+  JointPose sample(double p) {
+    final a = from?.sample(p) ?? JointPose.identity;
+    final b = to?.sample(p) ?? JointPose.identity;
+    return JointPose(
+      rotation: _lerp(a.rotation, b.rotation, weight),
+      scaleX: _lerp(a.scaleX, b.scaleX, weight),
+      scaleY: _lerp(a.scaleY, b.scaleY, weight),
+    );
+  }
+}
+
 /// Cyclic joint motion as a phase-shifted sinusoid plus an optional second
 /// harmonic (for the sharper snap of a knee/elbow that a pure sine can't make).
 ///
@@ -309,6 +337,47 @@ class LayeredIkTargetChannel extends IkTargetChannel {
   }
 }
 
+/// Blends two IK target channels and their solve weights.
+class BlendedIkTargetChannel extends IkTargetChannel {
+  const BlendedIkTargetChannel({
+    required this.weight,
+    this.from,
+    this.to,
+  }) : assert(weight >= 0 && weight <= 1, 'weight must be in 0..1');
+
+  final IkTargetChannel? from;
+  final IkTargetChannel? to;
+  final double weight;
+
+  @override
+  IkTargetPose sample(double p) {
+    final a = from?.sample(p);
+    final b = to?.sample(p);
+    if (a == null && b == null) {
+      return const IkTargetPose(x: 0, y: 0, weight: 0);
+    }
+    if (a == null) {
+      return IkTargetPose(
+        x: b!.x,
+        y: b.y,
+        weight: b.weight * weight,
+      );
+    }
+    if (b == null) {
+      return IkTargetPose(
+        x: a.x,
+        y: a.y,
+        weight: a.weight * (1 - weight),
+      );
+    }
+    return IkTargetPose(
+      x: _lerp(a.x, b.x, weight),
+      y: _lerp(a.y, b.y, weight),
+      weight: _lerp(a.weight, b.weight, weight).clamp(0.0, 1.0),
+    );
+  }
+}
+
 /// Stateless temporal smoothing for IK target paths.
 ///
 /// This rounds small target-path corners before the two-bone solve runs. It is
@@ -525,6 +594,30 @@ class LayeredRootChannel extends RootChannel {
       rotation += sample.rotation;
     }
     return (dx: dx, dy: dy, rotation: rotation);
+  }
+}
+
+/// Blends two root channels for short move transitions.
+class BlendedRootChannel extends RootChannel {
+  const BlendedRootChannel({
+    required this.weight,
+    this.from,
+    this.to,
+  }) : assert(weight >= 0 && weight <= 1, 'weight must be in 0..1');
+
+  final RootChannel? from;
+  final RootChannel? to;
+  final double weight;
+
+  @override
+  ({double dx, double dy, double rotation}) sample(double p) {
+    final a = from?.sample(p) ?? (dx: 0.0, dy: 0.0, rotation: 0.0);
+    final b = to?.sample(p) ?? (dx: 0.0, dy: 0.0, rotation: 0.0);
+    return (
+      dx: _lerp(a.dx, b.dx, weight),
+      dy: _lerp(a.dy, b.dy, weight),
+      rotation: _lerp(a.rotation, b.rotation, weight),
+    );
   }
 }
 
@@ -974,3 +1067,82 @@ class Clip {
   /// Whether this clip travels across the stage at all (either model).
   bool get locomotes => locomotionSpeed != 0 || groundSpans.isNotEmpty;
 }
+
+Clip blendedClip({
+  required Clip from,
+  required Clip to,
+  required double weight,
+  String? name,
+}) {
+  assert(weight >= 0 && weight <= 1, 'weight must be in 0..1');
+  final channelIds = {...from.channels.keys, ...to.channels.keys};
+  final fromTargets = {
+    for (final target in from.limbTargets) target.endBoneId: target,
+  };
+  final toTargets = {
+    for (final target in to.limbTargets) target.endBoneId: target,
+  };
+  final targetIds = {...fromTargets.keys, ...toTargets.keys};
+
+  return Clip(
+    name: name ?? '${from.name}->${to.name}',
+    duration: to.duration,
+    loop: from.loop && to.loop,
+    channels: {
+      for (final id in channelIds)
+        id: BlendedJointChannel(
+          from: from.channels[id],
+          to: to.channels[id],
+          weight: weight,
+        ),
+    },
+    root: BlendedRootChannel(from: from.root, to: to.root, weight: weight),
+    locomotionSpeed: _lerp(from.locomotionSpeed, to.locomotionSpeed, weight),
+    groundSpans: weight < 0.5 ? from.groundSpans : to.groundSpans,
+    contactSpans: weight < 0.5 ? from.contactSpans : to.contactSpans,
+    contactPinning: weight < 0.5 ? from.contactPinning : to.contactPinning,
+    limbTargets: [
+      for (final id in targetIds)
+        _blendLimbTarget(
+          fromTargets[id],
+          toTargets[id],
+          weight,
+        ),
+    ],
+    supportFootWorldAnchor: weight < 0.5
+        ? from.supportFootWorldAnchor
+        : to.supportFootWorldAnchor,
+    supportFootWorldAnchorStrength: _lerp(
+      from.supportFootWorldAnchorStrength,
+      to.supportFootWorldAnchorStrength,
+      weight,
+    ),
+    danceHeadBobScale: _lerp(
+      from.danceHeadBobScale,
+      to.danceHeadBobScale,
+      weight,
+    ),
+  );
+}
+
+LimbIkTarget _blendLimbTarget(
+  LimbIkTarget? from,
+  LimbIkTarget? to,
+  double weight,
+) {
+  final template = weight < 0.5 ? from ?? to! : to ?? from!;
+  return LimbIkTarget(
+    upperBoneId: template.upperBoneId,
+    lowerBoneId: template.lowerBoneId,
+    endBoneId: template.endBoneId,
+    anchorBoneId: template.anchorBoneId,
+    channel: BlendedIkTargetChannel(
+      from: from?.channel,
+      to: to?.channel,
+      weight: weight,
+    ),
+    bendDirection: template.bendDirection,
+  );
+}
+
+double _lerp(double a, double b, double t) => a + (b - a) * t;

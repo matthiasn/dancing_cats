@@ -1,6 +1,7 @@
 import 'package:dancing_cats/features/character/demo/dance_performance.dart';
 import 'package:dancing_cats/features/character/demo/dance_playback_stepper.dart';
 import 'package:dancing_cats/features/character/model/beat_map.dart';
+import 'package:dancing_cats/features/character/model/clip.dart';
 import 'package:dancing_cats/features/character/model/face.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -9,7 +10,10 @@ BeatMap _beatMap() => BeatMap(
   downbeatIndices: const [0, 4, 8, 12],
 );
 
-DancePerformance _perf({List<DanceWord> words = const []}) {
+DancePerformance _perf({
+  List<DanceWord> words = const [],
+  List<DanceSectionSpan> sectionSpans = const [],
+}) {
   final map = _beatMap();
   return DancePerformance(
     map: map,
@@ -17,7 +21,7 @@ DancePerformance _perf({List<DanceWord> words = const []}) {
     sections: const [
       (start: 0, end: 6, label: 'A', energetic: true, level: 1),
     ],
-    sectionSpans: const [],
+    sectionSpans: sectionSpans,
     trackDurationSec: 6,
     words: words,
   );
@@ -59,6 +63,37 @@ void main() {
       final stepper = DancePlaybackStepper()
         ..advance(_perf(), const [], 2, 0.06);
       // Energetic section at full level → the unison Buga hit.
+      expect(stepper.stage?.lead.name, 'buga');
+    });
+
+    test('smooths catalogue move changes instead of hard cutting', () {
+      final perf = _perf(
+        sectionSpans: const [(start: 0, end: 6, section: 'chorus')],
+      );
+      final stepper = DancePlaybackStepper()
+        // Chorus phase 0.54 is before the Buga handoff, so variant 0 uses Zanku.
+        ..advance(perf, const [], 3.24, 0.016);
+      expect(stepper.stage?.lead.name, 'zanku');
+
+      // Cross the choreography handoff at chorus phase 0.55. The raw derivation
+      // would now be Buga; the stepper should expose a transient blended clip
+      // so the renderer does not jump from one full-body pose to another.
+      stepper.advance(perf, const [], 3.36, 0.016);
+      final mixed = stepper.stage!;
+      expect(mixed.lead.name, 'zanku->buga');
+      expect(mixed.lead.root, isA<BlendedRootChannel>());
+      expect(
+        mixed.lead.channels.values,
+        everyElement(isA<BlendedJointChannel>()),
+      );
+      expect(
+        mixed.lead.limbTargets.map((target) => target.channel),
+        everyElement(isA<BlendedIkTargetChannel>()),
+      );
+
+      for (var i = 0; i < 20; i++) {
+        stepper.advance(perf, const [], 3.38 + i * 0.016, 0.016);
+      }
       expect(stepper.stage?.lead.name, 'buga');
     });
 

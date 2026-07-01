@@ -2,7 +2,9 @@ import 'package:dancing_cats/features/character/demo/dance_camera_director.dart'
 import 'package:dancing_cats/features/character/demo/dance_camera_rig.dart';
 import 'package:dancing_cats/features/character/demo/dance_lip_sync.dart';
 import 'package:dancing_cats/features/character/demo/dance_performance.dart';
+import 'package:dancing_cats/features/character/model/clip.dart';
 import 'package:dancing_cats/features/character/model/face.dart';
+import 'package:dancing_cats/features/character/runtime/dance_timing.dart';
 
 /// The stateful, history-dependent half of one dance frame: the singing mouths
 /// (eased) and the virtual camera (smoothed — slow dollies with fast accent
@@ -24,6 +26,8 @@ class DancePlaybackStepper {
   MouthShape _bgShape = MouthShape.singAh;
   Shot _shot = (zoom: 1, dx: 0, dy: 0);
   DanceStage? _stage;
+  DanceStage? _rawStage;
+  _DanceStageTransition? _transition;
 
   /// How far open the frontman's mouth is (0 = shut), eased toward the cue.
   double get leadMouth => _leadMouth;
@@ -73,7 +77,8 @@ class DancePlaybackStepper {
     _leadMouth = easeDanceMouth(_leadMouth, leadOn ? cue.open : 0.0, dt);
     _bgMouth = easeDanceMouth(_bgMouth, bgOn ? cue.open : 0.0, dt);
 
-    final stage = perf?.stageAt(pos) ?? danceIdleStage(pos);
+    final rawStage = perf?.stageAt(pos) ?? danceIdleStage(pos);
+    final stage = _stageWithTransition(rawStage, dt);
     final ctx = perf?.directorContext(pos, energetic: stage.energetic);
     final target = ctx == null ? _shot : cameraShot(ctx);
     _shot = _cameraRig.update(
@@ -83,4 +88,95 @@ class DancePlaybackStepper {
     );
     _stage = stage;
   }
+
+  DanceStage _stageWithTransition(DanceStage raw, double dt) {
+    final previousRaw = _rawStage;
+    if (previousRaw == null) {
+      _rawStage = raw;
+      _transition = null;
+      return raw;
+    }
+
+    if (_stageSignature(previousRaw) != _stageSignature(raw)) {
+      final from = _stage ?? previousRaw;
+      _rawStage = raw;
+      _transition = _canBlendStages(from, raw)
+          ? _DanceStageTransition(from: from, elapsed: 0)
+          : null;
+      if (_transition == null) return raw;
+    } else {
+      _rawStage = raw;
+    }
+
+    final transition = _transition;
+    if (transition == null) return raw;
+
+    final elapsed = transition.elapsed + dt;
+    if (elapsed >= kDanceMoveTransitionSeconds) {
+      _transition = null;
+      return raw;
+    }
+    _transition = transition.withElapsed(elapsed);
+    final weight = smoothstep(elapsed / kDanceMoveTransitionSeconds);
+    return _blendStage(from: transition.from, to: raw, weight: weight);
+  }
 }
+
+/// The short window used when one catalogue move changes to another.
+///
+/// It is intentionally less than half a beat at 120 BPM: long enough to remove
+/// robotic pose cuts, short enough to preserve Afrobeats hits and foot plants.
+const double kDanceMoveTransitionSeconds = 0.18;
+
+class _DanceStageTransition {
+  const _DanceStageTransition({required this.from, required this.elapsed});
+
+  final DanceStage from;
+  final double elapsed;
+
+  _DanceStageTransition withElapsed(double value) =>
+      _DanceStageTransition(from: from, elapsed: value);
+}
+
+String _stageSignature(DanceStage stage) => [
+  stage.lead.name,
+  for (final clip in stage.ensemble) clip.name,
+].join('|');
+
+bool _canBlendStages(DanceStage from, DanceStage to) {
+  if (!from.energetic || !to.energetic) return false;
+  if (!_sameDuration(from.lead, to.lead)) return false;
+  if (from.ensemble.length != to.ensemble.length) return false;
+  for (var i = 0; i < from.ensemble.length; i++) {
+    if (!_sameDuration(from.ensemble[i], to.ensemble[i])) return false;
+  }
+  return true;
+}
+
+bool _sameDuration(Clip a, Clip b) => (a.duration - b.duration).abs() < 1e-9;
+
+DanceStage _blendStage({
+  required DanceStage from,
+  required DanceStage to,
+  required double weight,
+}) => (
+  lead: blendedClip(
+    from: from.lead,
+    to: to.lead,
+    weight: weight,
+    name: '${from.lead.name}->${to.lead.name}',
+  ),
+  ensemble: [
+    for (var i = 0; i < to.ensemble.length; i++)
+      blendedClip(
+        from: from.ensemble[i],
+        to: to.ensemble[i],
+        weight: weight,
+        name: '${from.ensemble[i].name}->${to.ensemble[i].name}',
+      ),
+  ],
+  seconds: to.seconds,
+  section: to.section,
+  energetic: to.energetic,
+  synchronous: to.synchronous,
+);
