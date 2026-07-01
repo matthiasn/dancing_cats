@@ -503,6 +503,37 @@ void main() {
       }
     });
 
+    test('buga generated overhead arcs avoid hard hand-path corners', () {
+      final analyzer = TemporalMotionAnalyzer(
+        CharacterScene(buildCatInSuitRig()),
+      );
+
+      final report = analyzer.analyze(
+        clip: CatClips.buga,
+        samples: 192,
+        boneIds: const [CatBones.handL, CatBones.handR],
+      );
+      final corners = report.pathCorners(
+        minTurnDegrees: 120,
+        minAcceleration: 28,
+        minArcRatio: 1.45,
+        minSegmentDistance: 2,
+      );
+
+      expect(
+        corners,
+        isEmpty,
+        reason:
+            'Buga overhead presents are authored as generated arcs; the solved '
+            'hands should travel through the hit and release without a hard '
+            'corner. Worst ${corners.isEmpty ? 'none' : corners.first.boneId} '
+            'frames=${corners.isEmpty ? 'n/a' : '${corners.first.fromFrame}-${corners.first.toFrame}'} '
+            'turn=${corners.isEmpty ? 'n/a' : corners.first.turnDegrees.toStringAsFixed(1)} '
+            'arc=${corners.isEmpty ? 'n/a' : corners.first.arcRatio.toStringAsFixed(2)} '
+            'accel=${corners.isEmpty ? 'n/a' : corners.first.accelerationMagnitude.toStringAsFixed(1)}',
+      );
+    });
+
     test('worstAcceleration throws when no acceleration was recorded', () {
       final analyzer = TemporalMotionAnalyzer(
         CharacterScene(buildCatInSuitRig()),

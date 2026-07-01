@@ -1010,6 +1010,7 @@ class DanceIkTargetArc {
     required this.endX,
     required this.endY,
     this.controlPoints = const <DanceIkTargetArcPoint>[],
+    this.generatedFrames = const <int>[],
     this.weight = 1,
     this.ease = Ease.easeInOut,
   }) : assert(startFrame < peakFrame, 'arc peak must follow start'),
@@ -1027,11 +1028,20 @@ class DanceIkTargetArc {
   final double endX;
   final double endY;
   final List<DanceIkTargetArcPoint> controlPoints;
+
+  /// Extra integer frames synthesized from the arc curve.
+  ///
+  /// Explicit [controlPoints], [startFrame], [peakFrame], and [endFrame] still
+  /// win on duplicate frames. Generated frames are for travel quality between
+  /// semantic poses: they keep the hand/foot on a continuous curve without
+  /// forcing the choreography table to hand-author every in-between.
+  final List<int> generatedFrames;
+
   final double weight;
   final Ease ease;
 
   List<DanceIkTargetKey> get keys {
-    final keys = [
+    final anchors = [
       DanceIkTargetKey(
         startFrame,
         x: startX,
@@ -1049,7 +1059,56 @@ class DanceIkTargetArc {
       ),
       DanceIkTargetKey(endFrame, x: endX, y: endY, weight: weight, ease: ease),
     ]..sort((a, b) => a.frame.compareTo(b.frame));
+    final keysByFrame = <int, DanceIkTargetKey>{};
+    for (final frame in generatedFrames) {
+      if (frame <= startFrame || frame >= endFrame) continue;
+      keysByFrame[frame] = _sampleGeneratedKey(frame, anchors);
+    }
+    for (final anchor in anchors) {
+      keysByFrame[anchor.frame] = anchor;
+    }
+    final keys = keysByFrame.values.toList()
+      ..sort((a, b) => a.frame.compareTo(b.frame));
     return keys;
+  }
+
+  DanceIkTargetKey _sampleGeneratedKey(
+    int frame,
+    List<DanceIkTargetKey> anchors,
+  ) {
+    for (var i = 0; i < anchors.length - 1; i++) {
+      final a = anchors[i];
+      final b = anchors[i + 1];
+      if (frame < a.frame || frame > b.frame) continue;
+      final span = b.frame - a.frame;
+      final local = span == 0 ? 0.0 : (frame - a.frame) / span;
+      final before = i == 0 ? a : anchors[i - 1];
+      final after = i + 2 >= anchors.length ? b : anchors[i + 2];
+      return DanceIkTargetKey(
+        frame,
+        x: _catmullRom(before.x, a.x, b.x, after.x, local),
+        y: _catmullRom(before.y, a.y, b.y, after.y, local),
+        weight: _catmullRom(
+          before.weight,
+          a.weight,
+          b.weight,
+          after.weight,
+          local,
+        ).clamp(0.0, 1.0),
+        ease: ease,
+      );
+    }
+    return anchors.last;
+  }
+
+  double _catmullRom(double p0, double p1, double p2, double p3, double t) {
+    final t2 = t * t;
+    final t3 = t2 * t;
+    return 0.5 *
+        ((2 * p1) +
+            (-p0 + p2) * t +
+            (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2 +
+            (-p0 + 3 * p1 - 3 * p2 + p3) * t3);
   }
 }
 

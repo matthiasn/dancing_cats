@@ -7498,52 +7498,74 @@ class CatClips {
   // wide asymmetric V. Prep hands are separated rib guards, not clasped together
   // at the belt: paired centreline hands imply impossible forearms folded through
   // the torso.
-  static const _bugaHandRTargetKeys = [
-    DanceIkTargetKey(0, x: 64, y: -82), // show-off starts immediately
-    DanceIkTargetKey(2, x: 78, y: -92),
-    DanceIkTargetKey(4, x: 70, y: -90),
-    DanceIkTargetKey(6, x: 78, y: -96),
-    DanceIkTargetKey(8, x: 74, y: -100),
-    DanceIkTargetKey(10, x: 72, y: -88), // shoulder/scapula starts lifting
-    DanceIkTargetKey(11, x: 72, y: -100), // elbow follows before the fist
-    DanceIkTargetKey(12, x: 70, y: -114), // high/out declarative present
-    DanceIkTargetKey(13, x: 74, y: -122), // overshoot past the peak
-    DanceIkTargetKey(14, x: 68, y: -106), // readable peak, already releasing
-    DanceIkTargetKey(15, x: 62, y: -70),
-    DanceIkTargetKey(16, x: 54, y: -34),
-    DanceIkTargetKey(20, x: 44, y: -34),
-    DanceIkTargetKey(22, x: 50, y: -32),
-    DanceIkTargetKey(24, x: 48, y: -30),
-    DanceIkTargetKey(26, x: 50, y: -34),
-    DanceIkTargetKey(28, x: 58, y: -42), // frames the left present
-    DanceIkTargetKey(30, x: 48, y: -44),
-    DanceIkTargetKey(32, x: 64, y: -82),
+  static final List<DanceIkTargetKey> _bugaHandRTargetKeys = [
+    const DanceIkTargetKey(0, x: 64, y: -82), // show-off starts immediately
+    const DanceIkTargetKey(2, x: 78, y: -92),
+    const DanceIkTargetKey(4, x: 70, y: -90),
+    const DanceIkTargetKey(6, x: 78, y: -96),
+    const DanceIkTargetKey(8, x: 74, y: -100),
+    ..._dancePhrase.ikTargetArcKeys(
+      const [
+        DanceIkTargetArc(
+          name: 'right Buga overhead present',
+          startFrame: 10,
+          peakFrame: 13,
+          endFrame: 16,
+          startX: 72,
+          startY: -88,
+          peakX: 74,
+          peakY: -122,
+          endX: 54,
+          endY: -34,
+          generatedFrames: [11, 12, 14, 15],
+          controlPoints: [
+            DanceIkTargetArcPoint(14, x: 69, y: -106),
+          ],
+        ),
+      ],
+    ),
+    const DanceIkTargetKey(20, x: 44, y: -34),
+    const DanceIkTargetKey(22, x: 50, y: -32),
+    const DanceIkTargetKey(24, x: 48, y: -30),
+    const DanceIkTargetKey(26, x: 50, y: -34),
+    const DanceIkTargetKey(28, x: 58, y: -42), // frames the left present
+    const DanceIkTargetKey(30, x: 48, y: -44),
+    const DanceIkTargetKey(32, x: 64, y: -82),
   ];
-  static const _bugaHandLTargetKeys = [
-    DanceIkTargetKey(0, x: -52, y: -30),
-    DanceIkTargetKey(4, x: -56, y: -32),
-    DanceIkTargetKey(8, x: -58, y: -34),
-    DanceIkTargetKey(
+  static final List<DanceIkTargetKey> _bugaHandLTargetKeys = [
+    const DanceIkTargetKey(0, x: -52, y: -30),
+    const DanceIkTargetKey(4, x: -56, y: -32),
+    const DanceIkTargetKey(8, x: -58, y: -34),
+    const DanceIkTargetKey(
       12,
       x: -54,
       y: -34,
     ), // frames the right present
-    DanceIkTargetKey(16, x: -64, y: -82),
-    DanceIkTargetKey(18, x: -78, y: -92),
-    DanceIkTargetKey(20, x: -70, y: -90),
-    DanceIkTargetKey(22, x: -78, y: -96),
-    DanceIkTargetKey(24, x: -74, y: -100),
-    DanceIkTargetKey(26, x: -72, y: -88), // cue the mirror hit early
-    DanceIkTargetKey(27, x: -72, y: -100),
-    DanceIkTargetKey(
-      28,
-      x: -70,
-      y: -114,
-    ), // vertical declarative present (mirror hit)
-    DanceIkTargetKey(29, x: -74, y: -122), // overshoot past the peak
-    DanceIkTargetKey(30, x: -68, y: -106), // readable peak, already releasing
-    DanceIkTargetKey(31, x: -62, y: -70),
-    DanceIkTargetKey(32, x: -52, y: -30),
+    const DanceIkTargetKey(16, x: -64, y: -82),
+    const DanceIkTargetKey(18, x: -78, y: -92),
+    const DanceIkTargetKey(20, x: -70, y: -90),
+    const DanceIkTargetKey(22, x: -78, y: -96),
+    const DanceIkTargetKey(24, x: -74, y: -100),
+    ..._dancePhrase.ikTargetArcKeys(
+      const [
+        DanceIkTargetArc(
+          name: 'left Buga overhead present',
+          startFrame: 26,
+          peakFrame: 29,
+          endFrame: 32,
+          startX: -72,
+          startY: -88,
+          peakX: -74,
+          peakY: -122,
+          endX: -52,
+          endY: -30,
+          generatedFrames: [27, 28, 30, 31],
+          controlPoints: [
+            DanceIkTargetArcPoint(30, x: -69, y: -106),
+          ],
+        ),
+      ],
+    ),
   ];
   static final IkTargetChannel _bugaHandLTarget = SoftenedIkTargetChannel(
     _dancePhrase.ikTargetChannel(

@@ -561,6 +561,68 @@ void main() {
       expect(keys[4].y, 28);
     });
 
+    test('generates curved IK target arc in-betweens', () {
+      final keys = phrase.ikTargetArcKeys(
+        const [
+          DanceIkTargetArc(
+            name: 'curved hand lift',
+            startFrame: 0,
+            peakFrame: 4,
+            endFrame: 8,
+            startX: 0,
+            startY: 0,
+            peakX: 40,
+            peakY: -40,
+            endX: 80,
+            endY: 0,
+            generatedFrames: [2, 6],
+          ),
+        ],
+      );
+
+      expect(keys.map((key) => key.frame), [0, 2, 4, 6, 8]);
+      expect(keys[1].x, closeTo(17.5, 1e-9));
+      expect(
+        keys[1].y,
+        closeTo(-22.5, 1e-9),
+        reason:
+            'generated keys should travel on a curve, not the straight '
+            'start-to-peak chord at y=-20',
+      );
+      expect(keys[3].x, closeTo(62.5, 1e-9));
+      expect(keys[3].y, closeTo(-22.5, 1e-9));
+    });
+
+    test('explicit IK arc controls override generated frames', () {
+      final keys = phrase.ikTargetArcKeys(
+        const [
+          DanceIkTargetArc(
+            name: 'controlled hand lift',
+            startFrame: 0,
+            peakFrame: 4,
+            endFrame: 8,
+            startX: 0,
+            startY: 0,
+            peakX: 40,
+            peakY: -40,
+            endX: 80,
+            endY: 0,
+            generatedFrames: [2, 4, 6],
+            controlPoints: [
+              DanceIkTargetArcPoint(2, x: 22, y: -12, weight: 0.5),
+            ],
+          ),
+        ],
+      );
+
+      expect(keys.map((key) => key.frame), [0, 2, 4, 6, 8]);
+      expect(keys[1].x, 22);
+      expect(keys[1].y, -12);
+      expect(keys[1].weight, 0.5);
+      expect(keys[2].x, 40);
+      expect(keys[2].y, -40);
+    });
+
     test('builds neutralized IK target accent pulses', () {
       final keys = phrase.ikTargetAccentKeys(
         const [
