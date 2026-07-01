@@ -79,12 +79,17 @@ class ColorGradePanel extends StatelessWidget {
           border: Border(top: BorderSide(color: _edge)),
         ),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 10, 18, 12),
+          padding: const EdgeInsets.fromLTRB(24, 10, 24, 12),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _PanelHeader(bypass: bypass, onBypass: onBypass),
-              const SizedBox(width: 16),
+              _PanelHeader(
+                bypass: bypass,
+                onBypass: onBypass,
+                onReset: onReset,
+              ),
+              const SizedBox(width: 22),
               GradeWheelControl(
                 role: GradeRole.lift,
                 label: 'Lift',
@@ -92,7 +97,7 @@ class ColorGradePanel extends StatelessWidget {
                 wheel: lift,
                 onChanged: onLift,
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 16),
               GradeWheelControl(
                 role: GradeRole.gamma,
                 label: 'Gamma',
@@ -100,7 +105,7 @@ class ColorGradePanel extends StatelessWidget {
                 wheel: gamma,
                 onChanged: onGamma,
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 16),
               GradeWheelControl(
                 role: GradeRole.gain,
                 label: 'Gain',
@@ -108,7 +113,7 @@ class ColorGradePanel extends StatelessWidget {
                 wheel: gain,
                 onChanged: onGain,
               ),
-              const SizedBox(width: 18),
+              const SizedBox(width: 26),
               _SliderStack(
                 title: 'BALANCE',
                 children: [
@@ -132,7 +137,7 @@ class ColorGradePanel extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 22),
               _SliderStack(
                 title: 'TONE',
                 children: [
@@ -152,8 +157,19 @@ class ColorGradePanel extends StatelessWidget {
                   ),
                 ],
               ),
-              const Spacer(),
-              _ResetButton(onReset: onReset),
+              const SizedBox(width: 26),
+              _TransferCurveScope(
+                grade: gradeFromWheels(
+                  lift: lift,
+                  gamma: gamma,
+                  gain: gain,
+                  saturation: saturation,
+                  temperature: temperature,
+                  tint: tint,
+                  contrast: contrast,
+                ),
+                bypass: bypass,
+              ),
             ],
           ),
         ),
@@ -162,13 +178,18 @@ class ColorGradePanel extends StatelessWidget {
   }
 }
 
-/// Panel title plus the before/after Bypass toggle — a colourist has to be able
-/// to see the clean plate to judge how far a look has been pushed.
+/// Panel title, the before/after Bypass toggle (a colourist has to see the clean
+/// plate to judge how far a look has been pushed) and the global Reset.
 class _PanelHeader extends StatelessWidget {
-  const _PanelHeader({required this.bypass, required this.onBypass});
+  const _PanelHeader({
+    required this.bypass,
+    required this.onBypass,
+    required this.onReset,
+  });
 
   final bool bypass;
   final ValueChanged<bool> onBypass;
+  final VoidCallback onReset;
 
   @override
   Widget build(BuildContext context) {
@@ -188,8 +209,10 @@ class _PanelHeader extends StatelessWidget {
           'grade',
           style: TextStyle(color: ColorGradePanel._textLow, fontSize: 11),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         _BypassButton(bypass: bypass, onBypass: onBypass),
+        const SizedBox(height: 8),
+        _ResetButton(onReset: onReset),
       ],
     );
   }
@@ -263,7 +286,7 @@ class GradeWheelControl extends StatelessWidget {
     required this.sublabel,
     required this.wheel,
     required this.onChanged,
-    this.diameter = 84,
+    this.diameter = 96,
     super.key,
   });
 
@@ -795,6 +818,132 @@ class _BipolarTrackPainter extends CustomPainter {
       old.highColor != highColor;
 }
 
+/// A "curves" scope: the grade's per-channel transfer response over a 0..1 input
+/// ramp, with an identity diagonal for reference — so the shaping the wheels and
+/// contrast apply is measurable, not eyeballed. Fills what would otherwise be
+/// dead space on a wide panel; dims when the grade is bypassed.
+class _TransferCurveScope extends StatelessWidget {
+  const _TransferCurveScope({required this.grade, required this.bypass});
+
+  final BackdropGrade grade;
+  final bool bypass;
+
+  static const _graphWidth = 300.0;
+  static const _graphHeight = 118.0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: _graphWidth,
+          child: Row(
+            children: [
+              const Text(
+                'CURVES',
+                style: TextStyle(
+                  color: ColorGradePanel._textLow,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.5,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                bypass ? 'bypassed' : 'R · G · B',
+                style: const TextStyle(
+                  color: ColorGradePanel._textLow,
+                  fontSize: 9,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        CustomPaint(
+          size: const Size(_graphWidth, _graphHeight),
+          painter: _CurvePainter(grade: grade, bypass: bypass),
+        ),
+      ],
+    );
+  }
+}
+
+class _CurvePainter extends CustomPainter {
+  _CurvePainter({required this.grade, required this.bypass});
+
+  final BackdropGrade grade;
+  final bool bypass;
+
+  static const _samples = 48;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    canvas.drawRect(rect, Paint()..color = const Color(0xFF0C1013));
+
+    // Quarter grid + identity diagonal reference.
+    final grid = Paint()
+      ..color = const Color(0x1AFFFFFF)
+      ..strokeWidth = 1;
+    for (var i = 1; i < 4; i++) {
+      final gx = size.width * i / 4;
+      final gy = size.height * i / 4;
+      canvas
+        ..drawLine(Offset(gx, 0), Offset(gx, size.height), grid)
+        ..drawLine(Offset(0, gy), Offset(size.width, gy), grid);
+    }
+    canvas.drawLine(
+      Offset(0, size.height),
+      Offset(size.width, 0),
+      Paint()
+        ..color = const Color(0x33FFFFFF)
+        ..strokeWidth = 1,
+    );
+
+    final alpha = bypass ? 0.28 : 1.0;
+    void curve(double Function(GradeRgb) select, Color color) {
+      final path = Path();
+      for (var i = 0; i <= _samples; i++) {
+        final x = i / _samples;
+        final y = select(grade.responseAt(x));
+        final px = x * size.width;
+        final py = size.height - y * size.height;
+        if (i == 0) {
+          path.moveTo(px, py);
+        } else {
+          path.lineTo(px, py);
+        }
+      }
+      canvas.drawPath(
+        path,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.6
+          ..strokeJoin = StrokeJoin.round
+          ..color = color.withValues(alpha: alpha),
+      );
+    }
+
+    curve((c) => c.b, const Color(0xFF4A8FE6));
+    curve((c) => c.g, const Color(0xFF3FBF57));
+    curve((c) => c.r, const Color(0xFFE0483B));
+
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1
+        ..color = ColorGradePanel._edge,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_CurvePainter old) =>
+      old.grade != grade || old.bypass != bypass;
+}
+
 class _ResetButton extends StatelessWidget {
   const _ResetButton({required this.onReset});
 
@@ -806,9 +955,14 @@ class _ResetButton extends StatelessWidget {
       message: 'Reset the whole grade to neutral',
       child: TextButton.icon(
         onPressed: onReset,
-        icon: const Icon(Icons.restart_alt_rounded, size: 18),
+        icon: const Icon(Icons.restart_alt_rounded, size: 16),
         label: const Text('Reset'),
-        style: TextButton.styleFrom(foregroundColor: ColorGradePanel._textLow),
+        style: TextButton.styleFrom(
+          foregroundColor: ColorGradePanel._textLow,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
       ),
     );
   }

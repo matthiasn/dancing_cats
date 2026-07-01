@@ -30,9 +30,9 @@ Future<_Rec> _pump(
   bool bypass = false,
 }) async {
   final rec = _Rec();
-  // The panel is a full-width transport row sized for the ~960px demo window;
+  // The panel is a full-width transport row sized for the 1600px demo window;
   // give the test surface comparable width so the Row lays out without overflow.
-  tester.view.physicalSize = const Size(1100, 620);
+  tester.view.physicalSize = const Size(1500, 640);
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
@@ -83,6 +83,15 @@ void main() {
       expect(find.text('Saturation'), findsOneWidget);
       expect(find.text('Reset'), findsOneWidget);
       expect(find.byKey(const Key('gradeBypass')), findsOneWidget);
+      expect(find.text('CURVES'), findsOneWidget);
+      expect(find.text('R · G · B'), findsOneWidget);
+    });
+
+    testWidgets('the curves scope shows a bypassed caption when bypassed', (
+      tester,
+    ) async {
+      await _pump(tester, bypass: true, contrast: 1.3);
+      expect(find.text('bypassed'), findsOneWidget);
     });
 
     testWidgets('dragging a wheel reports a colour balance', (tester) async {

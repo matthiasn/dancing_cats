@@ -65,6 +65,40 @@ void main() {
       // Pivot is irrelevant when contrast is 1 — no tonal change.
       expect(const BackdropGrade(pivot: 0.6).isNeutral, isTrue);
     });
+  });
+
+  group('BackdropGrade.responseAt', () {
+    test('the identity grade is the identity transfer curve', () {
+      for (final x in [0.0, 0.25, 0.5, 1.0]) {
+        final r = BackdropGrade.identity.responseAt(x);
+        expect(r.r, closeTo(x, 1e-9));
+        expect(r.g, closeTo(x, 1e-9));
+        expect(r.b, closeTo(x, 1e-9));
+      }
+    });
+
+    test('a positive offset lifts the shadow end above input', () {
+      const g = BackdropGrade(offset: (r: 0.2, g: 0.2, b: 0.2));
+      expect(g.responseAt(0).r, greaterThan(0));
+    });
+
+    test('the response is clamped into 0..1', () {
+      const g = BackdropGrade(
+        slope: (r: 3, g: 3, b: 3),
+        offset: (r: 0.5, g: 0.5, b: 0.5),
+      );
+      final hi = g.responseAt(1);
+      expect(hi.r, lessThanOrEqualTo(1));
+      const dark = BackdropGrade(offset: (r: -1, g: -1, b: -1));
+      expect(dark.responseAt(0).r, greaterThanOrEqualTo(0));
+    });
+
+    test('contrast steepens the curve about the pivot', () {
+      const g = BackdropGrade(contrast: 1.6);
+      // Below the pivot the contrast pushes darker; above it, brighter.
+      expect(g.responseAt(0.1).r, lessThan(0.1));
+      expect(g.responseAt(0.9).r, greaterThan(0.9));
+    });
 
     test('equality distinguishes different grades', () {
       expect(

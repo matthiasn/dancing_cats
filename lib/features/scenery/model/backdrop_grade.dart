@@ -63,6 +63,27 @@ class BackdropGrade {
       saturation == 1.0 &&
       contrast == 1.0;
 
+  /// The graded response of an input grey [x] (0..1) per channel — the transfer
+  /// curve a colourist reads as a "curves" scope. Mirrors the shader's
+  /// Slope→Offset→Power→Contrast pipeline (saturation, which mixes channels, is
+  /// omitted since a per-channel curve can't express it). Output is clamped to
+  /// the displayable 0..1 range.
+  GradeRgb responseAt(double x) {
+    double channel(double s, double o, double p) {
+      var c = s * x + o;
+      if (c < 0) c = 0;
+      c = math.pow(c, p).toDouble();
+      c = (c - pivot) * contrast + pivot;
+      return c.clamp(0.0, 1.0);
+    }
+
+    return (
+      r: channel(slope.r, offset.r, power.r),
+      g: channel(slope.g, offset.g, power.g),
+      b: channel(slope.b, offset.b, power.b),
+    );
+  }
+
   @override
   bool operator ==(Object other) =>
       other is BackdropGrade &&
