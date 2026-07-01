@@ -1834,6 +1834,68 @@ void main() {
     });
   });
 
+  testWidgets('inter-cat parallax shears the trio under a lateral truck', (
+    tester,
+  ) async {
+    await tester.runAsync(() async {
+      List<Offset> anchorsFor(({double zoom, double dx, double dy}) shot) {
+        List<Offset>? reported;
+        final recorder = ui.PictureRecorder();
+        CharacterPainter(
+          scene: scene,
+          partnerScene: CharacterScene(
+            buildCatInSuitRig(palette: CatInSuitPalette.silverTabby),
+          ),
+          ensembleScenes: [
+            CharacterScene(
+              buildCatInSuitRig(palette: CatInSuitPalette.silverTabby),
+            ),
+            CharacterScene(
+              buildCatInSuitRig(palette: CatInSuitPalette.darkBrown),
+            ),
+          ],
+          ensembleClips: [
+            CatClips.shaku,
+            CatClips.danceBackupLeft,
+            CatClips.danceBackupRight,
+          ],
+          synchronousEnsemble: true,
+          walkingPair: true,
+          clip: CatClips.shaku,
+          timeSeconds: 0.25,
+          cameraOverride: shot,
+          shadowColor: const Color(0x00000000),
+          onDancerAnchors: (anchors) => reported = anchors,
+          renderer: renderer,
+        ).paint(Canvas(recorder), const Size(760, 420));
+        recorder.endRecording().dispose();
+        return reported!;
+      }
+
+      // The inter-member gaps depend ONLY on the per-lane parallax (a uniform
+      // camera pan shifts all three equally and cancels in the gaps), so any
+      // change between a centred shot and a lateral truck is the shear itself.
+      final centred = anchorsFor((zoom: 1.4, dx: 0, dy: 0));
+      final trucked = anchorsFor((zoom: 1.4, dx: 380, dy: 0));
+
+      final leftGapDelta =
+          (trucked[1].dx - trucked[0].dx) - (centred[1].dx - centred[0].dx);
+      final rightGapDelta =
+          (trucked[2].dx - trucked[1].dx) - (centred[2].dx - centred[1].dx);
+
+      // The upstage backups (depth < 1) lag the near lead on the rightward truck,
+      // so the left gap widens and the right gap narrows by the same shear —
+      // opposite signs, so the trio leans instead of sliding as one flat cut-out.
+      expect(leftGapDelta, greaterThan(0.004));
+      expect(rightGapDelta, lessThan(-0.004));
+      expect(
+        leftGapDelta,
+        moreOrLessEquals(-rightGapDelta, epsilon: 1e-3),
+        reason: 'both backups lag by the same amount',
+      );
+    });
+  });
+
   testWidgets('a synchronous pair applies per-lane micro-timing offsets', (
     tester,
   ) async {

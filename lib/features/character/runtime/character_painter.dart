@@ -334,6 +334,13 @@ class CharacterPainter extends CustomPainter {
   /// this older move.
   static const double _builtInDancePivotFraction = 0.56;
 
+  /// Inter-cat parallax depth for the flanking backups (the centred lead is the
+  /// 1.0 reference plane). Below 1 so a lateral camera truck shears the lead a
+  /// touch against the upstage backups — the trio gets its own shallow depth
+  /// instead of sliding across the frame as one flat cut-out. Small on purpose:
+  /// the cast is near-coplanar on the deck, so this reads as depth, not diorama.
+  static const double _flankParallaxDepth = 0.92;
+
   @override
   void paint(Canvas canvas, Size size) {
     final floorY = size.height * feetFraction;
@@ -484,6 +491,18 @@ class CharacterPainter extends CustomPainter {
       final anchors = reportAnchors
           ? List<Offset>.filled(members.length, Offset.zero)
           : null;
+      // Inter-cat parallax: the horizontal pan (screen px) the scene camera
+      // applied. Each lane counter-shifts by (depth - 1) * pan / zoom in local
+      // space, so its net screen motion scales by its depth — the near lead
+      // trucks a touch more than the upstage backups. Only the lead-centred
+      // dance trio shears (a lateral truck with a real pan); everywhere else the
+      // depth is 1 and this is a no-op.
+      final camPanDx = _clampedPan(
+        sceneCamera,
+        size,
+        pivotFraction,
+        scaleDy: scaleDy,
+      ).dx;
       for (final i in paintOrder) {
         final memberScene = members[i];
         final memberClip = clips[i];
@@ -521,8 +540,14 @@ class CharacterPainter extends CustomPainter {
                     formation.dy +
                     heroStage.dy) *
                 drawScale;
+        final parallaxDx = leadCentreOrder
+            ? (_memberParallaxDepth(i) - 1) * camPanDx / sceneCamera.zoom
+            : 0.0;
         final memberCentreX =
-            startX + spacing * i + (formation.dx + heroStage.dx) * drawScale;
+            startX +
+            spacing * i +
+            (formation.dx + heroStage.dx) * drawScale +
+            parallaxDx;
         if (anchors != null && cameraMatrix != null) {
           // Map the local foot point through the camera transform to screen,
           // normalized to the canvas (affine — ignore the perspective row).
@@ -1116,6 +1141,15 @@ class CharacterPainter extends CustomPainter {
   static double _roleFloorOffset(int index, int memberCount) {
     if (memberCount < 3) return 0;
     return index == 1 ? 28 : -44;
+  }
+
+  /// Per-lane depth for inter-cat parallax within the centred trio: the lead
+  /// (index 1) is the 1.0 reference plane; the flanking backups sit a touch
+  /// upstage ([_flankParallaxDepth]). Only consulted for the lead-centred dance
+  /// trio, so it can assume the three-cat layout.
+  static double _memberParallaxDepth(int index) {
+    if (index == 1) return 1; // the centred lead — the reference plane
+    return _flankParallaxDepth; // flanking backups, a touch upstage
   }
 
   /// Extra HERO STAGING applied only to the layered-scene concert player (keyed
