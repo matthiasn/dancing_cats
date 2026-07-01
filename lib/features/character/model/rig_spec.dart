@@ -368,6 +368,7 @@ class LimbRibbonSpec {
     this.formRound = true,
     this.roundCaps = true,
     this.shadeGroup,
+    this.inkOverFill = false,
   }) : jointBoneIds = List<String>.unmodifiable(jointBoneIds),
        hiddenBoneIds = List<String>.unmodifiable(hiddenBoneIds),
        halfWidths = List<double>.unmodifiable(halfWidths),
@@ -411,6 +412,15 @@ class LimbRibbonSpec {
   /// bounds (which tinted a raised sleeve differently from the jacket it
   /// touches and read as patched-together fabrics).
   final String? shadeGroup;
+
+  /// When true, the ribbon's outline is ALSO stroked over its fill — the
+  /// hand-drawn ink line that separates an overlapping limb from the body it
+  /// crosses. This replaces value-shifted "near/far fabric" fills: same
+  /// cloth everywhere, separation by line, exactly like drawn animation.
+  /// (The unified silhouette pass deliberately draws no internal outlines,
+  /// so without this an arm in the jacket's own colour would melt into the
+  /// chest whenever it crosses.)
+  final bool inkOverFill;
 }
 
 /// A broad skinned surface made from weighted vertices.

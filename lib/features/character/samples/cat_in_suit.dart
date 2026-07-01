@@ -49,22 +49,27 @@ const SuitFabric kSuitFabric = SuitFabric(0xFF2E3A59);
 /// pelvis) carries the same tone on both sides. The jacket and the trousers
 /// are separate pieces of clothing and keep separate ramps; the shirt, tie,
 /// and cuffs are small flat-shaded pieces and need no group.
-const String kJacketShadeGroup = 'jacket';
-const String kTrouserShadeGroup = 'trousers';
+// NOTE: both garments currently share one ramp REGION: the key light falls
+// continuously down the figure, so the jacket hem's shade side must not butt
+// against a lit trouser top (that opposing-ramp flip read as a hard block
+// break at the hem). Garment separation reads through the fill values and
+// the hem line; the ids stay separate so fabrics can split again if needed.
+const String kJacketShadeGroup = 'suit-cloth';
+const String kTrouserShadeGroup = 'suit-cloth';
 final int _suit = kSuitFabric.plane(1); // navy jacket (torso)
-// The sleeve planes step JUST far enough from the jacket to separate an arm
-// crossing the chest (the unified silhouette pass draws no internal outlines,
-// so value is the only depth cue there). Wider steps read as different
-// fabrics where the deltoid overlaps the yoke.
-final int _sleeve = kSuitFabric.plane(0.955); // far sleeve, a step upstage
-final int _sleeveNear = kSuitFabric.plane(1.04); // near sleeve catches the key
+// Sleeves are the SAME cloth as the jacket — no near/far value step. A
+// crossing arm separates from the chest by its drawn INK LINE (the ribbons'
+// inkOverFill), like hand-drawn animation, so no pose can expose a lighter
+// "patch of different fabric" where the sleeve root sits on the yoke.
+final int _sleeve = kSuitFabric.plane(1); // far sleeve
+final int _sleeveNear = kSuitFabric.plane(1); // near sleeve
 const int _button = 0xFFAE955C; // muted brass placket button — a dark horn
 // button vanished on the navy front; a metal tone reads as a button line.
 final int _lapel = kSuitFabric.plane(1.94); // lapel — a CLEAR step lighter
 // than the suit so the folded-back collar panels read as their own planes
 // against the navy front even on the dimmed, cool-pooled backup dancers.
 final int _trouser = kSuitFabric.plane(0.83); // darker navy
-final int _trouserRear = kSuitFabric.plane(0.7); // slightly darker rear leg
+final int _trouserRear = kSuitFabric.plane(0.78); // slightly darker rear leg
 const int _fur = 0xFFE8A55A; // orange tabby
 const int _furDark = 0xFFD08A3C; // tail tip / shading
 const int _shirt = 0xFFF3EFE6; // collar
@@ -1391,6 +1396,7 @@ RigSpec buildCatInSuitRig({
       outlineWidth: 2,
       samplesPerSegment: 12,
       shadeGroup: kTrouserShadeGroup,
+      inkOverFill: true,
     ),
     // Arms: the same continuous-ribbon treatment that already makes the legs
     // read as one bending limb. The centreline flows clavicle→shoulder→elbow→
@@ -1434,6 +1440,7 @@ RigSpec buildCatInSuitRig({
       samplesPerSegment: 12,
       formRound: false,
       shadeGroup: kJacketShadeGroup,
+      inkOverFill: true,
     ),
     LimbRibbonSpec(
       id: 'arm.L.ribbon',
@@ -1465,6 +1472,7 @@ RigSpec buildCatInSuitRig({
       samplesPerSegment: 12,
       formRound: false,
       shadeGroup: kJacketShadeGroup,
+      inkOverFill: true,
     ),
   ];
 
@@ -1489,7 +1497,7 @@ RigSpec buildCatInSuitRig({
           MeshInfluence(boneId: CatBones.hips, x: 22, y: 2, weight: 0.7),
         ]),
         SkinnedMeshVertex([
-          MeshInfluence(boneId: CatBones.hips, x: 27, y: 10, weight: 1),
+          MeshInfluence(boneId: CatBones.hips, x: 25, y: 10, weight: 1),
         ]),
         SkinnedMeshVertex([
           MeshInfluence(boneId: CatBones.hips, x: 22, y: 21, weight: 1),
@@ -1510,7 +1518,7 @@ RigSpec buildCatInSuitRig({
           MeshInfluence(boneId: CatBones.hips, x: -22, y: 21, weight: 1),
         ]),
         SkinnedMeshVertex([
-          MeshInfluence(boneId: CatBones.hips, x: -27, y: 10, weight: 1),
+          MeshInfluence(boneId: CatBones.hips, x: -25, y: 10, weight: 1),
         ]),
       ],
       boundary: const [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
@@ -1535,7 +1543,7 @@ RigSpec buildCatInSuitRig({
       id: 'jacket.mesh',
       bones: bones,
       stations: const [
-        TrunkStation(boneId: CatBones.hips, y: 12, halfWidth: 21.5),
+        TrunkStation(boneId: CatBones.hips, y: 17, halfWidth: 23),
         TrunkStation(boneId: CatBones.torso, y: -8, halfWidth: 19.5),
         TrunkStation(boneId: CatBones.torso, y: -34, halfWidth: 24.5),
         TrunkStation(boneId: CatBones.chest, y: -60, halfWidth: 32.5),

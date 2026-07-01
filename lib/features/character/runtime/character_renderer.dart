@@ -144,6 +144,7 @@ class CharacterRenderer {
             shadeBounds: groupBounds[ribbons[ribbonIndex].shadeGroup],
           );
         }
+        _drawRibbonInk(canvas, ribbons[ribbonIndex], world);
         ribbonIndex++;
       }
       while (meshIndex < meshes.length && meshes[meshIndex].z <= bone.z) {
@@ -184,6 +185,7 @@ class CharacterRenderer {
           shadeBounds: groupBounds[ribbons[ribbonIndex].shadeGroup],
         );
       }
+      _drawRibbonInk(canvas, ribbons[ribbonIndex], world);
       ribbonIndex++;
     }
     while (meshIndex < meshes.length) {
@@ -476,6 +478,30 @@ class CharacterRenderer {
         d.outlineWidth,
         (paint) => _drawKind(canvas, d, paint),
       );
+
+  /// The hand-drawn ink line over an overlapping limb (see
+  /// [LimbRibbonSpec.inkOverFill]): strokes the ribbon's own outline on TOP
+  /// of its fill and cel shade, so the limb separates from same-colour cloth
+  /// behind it by line instead of by a fabric value shift.
+  void _drawRibbonInk(
+    Canvas canvas,
+    LimbRibbonSpec ribbon,
+    Map<String, Affine2D> world,
+  ) {
+    final outline = ribbon.outlineColor;
+    if (!ribbon.inkOverFill || outline == null || ribbon.outlineWidth <= 0) {
+      return;
+    }
+    final path = _ribbonPath(ribbon, world);
+    if (path == null) return;
+    _paint
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = ribbon.outlineWidth
+      ..strokeJoin = StrokeJoin.round
+      ..color = Color(outline)
+      ..isAntiAlias = antiAlias;
+    canvas.drawPath(path, _paint);
+  }
 
   void _drawRibbonFill(
     Canvas canvas,

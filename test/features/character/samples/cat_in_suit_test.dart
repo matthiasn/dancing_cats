@@ -302,28 +302,32 @@ void main() {
       }
     });
 
-    test('sleeve values stay in the same suit fabric family', () {
+    test('sleeves are the jacket cloth, separated by ink lines', () {
       final torso = rig.bone(CatBones.torso)!.drawable!.color;
-      final farSleeve = rig.ribbons
-          .singleWhere((ribbon) => ribbon.id == 'arm.R.ribbon')
-          .color;
-      final nearSleeve = rig.ribbons
-          .singleWhere((ribbon) => ribbon.id == 'arm.L.ribbon')
-          .color;
-
+      for (final id in const ['arm.L.ribbon', 'arm.R.ribbon']) {
+        final sleeve = rig.ribbons.singleWhere((ribbon) => ribbon.id == id);
+        expect(
+          sleeve.color,
+          torso,
+          reason:
+              'a sleeve is the SAME cloth as its jacket — the old near/far '
+              'value steps read as lighter fabric patches where the sleeve '
+              'root sits on the yoke',
+        );
+        expect(
+          sleeve.inkOverFill,
+          isTrue,
+          reason:
+              'crossing limbs separate from same-colour cloth by their drawn '
+              'ink line, like hand-drawn animation',
+        );
+      }
+      final nearLeg = rig.ribbons.singleWhere((r) => r.id == 'leg.L.ribbon');
+      expect(nearLeg.inkOverFill, isTrue);
       expect(
-        (_luma(farSleeve) - _luma(torso)).abs(),
-        lessThan(10),
-        reason:
-            'sleeves should read as the same navy suit fabric, not a separate '
-            'purple arm material',
-      );
-      expect(
-        _luma(nearSleeve) - _luma(farSleeve),
-        inInclusiveRange(4, 14),
-        reason:
-            'near/far sleeve value can help depth, but not enough to look like '
-            'different fabric',
+        _luma(nearLeg.color),
+        lessThan(_luma(torso)),
+        reason: 'trousers stay a darker plane of the same suit fabric',
       );
     });
 
