@@ -17,6 +17,7 @@ import 'package:dancing_cats/features/character/model/beat_map.dart';
 import 'package:dancing_cats/features/character/runtime/character_painter.dart';
 import 'package:dancing_cats/features/character/runtime/character_renderer.dart';
 import 'package:dancing_cats/features/scenery/model/backdrop_grade.dart';
+import 'package:dancing_cats/features/scenery/model/backdrop_scene.dart';
 import 'package:dancing_cats/features/scenery/model/scope_histogram.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -137,33 +138,94 @@ double get kDanceAppExportWarmupSec =>
 const Size kDanceDemoWindowSize = Size(1600, 900);
 const double kDanceDemoAspectRatio = 16 / 9;
 
-/// The shipped blue-hour default grade — the de-baked daytime plate opens graded
-/// to dusk. Cool, deepened shadows (Lift toward teal) and pulled-down, gently
-/// warm highlights (Gain down + toward amber) give the classic blue-hour warm/
-/// cool split; a cool overall temperature, a touch more contrast and slightly
-/// lowered saturation seat the mood. The grade console adjusts from here.
-const GradeWheel _kBlueHourLift = GradeWheel(
-  balance: Offset(0.03, 0.22),
-  master: -0.26,
-);
-const GradeWheel _kBlueHourGamma = GradeWheel(
-  balance: Offset(0.04, 0.12),
-  master: -0.22,
-);
-const GradeWheel _kBlueHourGain = GradeWheel(
-  balance: Offset(0.10, -0.14),
-  master: -0.88,
-);
-// Match the OLD muted plate, not a vivid "blue-hour filter": heavy desaturation
-// so the sky is a muted navy-teal (not a saturated cyan), only a gentle cool
-// push (the target is muted, not electric blue), a hard gain pull-down PLUS a
-// negative lift (offset) to drag the bright daytime clouds down into dark
-// dusk-grey, and a near-neutral contrast so nothing snaps back bright.
-const double _kBlueHourSaturation = 0.46;
-const double _kBlueHourTemperature = -0.3;
-const double _kBlueHourTint = 0.05;
-const double _kBlueHourContrast = 1.02;
-const double _kBlueHourPivot = 0.44;
+/// The gradeable scene planes, in the order the console selector shows them and
+/// `_layerGrades()` feeds `BackdropScene.lagosLayeredWaterfront`.
+const List<String> kGradeLayerNames = ['Sky', 'City', 'Yacht', 'Deck', 'Palms'];
+
+/// Mutable per-layer grade state driven by the console wheels/sliders — one per
+/// gradeable plane. Each plate ships bright/full-range and is graded on its OWN
+/// curve to the blue-hour master, dialled live and independently in the console.
+class LayerGradeState {
+  LayerGradeState({
+    this.lift = const GradeWheel(),
+    this.gamma = const GradeWheel(),
+    this.gain = const GradeWheel(),
+    this.saturation = 1,
+    this.temperature = 0,
+    this.tint = 0,
+    this.contrast = 1,
+    this.pivot = 0.435,
+  });
+
+  GradeWheel lift;
+  GradeWheel gamma;
+  GradeWheel gain;
+  double saturation;
+  double temperature;
+  double tint;
+  double contrast;
+  double pivot;
+
+  BackdropGrade toGrade() => gradeFromWheels(
+    lift: lift,
+    gamma: gamma,
+    gain: gain,
+    saturation: saturation,
+    temperature: temperature,
+    tint: tint,
+    contrast: contrast,
+    pivot: pivot,
+  );
+}
+
+/// Per-layer starting grades fitted to the old `blue_hour_master.webp` (sampled
+/// region by region): the sky/city/water go deep and desaturated, the yacht
+/// cools and dims, the deck stays warm dark-wood, the palms drop to near
+/// silhouette. Dialled further in the console per layer.
+List<LayerGradeState> defaultLayerGrades() => [
+  // Sky + ocean: heavy desaturation to a muted navy, hard gain pull-down and a
+  // negative lift to drag the bright daytime clouds into dark dusk-grey.
+  LayerGradeState(
+    lift: const GradeWheel(balance: Offset(0.03, 0.22), master: -0.26),
+    gamma: const GradeWheel(balance: Offset(0.04, 0.12), master: -0.22),
+    gain: const GradeWheel(balance: Offset(0.10, -0.14), master: -0.88),
+    saturation: 0.46,
+    temperature: -0.3,
+    contrast: 1.02,
+    pivot: 0.44,
+  ),
+  // City + bridge: dark, cool, desaturated silhouette.
+  LayerGradeState(
+    gain: const GradeWheel(balance: Offset(0.04, 0.08), master: -0.7),
+    lift: const GradeWheel(master: -0.12),
+    saturation: 0.5,
+    temperature: -0.28,
+    contrast: 1.05,
+    pivot: 0.42,
+  ),
+  // Yacht: cool grey-blue, dimmed into the field.
+  LayerGradeState(
+    gain: const GradeWheel(balance: Offset(0, 0.1), master: -0.62),
+    saturation: 0.5,
+    temperature: -0.24,
+  ),
+  // Deck: warm dark wood, held against the cool field.
+  LayerGradeState(
+    gain: const GradeWheel(balance: Offset(0.16, -0.2), master: -0.72),
+    saturation: 0.82,
+    temperature: 0.1,
+    contrast: 1.05,
+    pivot: 0.42,
+  ),
+  // Palms: near-black silhouette framing.
+  LayerGradeState(
+    gain: const GradeWheel(master: -0.82),
+    lift: const GradeWheel(master: -0.1),
+    saturation: 0.55,
+    temperature: -0.15,
+    contrast: 1.06,
+  ),
+];
 
 // The beat-synced choreography derivation (which move, warped clock, beat,
 // camera context), its data types, the track-config constants and the side-file
@@ -259,20 +321,25 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
   // Mute forces the player volume to zero; the video keeps playing. The app has
   // no volume slider, so unmuting restores full (100) volume.
   bool _muted = false;
-  // Live colour-grade controls (Lift/Gamma/Gain wheels, white balance, contrast,
-  // saturation) driving the backdrop grade shader. The scene ships bright/full-
-  // range and OPENS graded to the blue-hour look ([_kBlueHour*] defaults); the
-  // console adjusts from here, Reset returns to this look, and Bypass shows the
-  // raw daytime plate.
-  GradeWheel _lift = _kBlueHourLift;
-  GradeWheel _gamma = _kBlueHourGamma;
-  GradeWheel _gain = _kBlueHourGain;
-  double _saturation = _kBlueHourSaturation;
-  double _temperature = _kBlueHourTemperature;
-  double _tint = _kBlueHourTint;
-  double _contrast = _kBlueHourContrast;
-  double _pivot = _kBlueHourPivot;
+  // Per-LAYER colour grade: each scene plane (Sky/City/Yacht/Deck/Palms) has its
+  // own wheel state, graded to the blue-hour master independently. The console's
+  // LAYER selector picks which one [_activeLayer] the wheels drive; Bypass shows
+  // the raw daytime plates; Reset neutralises the active layer.
+  final List<LayerGradeState> _layers = defaultLayerGrades();
+  int _activeLayer = 0;
   bool _bypass = false;
+
+  LayerGradeState get _active => _layers[_activeLayer];
+
+  LagosLayerGrades _layerGrades() => _bypass
+      ? kNeutralLagosGrades
+      : (
+          sky: _layers[0].toGrade(),
+          city: _layers[1].toGrade(),
+          yacht: _layers[2].toGrade(),
+          deck: _layers[3].toGrade(),
+          palms: _layers[4].toGrade(),
+        );
 
   // Image-derived RGB parade: a tiny snapshot of the graded stage, sampled a few
   // times a second, so the grade panel can show where the actual pixels land
@@ -716,23 +783,9 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
     // singing mouths. The whole composite is the generalized DanceStageView,
     // rendered identically by the live app and every offline renderer — there is
     // no second paint path to drift.
-    // Bypass shows the clean plate (the "before"): feed the stage an identity
-    // grade while the panel keeps the dialled look, so a colourist can A/B.
-    final grade = _bypass
-        ? BackdropGrade.identity
-        : gradeFromWheels(
-            lift: _lift,
-            gamma: _gamma,
-            gain: _gain,
-            saturation: _saturation,
-            temperature: _temperature,
-            tint: _tint,
-            contrast: _contrast,
-            pivot: _pivot,
-          );
     final stageView = DanceStageView(
       boundaryKey: _stageBoundaryKey,
-      grade: grade,
+      layerGrades: _layerGrades(),
       cast: _cast,
       renderer: _renderer,
       stage: stage,
@@ -798,38 +851,32 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
                   onSeekToSeconds: _seekToTime,
                 ),
                 ColorGradePanel(
-                  lift: _lift,
-                  gamma: _gamma,
-                  gain: _gain,
-                  saturation: _saturation,
-                  temperature: _temperature,
-                  tint: _tint,
-                  contrast: _contrast,
-                  pivot: _pivot,
+                  layerNames: kGradeLayerNames,
+                  activeLayer: _activeLayer,
+                  onSelectLayer: (i) => setState(() => _activeLayer = i),
+                  lift: _active.lift,
+                  gamma: _active.gamma,
+                  gain: _active.gain,
+                  saturation: _active.saturation,
+                  temperature: _active.temperature,
+                  tint: _active.tint,
+                  contrast: _active.contrast,
+                  pivot: _active.pivot,
                   bypass: _bypass,
                   parade: _scope,
-                  onLift: (w) => setState(() => _lift = w),
-                  onGamma: (w) => setState(() => _gamma = w),
-                  onGain: (w) => setState(() => _gain = w),
-                  onSaturation: (v) => setState(() => _saturation = v),
-                  onTemperature: (v) => setState(() => _temperature = v),
-                  onTint: (v) => setState(() => _tint = v),
-                  onContrast: (v) => setState(() => _contrast = v),
-                  onPivot: (v) => setState(() => _pivot = v),
+                  onLift: (w) => setState(() => _active.lift = w),
+                  onGamma: (w) => setState(() => _active.gamma = w),
+                  onGain: (w) => setState(() => _active.gain = w),
+                  onSaturation: (v) => setState(() => _active.saturation = v),
+                  onTemperature: (v) => setState(() => _active.temperature = v),
+                  onTint: (v) => setState(() => _active.tint = v),
+                  onContrast: (v) => setState(() => _active.contrast = v),
+                  onPivot: (v) => setState(() => _active.pivot = v),
                   onBypass: (v) => setState(() => _bypass = v),
-                  // Reset returns to the shipped blue-hour look (Bypass shows
-                  // the raw daytime plate).
-                  onReset: () => setState(() {
-                    _lift = _kBlueHourLift;
-                    _gamma = _kBlueHourGamma;
-                    _gain = _kBlueHourGain;
-                    _saturation = _kBlueHourSaturation;
-                    _temperature = _kBlueHourTemperature;
-                    _tint = _kBlueHourTint;
-                    _contrast = _kBlueHourContrast;
-                    _pivot = _kBlueHourPivot;
-                    _bypass = false;
-                  }),
+                  // Reset neutralises just the ACTIVE layer (Bypass shows every
+                  // plate raw).
+                  onReset: () =>
+                      setState(() => _layers[_activeLayer] = LayerGradeState()),
                 ),
               ],
             ),

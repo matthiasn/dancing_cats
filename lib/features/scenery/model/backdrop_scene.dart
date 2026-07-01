@@ -46,21 +46,28 @@ const double _depthYacht = 0.24; // the moored yacht — nearer than the city
 const double _depthDeck = 0.4; // the wooden deck the cast dances on
 const double _depthPalms = 0.56; // foreground palms / planters / lanterns
 
-/// The deck holds a WARM dark-wood look independent of the cool blue-hour field
-/// (graded on its own via [GradedLayer]) — like the old baked plate, where the
-/// lantern-lit boards stayed warm brown while the sky/city/water went cool. A
-/// hard multiply darkens the bright wood into deep brown; the warm slope (r > b)
-/// keeps it warm; a little offset holds it just off the crush floor.
-const BackdropGrade _kDeckGrade = BackdropGrade(
-  slope: (r: 0.4, g: 0.32, b: 0.26),
-  offset: (r: 0.008, g: 0.005, b: 0.004),
-  saturation: 0.82,
-  contrast: 1.05,
-);
-
 /// Lantern positions on the de-baked deck (normalized cover-fit art space),
 /// where the warm [DeckGlowLayer] pools spill onto the planks.
 const List<Offset> _kLagosLanterns = [Offset(0.055, 0.72), Offset(0.9, 0.75)];
+
+/// A colour grade per painted plane of the de-baked Lagos scene, so each is
+/// graded independently (see `BackdropScene.lagosLayeredWaterfront`).
+typedef LagosLayerGrades = ({
+  BackdropGrade sky,
+  BackdropGrade city,
+  BackdropGrade yacht,
+  BackdropGrade deck,
+  BackdropGrade palms,
+});
+
+/// All-neutral per-layer grades (the un-graded default).
+const LagosLayerGrades kNeutralLagosGrades = (
+  sky: BackdropGrade.identity,
+  city: BackdropGrade.identity,
+  yacht: BackdropGrade.identity,
+  deck: BackdropGrade.identity,
+  palms: BackdropGrade.identity,
+);
 
 /// An ordered, back-to-front stack of [BackdropLayer]s plus the bitmap assets
 /// the scene needs decoded. [layers] are painted behind the consumer's content;
@@ -193,29 +200,34 @@ class BackdropScene {
   /// (`SceneryAssets.lagos*`) each on its own true depth plane, back to front:
   /// the opaque sky+ocean base, the skyline+bridge and its lit city windows, the
   /// moored yacht and its warm cabin windows, the wooden deck the cast dances on,
-  /// and the framing palms/planters/lanterns nearest the eye. All are background
-  /// layers (behind the dancers); only the screen-space vignette sits in front.
+  /// and the framing palms/planters/lanterns nearest the eye.
   ///
-  /// The scene ships bright/full-range — the blue-hour look is applied at runtime
-  /// by the colour grade (`gradeFromWheels`, adjustable in the grade console), so
-  /// the plates keep their latitude instead of baking dusk into the art.
-  factory BackdropScene.lagosLayeredWaterfront() {
-    return const BackdropScene(
-      // Depth-ordered stack. The lit windows are wrapped in [EmissiveLayer] so
-      // the grade painter draws them OUT of the grade (warm against the cool
-      // field) yet in stack order — so the nearer yacht, drawn AFTER the city
-      // windows, correctly occludes the city-building lights behind it instead
-      // of them bleeding onto the hull. Each window field has a soft blurred twin
-      // beneath the crisp one for halation/bloom.
+  /// Each of the FIVE painted planes ([sky], [city], [yacht], [deck], [palms]) is
+  /// graded on its OWN curve, so the blue-hour look is dialled PER LAYER in the
+  /// console (the split the old baked plate had — warm deck against a cool sky —
+  /// that one global grade can't express). The warm sunset band, lit windows and
+  /// lantern pool are fixed practical effects held out of the grade; only the
+  /// screen-space vignette sits in front of the dancers.
+  factory BackdropScene.lagosLayeredWaterfront({
+    BackdropGrade sky = BackdropGrade.identity,
+    BackdropGrade city = BackdropGrade.identity,
+    BackdropGrade yacht = BackdropGrade.identity,
+    BackdropGrade deck = BackdropGrade.identity,
+    BackdropGrade palms = BackdropGrade.identity,
+  }) {
+    return BackdropScene(
       layers: [
-        ParallaxLayer(
-          ImageLayer(SceneryAssets.lagosSkyOcean),
-          depth: _depthSkyOcean,
+        GradedLayer(
+          const ParallaxLayer(
+            ImageLayer(SceneryAssets.lagosSkyOcean),
+            depth: _depthSkyOcean,
+          ),
+          grade: sky,
         ),
         // Warm sunset-glow band on the horizon (the sun-just-set residual),
         // held out of the grade so it stays warm, and drawn BEFORE the city so
         // the skyline silhouettes against it — the signature of the old plate.
-        EmissiveLayer(
+        const EmissiveLayer(
           ParallaxLayer(
             AtmosphericHazeLayer(
               waterline: 0.43,
@@ -227,11 +239,14 @@ class BackdropScene {
             depth: _depthCity,
           ),
         ),
-        ParallaxLayer(
-          ImageLayer(SceneryAssets.lagosCityBridge),
-          depth: _depthCity,
+        GradedLayer(
+          const ParallaxLayer(
+            ImageLayer(SceneryAssets.lagosCityBridge),
+            depth: _depthCity,
+          ),
+          grade: city,
         ),
-        EmissiveLayer(
+        const EmissiveLayer(
           ParallaxLayer(
             ImageLayer(
               SceneryAssets.lagosCityWindows,
@@ -243,7 +258,7 @@ class BackdropScene {
             depth: _depthCity,
           ),
         ),
-        EmissiveLayer(
+        const EmissiveLayer(
           ParallaxLayer(
             ImageLayer(
               SceneryAssets.lagosCityWindows,
@@ -255,14 +270,16 @@ class BackdropScene {
           ),
         ),
         // The yacht rides its own nearer plane, drawn AFTER the city windows so
-        // it occludes them. A cool, dimmed modulate pulls the baked-bright white
-        // hull down into the dusk field so it stops being a luminance magnet.
-        ParallaxLayer(
-          ImageLayer(SceneryAssets.lagosYacht, modulate: Color(0xFF6E7688)),
-          depth: _depthYacht,
+        // it occludes them (no bleed onto the hull).
+        GradedLayer(
+          const ParallaxLayer(
+            ImageLayer(SceneryAssets.lagosYacht),
+            depth: _depthYacht,
+          ),
+          grade: yacht,
         ),
         // The yacht's own warm cabin windows glow on its hull.
-        EmissiveLayer(
+        const EmissiveLayer(
           ParallaxLayer(
             ImageLayer(
               SceneryAssets.lagosYachtWindows,
@@ -274,7 +291,7 @@ class BackdropScene {
             depth: _depthYacht,
           ),
         ),
-        EmissiveLayer(
+        const EmissiveLayer(
           ParallaxLayer(
             ImageLayer(
               SceneryAssets.lagosYachtWindows,
@@ -284,12 +301,9 @@ class BackdropScene {
             depth: _depthYacht,
           ),
         ),
-        // Aerial-perspective haze / dusk smog: a cool veil rising off the art
-        // horizon that dissolves the distant city + yacht bases into twilight air
-        // so the midground recedes behind the sharp, un-hazed deck + trio — the
-        // atmosphere the flat de-baked plates otherwise lack. Sits over the
-        // structures/lights but under the foreground deck.
-        ParallaxLayer(
+        // Cool aerial-perspective haze dissolving the distant city/yacht bases
+        // into twilight air (fixed effect, drawn ungraded).
+        const ParallaxLayer(
           AtmosphericHazeLayer(
             waterline: 0.44,
             strength: 0.24,
@@ -299,20 +313,16 @@ class BackdropScene {
           ),
           depth: _depthCity,
         ),
-        // The deck the cast stands on — graded on its OWN warm curve so the
-        // lantern-lit wood stays deep warm brown against the cool field (the old
-        // blue-hour plate did exactly this).
         GradedLayer(
-          ParallaxLayer(
+          const ParallaxLayer(
             ImageLayer(SceneryAssets.lagosDeck),
             depth: _depthDeck,
           ),
-          grade: _kDeckGrade,
+          grade: deck,
         ),
         // Warm lantern light pooling on the deck planks (out of the grade) so the
-        // nearest practical is the frame's warmest anchor and throws real spill —
-        // instead of the boards reading as a cool, dead void.
-        EmissiveLayer(
+        // nearest practical is the frame's warmest anchor and throws real spill.
+        const EmissiveLayer(
           ParallaxLayer(
             DeckGlowLayer(
               lanterns: _kLagosLanterns,
@@ -324,11 +334,16 @@ class BackdropScene {
             depth: _depthDeck,
           ),
         ),
-        // The framing palms nearest the eye.
-        ParallaxLayer(ImageLayer(SceneryAssets.lagosPalms), depth: _depthPalms),
+        GradedLayer(
+          const ParallaxLayer(
+            ImageLayer(SceneryAssets.lagosPalms),
+            depth: _depthPalms,
+          ),
+          grade: palms,
+        ),
       ],
-      foregroundLayers: [VignetteLayer(dim: 0.12)],
-      imageAssets: [
+      foregroundLayers: const [VignetteLayer(dim: 0.12)],
+      imageAssets: const [
         SceneryAssets.lagosSkyOcean,
         SceneryAssets.lagosCityBridge,
         SceneryAssets.lagosCityWindows,

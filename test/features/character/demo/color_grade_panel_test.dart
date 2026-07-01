@@ -10,6 +10,7 @@ import '../../../widget_test_utils.dart';
 
 /// Records the latest value pushed through each callback.
 class _Rec {
+  int? selectedLayer;
   GradeWheel? lift;
   GradeWheel? gamma;
   GradeWheel? gain;
@@ -28,6 +29,8 @@ ScopeHistogram _clippedParade() =>
 
 Future<_Rec> _pump(
   WidgetTester tester, {
+  List<String> layerNames = const ['Sky', 'City', 'Yacht', 'Deck', 'Palms'],
+  int activeLayer = 0,
   GradeWheel lift = const GradeWheel(),
   GradeWheel gamma = const GradeWheel(),
   GradeWheel gain = const GradeWheel(),
@@ -50,6 +53,9 @@ Future<_Rec> _pump(
     makeTestableWidgetNoScroll(
       Scaffold(
         body: ColorGradePanel(
+          layerNames: layerNames,
+          activeLayer: activeLayer,
+          onSelectLayer: (i) => rec.selectedLayer = i,
           lift: lift,
           gamma: gamma,
           gain: gain,
@@ -148,6 +154,20 @@ void main() {
     ) async {
       await _pump(tester, parade: _clippedParade(), bypass: true);
       expect(find.byType(ColorGradePanel), findsOneWidget);
+    });
+
+    testWidgets('renders a layer chip per gradeable plane', (tester) async {
+      await _pump(tester);
+      for (final name in ['Sky', 'City', 'Yacht', 'Deck', 'Palms']) {
+        expect(find.byKey(Key('gradeLayer-$name')), findsOneWidget);
+      }
+    });
+
+    testWidgets('tapping a layer chip selects that layer', (tester) async {
+      final rec = await _pump(tester);
+      await tester.tap(find.byKey(const Key('gradeLayer-Deck')));
+      await tester.pump();
+      expect(rec.selectedLayer, 3); // Sky, City, Yacht, Deck -> index 3
     });
 
     testWidgets('dragging a wheel reports a colour balance', (tester) async {

@@ -84,12 +84,12 @@ void paintGradedBackdrop({
       batch.clear();
       layer.paint(canvas, ctx);
     } else if (layer is GradedLayer) {
-      // Flush the global-graded batch, then grade this element on its own —
-      // except when the global grade is neutral (A/B bypass), where the raw
-      // element is shown so the whole plate reads ungraded.
+      // Flush the global-graded batch, then grade this element on its OWN curve.
+      // (A neutral per-layer grade paints it raw, so an A/B bypass is just every
+      // layer set to identity.)
       gradeAndDraw(batch, grade);
       batch.clear();
-      gradeAndDraw([layer.child], grade.isNeutral ? grade : layer.grade);
+      gradeAndDraw([layer.child], layer.grade);
     } else {
       batch.add(layer);
     }

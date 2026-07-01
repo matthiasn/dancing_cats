@@ -19,6 +19,9 @@ enum GradeRole { lift, gamma, gain }
 /// dialling the blue-hour look, not a product surface.
 class ColorGradePanel extends StatelessWidget {
   const ColorGradePanel({
+    required this.layerNames,
+    required this.activeLayer,
+    required this.onSelectLayer,
     required this.lift,
     required this.gamma,
     required this.gain,
@@ -41,6 +44,13 @@ class ColorGradePanel extends StatelessWidget {
     required this.onReset,
     super.key,
   });
+
+  /// The gradeable scene layers (e.g. Sky, City, Yacht, Deck, Palms). The wheels,
+  /// sliders and scopes below drive whichever one is [activeLayer] — so each
+  /// plane is graded independently.
+  final List<String> layerNames;
+  final int activeLayer;
+  final ValueChanged<int> onSelectLayer;
 
   final GradeWheel lift;
   final GradeWheel gamma;
@@ -90,11 +100,20 @@ class ColorGradePanel extends StatelessWidget {
           border: Border(top: BorderSide(color: _edge)),
         ),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 10, 24, 12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
+          padding: const EdgeInsets.fromLTRB(24, 8, 24, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
+              _LayerSelector(
+                names: layerNames,
+                active: activeLayer,
+                onSelect: onSelectLayer,
+              ),
+              const SizedBox(height: 8),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
               _PanelHeader(
                 bypass: bypass,
                 onBypass: onBypass,
@@ -190,8 +209,95 @@ class ColorGradePanel extends StatelessWidget {
                 bypass: bypass,
               ),
               const SizedBox(width: 18),
-              _ParadeScope(histogram: parade, bypass: bypass),
+                  _ParadeScope(histogram: parade, bypass: bypass),
+                ],
+              ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Row of selectable layer chips — the wheels below grade whichever one is
+/// active, so each scene plane (Sky / City / Yacht / Deck / Palms) is graded on
+/// its own curve.
+class _LayerSelector extends StatelessWidget {
+  const _LayerSelector({
+    required this.names,
+    required this.active,
+    required this.onSelect,
+  });
+
+  final List<String> names;
+  final int active;
+  final ValueChanged<int> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Text(
+          'LAYER',
+          style: TextStyle(
+            color: ColorGradePanel._textLow,
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1.5,
+          ),
+        ),
+        const SizedBox(width: 12),
+        for (var i = 0; i < names.length; i++) ...[
+          if (i > 0) const SizedBox(width: 6),
+          _LayerChip(
+            label: names[i],
+            selected: i == active,
+            onTap: () => onSelect(i),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _LayerChip extends StatelessWidget {
+  const _LayerChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      key: Key('gradeLayer-$label'),
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+        decoration: BoxDecoration(
+          color: selected
+              ? ColorGradePanel._accent.withValues(alpha: 0.9)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(5),
+          border: Border.all(
+            color: selected ? ColorGradePanel._accent : ColorGradePanel._edge,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected
+                ? const Color(0xFF0F1317)
+                : ColorGradePanel._textLow,
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),

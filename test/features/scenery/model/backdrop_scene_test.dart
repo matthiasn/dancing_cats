@@ -15,6 +15,7 @@ import 'package:dancing_cats/features/scenery/layers/ocean_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/parallax_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/sky_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/vignette_layer.dart';
+import 'package:dancing_cats/features/scenery/model/backdrop_grade.dart';
 import 'package:dancing_cats/features/scenery/model/backdrop_scene.dart';
 import 'package:dancing_cats/features/scenery/model/scenery_assets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -227,11 +228,34 @@ void main() {
       ]);
     });
 
-    test('the yacht hull is cooled/dimmed so it stops clipping white', () {
-      final yacht = normalImages().firstWhere(
-        (l) => l.assetKey == SceneryAssets.lagosYacht,
+    test('each painted plane is graded on its own curve (GradedLayer)', () {
+      final scene = BackdropScene.lagosLayeredWaterfront();
+      for (final key in [
+        SceneryAssets.lagosSkyOcean,
+        SceneryAssets.lagosCityBridge,
+        SceneryAssets.lagosYacht,
+        SceneryAssets.lagosDeck,
+        SceneryAssets.lagosPalms,
+      ]) {
+        final layer = scene.layers.firstWhere((l) => imageOf(l)?.assetKey == key);
+        expect(layer, isA<GradedLayer>());
+      }
+    });
+
+    test('the per-layer grades reach their matching planes', () {
+      const skyGrade = BackdropGrade(saturation: 0.4);
+      const deckGrade = BackdropGrade(slope: (r: 0.6, g: 0.5, b: 0.4));
+      final scene = BackdropScene.lagosLayeredWaterfront(
+        sky: skyGrade,
+        deck: deckGrade,
       );
-      expect(yacht.modulate, isNotNull);
+      GradedLayer gradedFor(String key) =>
+          scene.layers.firstWhere((l) => imageOf(l)?.assetKey == key)
+              as GradedLayer;
+      expect(gradedFor(SceneryAssets.lagosSkyOcean).grade, skyGrade);
+      expect(gradedFor(SceneryAssets.lagosDeck).grade, deckGrade);
+      // Un-specified planes stay neutral.
+      expect(gradedFor(SceneryAssets.lagosYacht).grade, BackdropGrade.identity);
     });
 
     test('lit windows are emissive: held out of the grade, added, and warm', () {
@@ -272,18 +296,6 @@ void main() {
       );
       expect(lastCityLight, greaterThanOrEqualTo(0));
       expect(yachtIndex, greaterThan(lastCityLight));
-    });
-
-    test('the deck is graded on its own WARM curve (independent of the field)', () {
-      final deckLayer = BackdropScene.lagosLayeredWaterfront().layers.firstWhere(
-        (l) => imageOf(l)?.assetKey == SceneryAssets.lagosDeck,
-      );
-      // Per-layer graded, and its grade is warm (slope red > blue) so the wood
-      // stays warm brown against the cool blue-hour field.
-      expect(deckLayer, isA<GradedLayer>());
-      final grade = (deckLayer as GradedLayer).grade;
-      expect(grade.slope.r, greaterThan(grade.slope.b));
-      expect(grade.isNeutral, isFalse);
     });
 
     test('warm lantern light pools on the deck as an emissive practical', () {
