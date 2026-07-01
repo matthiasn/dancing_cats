@@ -154,5 +154,19 @@ void main() {
         expect(_at(bytes, _w ~/ 2, (0.515 * _h).round()).b, 0);
       });
     });
+
+    testWidgets('an explicit warm colour makes a sunset band (red over blue)', (
+      tester,
+    ) async {
+      await tester.runAsync(() async {
+        // A warm colour override bypasses the cool palette mix entirely, so the
+        // band reads warm (red > blue) — the sun-just-set horizon glow.
+        final bytes = await _renderOverBlack(
+          const AtmosphericHazeLayer(color: Color(0xFFCE8A4E)),
+        );
+        final c = _at(bytes, _w ~/ 2, _waterRow);
+        expect(c.r, greaterThan(c.b));
+      });
+    });
   });
 }

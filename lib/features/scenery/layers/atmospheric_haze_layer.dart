@@ -36,7 +36,13 @@ class AtmosphericHazeLayer implements BackdropLayer {
     this.skyReach = 0.18,
     this.waterReach = 0.04,
     this.waterline,
+    this.color,
   });
+
+  /// Overrides the palette-derived cool veil colour. Pass a warm tone to make a
+  /// low sunset-glow band on the horizon (the sun-just-set residual behind the
+  /// city) instead of the cool aerial haze. Null keeps the cool veil.
+  final Color? color;
 
   /// Normalized art-space y of the horizon the band pins to. Null uses the
   /// [SkylineManifest]'s waterline (the baked-plate scene); the de-baked scene,
@@ -85,10 +91,11 @@ class AtmosphericHazeLayer implements BackdropLayer {
     final botY = waterY + waterReach * cover.height;
 
     final cool = Color.lerp(palette.hazeSmog, palette.skyHorizonCool, coolMix)!;
-    // Lift the cool smog toward the pale cloud-top so the band reads as a
-    // bright fog line (aerial perspective dissolves the far bases), not a dark
-    // veil that just muddies the midground.
-    final haze = Color.lerp(cool, palette.cloudLit, paleLift.clamp(0.0, 1.0))!;
+    // A supplied [color] is used directly (e.g. a warm sunset band); otherwise
+    // lift the cool smog toward the pale cloud-top so the band reads as a bright
+    // fog line (aerial perspective) rather than a dark muddying veil.
+    final haze =
+        color ?? Color.lerp(cool, palette.cloudLit, paleLift.clamp(0.0, 1.0))!;
     final a = strength.clamp(0.0, 1.0);
     // Peak at the waterline; transparent at both reaches. Stops are placed by
     // where the waterline falls between top/bot so the peak stays pinned on the

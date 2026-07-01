@@ -187,12 +187,34 @@ void main() {
       }
     });
 
+    List<AtmosphericHazeLayer> hazeLayers() => [
+      for (final l in BackdropScene.lagosLayeredWaterfront().layers)
+        if (parallaxOf(l)?.child is AtmosphericHazeLayer)
+          parallaxOf(l)!.child as AtmosphericHazeLayer,
+    ];
+
     test('a dusk haze veils the distant structures (mist / smog)', () {
-      final hasHaze = BackdropScene.lagosLayeredWaterfront().layers.any((l) {
-        final inner = l is EmissiveLayer ? l.child : l;
-        return inner is ParallaxLayer && inner.child is AtmosphericHazeLayer;
-      });
-      expect(hasHaze, isTrue);
+      // A cool aerial haze (no colour override) plus a warm sunset band (a
+      // colour override, held out of the grade so it stays warm).
+      final hazes = hazeLayers();
+      expect(hazes.any((h) => h.color == null), isTrue); // cool aerial haze
+      final warm = hazes.firstWhere((h) => h.color != null);
+      expect(warm.color!.r, greaterThan(warm.color!.b)); // warm sunset glow
+    });
+
+    test('the warm sunset band is emissive and behind the city', () {
+      final layers = BackdropScene.lagosLayeredWaterfront().layers;
+      final bandIndex = layers.indexWhere(
+        (l) =>
+            l is EmissiveLayer &&
+            (parallaxOf(l)?.child as AtmosphericHazeLayer?)?.color != null,
+      );
+      final cityIndex = layers.indexWhere(
+        (l) => imageOf(l)?.assetKey == SceneryAssets.lagosCityBridge,
+      );
+      expect(bandIndex, greaterThanOrEqualTo(0));
+      // Drawn before the city so the skyline silhouettes against the glow.
+      expect(bandIndex, lessThan(cityIndex));
     });
 
     test('composites base -> city -> yacht -> deck -> palms, front to back', () {

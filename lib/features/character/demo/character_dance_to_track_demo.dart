@@ -143,26 +143,27 @@ const double kDanceDemoAspectRatio = 16 / 9;
 /// cool split; a cool overall temperature, a touch more contrast and slightly
 /// lowered saturation seat the mood. The grade console adjusts from here.
 const GradeWheel _kBlueHourLift = GradeWheel(
-  balance: Offset(0.03, 0.30),
-  master: -0.03,
-);
-const GradeWheel _kBlueHourGamma = GradeWheel(
-  balance: Offset(0.05, 0.17),
+  balance: Offset(0.03, 0.22),
   master: -0.26,
 );
-const GradeWheel _kBlueHourGain = GradeWheel(
-  balance: Offset(0.16, -0.22),
-  master: -0.9,
+const GradeWheel _kBlueHourGamma = GradeWheel(
+  balance: Offset(0.04, 0.12),
+  master: -0.22,
 );
-const double _kBlueHourSaturation = 0.74;
-const double _kBlueHourTemperature = -0.54;
-const double _kBlueHourTint = 0.06;
-// Low-key dusk: a hard gain pull-down deepens the sky and water, a modest above-
-// neutral contrast about a low pivot deepens the mids/silhouettes (rich blue, not
-// bright daytime blue), while the shadows stay just off the floor with a cool
-// teal cast so it reads as moody dusk rather than crushed night.
-const double _kBlueHourContrast = 1.12;
-const double _kBlueHourPivot = 0.4;
+const GradeWheel _kBlueHourGain = GradeWheel(
+  balance: Offset(0.10, -0.14),
+  master: -0.88,
+);
+// Match the OLD muted plate, not a vivid "blue-hour filter": heavy desaturation
+// so the sky is a muted navy-teal (not a saturated cyan), only a gentle cool
+// push (the target is muted, not electric blue), a hard gain pull-down PLUS a
+// negative lift (offset) to drag the bright daytime clouds down into dark
+// dusk-grey, and a near-neutral contrast so nothing snaps back bright.
+const double _kBlueHourSaturation = 0.46;
+const double _kBlueHourTemperature = -0.3;
+const double _kBlueHourTint = 0.05;
+const double _kBlueHourContrast = 1.02;
+const double _kBlueHourPivot = 0.44;
 
 // The beat-synced choreography derivation (which move, warped clock, beat,
 // camera context), its data types, the track-config constants and the side-file

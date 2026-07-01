@@ -212,6 +212,21 @@ class BackdropScene {
           ImageLayer(SceneryAssets.lagosSkyOcean),
           depth: _depthSkyOcean,
         ),
+        // Warm sunset-glow band on the horizon (the sun-just-set residual),
+        // held out of the grade so it stays warm, and drawn BEFORE the city so
+        // the skyline silhouettes against it — the signature of the old plate.
+        EmissiveLayer(
+          ParallaxLayer(
+            AtmosphericHazeLayer(
+              waterline: 0.43,
+              strength: 0.6,
+              color: Color(0xFFCE8A4E),
+              skyReach: 0.1,
+              waterReach: 0.02,
+            ),
+            depth: _depthCity,
+          ),
+        ),
         ParallaxLayer(
           ImageLayer(SceneryAssets.lagosCityBridge),
           depth: _depthCity,
@@ -221,9 +236,9 @@ class BackdropScene {
             ImageLayer(
               SceneryAssets.lagosCityWindows,
               blend: BlendMode.plus,
-              modulate: Color(0xFF97763F),
+              modulate: Color(0xFF6F5730),
               blurSigma: 11,
-              opacity: 0.82,
+              opacity: 0.55,
             ),
             depth: _depthCity,
           ),
@@ -233,7 +248,8 @@ class BackdropScene {
             ImageLayer(
               SceneryAssets.lagosCityWindows,
               blend: BlendMode.plus,
-              modulate: Color(0xFFFFD08A),
+              modulate: Color(0xFFBC8C4C),
+              opacity: 0.6,
             ),
             depth: _depthCity,
           ),
@@ -276,10 +292,10 @@ class BackdropScene {
         ParallaxLayer(
           AtmosphericHazeLayer(
             waterline: 0.44,
-            strength: 0.52,
-            skyReach: 0.32,
-            waterReach: 0.06,
-            paleLift: 0.32,
+            strength: 0.24,
+            skyReach: 0.2,
+            waterReach: 0.03,
+            paleLift: 0.28,
           ),
           depth: _depthCity,
         ),
