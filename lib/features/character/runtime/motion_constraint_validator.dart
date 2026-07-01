@@ -42,6 +42,7 @@ class MotionConstraintValidator {
       contactSamplesPerSpan,
     );
     final reaches = _sampleIkReach(clip, profile, ikSamples);
+    final targetResiduals = _sampleIkTargetResiduals(clip, profile, ikSamples);
     final limbLanes = _sampleLimbLanes(clip, profile, ikSamples);
 
     return MotionConstraintReport(
@@ -50,6 +51,7 @@ class MotionConstraintValidator {
       contactDrifts: contacts,
       supportBalances: supports,
       ikReaches: reaches,
+      ikTargetResiduals: targetResiduals,
       limbLanes: limbLanes,
     );
   }
@@ -200,6 +202,51 @@ class MotionConstraintValidator {
     return checks;
   }
 
+  List<MotionIkTargetResidual> _sampleIkTargetResiduals(
+    Clip clip,
+    MotionConstraintProfile profile,
+    int samples,
+  ) {
+    if (clip.limbTargets.isEmpty) return const [];
+    final checks = <MotionIkTargetResidual>[];
+    for (var i = 0; i < samples; i++) {
+      final phase = i / samples;
+      final timeSeconds = _phaseTime(clip, phase);
+      final frame = scene.frameAt(clip: clip, timeSeconds: timeSeconds);
+      for (final target in clip.limbTargets) {
+        final sample = target.channel.sample(phase);
+        if (sample.weight < profile.minIkWeight) continue;
+        final endWorld = frame.world[target.endBoneId];
+        final anchorWorld = frame.world[target.anchorBoneId];
+        if (endWorld == null || anchorWorld == null) continue;
+
+        final endPoint = endWorld.origin;
+        final targetPoint = anchorWorld.transformPoint(sample.x, sample.y);
+        final dx = endPoint.x - targetPoint.x;
+        final dy = endPoint.y - targetPoint.y;
+        checks.add(
+          MotionIkTargetResidual(
+            clipName: clip.name,
+            upperBoneId: target.upperBoneId,
+            lowerBoneId: target.lowerBoneId,
+            endBoneId: target.endBoneId,
+            anchorBoneId: target.anchorBoneId,
+            phase: phase,
+            weight: sample.weight,
+            endX: endPoint.x,
+            endY: endPoint.y,
+            targetX: targetPoint.x,
+            targetY: targetPoint.y,
+            dx: dx,
+            dy: dy,
+            distance: _distance(dx, dy),
+          ),
+        );
+      }
+    }
+    return checks;
+  }
+
   List<MotionIkReach> _sampleIkReach(
     Clip clip,
     MotionConstraintProfile profile,
@@ -302,6 +349,7 @@ class MotionConstraintProfile {
     this.maxStableVerticalDrift = 10,
     this.maxSupportOffset = 58,
     this.maxIkReachRatio = 0.96,
+    this.maxIkTargetResidual = 18,
     this.maxLimbLaneReversal = 5,
     this.minSameSideTargetX = 48,
     this.minIkWeight = 0.05,
@@ -319,6 +367,10 @@ class MotionConstraintProfile {
        ),
        assert(maxSupportOffset >= 0, 'max support offset must be non-negative'),
        assert(maxIkReachRatio > 0, 'max IK reach ratio must be positive'),
+       assert(
+         maxIkTargetResidual >= 0,
+         'max IK target residual must be non-negative',
+       ),
        assert(maxLimbLaneReversal >= 0, 'limb reversal must be non-negative'),
        assert(
          minSameSideTargetX >= 0,
@@ -347,6 +399,13 @@ class MotionConstraintProfile {
   /// reading stick arms and locked legs even before the target becomes impossible.
   final double maxIkReachRatio;
 
+  /// Maximum solved endpoint distance from its high-weight authored IK target.
+  ///
+  /// This measures the rendered frame after all pose passes, not just whether
+  /// the target was theoretically reachable. Large residuals mean the arm/leg is
+  /// visually detached from the choreographic control point.
+  final double maxIkTargetResidual;
+
   /// Maximum allowed same-side lane reversal in world pixels.
   ///
   /// Larger values mean either the elbow has crossed inside its shoulder or the
@@ -368,6 +427,7 @@ class MotionConstraintReport {
     required this.contactDrifts,
     required this.supportBalances,
     required this.ikReaches,
+    required this.ikTargetResiduals,
     required this.limbLanes,
   });
 
@@ -376,6 +436,7 @@ class MotionConstraintReport {
   final List<MotionContactDrift> contactDrifts;
   final List<MotionSupportBalance> supportBalances;
   final List<MotionIkReach> ikReaches;
+  final List<MotionIkTargetResidual> ikTargetResiduals;
   final List<MotionLimbLane> limbLanes;
 
   MotionContactDrift? get worstContactDrift =>
@@ -386,6 +447,9 @@ class MotionConstraintReport {
 
   MotionIkReach? get worstIkReach =>
       _maxOrNull(ikReaches, (check) => check.reachRatio);
+
+  MotionIkTargetResidual? get worstIkTargetResidual =>
+      _maxOrNull(ikTargetResiduals, (check) => check.distance);
 
   MotionLimbLane? get worstLimbLane =>
       _maxOrNull(limbLanes, (check) => check.reversalDistance);
@@ -440,6 +504,23 @@ class MotionConstraintReport {
             message:
                 '${check.endBoneId} target uses '
                 '${check.reachRatio.toStringAsFixed(2)}x limb reach',
+          ),
+        );
+      }
+    }
+    for (final check in ikTargetResiduals) {
+      final severity = check.distance - profile.maxIkTargetResidual;
+      if (severity > 0) {
+        result.add(
+          MotionConstraintViolation(
+            category: MotionConstraintCategory.ikTargetResidual,
+            clipName: clipName,
+            boneId: check.endBoneId,
+            phase: check.phase,
+            severity: severity,
+            message:
+                '${check.endBoneId} resolves '
+                '${check.distance.toStringAsFixed(1)} px from its IK target',
           ),
         );
       }
@@ -544,6 +625,40 @@ class MotionIkReach {
   final double reachRatio;
 }
 
+class MotionIkTargetResidual {
+  const MotionIkTargetResidual({
+    required this.clipName,
+    required this.upperBoneId,
+    required this.lowerBoneId,
+    required this.endBoneId,
+    required this.anchorBoneId,
+    required this.phase,
+    required this.weight,
+    required this.endX,
+    required this.endY,
+    required this.targetX,
+    required this.targetY,
+    required this.dx,
+    required this.dy,
+    required this.distance,
+  });
+
+  final String clipName;
+  final String upperBoneId;
+  final String lowerBoneId;
+  final String endBoneId;
+  final String anchorBoneId;
+  final double phase;
+  final double weight;
+  final double endX;
+  final double endY;
+  final double targetX;
+  final double targetY;
+  final double dx;
+  final double dy;
+  final double distance;
+}
+
 class MotionLimbLane {
   const MotionLimbLane({
     required this.clipName,
@@ -582,6 +697,7 @@ enum MotionConstraintCategory {
   footContact,
   supportBalance,
   ikReach,
+  ikTargetResidual,
   limbLane,
 }
 

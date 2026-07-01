@@ -345,6 +345,117 @@ class TemporalMotionReport {
     return result;
   }
 
+  /// Finds sharp path corners where a bone abruptly changes travel direction.
+  ///
+  /// Velocity spikes catch speed discontinuities; this catches a different
+  /// robotic look: two adjacent segments with enough travel, a large turn angle,
+  /// and an arced path much longer than the direct chord. Those hard elbows in a
+  /// hand path read like a keyed puppet even when the speed is not extreme.
+  List<TemporalMotionPathCorner> pathCorners({
+    double minTurnDegrees = 95,
+    double minAcceleration = 8,
+    double minArcRatio = 1.25,
+    double minSegmentDistance = 1,
+  }) {
+    if (minTurnDegrees < 0 || minTurnDegrees > 180) {
+      throw ArgumentError.value(
+        minTurnDegrees,
+        'minTurnDegrees',
+        'must be in 0..180',
+      );
+    }
+    if (minAcceleration < 0) {
+      throw ArgumentError.value(
+        minAcceleration,
+        'minAcceleration',
+        'must be non-negative',
+      );
+    }
+    if (minArcRatio < 1) {
+      throw ArgumentError.value(
+        minArcRatio,
+        'minArcRatio',
+        'must be at least 1',
+      );
+    }
+    if (minSegmentDistance < 0) {
+      throw ArgumentError.value(
+        minSegmentDistance,
+        'minSegmentDistance',
+        'must be non-negative',
+      );
+    }
+
+    final byBone = <String, List<TemporalMotionSegment>>{};
+    for (final segment in segments) {
+      byBone.putIfAbsent(segment.boneId, () => []).add(segment);
+    }
+
+    final result = <TemporalMotionPathCorner>[];
+    for (final entry in byBone.entries) {
+      final boneSegments = [...entry.value]
+        ..sort((a, b) => a.fromFrame.compareTo(b.fromFrame));
+      for (var i = 1; i < boneSegments.length; i++) {
+        final before = boneSegments[i - 1];
+        final after = boneSegments[i];
+        if (before.distance < minSegmentDistance ||
+            after.distance < minSegmentDistance) {
+          continue;
+        }
+
+        final dot = before.dx * after.dx + before.dy * after.dy;
+        final denom = before.distance * after.distance;
+        if (denom <= 1e-9) continue;
+        final cosTurn = (dot / denom).clamp(-1.0, 1.0);
+        final turnRadians = math.acos(cosTurn);
+        final turnDegrees = turnRadians * 180 / math.pi;
+        if (turnDegrees < minTurnDegrees) continue;
+
+        final ax = after.dx - before.dx;
+        final ay = after.dy - before.dy;
+        final acceleration = math.sqrt(ax * ax + ay * ay);
+        if (acceleration < minAcceleration) continue;
+
+        final chordDx = before.dx + after.dx;
+        final chordDy = before.dy + after.dy;
+        final chordDistance = math.sqrt(chordDx * chordDx + chordDy * chordDy);
+        final arcDistance = before.distance + after.distance;
+        final arcRatio = chordDistance <= 1e-9
+            ? double.infinity
+            : arcDistance / chordDistance;
+        if (arcRatio < minArcRatio) continue;
+
+        result.add(
+          TemporalMotionPathCorner(
+            boneId: entry.key,
+            fromFrame: before.fromFrame,
+            throughFrame: before.toFrame,
+            toFrame: after.toFrame,
+            fromPhase: before.fromPhase,
+            throughPhase: before.toPhase,
+            toPhase: after.toPhase,
+            beforeDistance: before.distance,
+            afterDistance: after.distance,
+            chordDistance: chordDistance,
+            arcDistance: arcDistance,
+            arcRatio: arcRatio,
+            turnDegrees: turnDegrees,
+            accelerationMagnitude: acceleration,
+          ),
+        );
+      }
+    }
+
+    result.sort((a, b) {
+      final byAcceleration = b.accelerationMagnitude.compareTo(
+        a.accelerationMagnitude,
+      );
+      if (byAcceleration != 0) return byAcceleration;
+      return b.turnDegrees.compareTo(a.turnDegrees);
+    });
+    return result;
+  }
+
   static T _maxBy<T>(
     List<T> values,
     double Function(T value) score,
@@ -505,5 +616,39 @@ class TemporalMotionVelocitySpike {
   final double afterDistance;
   final double speedDelta;
   final double speedRatio;
+  final double accelerationMagnitude;
+}
+
+class TemporalMotionPathCorner {
+  const TemporalMotionPathCorner({
+    required this.boneId,
+    required this.fromFrame,
+    required this.throughFrame,
+    required this.toFrame,
+    required this.fromPhase,
+    required this.throughPhase,
+    required this.toPhase,
+    required this.beforeDistance,
+    required this.afterDistance,
+    required this.chordDistance,
+    required this.arcDistance,
+    required this.arcRatio,
+    required this.turnDegrees,
+    required this.accelerationMagnitude,
+  });
+
+  final String boneId;
+  final int fromFrame;
+  final int throughFrame;
+  final int toFrame;
+  final double fromPhase;
+  final double throughPhase;
+  final double toPhase;
+  final double beforeDistance;
+  final double afterDistance;
+  final double chordDistance;
+  final double arcDistance;
+  final double arcRatio;
+  final double turnDegrees;
   final double accelerationMagnitude;
 }

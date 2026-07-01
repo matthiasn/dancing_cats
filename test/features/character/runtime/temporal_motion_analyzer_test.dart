@@ -251,6 +251,69 @@ void main() {
       );
     });
 
+    test('pathCorners finds a hard direction change without a speed pulse', () {
+      final analyzer = TemporalMotionAnalyzer(
+        _oneBoneScene(),
+      );
+      const clip = Clip(
+        name: 'synthetic-hard-corner',
+        duration: 1,
+        loop: false,
+        root: KeyframeRootChannel([
+          RootKeyframe(p: 0),
+          RootKeyframe(p: 0.5, dx: 40, ease: Ease.linear),
+          RootKeyframe(p: 1, dx: 40, dy: 40, ease: Ease.linear),
+        ]),
+        channels: {},
+      );
+
+      final report = analyzer.analyze(
+        clip: clip,
+        samples: 2,
+        boneIds: const [CatBones.hips],
+      );
+      final corners = report.pathCorners(
+        minTurnDegrees: 80,
+        minAcceleration: 40,
+      );
+
+      expect(corners, hasLength(1));
+      expect(corners.single.boneId, CatBones.hips);
+      expect(corners.single.turnDegrees, closeTo(90, 0.01));
+      expect(corners.single.arcRatio, closeTo(1.414, 0.01));
+      expect(corners.single.accelerationMagnitude, closeTo(56.57, 0.01));
+    });
+
+    test('pathCorners ignores straight continuous travel', () {
+      final analyzer = TemporalMotionAnalyzer(
+        _oneBoneScene(),
+      );
+      const clip = Clip(
+        name: 'synthetic-straight-path',
+        duration: 1,
+        loop: false,
+        root: KeyframeRootChannel([
+          RootKeyframe(p: 0),
+          RootKeyframe(p: 1, dx: 80, ease: Ease.linear),
+        ]),
+        channels: {},
+      );
+
+      final report = analyzer.analyze(
+        clip: clip,
+        samples: 4,
+        boneIds: const [CatBones.hips],
+      );
+
+      expect(
+        report.pathCorners(
+          minTurnDegrees: 80,
+          minAcceleration: 40,
+        ),
+        isEmpty,
+      );
+    });
+
     test('stutterTransitions finds a held pose followed by a snap', () {
       final analyzer = TemporalMotionAnalyzer(
         _oneBoneScene(),
@@ -393,6 +456,49 @@ void main() {
               'frames=${spikes.isEmpty ? 'n/a' : '${spikes.first.fromFrame}-${spikes.first.toFrame}'} '
               'accel=${spikes.isEmpty ? 'n/a' : spikes.first.accelerationMagnitude.toStringAsFixed(1)} '
               'ratio=${spikes.isEmpty ? 'n/a' : spikes.first.speedRatio.toStringAsFixed(1)}',
+        );
+      }
+    });
+
+    test('dance hands and torso avoid egregious hard path corners', () {
+      final analyzer = TemporalMotionAnalyzer(
+        CharacterScene(buildCatInSuitRig()),
+      );
+      const watchedBones = [
+        CatBones.torso,
+        CatBones.handL,
+        CatBones.handR,
+      ];
+
+      for (final clip in [
+        CatClips.shaku,
+        CatClips.zanku,
+        CatClips.azonto,
+        CatClips.buga,
+        CatClips.sekem,
+      ]) {
+        final report = analyzer.analyze(
+          clip: clip,
+          samples: 128,
+          boneIds: watchedBones,
+        );
+        final corners = report.pathCorners(
+          minTurnDegrees: 165,
+          minAcceleration: 34,
+          minArcRatio: 2.2,
+          minSegmentDistance: 3,
+        );
+
+        expect(
+          corners,
+          isEmpty,
+          reason:
+              '${clip.name} should not cut a high-travel hand/torso path into '
+              'a hard corner; worst ${corners.isEmpty ? 'none' : corners.first.boneId} '
+              'frames=${corners.isEmpty ? 'n/a' : '${corners.first.fromFrame}-${corners.first.toFrame}'} '
+              'turn=${corners.isEmpty ? 'n/a' : corners.first.turnDegrees.toStringAsFixed(1)} '
+              'arc=${corners.isEmpty ? 'n/a' : corners.first.arcRatio.toStringAsFixed(2)} '
+              'accel=${corners.isEmpty ? 'n/a' : corners.first.accelerationMagnitude.toStringAsFixed(1)}',
         );
       }
     });

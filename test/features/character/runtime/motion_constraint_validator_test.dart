@@ -42,6 +42,40 @@ void main() {
       );
     });
 
+    test('detects solved endpoints that miss their IK target', () {
+      final validator = MotionConstraintValidator(
+        CharacterScene(buildCatInSuitRig()),
+      );
+      const clip = Clip(
+        name: 'synthetic-target-residual',
+        duration: 1,
+        channels: {},
+        limbTargets: [
+          LimbIkTarget(
+            upperBoneId: CatBones.armUpperL,
+            lowerBoneId: CatBones.armLowerL,
+            endBoneId: CatBones.handL,
+            anchorBoneId: CatBones.torso,
+            channel: FixedIkTargetChannel(x: 420, y: -160),
+          ),
+        ],
+      );
+
+      final report = validator.analyze(
+        clip: clip,
+        profile: const MotionConstraintProfile(maxIkTargetResidual: 2),
+        ikSamples: 4,
+        contactSamplesPerSpan: 1,
+      );
+
+      expect(report.ikTargetResiduals, hasLength(4));
+      expect(report.worstIkTargetResidual!.distance, greaterThan(2));
+      expect(
+        report.violations.map((violation) => violation.category),
+        contains(MotionConstraintCategory.ikTargetResidual),
+      );
+    });
+
     test('detects a same-side hand target with a reversed elbow lane', () {
       final validator = MotionConstraintValidator(
         CharacterScene(
@@ -211,6 +245,50 @@ void main() {
               '${worst.reachRatio.toStringAsFixed(3)} must not ask a hand IK '
               'target to exceed the arm chain; the solver would clamp it into '
               'a stick-arm pose',
+        );
+      }
+    });
+
+    test('catalogue high-weight hand targets resolve near their controls', () {
+      final validator = MotionConstraintValidator(
+        CharacterScene(buildCatInSuitRig()),
+      );
+
+      for (final clip in [
+        CatClips.shaku,
+        CatClips.zanku,
+        CatClips.azonto,
+        CatClips.buga,
+        CatClips.sekem,
+      ]) {
+        final report = validator.analyze(clip: clip);
+        final handResiduals =
+            report.ikTargetResiduals
+                .where(
+                  (residual) =>
+                      residual.weight > 0.98 &&
+                      (residual.endBoneId == CatBones.handL ||
+                          residual.endBoneId == CatBones.handR),
+                )
+                .toList()
+              ..sort((a, b) => b.distance.compareTo(a.distance));
+
+        expect(
+          handResiduals,
+          isNotEmpty,
+          reason: '${clip.name} should expose high-weight hand IK samples',
+        );
+        final worst = handResiduals.first;
+        expect(
+          worst.distance,
+          lessThan(14),
+          reason:
+              '${clip.name} ${worst.endBoneId} should visibly land near its '
+              'high-weight IK control; p=${worst.phase.toStringAsFixed(4)} '
+              'weight=${worst.weight.toStringAsFixed(3)} '
+              'distance=${worst.distance.toStringAsFixed(1)} '
+              'end=(${worst.endX.toStringAsFixed(1)}, ${worst.endY.toStringAsFixed(1)}) '
+              'target=(${worst.targetX.toStringAsFixed(1)}, ${worst.targetY.toStringAsFixed(1)})',
         );
       }
     });

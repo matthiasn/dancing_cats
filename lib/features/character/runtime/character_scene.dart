@@ -253,14 +253,36 @@ class CharacterScene {
       );
       if (solved == null) continue;
 
-      joints[target.upperBoneId] = solved.upper;
-      joints[target.lowerBoneId] = solved.lower;
-      currentPose = Pose(
-        joints: joints,
-        rootDx: pose.rootDx,
-        rootDy: pose.rootDy,
-        rootRotation: pose.rootRotation,
-      );
+      void commitSolution(({JointPose upper, JointPose lower}) solution) {
+        joints[target.upperBoneId] = solution.upper;
+        joints[target.lowerBoneId] = solution.lower;
+        currentPose = Pose(
+          joints: joints,
+          rootDx: pose.rootDx,
+          rootDy: pose.rootDy,
+          rootRotation: pose.rootRotation,
+        );
+      }
+
+      commitSolution(solved);
+
+      // Full-strength targets are choreographic controls, not soft hints. Run a
+      // single corrective pass from the just-updated pose so wrists/feet land
+      // closer to their controls when parent rotations and support anchors have
+      // moved the chain during the first solve.
+      if (weight >= 0.98 && target.anchorBoneId != target.upperBoneId) {
+        final refined = _solveLimbTarget(
+          target,
+          sample,
+          currentPose,
+          weight,
+          worldAnchor: planted ? (x: footAnchor.x, y: footAnchor.y) : null,
+          anchorBlend: planted ? footAnchor.blend : 0,
+        );
+        if (refined != null) {
+          commitSolution(refined);
+        }
+      }
     }
 
     return currentPose;
