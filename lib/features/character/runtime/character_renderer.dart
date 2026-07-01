@@ -40,12 +40,35 @@ class CharacterRenderer {
   /// 2. **Fill** — the bone fills are painted in z-order on top, covering the
   ///    interior of that blob and leaving only its outer rim showing. The
   ///    result is a clean outer outline with seam-free joints.
+  /// [memberTransform], when given, is the member's base/placement transform
+  /// already composed into [world] (scale, flip, view foreshorten). The
+  /// renderer then paints under `canvas.transform(memberTransform)` with the
+  /// member-local transforms, so RIBBON HALF-WIDTHS and ribbon/mesh OUTLINE
+  /// STROKES scale with the member exactly like bone drawables do. Without
+  /// it (identity placement), those widths are canvas-space — which made a
+  /// scaled-up lead read spindly and scaled-down backups read ballooned.
   void paint(
     Canvas canvas,
     RigSpec rig,
     Map<String, Affine2D> world,
-    FaceState face,
-  ) {
+    FaceState face, {
+    Affine2D? memberTransform,
+  }) {
+    if (memberTransform != null) {
+      final inverse = memberTransform.inverse();
+      if (inverse != null) {
+        final local = <String, Affine2D>{
+          for (final entry in world.entries)
+            entry.key: inverse.multiply(entry.value),
+        };
+        canvas
+          ..save()
+          ..transform(memberTransform.toMatrix4Storage(_matrix));
+        paint(canvas, rig, local, face);
+        canvas.restore();
+        return;
+      }
+    }
     final hiddenBones = rig.hiddenDrawableBoneIds;
 
     // Ribbons are drawn in the same silhouette/fill two-pass style as bones.

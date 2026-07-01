@@ -427,27 +427,30 @@ void main() {
         final leg = rig.ribbons.singleWhere((r) => r.id == id);
         final front = leg.halfWidths;
         final back = leg.backHalfWidths!;
-        // [hip, quad, knee, calf, ankle]
+        // [pelvis root, hip, quad, knee, calf, ankle]
         expect(
-          front[1],
-          greaterThan(back[1]),
+          front[2],
+          greaterThan(back[2]),
           reason: 'the QUAD bulges on the front of the thigh',
         );
         expect(
-          back[3],
-          greaterThan(front[3]),
+          back[4],
+          greaterThan(front[4]),
           reason: 'the CALF bulges on the back of the shin',
         );
         expect(
-          front[2] + back[2],
-          lessThan(front[1] + back[1]),
+          front[3] + back[3],
+          lessThan(front[2] + back[2]),
           reason: 'the knee pinches between thigh and calf masses',
         );
         expect(
-          front[4] + back[4],
-          lessThan(front[3] + back[3]),
+          front[5] + back[5],
+          lessThan(front[4] + back[4]),
           reason: 'the ankle tapers hard out of the calf',
         );
+        // The ribbon roots INSIDE the pelvis: the thigh flows out of the hip
+        // mass instead of hinging off a joint bolted to the pelvis rim.
+        expect(leg.jointBoneIds.first.toLowerCase(), contains('hip_blend'));
       }
     });
 
@@ -603,11 +606,11 @@ void main() {
 
       expect(
         base.ribbons.singleWhere((r) => r.id == 'leg.L.ribbon').halfWidths,
-        const [12.6, 12.6, 8.6, 8.6, 5.5],
+        const [13.0, 12.4, 12.4, 8.6, 8.6, 5.5],
       );
       expect(
         base.ribbons.singleWhere((r) => r.id == 'leg.L.ribbon').backHalfWidths,
-        const [12.6, 10.2, 8.2, 11.0, 5.3],
+        const [13.0, 11.8, 10.2, 8.2, 11.0, 5.3],
       );
       final baseArm = base.ribbons.singleWhere((r) => r.id == 'arm.L.ribbon');
       final farArm = far.ribbons.singleWhere((r) => r.id == 'arm.L.ribbon');

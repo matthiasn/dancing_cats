@@ -278,11 +278,12 @@ void main() {
 
       final t = sampleTime(clip, i, frames, span);
       final p = clip.duration <= 0 ? 0.0 : (t / clip.duration);
+      final base = cellBase(i, view);
       final frame = scene.frameAt(
         clip: clip,
         timeSeconds: t,
         expression: expression,
-        base: cellBase(i, view),
+        base: base,
       );
       final reviewWorld = _projectReviewWorld(frame.world, view, scale);
       _paintReviewContactShadows(
@@ -294,7 +295,13 @@ void main() {
         scale,
         view,
       );
-      renderer.paint(canvas, scene.rig, reviewWorld, frame.face);
+      renderer.paint(
+        canvas,
+        scene.rig,
+        reviewWorld,
+        frame.face,
+        memberTransform: base,
+      );
 
       drawLabel(
         canvas,
@@ -349,7 +356,13 @@ void main() {
         const Rect.fromLTWH(0, 0, cellW, cellH),
         Paint()..color = Color.fromRGBO(0, 0, 0, alpha),
       );
-      renderer.paint(canvas, scene.rig, reviewWorld, frame.face);
+      renderer.paint(
+        canvas,
+        scene.rig,
+        reviewWorld,
+        frame.face,
+        memberTransform: base,
+      );
       canvas.restore();
     }
 
@@ -394,7 +407,13 @@ void main() {
       scale,
       view,
     );
-    renderer.paint(canvas, scene.rig, reviewWorld, frame.face);
+    renderer.paint(
+        canvas,
+        scene.rig,
+        reviewWorld,
+        frame.face,
+        memberTransform: base,
+      );
     return _pngOf(recorder.endRecording(), cellW.round(), cellH.round());
   }
 
@@ -557,7 +576,13 @@ void main() {
         const Rect.fromLTWH(0, 0, w, h),
         Paint()..color = Color.fromRGBO(0, 0, 0, alpha),
       );
-      renderer.paint(canvas, scene.rig, frame.world, frame.face);
+      renderer.paint(
+        canvas,
+        scene.rig,
+        frame.world,
+        frame.face,
+        memberTransform: base,
+      );
       canvas.restore();
     }
     drawLabel(canvas, 'travel: ${clip.name}', 6, 5);

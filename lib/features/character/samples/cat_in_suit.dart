@@ -81,8 +81,12 @@ const int _whisker = 0xFF8A765C; // muted whisker
 /// dancer carries full anatomical mass, a 0.49-plane backup thins to ~0.84 of
 /// it. Replaces the old hand-tuned per-cast width constants entirely.
 double limbThicknessForPlaneScale(double relativePlaneScale) {
-  final curved = math.pow(relativePlaneScale.clamp(0.1, 4.0), 0.25).toDouble();
-  return curved.clamp(0.78, 1.15);
+  // Gentle: the renderer now scales limb geometry with each member's plane
+  // (see CharacterRenderer.paint memberTransform), so proportions are already
+  // correct at any scale — this curve only trims small upstage silhouettes
+  // enough to keep their limb/torso negative space readable.
+  final curved = math.pow(relativePlaneScale.clamp(0.1, 4.0), 0.12).toDouble();
+  return curved.clamp(0.85, 1.1);
 }
 
 /// Fur/face colours for a cat-in-suit rig variant.
@@ -183,6 +187,7 @@ class CatBones {
   static const thumbR = 'thumb.R';
   static const pawToeR1 = 'paw_toe1.R';
   static const pawToeR2 = 'paw_toe2.R';
+  static const hipBlendL = 'hip_blend.L';
   static const legUpperL = 'leg_upper.L';
   static const legQuadL = 'leg_quad.L';
   static const legLowerL = 'leg_lower.L';
@@ -191,6 +196,7 @@ class CatBones {
   static const shoeHighlightL = 'shoe_highlight.L';
   static const shoeToeL = 'shoe_toe.L';
   static const shoeHeelL = 'shoe_heel.L';
+  static const hipBlendR = 'hip_blend.R';
   static const legUpperR = 'leg_upper.R';
   static const legQuadR = 'leg_quad.R';
   static const legLowerR = 'leg_lower.R';
@@ -366,6 +372,17 @@ RigSpec buildCatInSuitRig({
     // Far (right) leg controls, drawn behind. Their rigid drawables are hidden
     // by the leg ribbon below; keeping the drawables on the bones makes the
     // fallback path and bbox utilities still work.
+    // Pelvis-blend root for the leg ribbon: a fixed point INSIDE the hip
+    // mass, so the thigh's centreline sweeps out of the pelvis with a
+    // flowing tangent instead of the leg reading as a tube bolted to a
+    // joint on the pelvis rim.
+    const Bone(
+      id: CatBones.hipBlendR,
+      parent: CatBones.hips,
+      pivotX: 9,
+      pivotY: 2,
+      z: 3,
+    ),
     Bone(
       id: CatBones.legUpperR,
       parent: CatBones.hips,
@@ -475,6 +492,17 @@ RigSpec buildCatInSuitRig({
     // Near (left) leg controls. The visible leg is a continuous ribbon that
     // starts inside the hip volume; the hip is drawn over the top so the leg
     // reads as part of the body, not a capsule bolted underneath.
+    // Pelvis-blend root for the leg ribbon: a fixed point INSIDE the hip
+    // mass, so the thigh's centreline sweeps out of the pelvis with a
+    // flowing tangent instead of the leg reading as a tube bolted to a
+    // joint on the pelvis rim.
+    const Bone(
+      id: CatBones.hipBlendL,
+      parent: CatBones.hips,
+      pivotX: -9,
+      pivotY: 2,
+      z: 6,
+    ),
     Bone(
       id: CatBones.legUpperL,
       parent: CatBones.hips,
@@ -1303,6 +1331,7 @@ RigSpec buildCatInSuitRig({
     LimbRibbonSpec(
       id: 'leg.R.ribbon',
       jointBoneIds: const [
+        CatBones.hipBlendR,
         CatBones.legUpperR,
         CatBones.legQuadR,
         CatBones.legLowerR,
@@ -1315,10 +1344,10 @@ RigSpec buildCatInSuitRig({
       // rather than bodybuilder-wide so the dance reads agile in quarter view.
       // FRONT profile: the quad carries the thigh mass and holds it almost
       // to the knee; the shin's front is near-straight (bone, not muscle).
-      halfWidths: scaledLegWidths(const [12.6, 12.6, 8.6, 8.6, 5.5]),
+      halfWidths: scaledLegWidths(const [13.0, 12.4, 12.4, 8.6, 8.6, 5.5]),
       // BACK profile: hamstring eases off the seat, then the CALF bulge —
       // the S-curve that reads athletic where a symmetric tube reads stuffed.
-      backHalfWidths: scaledLegWidths(const [12.6, 10.2, 8.2, 11.0, 5.3]),
+      backHalfWidths: scaledLegWidths(const [13.0, 11.8, 10.2, 8.2, 11.0, 5.3]),
       z: 3,
       color: _trouserRear,
       outlineColor: _outline,
@@ -1328,6 +1357,7 @@ RigSpec buildCatInSuitRig({
     LimbRibbonSpec(
       id: 'leg.L.ribbon',
       jointBoneIds: const [
+        CatBones.hipBlendL,
         CatBones.legUpperL,
         CatBones.legQuadL,
         CatBones.legLowerL,
@@ -1337,10 +1367,10 @@ RigSpec buildCatInSuitRig({
       hiddenBoneIds: const [CatBones.legUpperL, CatBones.legLowerL],
       // FRONT profile: the quad carries the thigh mass and holds it almost
       // to the knee; the shin's front is near-straight (bone, not muscle).
-      halfWidths: scaledLegWidths(const [12.6, 12.6, 8.6, 8.6, 5.5]),
+      halfWidths: scaledLegWidths(const [13.0, 12.4, 12.4, 8.6, 8.6, 5.5]),
       // BACK profile: hamstring eases off the seat, then the CALF bulge —
       // the S-curve that reads athletic where a symmetric tube reads stuffed.
-      backHalfWidths: scaledLegWidths(const [12.6, 10.2, 8.2, 11.0, 5.3]),
+      backHalfWidths: scaledLegWidths(const [13.0, 11.8, 10.2, 8.2, 11.0, 5.3]),
       z: 6,
       color: _trouser,
       outlineColor: _outline,
@@ -1377,11 +1407,11 @@ RigSpec buildCatInSuitRig({
       // FRONT profile [clavicle, deltoid, bicep, elbow, forearm, wrist]:
       // the BICEP carries the upper-arm mass and the forearm swells with the
       // brachioradialis before tapering into the wrist.
-      halfWidths: scaledArmWidths(const [11.4, 11.2, 9.8, 7.2, 8.2, 5.2]),
+      halfWidths: scaledArmWidths(const [11.4, 11.2, 10.4, 7.2, 8.5, 5.2]),
       // BACK profile: fuller triceps up high, a tight bony elbow point, and
       // a lean forearm underside — the same put-the-mass-where-the-muscle-is
       // asymmetry that makes the legs read athletic.
-      backHalfWidths: scaledArmWidths(const [11.4, 10.6, 8.6, 7.4, 7.0, 5.0]),
+      backHalfWidths: scaledArmWidths(const [11.4, 10.6, 8.9, 7.4, 7.2, 5.0]),
       z: 15,
       color: _sleeve,
       outlineColor: _outline,
@@ -1406,11 +1436,11 @@ RigSpec buildCatInSuitRig({
       // FRONT profile [clavicle, deltoid, bicep, elbow, forearm, wrist]:
       // the BICEP carries the upper-arm mass and the forearm swells with the
       // brachioradialis before tapering into the wrist.
-      halfWidths: scaledArmWidths(const [11.4, 11.2, 9.8, 7.2, 8.2, 5.2]),
+      halfWidths: scaledArmWidths(const [11.4, 11.2, 10.4, 7.2, 8.5, 5.2]),
       // BACK profile: fuller triceps up high, a tight bony elbow point, and
       // a lean forearm underside — the same put-the-mass-where-the-muscle-is
       // asymmetry that makes the legs read athletic.
-      backHalfWidths: scaledArmWidths(const [11.4, 10.6, 8.6, 7.4, 7.0, 5.0]),
+      backHalfWidths: scaledArmWidths(const [11.4, 10.6, 8.9, 7.4, 7.2, 5.0]),
       z: 16,
       color: _sleeveNear,
       outlineColor: _outline,
@@ -1440,10 +1470,10 @@ RigSpec buildCatInSuitRig({
           MeshInfluence(boneId: CatBones.hips, x: 22, y: 2, weight: 0.7),
         ]),
         SkinnedMeshVertex([
-          MeshInfluence(boneId: CatBones.hips, x: 25, y: 10, weight: 1),
+          MeshInfluence(boneId: CatBones.hips, x: 27, y: 10, weight: 1),
         ]),
         SkinnedMeshVertex([
-          MeshInfluence(boneId: CatBones.hips, x: 20, y: 21, weight: 1),
+          MeshInfluence(boneId: CatBones.hips, x: 22, y: 21, weight: 1),
         ]),
         // Bottom edge is an M, not a U: two thigh-tops with a CROTCH NOTCH
         // between them, so the legs emerge from hips with a V-crotch instead of
@@ -1458,10 +1488,10 @@ RigSpec buildCatInSuitRig({
           MeshInfluence(boneId: CatBones.hips, x: -16, y: 26, weight: 1),
         ]),
         SkinnedMeshVertex([
-          MeshInfluence(boneId: CatBones.hips, x: -20, y: 21, weight: 1),
+          MeshInfluence(boneId: CatBones.hips, x: -22, y: 21, weight: 1),
         ]),
         SkinnedMeshVertex([
-          MeshInfluence(boneId: CatBones.hips, x: -25, y: 10, weight: 1),
+          MeshInfluence(boneId: CatBones.hips, x: -27, y: 10, weight: 1),
         ]),
       ],
       boundary: const [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],

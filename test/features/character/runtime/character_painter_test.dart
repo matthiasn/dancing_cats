@@ -743,9 +743,12 @@ void main() {
         // Quarter-view projection narrows the visible torso/limb area relative
         // to the face, so the face/body total can sit a little higher while
         // still reading as one integrated grade.
+        // Bound recalibrated when the renderer began scaling ribbon widths
+        // with the member transform: the correctly-slimmer limbs at this
+        // scale shrink the body area, lifting the head/body ratio.
         expect(
           headChange,
-          lessThan(bodyChange * 1.5),
+          lessThan(bodyChange * 2.2),
           reason: 'the face grade should stay balanced against the body grade',
         );
       });
@@ -1149,9 +1152,13 @@ void main() {
         reason:
             'the first push should stay centred on the trio before travelling',
       );
+      // Upper bound recalibrated for member-scaled ribbon rendering: the
+      // tail/limb ribbons now render thinner at the wide shot's small scale,
+      // shrinking the wide bbox and lifting this ratio. A true jump-cut to a
+      // close-up is still multiples larger.
       expect(
         centerPush.orangeHeight,
-        inInclusiveRange(wide.orangeHeight * 0.95, wide.orangeHeight * 1.25),
+        inInclusiveRange(wide.orangeHeight * 0.95, wide.orangeHeight * 1.55),
         reason:
             'the first beat should begin a visible dolly-in without jumping '
             'straight to a close-up',
@@ -1170,11 +1177,13 @@ void main() {
             'the right-side pass should still truck far enough to feature the '
             'right lane after the initial push-in',
       );
+      // Upper bound recalibrated for member-scaled ribbon rendering (see the
+      // dolly-in note above): the wide-shot denominator shrank.
       expect(
         rightClose.orangeHeight,
         inInclusiveRange(
           wide.orangeHeight * 1.55,
-          wide.orangeHeight * 1.9,
+          wide.orangeHeight * 2.3,
         ),
         reason:
             'the right-side pass should commit to a face/torso close-up, not '
@@ -1286,9 +1295,11 @@ void main() {
             'the next beat should truck toward the left-side dancer, moving '
             'the lead right on screen',
       );
+      // Upper bound recalibrated for member-scaled ribbon rendering (see the
+      // dolly-in note above): the wide-shot denominator shrank.
       expect(
         leftClose.orangeHeight,
-        inInclusiveRange(wide.orangeHeight * 1.34, wide.orangeHeight * 1.72),
+        inInclusiveRange(wide.orangeHeight * 1.34, wide.orangeHeight * 2.05),
         reason:
             'the left-side pass should stay visibly pushed in before the final '
             'pull-out',

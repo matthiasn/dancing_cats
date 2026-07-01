@@ -77,6 +77,25 @@ class Affine2D {
     b * o.tx + d * o.ty + ty,
   );
 
+  /// The inverse transform, or null when this transform is degenerate
+  /// (determinant ~0) and cannot be inverted.
+  Affine2D? inverse() {
+    final det = a * d - b * c;
+    if (det.abs() < 1e-12) return null;
+    final ia = d / det;
+    final ib = -b / det;
+    final ic = -c / det;
+    final id = a / det;
+    return Affine2D(
+      ia,
+      ib,
+      ic,
+      id,
+      -(ia * tx + ic * ty),
+      -(ib * tx + id * ty),
+    );
+  }
+
   /// Maps the point [x], [y] through this transform, returning `(x', y')`.
   ({double x, double y}) transformPoint(double x, double y) =>
       (x: a * x + c * y + tx, y: b * x + d * y + ty);

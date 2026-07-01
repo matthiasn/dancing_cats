@@ -1782,6 +1782,11 @@ class CharacterPainter extends CustomPainter {
       drawScene.rig,
       groundedFrame.world,
       groundedFrame.face,
+      // The member's placement (scale, flip, quarter-turn) — the renderer
+      // paints under it so ribbon widths and surface outlines scale with THIS
+      // member. Painting them in canvas units made the scaled-up lead read
+      // spindly while the scaled-down backups ballooned.
+      memberTransform: base,
     );
   }
 
