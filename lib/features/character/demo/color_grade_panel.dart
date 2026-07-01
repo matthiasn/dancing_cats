@@ -307,7 +307,7 @@ class GradeWheelControl extends StatelessWidget {
     required this.sublabel,
     required this.wheel,
     required this.onChanged,
-    this.diameter = 96,
+    this.diameter = 90,
     super.key,
   });
 
@@ -849,7 +849,7 @@ class _TransferCurveScope extends StatelessWidget {
   final BackdropGrade grade;
   final bool bypass;
 
-  static const _graphWidth = 250.0;
+  static const _graphWidth = 220.0;
   static const _graphHeight = 118.0;
 
   @override
@@ -872,7 +872,7 @@ class _TransferCurveScope extends StatelessWidget {
               ),
               const Spacer(),
               Text(
-                bypass ? 'bypassed' : 'transfer R·G·B',
+                bypass ? 'bypassed' : 'transfer',
                 style: const TextStyle(
                   color: ColorGradePanel._textLow,
                   fontSize: 9,
@@ -976,7 +976,7 @@ class _ParadeScope extends StatelessWidget {
   final ScopeHistogram histogram;
   final bool bypass;
 
-  static const _graphWidth = 216.0;
+  static const _graphWidth = 176.0;
   static const _graphHeight = 118.0;
 
   @override
