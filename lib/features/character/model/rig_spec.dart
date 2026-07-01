@@ -177,6 +177,22 @@ class RigSpec {
           'but ${ribbon.halfWidths.length} half-widths',
         );
       }
+      final back = ribbon.backHalfWidths;
+      if (back != null) {
+        if (back.length != ribbon.jointBoneIds.length) {
+          throw ArgumentError(
+            'Ribbon "${ribbon.id}" has ${ribbon.jointBoneIds.length} joints '
+            'but ${back.length} back half-widths',
+          );
+        }
+        for (final width in back) {
+          if (width <= 0) {
+            throw ArgumentError(
+              'Ribbon "${ribbon.id}" back half-widths must be positive',
+            );
+          }
+        }
+      }
       if (ribbon.samplesPerSegment <= 0) {
         throw ArgumentError(
           'Ribbon "${ribbon.id}" samplesPerSegment must be positive',
@@ -344,6 +360,7 @@ class LimbRibbonSpec {
     required List<double> halfWidths,
     required this.z,
     required this.color,
+    List<double>? backHalfWidths,
     List<String> hiddenBoneIds = const [],
     this.outlineColor,
     this.outlineWidth = 0,
@@ -352,12 +369,26 @@ class LimbRibbonSpec {
     this.roundCaps = true,
   }) : jointBoneIds = List<String>.unmodifiable(jointBoneIds),
        hiddenBoneIds = List<String>.unmodifiable(hiddenBoneIds),
-       halfWidths = List<double>.unmodifiable(halfWidths);
+       halfWidths = List<double>.unmodifiable(halfWidths),
+       backHalfWidths = backHalfWidths == null
+           ? null
+           : List<double>.unmodifiable(backHalfWidths);
 
   final String id;
   final List<String> jointBoneIds;
   final List<String> hiddenBoneIds;
+
+  /// Half-widths at each joint on the ribbon's +normal side (the character's
+  /// facing side for a limb authored top-down). With [backHalfWidths] null the
+  /// profile is symmetric about the joint centreline.
   final List<double> halfWidths;
+
+  /// Optional -normal-side half-widths: an ASYMMETRIC muscle profile. Real
+  /// limbs are not tubes — the quad bulges on the FRONT of the thigh and the
+  /// calf on the BACK of the shin; putting the mass where the muscle lives is
+  /// what makes a leg read athletic instead of inflated.
+  final List<double>? backHalfWidths;
+
   final int z;
   final int color;
   final int? outlineColor;

@@ -264,7 +264,7 @@ class CharacterScene {
       clip,
       footStabilizedWorld,
       timeSeconds: timeSeconds,
-      baseScale: _uniformScale(base),
+      baseScale: _verticalScale(base),
       rootDx: posed.rootDx,
       rootDy: posed.rootDy,
     );
@@ -1007,8 +1007,17 @@ class CharacterScene {
     return math.min(d, 1 - d);
   }
 
-  static double _uniformScale(Affine2D transform) =>
-      math.sqrt(transform.a * transform.a + transform.b * transform.b);
+  /// The base's VERTICAL axis scale — the head-normalization target.
+  ///
+  /// The trio's dance view folds a horizontal quarter-turn foreshorten into
+  /// the base transform (x column scaled by 0.68 for flankers). Normalizing
+  /// the head to the x-column norm shrank upstage heads UNIFORMLY to the
+  /// foreshorten factor — small heads on full-height bodies, the "scales in
+  /// the back are wrong" read. The y column carries the true plane scale
+  /// (camera zoom, member scale) untouched by foreshorten or flip, so heads
+  /// keep their plane's size while the body turns.
+  static double _verticalScale(Affine2D transform) =>
+      math.sqrt(transform.c * transform.c + transform.d * transform.d);
 
   Affine2D? _rigidLinearCorrection(
     Affine2D current, {

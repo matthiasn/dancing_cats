@@ -58,6 +58,8 @@ const int _shirt = 0xFFF3EFE6; // collar
 const int _tie = 0xFF7A2233; // maroon
 const int _shoe = 0xFF24263A; // dark dress shoe — lifted off near-black so it
 // separates from the near-black deck instead of dissolving into the floor.
+const int _shoeToe = 0xFF31344E; // toe-cap leather catching the key — the
+// cap-toe plane that makes the last read as a dress shoe, not a dark lump.
 const int _shoeHighlight = 0xFF3C4058; // SUBTLE sole edge — a brighter strip
 // plus the cap-toe/toe-gloss marks read as a skeletal "bone" inside the
 // stage-lit shoe, so the shoe is now just a clean cel-shaded volume with this
@@ -187,12 +189,16 @@ class CatBones {
   static const legCalfL = 'leg_calf.L';
   static const footL = 'foot.L';
   static const shoeHighlightL = 'shoe_highlight.L';
+  static const shoeToeL = 'shoe_toe.L';
+  static const shoeHeelL = 'shoe_heel.L';
   static const legUpperR = 'leg_upper.R';
   static const legQuadR = 'leg_quad.R';
   static const legLowerR = 'leg_lower.R';
   static const legCalfR = 'leg_calf.R';
   static const footR = 'foot.R';
   static const shoeHighlightR = 'shoe_highlight.R';
+  static const shoeToeR = 'shoe_toe.R';
+  static const shoeHeelR = 'shoe_heel.R';
   static const tail0 = 'tail_0';
   static const tail1 = 'tail_1';
   static const tail2 = 'tail_2';
@@ -398,31 +404,71 @@ RigSpec buildCatInSuitRig({
       z: 5,
       drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
-        width: 34,
-        height: 13,
-        // Toe points -x (local), which — through the locomotion mirror — makes
-        // the shoe LEAD the direction of travel instead of trailing it.
+        // A longer, lower dress-shoe last. Toe points -x (local), which —
+        // through the locomotion mirror — makes the shoe LEAD the direction
+        // of travel instead of trailing it. The sole plane stays at local
+        // y=10: the contact solvers key off this drawable's bottom.
+        width: 38,
+        height: 12,
         dx: -9,
-        dy: 3.5,
+        dy: 4,
         cornerRadius: 5,
         color: _shoe,
         outlineColor: _outline,
         outlineWidth: 2,
       ),
     ),
+    // Toe cap: a rounded cap-toe plane in lighter leather over the front of
+    // the last — the single strongest "dress shoe" cue in silhouette-scale
+    // frames. Flat-shaded so the key cannot chrome the small volume.
     const Bone(
-      id: CatBones.shoeHighlightR,
+      id: CatBones.shoeToeR,
       parent: CatBones.footR,
       pivotX: 0,
       pivotY: 0,
       z: 6,
       drawable: BoneDrawable(
+        kind: BoneShapeKind.ellipse,
+        width: 13,
+        height: 10,
+        dx: -22.5,
+        dy: 4.5,
+        color: _shoeToe,
+        celShade: false,
+      ),
+    ),
+    // Split sole line: a front pad strip and a heel strip with an ARCH GAP
+    // between them — the gap is what turns a flat bar into a heeled dress
+    // sole. Both stay above the sole plane so grounding cannot shift.
+    const Bone(
+      id: CatBones.shoeHighlightR,
+      parent: CatBones.footR,
+      pivotX: 0,
+      pivotY: 0,
+      z: 7,
+      drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
-        width: 25,
-        height: 4,
-        dx: -9,
-        dy: 7,
-        cornerRadius: 2,
+        width: 15,
+        height: 3.5,
+        dx: -17,
+        dy: 7.8,
+        cornerRadius: 1.75,
+        color: _shoeHighlight,
+      ),
+    ),
+    const Bone(
+      id: CatBones.shoeHeelR,
+      parent: CatBones.footR,
+      pivotX: 0,
+      pivotY: 0,
+      z: 7,
+      drawable: BoneDrawable(
+        kind: BoneShapeKind.roundedRect,
+        width: 8,
+        height: 3.5,
+        dx: 4.5,
+        dy: 7.8,
+        cornerRadius: 1.75,
         color: _shoeHighlight,
       ),
     ),
@@ -467,30 +513,71 @@ RigSpec buildCatInSuitRig({
       z: 8,
       drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
-        width: 34,
-        height: 13,
-        // Toe points -x (local) so the shoe leads travel — see footR.
+        // A longer, lower dress-shoe last. Toe points -x (local), which —
+        // through the locomotion mirror — makes the shoe LEAD the direction
+        // of travel instead of trailing it. The sole plane stays at local
+        // y=10: the contact solvers key off this drawable's bottom.
+        width: 38,
+        height: 12,
         dx: -9,
-        dy: 3.5,
+        dy: 4,
         cornerRadius: 5,
         color: _shoe,
         outlineColor: _outline,
         outlineWidth: 2,
       ),
     ),
+    // Toe cap: a rounded cap-toe plane in lighter leather over the front of
+    // the last — the single strongest "dress shoe" cue in silhouette-scale
+    // frames. Flat-shaded so the key cannot chrome the small volume.
     const Bone(
-      id: CatBones.shoeHighlightL,
+      id: CatBones.shoeToeL,
       parent: CatBones.footL,
       pivotX: 0,
       pivotY: 0,
       z: 9,
       drawable: BoneDrawable(
+        kind: BoneShapeKind.ellipse,
+        width: 13,
+        height: 10,
+        dx: -22.5,
+        dy: 4.5,
+        color: _shoeToe,
+        celShade: false,
+      ),
+    ),
+    // Split sole line: a front pad strip and a heel strip with an ARCH GAP
+    // between them — the gap is what turns a flat bar into a heeled dress
+    // sole. Both stay above the sole plane so grounding cannot shift.
+    const Bone(
+      id: CatBones.shoeHighlightL,
+      parent: CatBones.footL,
+      pivotX: 0,
+      pivotY: 0,
+      z: 10,
+      drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
-        width: 25,
-        height: 4,
-        dx: -9,
-        dy: 7,
-        cornerRadius: 2,
+        width: 15,
+        height: 3.5,
+        dx: -17,
+        dy: 7.8,
+        cornerRadius: 1.75,
+        color: _shoeHighlight,
+      ),
+    ),
+    const Bone(
+      id: CatBones.shoeHeelL,
+      parent: CatBones.footL,
+      pivotX: 0,
+      pivotY: 0,
+      z: 10,
+      drawable: BoneDrawable(
+        kind: BoneShapeKind.roundedRect,
+        width: 8,
+        height: 3.5,
+        dx: 4.5,
+        dy: 7.8,
+        cornerRadius: 1.75,
         color: _shoeHighlight,
       ),
     ),
@@ -743,7 +830,7 @@ RigSpec buildCatInSuitRig({
       id: CatBones.shirtV,
       parent: CatBones.chest,
       pivotX: 0,
-      pivotY: -32,
+      pivotY: -20,
       z: 13,
       restScaleY: -1,
       drawable: BoneDrawable(
@@ -767,7 +854,7 @@ RigSpec buildCatInSuitRig({
       id: CatBones.lapelL,
       parent: CatBones.clavicleL,
       pivotX: 19,
-      pivotY: -28,
+      pivotY: -16,
       z: 13,
       restRotation: 0.6,
       drawable: _tapered(18, 5, 42, _lapel, dy: 17),
@@ -776,7 +863,7 @@ RigSpec buildCatInSuitRig({
       id: CatBones.lapelR,
       parent: CatBones.clavicleR,
       pivotX: -19,
-      pivotY: -28,
+      pivotY: -16,
       z: 13,
       restRotation: -0.6,
       drawable: _tapered(18, 5, 42, _lapel, dy: 17),
@@ -790,7 +877,7 @@ RigSpec buildCatInSuitRig({
       id: CatBones.collarL,
       parent: CatBones.clavicleL,
       pivotX: 24,
-      pivotY: -32,
+      pivotY: -18,
       z: 13,
       restRotation: 0.5,
       drawable: _tapered(15, 4, 26, _shirt, dy: 11, celShade: false),
@@ -799,7 +886,7 @@ RigSpec buildCatInSuitRig({
       id: CatBones.collarR,
       parent: CatBones.clavicleR,
       pivotX: -24,
-      pivotY: -32,
+      pivotY: -18,
       z: 13,
       restRotation: -0.5,
       drawable: _tapered(15, 4, 26, _shirt, dy: 11, celShade: false),
@@ -812,7 +899,7 @@ RigSpec buildCatInSuitRig({
       id: CatBones.tie,
       parent: CatBones.chest,
       pivotX: 0,
-      pivotY: -24,
+      pivotY: -20,
       z: 14,
       drawable: BoneDrawable(
         kind: BoneShapeKind.taperedCapsule,
@@ -1122,10 +1209,13 @@ RigSpec buildCatInSuitRig({
         // A real (if mostly collar-hidden) fur link: wide and tall enough
         // that the head's follow-through lag reads as a neck flexing, not as
         // the skull separating from the collar.
-        width: 15,
-        height: 17,
-        dy: -6,
-        cornerRadius: 7,
+        // Spans from behind the skull DOWN past the jacket crown: the fur
+        // column must bridge chin → collar with overlap at both ends, or the
+        // head reads as detached the moment it follows through laterally.
+        width: 18,
+        height: 24,
+        dy: -3,
+        cornerRadius: 9,
         color: palette.furDark,
         outlineColor: _outline,
         outlineWidth: 1.4,
@@ -1223,7 +1313,12 @@ RigSpec buildCatInSuitRig({
       // Tailored athletic trouser profile: enough thigh mass to feel strong,
       // a decisive knee pinch, a fitted calf, then a narrow ankle. Keep it lean
       // rather than bodybuilder-wide so the dance reads agile in quarter view.
-      halfWidths: scaledLegWidths(const [12.8, 11.6, 8.8, 9.8, 5.9]),
+      // FRONT profile: the quad carries the thigh mass and holds it almost
+      // to the knee; the shin's front is near-straight (bone, not muscle).
+      halfWidths: scaledLegWidths(const [12.6, 12.6, 8.6, 8.6, 5.5]),
+      // BACK profile: hamstring eases off the seat, then the CALF bulge —
+      // the S-curve that reads athletic where a symmetric tube reads stuffed.
+      backHalfWidths: scaledLegWidths(const [12.6, 10.2, 8.2, 11.0, 5.3]),
       z: 3,
       color: _trouserRear,
       outlineColor: _outline,
@@ -1240,7 +1335,12 @@ RigSpec buildCatInSuitRig({
         CatBones.footL,
       ],
       hiddenBoneIds: const [CatBones.legUpperL, CatBones.legLowerL],
-      halfWidths: scaledLegWidths(const [12.8, 11.6, 8.8, 9.8, 5.9]),
+      // FRONT profile: the quad carries the thigh mass and holds it almost
+      // to the knee; the shin's front is near-straight (bone, not muscle).
+      halfWidths: scaledLegWidths(const [12.6, 12.6, 8.6, 8.6, 5.5]),
+      // BACK profile: hamstring eases off the seat, then the CALF bulge —
+      // the S-curve that reads athletic where a symmetric tube reads stuffed.
+      backHalfWidths: scaledLegWidths(const [12.6, 10.2, 8.2, 11.0, 5.3]),
       z: 6,
       color: _trouser,
       outlineColor: _outline,

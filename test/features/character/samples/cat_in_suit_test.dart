@@ -393,17 +393,76 @@ void main() {
       expect(cuff.width, greaterThanOrEqualTo(18));
     });
 
-    test('shoes carry a subtle sole edge for footwork readability', () {
-      expect(rig.bone(CatBones.shoeHighlightL)?.parent, CatBones.footL);
-      expect(rig.bone(CatBones.shoeHighlightR)?.parent, CatBones.footR);
-      expect(rig.bone(CatBones.shoeHighlightL)?.drawable?.width, 25);
-      expect(
-        rig.bone(CatBones.shoeHighlightL)?.drawable?.width,
-        lessThan(rig.bone(CatBones.footL)?.drawable?.width ?? 0),
-      );
-      // A wider but still subtle sole edge, NOT a bright strip that reads as a
-      // skeletal mark in the stage-lit shoe.
-      expect(rig.bone(CatBones.shoeHighlightR)?.drawable?.color, 0xFF3C4058);
+    test('legs carry an asymmetric muscle profile', () {
+      for (final id in const ['leg.L.ribbon', 'leg.R.ribbon']) {
+        final leg = rig.ribbons.singleWhere((r) => r.id == id);
+        final front = leg.halfWidths;
+        final back = leg.backHalfWidths!;
+        // [hip, quad, knee, calf, ankle]
+        expect(
+          front[1],
+          greaterThan(back[1]),
+          reason: 'the QUAD bulges on the front of the thigh',
+        );
+        expect(
+          back[3],
+          greaterThan(front[3]),
+          reason: 'the CALF bulges on the back of the shin',
+        );
+        expect(
+          front[2] + back[2],
+          lessThan(front[1] + back[1]),
+          reason: 'the knee pinches between thigh and calf masses',
+        );
+        expect(
+          front[4] + back[4],
+          lessThan(front[3] + back[3]),
+          reason: 'the ankle tapers hard out of the calf',
+        );
+      }
+    });
+
+    test('shoes read as dress shoes: toe cap and split sole', () {
+      for (final side in const [
+        (
+          foot: CatBones.footL,
+          toe: CatBones.shoeToeL,
+          sole: CatBones.shoeHighlightL,
+          heel: CatBones.shoeHeelL,
+        ),
+        (
+          foot: CatBones.footR,
+          toe: CatBones.shoeToeR,
+          sole: CatBones.shoeHighlightR,
+          heel: CatBones.shoeHeelR,
+        ),
+      ]) {
+        final last = rig.bone(side.foot)!.drawable!;
+        final toe = rig.bone(side.toe)!;
+        final sole = rig.bone(side.sole)!;
+        final heel = rig.bone(side.heel)!;
+        for (final part in [toe, sole, heel]) {
+          expect(part.parent, side.foot);
+        }
+        // The lighter cap-toe plane peeks past the front of the last.
+        expect(toe.drawable!.color, isNot(last.color));
+        expect(
+          toe.drawable!.dx - toe.drawable!.width / 2,
+          lessThan(last.dx - last.width / 2 + 2),
+          reason: 'the toe cap must round the very front of the last',
+        );
+        // Split sole line: a front pad and a heel strip with an ARCH GAP —
+        // the gap is what turns a flat bar into a heeled dress sole.
+        final padRear = sole.drawable!.dx + sole.drawable!.width / 2;
+        final heelFront = heel.drawable!.dx - heel.drawable!.width / 2;
+        expect(
+          heelFront - padRear,
+          greaterThanOrEqualTo(4),
+          reason: 'the arch gap between sole pad and heel must stay open',
+        );
+        expect(sole.drawable!.color, heel.drawable!.color);
+        expect(sole.drawable!.width, lessThan(last.width));
+      }
     });
 
     test('the sole edge never lowers the shoe contact point', () {
@@ -413,6 +472,10 @@ void main() {
       for (final pair in const [
         (CatBones.footR, CatBones.shoeHighlightR),
         (CatBones.footL, CatBones.shoeHighlightL),
+        (CatBones.footR, CatBones.shoeToeR),
+        (CatBones.footL, CatBones.shoeToeL),
+        (CatBones.footR, CatBones.shoeHeelR),
+        (CatBones.footL, CatBones.shoeHeelL),
       ]) {
         final shoe = rig.bone(pair.$1)!.drawable!;
         final welt = rig.bone(pair.$2)!.drawable!;
@@ -511,7 +574,11 @@ void main() {
 
       expect(
         base.ribbons.singleWhere((r) => r.id == 'leg.L.ribbon').halfWidths,
-        const [12.8, 11.6, 8.8, 9.8, 5.9],
+        const [12.6, 12.6, 8.6, 8.6, 5.5],
+      );
+      expect(
+        base.ribbons.singleWhere((r) => r.id == 'leg.L.ribbon').backHalfWidths,
+        const [12.6, 10.2, 8.2, 11.0, 5.3],
       );
       final baseArm = base.ribbons.singleWhere((r) => r.id == 'arm.L.ribbon');
       final farArm = far.ribbons.singleWhere((r) => r.id == 'arm.L.ribbon');
@@ -522,6 +589,10 @@ void main() {
       }
       for (var i = 0; i < baseLeg.halfWidths.length; i++) {
         expect(farLeg.halfWidths[i], closeTo(baseLeg.halfWidths[i] * upstage, 0.001));
+        expect(
+          farLeg.backHalfWidths![i],
+          closeTo(baseLeg.backHalfWidths![i] * upstage, 0.001),
+        );
       }
       // The paw follows its limb ("hands too") — the pad, cuff, and toes scale
       // with the arm so an upstage cat does not wave front-plane mitts.

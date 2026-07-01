@@ -426,6 +426,7 @@ class CharacterRenderer {
     return limbRibbonPath(
       spine,
       ribbon.halfWidths,
+      backHalfWidths: ribbon.backHalfWidths,
       samplesPerSegment: ribbon.samplesPerSegment,
       roundCaps: ribbon.roundCaps,
     );
