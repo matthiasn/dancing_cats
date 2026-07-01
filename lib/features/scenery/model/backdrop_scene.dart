@@ -250,6 +250,19 @@ class BackdropScene {
             depth: _depthYacht,
           ),
         ),
+        // Aerial-perspective haze / dusk smog: a cool veil rising off the art
+        // horizon that dissolves the distant city + yacht bases into twilight air
+        // so the midground recedes behind the sharp, un-hazed deck + trio — the
+        // atmosphere the flat de-baked plates otherwise lack. Sits over the
+        // structures/lights but under the foreground deck.
+        ParallaxLayer(
+          AtmosphericHazeLayer(
+            waterline: 0.44,
+            strength: 0.42,
+            skyReach: 0.26,
+          ),
+          depth: _depthCity,
+        ),
         // The deck the cast stands on. A cool, desaturating modulate lets the
         // warm wood catch the cool dusk field away from the lantern instead of
         // running hot against everything else.

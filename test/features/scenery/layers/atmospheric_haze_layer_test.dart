@@ -140,5 +140,19 @@ void main() {
         expect(blueBias(cool), greaterThan(blueBias(warm)));
       });
     });
+
+    testWidgets('an explicit waterline overrides the manifest horizon', (
+      tester,
+    ) async {
+      await tester.runAsync(() async {
+        // Pin the band well above the manifest waterline (0.515). The veil now
+        // peaks at the overridden horizon and leaves the manifest row clear.
+        final bytes = await _renderOverBlack(
+          const AtmosphericHazeLayer(waterline: 0.3),
+        );
+        expect(_at(bytes, _w ~/ 2, (0.3 * _h).round()).b, greaterThan(0));
+        expect(_at(bytes, _w ~/ 2, (0.515 * _h).round()).b, 0);
+      });
+    });
   });
 }

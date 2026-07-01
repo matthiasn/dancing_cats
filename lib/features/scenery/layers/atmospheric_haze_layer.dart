@@ -35,7 +35,13 @@ class AtmosphericHazeLayer implements BackdropLayer {
     this.paleLift = 0.4,
     this.skyReach = 0.18,
     this.waterReach = 0.04,
+    this.waterline,
   });
+
+  /// Normalized art-space y of the horizon the band pins to. Null uses the
+  /// [SkylineManifest]'s waterline (the baked-plate scene); the de-baked scene,
+  /// which sets no manifest, passes its own art horizon explicitly.
+  final double? waterline;
 
   /// Peak veil opacity at the waterline (0 = none).
   final double strength;
@@ -67,13 +73,14 @@ class AtmosphericHazeLayer implements BackdropLayer {
     final size = ctx.size;
     if (size.isEmpty || strength <= 0) return;
     final palette = ctx.palette;
-    final waterline = (ctx.manifest ?? kPlaceholderSkylineManifest).waterline;
+    final horizon =
+        waterline ?? (ctx.manifest ?? kPlaceholderSkylineManifest).waterline;
     final cover = coverFit(size);
 
     // Map the normalized art waterline + reaches into screen space through the
     // SAME cover-fit the plate/ocean use, so the band tracks the painted horizon
     // at any viewport aspect.
-    final waterY = cover.top + waterline * cover.height;
+    final waterY = cover.top + horizon * cover.height;
     final topY = waterY - skyReach * cover.height;
     final botY = waterY + waterReach * cover.height;
 

@@ -177,12 +177,23 @@ void main() {
       throw StateError('no ParallaxLayer for $assetKey');
     }
 
-    test('every background layer is a de-baked image on a parallax plane', () {
+    test('every background layer rides a parallax plane', () {
       final scene = BackdropScene.lagosLayeredWaterfront();
       expect(scene.layers, isNotEmpty);
       for (final l in scene.layers) {
-        expect(imageOf(l), isNotNull);
+        // Either a de-baked image (normal or emissive) or the atmospheric haze,
+        // but always on a depth-assigning ParallaxLayer.
+        final inner = l is EmissiveLayer ? l.child : l;
+        expect(inner, isA<ParallaxLayer>());
       }
+    });
+
+    test('a dusk haze veils the distant structures (mist / smog)', () {
+      final hasHaze = BackdropScene.lagosLayeredWaterfront().layers.any((l) {
+        final inner = l is EmissiveLayer ? l.child : l;
+        return inner is ParallaxLayer && inner.child is AtmosphericHazeLayer;
+      });
+      expect(hasHaze, isTrue);
     });
 
     test('composites base -> city -> yacht -> deck -> palms, front to back', () {
