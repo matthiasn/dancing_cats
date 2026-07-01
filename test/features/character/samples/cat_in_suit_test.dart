@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:dancing_cats/features/character/model/clip.dart';
+import 'package:dancing_cats/features/character/model/rig_spec.dart';
 import 'package:dancing_cats/features/character/runtime/character_scene.dart';
 import 'package:dancing_cats/features/character/samples/cat_in_suit.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -45,6 +46,8 @@ void main() {
     test('shoulder controls break up the jacket shell', () {
       final clavicleL = rig.bone(CatBones.clavicleL);
       final clavicleR = rig.bone(CatBones.clavicleR);
+      final socketL = rig.bone(CatBones.shoulderSocketL);
+      final socketR = rig.bone(CatBones.shoulderSocketR);
       expect(clavicleL?.parent, CatBones.torso);
       expect(clavicleR?.parent, CatBones.torso);
       expect(clavicleL?.drawable, isNull);
@@ -52,6 +55,12 @@ void main() {
       expect(clavicleL?.pivotX, -clavicleR!.pivotX);
       expect(clavicleL?.pivotY, clavicleR.pivotY);
 
+      expect(socketL?.parent, CatBones.clavicleL);
+      expect(socketR?.parent, CatBones.clavicleR);
+      expect(socketL?.drawable, isNotNull);
+      expect(socketR?.drawable, isNotNull);
+      expect(socketL?.z, lessThan(rig.bone(CatBones.armUpperL)!.z));
+      expect(socketR?.z, lessThan(rig.bone(CatBones.armUpperR)!.z));
       expect(rig.bone(CatBones.armUpperL)?.parent, CatBones.clavicleL);
       expect(rig.bone(CatBones.armUpperR)?.parent, CatBones.clavicleR);
       expect(rig.bone(CatBones.lapelL)?.parent, CatBones.clavicleL);
@@ -85,6 +94,114 @@ void main() {
           contains(CatBones.clavicleR),
           reason: 'right jacket shoulder vertex $index should deform with R',
         );
+      }
+    });
+
+    test('arm meshes blend shoulder sockets into the arm chain', () {
+      for (final side in const [
+        (
+          meshId: 'arm.L.mesh',
+          clavicle: CatBones.clavicleL,
+          socket: CatBones.shoulderSocketL,
+          upper: CatBones.armUpperL,
+          bicep: CatBones.armBicepL,
+          lower: CatBones.armLowerL,
+          forearm: CatBones.armForearmL,
+          hand: CatBones.handL,
+          crease: CatBones.armElbowCreaseL,
+        ),
+        (
+          meshId: 'arm.R.mesh',
+          clavicle: CatBones.clavicleR,
+          socket: CatBones.shoulderSocketR,
+          upper: CatBones.armUpperR,
+          bicep: CatBones.armBicepR,
+          lower: CatBones.armLowerR,
+          forearm: CatBones.armForearmR,
+          hand: CatBones.handR,
+          crease: CatBones.armElbowCreaseR,
+        ),
+      ]) {
+        final mesh = rig.meshes.singleWhere((m) => m.id == side.meshId);
+        final socket = rig.bone(side.socket)!;
+        final upper = rig.bone(side.upper)!;
+
+        expect(socket.parent, side.clavicle);
+        expect(upper.parent, side.clavicle);
+        expect(upper.pivotX, 0);
+        expect(upper.pivotY, 0);
+        expect(
+          mesh.hiddenBoneIds,
+          containsAll([
+            side.socket,
+            side.upper,
+            side.bicep,
+            side.lower,
+            side.forearm,
+            side.crease,
+          ]),
+        );
+        expect(
+          mesh.vertices.take(2).expand((v) => v.influences).map((i) {
+            return i.boneId;
+          }),
+          containsAll([side.clavicle, side.socket, side.upper]),
+          reason:
+              '${side.meshId} shoulder cap must be weighted across clavicle, '
+              'socket, and upper arm instead of beginning as a detached strip',
+        );
+        expect(
+          mesh.vertices.expand((v) => v.influences).map((i) => i.boneId),
+          containsAll([side.bicep, side.lower, side.forearm, side.hand]),
+        );
+        expect(
+          _maxAbsLocalX(mesh.vertices.first),
+          greaterThanOrEqualTo(socket.drawable!.width * 0.55),
+          reason:
+              '${side.meshId} must overlap the shoulder cap enough that the '
+              'sleeve cannot render as a loose appendage',
+        );
+      }
+    });
+
+    test('paired background cats use the same attached arm meshes', () {
+      for (final rig in [
+        buildCatInSuitRig(palette: CatInSuitPalette.silverTabby),
+        buildCatInSuitRig(palette: CatInSuitPalette.darkBrown),
+      ]) {
+        expect(
+          rig.ribbons.map((ribbon) => ribbon.id),
+          isNot(
+            contains('arm.L.ribbon'),
+          ),
+        );
+        expect(
+          rig.ribbons.map((ribbon) => ribbon.id),
+          isNot(
+            contains('arm.R.ribbon'),
+          ),
+        );
+        for (final side in const [
+          (
+            meshId: 'arm.L.mesh',
+            socket: CatBones.shoulderSocketL,
+            upper: CatBones.armUpperL,
+          ),
+          (
+            meshId: 'arm.R.mesh',
+            socket: CatBones.shoulderSocketR,
+            upper: CatBones.armUpperR,
+          ),
+        ]) {
+          final mesh = rig.meshes.singleWhere((mesh) => mesh.id == side.meshId);
+          expect(mesh.hiddenBoneIds, containsAll([side.socket, side.upper]));
+          expect(
+            mesh.vertices.expand((v) => v.influences).map((i) => i.boneId),
+            containsAll([side.socket, side.upper]),
+            reason:
+                '${side.meshId} must be socket-weighted on backup palettes too',
+          );
+        }
       }
     });
 
@@ -134,70 +251,77 @@ void main() {
       }
     });
 
-    test('sleeve values separate crossed arms from the jacket shell', () {
+    test('sleeve values stay in the same suit fabric family', () {
       final torso = rig.bone(CatBones.torso)!.drawable!.color;
-      final farSleeve = rig.ribbons
-          .singleWhere((ribbon) => ribbon.id == 'arm.R.ribbon')
+      final farSleeve = rig.meshes
+          .singleWhere((mesh) => mesh.id == 'arm.R.mesh')
           .color;
-      final nearSleeve = rig.ribbons
-          .singleWhere((ribbon) => ribbon.id == 'arm.L.ribbon')
+      final nearSleeve = rig.meshes
+          .singleWhere((mesh) => mesh.id == 'arm.L.mesh')
           .color;
 
       expect(
-        _luma(farSleeve) - _luma(torso),
-        greaterThan(24),
+        (_luma(farSleeve) - _luma(torso)).abs(),
+        lessThan(10),
         reason:
-            'the far sleeve must not melt into the navy jacket during Shaku '
-            'crosses',
+            'sleeves should read as the same navy suit fabric, not a separate '
+            'purple arm material',
       );
       expect(
         _luma(nearSleeve) - _luma(farSleeve),
-        greaterThan(14),
+        inInclusiveRange(4, 14),
         reason:
-            'near and far sleeves need a value step so crossed forearms read '
-            'as two separate limbs',
+            'near/far sleeve value can help depth, but not enough to look like '
+            'different fabric',
       );
     });
 
     test('sleeves keep a heroic taper instead of a sausage tube', () {
-      final arm = rig.ribbons.singleWhere((ribbon) {
-        return ribbon.id == 'arm.L.ribbon';
-      });
+      final arm = rig.meshes.singleWhere((mesh) => mesh.id == 'arm.L.mesh');
       final cuff = rig.bone(CatBones.wristCuffL)!.drawable!;
       final hand = rig.bone(CatBones.handL)!.drawable!;
 
+      expect(arm.boundary, hasLength(12));
+      expect(arm.formRound, isFalse);
+      expect(arm.outlineWidth, greaterThanOrEqualTo(2));
       expect(
-        arm.jointBoneIds,
-        const [
+        arm.hiddenBoneIds,
+        containsAll([
+          CatBones.shoulderSocketL,
           CatBones.armUpperL,
           CatBones.armBicepL,
           CatBones.armLowerL,
           CatBones.armForearmL,
-          CatBones.handL,
-        ],
+          CatBones.armElbowCreaseL,
+        ]),
       );
-      expect(arm.halfWidths, const [9.8, 13.0, 7.6, 10.4, 6.4]);
-      expect(arm.formRound, isFalse);
-      expect(arm.roundCaps, isFalse);
-      expect(arm.halfWidths[1], greaterThan(arm.halfWidths.first));
+      expect(_maxAbsLocalX(arm.vertices[0]), greaterThan(13));
+      expect(_maxAbsLocalX(arm.vertices[2]), greaterThan(10));
       expect(
-        arm.halfWidths[2],
-        lessThan(arm.halfWidths[1] * 0.65),
+        _maxAbsLocalX(arm.vertices[3]),
+        lessThan(_maxAbsLocalX(arm.vertices[2]) * 0.5),
         reason:
             'the elbow should pinch below the bicep mass without becoming a '
             'thin hinge',
       );
       expect(
-        arm.halfWidths.last,
-        lessThan(arm.halfWidths[3] * 0.7),
+        _maxAbsLocalX(arm.vertices[5]),
+        lessThan(_maxAbsLocalX(arm.vertices[4]) * 0.7),
         reason:
             'the wrist should taper after the forearm while still connecting to '
             'the larger paw/cuff',
       );
       expect(
-        arm.halfWidths[3],
-        greaterThan(arm.halfWidths[2] * 1.25),
+        _maxAbsLocalX(arm.vertices[4]),
+        greaterThan(_maxAbsLocalX(arm.vertices[3]) * 1.5),
         reason: 'the forearm should wedge back out after the elbow pinch',
+      );
+      expect(
+        _maxAbsLocalX(arm.vertices[9]),
+        lessThan(_maxAbsLocalX(arm.vertices[2])),
+        reason:
+            'the inner bicep edge should be flatter than the outer shoulder '
+            'bulge, avoiding a constant-width tube',
       );
       expect(hand.width, greaterThan(22));
       expect(hand.height, greaterThan(20));
@@ -249,8 +373,6 @@ void main() {
           'tail.ribbon',
           'leg.L.ribbon',
           'leg.R.ribbon',
-          'arm.L.ribbon',
-          'arm.R.ribbon',
         ]),
       );
       expect(
@@ -260,6 +382,8 @@ void main() {
           'jacket.side.L',
           'jacket.side.R',
           'hips.mesh',
+          'arm.L.mesh',
+          'arm.R.mesh',
         ]),
       );
       expect(rig.ribbonHiddenBoneIds, contains(CatBones.tail3));
@@ -308,8 +432,8 @@ void main() {
 
       final baseLeg = base.ribbons.singleWhere((r) => r.id == 'leg.L.ribbon');
       final leadLeg = lead.ribbons.singleWhere((r) => r.id == 'leg.L.ribbon');
-      final baseArm = base.ribbons.singleWhere((r) => r.id == 'arm.L.ribbon');
-      final leadArm = lead.ribbons.singleWhere((r) => r.id == 'arm.L.ribbon');
+      final baseArm = base.meshes.singleWhere((m) => m.id == 'arm.L.mesh');
+      final leadArm = lead.meshes.singleWhere((m) => m.id == 'arm.L.mesh');
       final baseTail = base.ribbons.singleWhere((r) => r.id == 'tail.ribbon');
       final leadTail = lead.ribbons.singleWhere((r) => r.id == 'tail.ribbon');
 
@@ -332,21 +456,26 @@ void main() {
         greaterThan(leadLeg.halfWidths[2]),
         reason: 'the calf must bulge past the knee dip',
       );
-      expect(baseArm.halfWidths, const [9.8, 13.0, 7.6, 10.4, 6.4]);
       expect(
-        leadArm.halfWidths[1],
-        closeTo(13.0 * kDanceLeadArmWidthScale, 0.001),
+        _maxAbsLocalX(leadArm.vertices[2]),
+        closeTo(
+          _maxAbsLocalX(baseArm.vertices[2]) * kDanceLeadArmWidthScale,
+          0.001,
+        ),
       );
       expect(
-        leadArm.halfWidths[2],
-        lessThan(leadArm.halfWidths[1] * 0.65),
+        _maxAbsLocalX(leadArm.vertices[3]),
+        lessThan(_maxAbsLocalX(leadArm.vertices[2]) * 0.5),
         reason:
             'the elbow valley should keep crossed arms readable without '
             'becoming stringy',
       );
       expect(
-        leadArm.halfWidths[3],
-        closeTo(10.4 * kDanceLeadArmWidthScale, 0.001),
+        _maxAbsLocalX(leadArm.vertices[4]),
+        closeTo(
+          _maxAbsLocalX(baseArm.vertices[4]) * kDanceLeadArmWidthScale,
+          0.001,
+        ),
       );
       expect(leadTail.halfWidths, baseTail.halfWidths);
     });
@@ -493,6 +622,46 @@ void main() {
             'ear flicks must stay subtle enough that the deep bases remain '
             'hidden behind the crown',
       );
+    });
+
+    test('catalogue arms stay seated in their shoulder sockets', () {
+      final scene = CharacterScene(buildCatInSuitRig());
+      for (final clip in [
+        CatClips.shaku,
+        CatClips.zanku,
+        CatClips.buga,
+        CatClips.sekem,
+      ]) {
+        for (var frame = 0; frame <= 32; frame++) {
+          final sample = scene.frameAt(
+            clip: clip,
+            timeSeconds: clip.duration * frame / 32,
+          );
+          for (final side in const [
+            (
+              socket: CatBones.shoulderSocketL,
+              upper: CatBones.armUpperL,
+            ),
+            (
+              socket: CatBones.shoulderSocketR,
+              upper: CatBones.armUpperR,
+            ),
+          ]) {
+            final socket = sample.world[side.socket]!.origin;
+            final upper = sample.world[side.upper]!.origin;
+            final dx = socket.x - upper.x;
+            final dy = socket.y - upper.y;
+            final distance = math.sqrt(dx * dx + dy * dy);
+            expect(
+              distance,
+              lessThan(7),
+              reason:
+                  '${clip.name} frame $frame ${side.upper} must stay seated '
+                  'inside the clavicle-owned shoulder cap',
+            );
+          }
+        }
+      }
     });
 
     test(
@@ -1935,6 +2104,9 @@ double _luma(int argb) {
   final b = argb & 0xFF;
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
+
+double _maxAbsLocalX(SkinnedMeshVertex vertex) =>
+    vertex.influences.map((influence) => influence.x.abs()).reduce(math.max);
 
 double _targetDistance(IkTargetChannel channel, int fromFrame, int toFrame) {
   final from = channel.sample(fromFrame / CatClips.dancePhrase.frameCount);

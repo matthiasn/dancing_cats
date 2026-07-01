@@ -357,7 +357,10 @@ CharacterPainter danceCharacterPainter({
   memberBacklights: backlights,
   bodyGrade: useNewBackdrop ? kDanceBodyGrade : null,
   heroStaging: useNewBackdrop,
-  danceViewProjection: useNewBackdrop,
+  // danceViewProjection intentionally stays at the painter default (false):
+  // front-lock the shipped trio while the arm/shoulder mesh is being rebuilt.
+  // The projection review path still exists for explicit strips, but the app
+  // should not add quarter-turn distortion during limb-attachment review.
   renderer: renderer,
 );
 

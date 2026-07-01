@@ -18,14 +18,8 @@ import 'package:dancing_cats/features/character/model/rig_spec.dart';
 // colours in the rig art (plan decision D6 — no design-system colour tokens).
 const int _suit = 0xFF2E3A59; // navy jacket (torso)
 const int _suitShadow = 0xFF25304B; // side tailoring that breaks the shell read
-const int _sleeve =
-    0xFF435783; // FAR (right) jacket sleeve — a lighter navy so the arm reads
-// as a distinct limb when it crosses over the same-navy torso (e.g. the Shaku
-// crossed-X), instead of melting in and leaving the paws floating.
-const int _sleeveNear =
-    0xFF586D9A; // NEAR (left) sleeve — lighter still. The left arm draws on top
-// (z16/17 > right z15/16), so a 3-step value gradient torso < far < near keeps
-// the two CROSSED forearms reading as two distinct arms, not one fused band.
+const int _sleeve = 0xFF28334F; // same navy fabric, far-side sleeve shade
+const int _sleeveNear = 0xFF324061; // same navy fabric, near-side sleeve shade
 const int _button = 0xFFAE955C; // muted brass placket button — a dark horn
 // button vanished on the navy front; a metal tone reads as a button line.
 const int _lapel = 0xFF5A6FA8; // jacket lapel — a CLEAR step lighter than the
@@ -129,6 +123,7 @@ class CatBones {
   static const earInnerL = 'ear_inner.L';
   static const earInnerR = 'ear_inner.R';
   static const armUpperL = 'arm_upper.L';
+  static const shoulderSocketL = 'shoulder_socket.L';
   static const armBicepL = 'arm_bicep.L';
   static const armLowerL = 'arm_lower.L';
   static const armForearmL = 'arm_forearm.L';
@@ -139,6 +134,7 @@ class CatBones {
   static const pawToeL1 = 'paw_toe1.L';
   static const pawToeL2 = 'paw_toe2.L';
   static const armUpperR = 'arm_upper.R';
+  static const shoulderSocketR = 'shoulder_socket.R';
   static const armBicepR = 'arm_bicep.R';
   static const armLowerR = 'arm_lower.R';
   static const armForearmR = 'arm_forearm.R';
@@ -482,8 +478,26 @@ RigSpec buildCatInSuitRig({
         outlineWidth: 2,
       ),
     ),
-    // Far (right) arm controls. The ribbon renderer hides these rigid segments
-    // and draws one bendy arm surface through shoulder→elbow→wrist.
+    // Far (right) arm controls. The skinned sleeve mesh hides these rigid
+    // controls and draws one bendy surface through shoulder→elbow→wrist.
+    Bone(
+      id: CatBones.shoulderSocketR,
+      parent: CatBones.clavicleR,
+      pivotX: 0,
+      pivotY: 4,
+      z: 14,
+      restRotation: -0.14,
+      drawable: _tapered(
+        26,
+        19,
+        24,
+        _sleeve,
+        dy: 2,
+        outlineWidth: 0,
+        formRound: false,
+        celShade: false,
+      ),
+    ),
     Bone(
       id: CatBones.armUpperR,
       parent: CatBones.clavicleR,
@@ -829,6 +843,24 @@ RigSpec buildCatInSuitRig({
     ),
     // Near (left) arm.
     Bone(
+      id: CatBones.shoulderSocketL,
+      parent: CatBones.clavicleL,
+      pivotX: 0,
+      pivotY: 4,
+      z: 15,
+      restRotation: 0.14,
+      drawable: _tapered(
+        26,
+        19,
+        24,
+        _sleeveNear,
+        dy: 2,
+        outlineWidth: 0,
+        formRound: false,
+        celShade: false,
+      ),
+    ),
+    Bone(
       id: CatBones.armUpperL,
       parent: CatBones.clavicleL,
       pivotX: 0,
@@ -1098,10 +1130,6 @@ RigSpec buildCatInSuitRig({
   List<double> scaledLegWidths(List<double> widths) => [
     for (final width in widths) width * legWidthScale,
   ];
-  List<double> scaledArmWidths(List<double> widths) => [
-    for (final width in widths) width * armWidthScale,
-  ];
-
   final ribbons = <LimbRibbonSpec>[
     LimbRibbonSpec(
       id: 'tail.ribbon',
@@ -1166,61 +1194,156 @@ RigSpec buildCatInSuitRig({
       outlineWidth: 2,
       samplesPerSegment: 12,
     ),
-    LimbRibbonSpec(
-      id: 'arm.R.ribbon',
-      jointBoneIds: const [
-        CatBones.armUpperR,
-        CatBones.armBicepR,
-        CatBones.armLowerR,
-        CatBones.armForearmR,
-        CatBones.handR,
-      ],
-      hiddenBoneIds: const [
-        CatBones.armUpperR,
-        CatBones.armBicepR,
-        CatBones.armLowerR,
-        CatBones.armForearmR,
-        CatBones.armElbowCreaseR,
-      ],
-      // Lean superhero-cartoon sleeve: broad shoulder/bicep, a readable but not
-      // skeletal elbow valley, a fuller forearm wedge, then a fitted wrist. This
-      // keeps the arm attached and powerful without turning the cat into a
-      // bodybuilder or a constant-width tube.
-      halfWidths: scaledArmWidths(const [9.8, 13.0, 7.6, 10.4, 6.4]),
-      z: 15,
-      color: _sleeve,
-      outlineColor: _outline,
-      outlineWidth: 2,
-      samplesPerSegment: 12,
-      formRound: false,
-      roundCaps: false,
-    ),
-    LimbRibbonSpec(
-      id: 'arm.L.ribbon',
-      jointBoneIds: const [
-        CatBones.armUpperL,
-        CatBones.armBicepL,
-        CatBones.armLowerL,
-        CatBones.armForearmL,
-        CatBones.handL,
-      ],
-      hiddenBoneIds: const [
-        CatBones.armUpperL,
-        CatBones.armBicepL,
-        CatBones.armLowerL,
-        CatBones.armForearmL,
-        CatBones.armElbowCreaseL,
-      ],
-      halfWidths: scaledArmWidths(const [9.8, 13.0, 7.6, 10.4, 6.4]),
-      z: 16,
-      color: _sleeveNear,
-      outlineColor: _outline,
-      outlineWidth: 2,
-      samplesPerSegment: 12,
-      formRound: false,
-      roundCaps: false,
-    ),
   ];
+
+  SkinnedMeshSpec armSleeveMesh({
+    required String id,
+    required int side,
+    required String socket,
+    required String clavicle,
+    required String upper,
+    required String bicep,
+    required String lower,
+    required String forearm,
+    required String hand,
+    required String elbowCrease,
+    required int z,
+    required int color,
+  }) {
+    final s = side.toDouble();
+    final shoulderCapOuter = 15.2 * armWidthScale;
+    final shoulderCapInner = 10.0 * armWidthScale;
+    final bicepOuter = 11.6 * armWidthScale;
+    final bicepInner = 8.0 * armWidthScale;
+    final elbowOuter = 5.2 * armWidthScale;
+    final elbowInner = 4.2 * armWidthScale;
+    final forearmOuter = 8.9 * armWidthScale;
+    final forearmInner = 6.9 * armWidthScale;
+    final wristOuter = 5.7 * armWidthScale;
+    final wristInner = 4.8 * armWidthScale;
+
+    return SkinnedMeshSpec(
+      id: id,
+      vertices: [
+        SkinnedMeshVertex([
+          MeshInfluence(
+            boneId: clavicle,
+            x: s * 7,
+            y: -10,
+            weight: 0.58,
+          ),
+          MeshInfluence(
+            boneId: socket,
+            x: s * shoulderCapOuter,
+            y: -5,
+            weight: 0.32,
+          ),
+          MeshInfluence(
+            boneId: upper,
+            x: s * (shoulderCapOuter * 0.45),
+            y: 0,
+            weight: 0.1,
+          ),
+        ]),
+        SkinnedMeshVertex([
+          MeshInfluence(
+            boneId: socket,
+            x: s * shoulderCapOuter,
+            y: 9,
+            weight: 0.45,
+          ),
+          MeshInfluence(
+            boneId: upper,
+            x: s * (shoulderCapOuter * 0.76),
+            y: 10,
+            weight: 0.55,
+          ),
+        ]),
+        SkinnedMeshVertex([
+          MeshInfluence(boneId: bicep, x: s * bicepOuter, y: -2, weight: 1),
+        ]),
+        SkinnedMeshVertex([
+          MeshInfluence(boneId: lower, x: s * elbowOuter, y: -1, weight: 1),
+        ]),
+        SkinnedMeshVertex([
+          MeshInfluence(
+            boneId: forearm,
+            x: s * forearmOuter,
+            y: 2,
+            weight: 1,
+          ),
+        ]),
+        SkinnedMeshVertex([
+          MeshInfluence(boneId: hand, x: s * wristOuter, y: -12, weight: 1),
+        ]),
+        SkinnedMeshVertex([
+          MeshInfluence(boneId: hand, x: -s * wristInner, y: -12, weight: 1),
+        ]),
+        SkinnedMeshVertex([
+          MeshInfluence(
+            boneId: forearm,
+            x: -s * forearmInner,
+            y: 0,
+            weight: 1,
+          ),
+        ]),
+        SkinnedMeshVertex([
+          MeshInfluence(boneId: lower, x: -s * elbowInner, y: -1, weight: 1),
+        ]),
+        SkinnedMeshVertex([
+          MeshInfluence(boneId: bicep, x: -s * bicepInner, y: -3, weight: 1),
+        ]),
+        SkinnedMeshVertex([
+          MeshInfluence(
+            boneId: clavicle,
+            x: -s * 4,
+            y: 2,
+            weight: 0.36,
+          ),
+          MeshInfluence(
+            boneId: socket,
+            x: -s * shoulderCapInner,
+            y: 11,
+            weight: 0.38,
+          ),
+          MeshInfluence(
+            boneId: upper,
+            x: -s * (shoulderCapInner * 0.72),
+            y: 11,
+            weight: 0.26,
+          ),
+        ]),
+        SkinnedMeshVertex([
+          MeshInfluence(
+            boneId: clavicle,
+            x: -s * 2,
+            y: -9,
+            weight: 0.68,
+          ),
+          MeshInfluence(
+            boneId: socket,
+            x: -s * (shoulderCapInner * 0.62),
+            y: -3,
+            weight: 0.32,
+          ),
+        ]),
+      ],
+      boundary: const [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+      hiddenBoneIds: [
+        socket,
+        upper,
+        bicep,
+        lower,
+        forearm,
+        elbowCrease,
+      ],
+      z: z,
+      color: color,
+      outlineColor: _outline,
+      outlineWidth: 2.2,
+      formRound: false,
+    );
+  }
 
   final meshes = <SkinnedMeshSpec>[
     SkinnedMeshSpec(
@@ -1472,6 +1595,34 @@ RigSpec buildCatInSuitRig({
       z: 13,
       color: _suitShadow,
       formRound: false,
+    ),
+    armSleeveMesh(
+      id: 'arm.R.mesh',
+      side: 1,
+      socket: CatBones.shoulderSocketR,
+      clavicle: CatBones.clavicleR,
+      upper: CatBones.armUpperR,
+      bicep: CatBones.armBicepR,
+      lower: CatBones.armLowerR,
+      forearm: CatBones.armForearmR,
+      hand: CatBones.handR,
+      elbowCrease: CatBones.armElbowCreaseR,
+      z: 15,
+      color: _sleeve,
+    ),
+    armSleeveMesh(
+      id: 'arm.L.mesh',
+      side: -1,
+      socket: CatBones.shoulderSocketL,
+      clavicle: CatBones.clavicleL,
+      upper: CatBones.armUpperL,
+      bicep: CatBones.armBicepL,
+      lower: CatBones.armLowerL,
+      forearm: CatBones.armForearmL,
+      hand: CatBones.handL,
+      elbowCrease: CatBones.armElbowCreaseL,
+      z: 16,
+      color: _sleeveNear,
     ),
   ];
 
@@ -5453,12 +5604,18 @@ class CatClips {
     DanceIkTargetKey(32, x: 98, y: -10, ease: Ease.easeOutBack),
   ];
   static final IkTargetChannel _zankuHandLTarget = SoftenedIkTargetChannel(
-    _dancePhrase.ikTargetChannel(_zankuHandLTargetKeys, cyclic: true),
+    _dancePhrase.ikTargetChannel(
+      _zankuHandLTargetKeys,
+      cyclic: true,
+    ),
     radius: 0.45 / _dancePhrase.frameCount,
     cyclic: true,
   );
   static final IkTargetChannel _zankuHandRTarget = SoftenedIkTargetChannel(
-    _dancePhrase.ikTargetChannel(_zankuHandRTargetKeys, cyclic: true),
+    _dancePhrase.ikTargetChannel(
+      _zankuHandRTargetKeys,
+      cyclic: true,
+    ),
     radius: 0.45 / _dancePhrase.frameCount,
     cyclic: true,
   );

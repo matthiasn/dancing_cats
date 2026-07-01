@@ -186,6 +186,26 @@ void main() {
     });
   });
 
+  group('danceCharacterPainter', () {
+    test('front-locks the shipped trio while arm attachment is reviewed', () {
+      final painter = danceCharacterPainter(
+        cast: DanceCast.build(),
+        renderer: CharacterRenderer(antiAlias: false),
+        stage: _perf().stageAt(2),
+        shot: (zoom: 1.0, dx: 0.0, dy: 0.0),
+        leadMouth: 0.4,
+        bgMouth: 0.2,
+        leadShape: MouthShape.smileOpen,
+        bgShape: MouthShape.neutral,
+        scale: 1,
+        backlights: const [],
+      );
+
+      expect(painter.heroStaging, isTrue);
+      expect(painter.danceViewProjection, isFalse);
+    });
+  });
+
   group('DanceStageView widget', () {
     testWidgets('pumps the live stage (new backdrop + captions) cleanly', (
       tester,
