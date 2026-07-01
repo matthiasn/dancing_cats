@@ -12,6 +12,7 @@ import 'package:dancing_cats/features/character/model/face.dart';
 import 'package:dancing_cats/features/character/model/pose.dart';
 import 'package:dancing_cats/features/character/model/rig_spec.dart';
 import 'package:dancing_cats/features/character/runtime/dance_timing.dart';
+import 'package:dancing_cats/features/character/runtime/pose_modifier_stack.dart';
 
 /// One fully-resolved frame: world transforms for every bone, the face state to
 /// draw, and how far the character has travelled (locomotion). Everything the
@@ -40,13 +41,49 @@ class CharacterFrame {
 class CharacterScene {
   CharacterScene(this.rig, {AutonomicLayer? autonomic})
     : solver = SkeletonSolver(rig),
-      autonomic = autonomic ?? AutonomicLayer();
+      autonomic = autonomic ?? AutonomicLayer() {
+    _poseModifierStack = PoseModifierStack([
+      PoseModifierPass(
+        id: 'breath',
+        description: 'Add subtle autonomic breathing to the root.',
+        modifier: (context, pose) => _breathingPose(context.breath, pose),
+      ),
+      PoseModifierPass(
+        id: 'support-balance',
+        description: 'Bias the pelvis back inside the declared support foot.',
+        modifier: (context, pose) =>
+            _supportBalancedPose(context.clip, context.timeSeconds, pose),
+      ),
+      PoseModifierPass(
+        id: 'shoulder-girdle',
+        description: 'Engage clavicle, socket, and bicep volume before IK.',
+        modifier: (context, pose) =>
+            _shoulderCorrectedPose(context.clip, context.timeSeconds, pose),
+      ),
+      PoseModifierPass(
+        id: 'limb-ik',
+        description: 'Solve hand and foot two-bone IK targets.',
+        modifier: (context, pose) =>
+            _limbTargetedPose(context.clip, context.timeSeconds, pose),
+      ),
+      PoseModifierPass(
+        id: 'contact-lock',
+        description: 'Apply final support contact root correction.',
+        modifier: (context, pose) =>
+            _contactLockedPose(context.clip, context.timeSeconds, pose),
+      ),
+    ]);
+  }
 
   final RigSpec rig;
   final SkeletonSolver solver;
   final ClipEvaluator evaluator = const ClipEvaluator();
   final FaceSolver faceSolver = const FaceSolver();
   final AutonomicLayer autonomic;
+  late final PoseModifierStack _poseModifierStack;
+
+  /// Local-space pose modifier passes in solve order.
+  List<PoseModifierPass> get poseModifierPasses => _poseModifierStack.passes;
 
   /// Memoized foot-lock offset tables, keyed by clip name (built once per clip).
   final Map<String, _LocoTable> _locoTables = {};
@@ -241,18 +278,22 @@ class CharacterScene {
     required double breath,
   }) {
     final pose = evaluator.evaluate(clip, timeSeconds);
+    final context = PoseModifierContext(
+      clip: clip,
+      timeSeconds: timeSeconds,
+      breath: breath,
+    );
+    return _poseModifierStack.apply(context, pose);
+  }
 
-    // Breathing nudges the whole body subtly, even mid-walk.
-    final breathed = Pose(
+  Pose _breathingPose(double breath, Pose pose) {
+    if (breath == 0) return pose;
+    return Pose(
       joints: pose.joints,
       rootDx: pose.rootDx,
       rootDy: pose.rootDy + breath * 1.4,
       rootRotation: pose.rootRotation,
     );
-    final balanced = _supportBalancedPose(clip, timeSeconds, breathed);
-    final shouldered = _shoulderCorrectedPose(clip, timeSeconds, balanced);
-    final targeted = _limbTargetedPose(clip, timeSeconds, shouldered);
-    return _contactLockedPose(clip, timeSeconds, targeted);
   }
 
   Pose _shoulderCorrectedPose(Clip clip, double timeSeconds, Pose pose) {

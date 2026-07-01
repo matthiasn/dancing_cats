@@ -70,6 +70,32 @@ void main() {
       );
     });
 
+    test('pose modifier stack exposes anatomy-safe solve order', () {
+      final scene = CharacterScene(buildCatInSuitRig());
+
+      expect(
+        scene.poseModifierPasses.map((pass) => pass.id),
+        [
+          'breath',
+          'support-balance',
+          'shoulder-girdle',
+          'limb-ik',
+          'contact-lock',
+        ],
+        reason:
+            'body modifiers should run as an ordered constraint pipeline: '
+            'primary body timing, balance, shoulder response, IK, then contact',
+      );
+      expect(
+        scene.poseModifierPasses.map((pass) => pass.mix),
+        everyElement(1),
+      );
+      expect(
+        scene.poseModifierPasses.map((pass) => pass.description),
+        everyElement(isNotEmpty),
+      );
+    });
+
     test('transition contact lock blends outgoing and incoming supports', () {
       const hips = 'hips';
       const footL = 'foot.L';
