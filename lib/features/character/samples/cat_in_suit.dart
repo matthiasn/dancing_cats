@@ -70,7 +70,10 @@ final int _lapel = kSuitFabric.plane(1.32); // lapel — one readable step
 // near-2x value made the lapels read as big light-blue fabric PATCHES
 // sweeping across the shoulders instead of narrow folds framing the shirt.
 final int _trouser = kSuitFabric.plane(0.83); // darker navy
-final int _trouserRear = kSuitFabric.plane(0.78); // slightly darker rear leg
+// Both trouser legs are the SAME cloth — like the sleeves, the far leg no
+// longer fakes depth with a darker value (that read as a different fabric);
+// the overlap-clipped ink line separates the legs where they cross.
+final int _trouserRear = kSuitFabric.plane(0.83);
 const int _fur = 0xFFE8A55A; // orange tabby
 const int _furDark = 0xFFD08A3C; // tail tip / shading
 const int _shirt = 0xFFF3EFE6; // collar

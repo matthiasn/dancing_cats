@@ -323,7 +323,16 @@ void main() {
         );
       }
       final nearLeg = rig.ribbons.singleWhere((r) => r.id == 'leg.L.ribbon');
+      final farLeg = rig.ribbons.singleWhere((r) => r.id == 'leg.R.ribbon');
       expect(nearLeg.inkOverFill, isTrue);
+      expect(farLeg.inkOverFill, isTrue);
+      expect(
+        farLeg.color,
+        nearLeg.color,
+        reason:
+            'both trouser legs are the SAME cloth — the far leg separates by '
+            'its overlap-clipped ink line, not a darker fabric value',
+      );
       expect(
         _luma(nearLeg.color),
         lessThan(_luma(torso)),
