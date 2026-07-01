@@ -1946,6 +1946,62 @@ class CatClips {
       ),
     ],
   );
+
+  static SineChannel _earFollow({
+    required double side,
+    double amplitude = 0.024,
+    double phase = 0.08,
+  }) => SineChannel(
+    amplitude: amplitude * side,
+    phase: phase,
+    harmonicAmplitude: amplitude * 0.45 * side,
+    harmonicMultiplier: 8,
+    harmonicPhase: phase + 0.018,
+    scaleXAmplitude: 0.012,
+    scaleXHarmonic: 8,
+    scaleXPhase: phase + 0.018,
+    scaleYAmplitude: -0.01,
+    scaleYHarmonic: 8,
+    scaleYPhase: phase + 0.018,
+  );
+
+  static Map<String, JointChannel> _tailFollowThrough({
+    required double amplitude,
+    double bias = -0.34,
+    double phase = 0.05,
+  }) => {
+    CatBones.tail0: SineChannel(
+      amplitude: amplitude * 0.34,
+      phase: phase,
+      bias: bias,
+    ),
+    CatBones.tail1: SineChannel(
+      amplitude: amplitude * 0.52,
+      phase: phase + 0.08,
+      bias: -0.06,
+    ),
+    CatBones.tail2: SineChannel(
+      amplitude: amplitude * 0.68,
+      phase: phase + 0.16,
+      bias: -0.04,
+    ),
+    CatBones.tail3: SineChannel(
+      amplitude: amplitude * 0.84,
+      phase: phase + 0.24,
+    ),
+    CatBones.tail4: SineChannel(amplitude: amplitude, phase: phase + 0.32),
+    CatBones.tail5: SineChannel(
+      amplitude: amplitude * 0.88,
+      phase: phase + 0.4,
+    ),
+    CatBones.tail6: SineChannel(
+      amplitude: amplitude * 1.08,
+      phase: phase + 0.48,
+      harmonicAmplitude: amplitude * 0.16,
+      harmonicMultiplier: 4,
+      harmonicPhase: phase + 0.22,
+    ),
+  };
   static DancePhrase get dancePhrase => _dancePhrase;
 
   static const _danceLeadMoveSignatures = [
@@ -5406,22 +5462,30 @@ class CatClips {
     _danceLimbTargets[3].withChannel(_shakuFootRTarget),
   ];
 
-  // Calmer ears for shaku: a gentle per-bar sway instead of the dance's busy
-  // per-count flick, so the head region stops dominating the silhouette and the
-  // beat reads in the body, not the skull (the motion panel's "biggest lever").
+  // Calmer ears for Shaku: enough delayed flop to avoid a fixed skull silhouette,
+  // but still much quieter than the generic dance ears so the beat reads in the
+  // body, not the head.
   static const _shakuEarLKeys = [
-    Keyframe(p: 0, rotation: 0.008),
-    Keyframe(p: 0.25, rotation: -0.02),
-    Keyframe(p: 0.5, rotation: 0.008),
-    Keyframe(p: 0.75, rotation: -0.02),
-    Keyframe(p: 1, rotation: 0.008),
+    Keyframe(p: 0, rotation: 0.014, scaleX: 1.006, scaleY: 0.995),
+    Keyframe(p: 0.125, rotation: -0.035, scaleX: 1.018, scaleY: 0.986),
+    Keyframe(p: 0.25, rotation: -0.024, scaleX: 1.012, scaleY: 0.99),
+    Keyframe(p: 0.375, rotation: 0.026, scaleX: 0.992, scaleY: 1.01),
+    Keyframe(p: 0.5, rotation: 0.014, scaleX: 1.006, scaleY: 0.995),
+    Keyframe(p: 0.625, rotation: -0.037, scaleX: 1.018, scaleY: 0.986),
+    Keyframe(p: 0.75, rotation: -0.024, scaleX: 1.012, scaleY: 0.99),
+    Keyframe(p: 0.875, rotation: 0.026, scaleX: 0.992, scaleY: 1.01),
+    Keyframe(p: 1, rotation: 0.014, scaleX: 1.006, scaleY: 0.995),
   ];
   static const _shakuEarRKeys = [
-    Keyframe(p: 0, rotation: -0.008),
-    Keyframe(p: 0.25, rotation: 0.02),
-    Keyframe(p: 0.5, rotation: -0.008),
-    Keyframe(p: 0.75, rotation: 0.02),
-    Keyframe(p: 1, rotation: -0.008),
+    Keyframe(p: 0, rotation: -0.014, scaleX: 0.995, scaleY: 1.006),
+    Keyframe(p: 0.125, rotation: 0.033, scaleX: 0.986, scaleY: 1.018),
+    Keyframe(p: 0.25, rotation: 0.024, scaleX: 0.99, scaleY: 1.012),
+    Keyframe(p: 0.375, rotation: -0.026, scaleX: 1.01, scaleY: 0.992),
+    Keyframe(p: 0.5, rotation: -0.014, scaleX: 0.995, scaleY: 1.006),
+    Keyframe(p: 0.625, rotation: 0.035, scaleX: 0.986, scaleY: 1.018),
+    Keyframe(p: 0.75, rotation: 0.024, scaleX: 0.99, scaleY: 1.012),
+    Keyframe(p: 0.875, rotation: -0.026, scaleX: 1.01, scaleY: 0.992),
+    Keyframe(p: 1, rotation: -0.014, scaleX: 0.995, scaleY: 1.006),
   ];
 
   // Shaku-only body punctuation. It adds shoulder/hip participation around the
@@ -6601,33 +6665,9 @@ class CatClips {
         ),
         //
         //
-        // Ears clamped near-rigid to the skull (their own swing was the
-        // brightest fan in the onion and out-read the legs).
-        // TODO(zanku-ears): a residual ear "fan" remains because the engine's
-        // shared dance head-attitude nod (_danceHeadAttitude / head-counter in
-        // character_scene.dart, gated on _isDanceFamily) rotates the skull and
-        // sweeps the rigid ears. Killing it cleanly needs a per-clip head-nod
-        // scale on that shared engine path; deferred so it doesn't disturb the
-        // shipped dance/Shaku head treatment.
-        CatBones.earL: const SineChannel(amplitude: 0.008),
-        CatBones.earR: const SineChannel(amplitude: 0.008, phase: 0.5),
-        // Tail damped ~70%: the bright tail arc was the loudest mover after the
-        // head. Lock it close to the body so the FEET carry the biggest trail.
-        CatBones.tail0: const SineChannel(amplitude: 0.018, bias: -0.34),
-        CatBones.tail1: const SineChannel(
-          amplitude: 0.03,
-          phase: 0.08,
-          bias: -0.06,
-        ),
-        CatBones.tail2: const SineChannel(
-          amplitude: 0.04,
-          phase: 0.16,
-          bias: -0.04,
-        ),
-        CatBones.tail3: const SineChannel(amplitude: 0.05, phase: 0.24),
-        CatBones.tail4: const SineChannel(amplitude: 0.06, phase: 0.32),
-        CatBones.tail5: const SineChannel(amplitude: 0.045, phase: 0.4),
-        CatBones.tail6: const SineChannel(amplitude: 0.06, phase: 0.48),
+        CatBones.earL: _earFollow(side: 1, amplitude: 0.018, phase: 0.1),
+        CatBones.earR: _earFollow(side: -1, amplitude: 0.018, phase: 0.6),
+        ..._tailFollowThrough(amplitude: 0.085, phase: 0.06),
       },
     );
   }
@@ -6984,26 +7024,9 @@ class CatClips {
           // them (hip-vs-shoulder isolation).
           const SineChannel(harmonicAmplitude: -0.11, harmonicPhase: 0.02),
         ]),
-        CatBones.earL: const SineChannel(amplitude: 0.008),
-        CatBones.earR: const SineChannel(amplitude: 0.008, phase: 0.5),
-        // Tail damped ~70% and tucked: the bright tail arc was reading as the
-        // gesturing arm at small scale. Keep it close so the mime arms own the
-        // silhouette.
-        CatBones.tail0: const SineChannel(amplitude: 0.018, bias: -0.34),
-        CatBones.tail1: const SineChannel(
-          amplitude: 0.03,
-          phase: 0.08,
-          bias: -0.06,
-        ),
-        CatBones.tail2: const SineChannel(
-          amplitude: 0.04,
-          phase: 0.16,
-          bias: -0.04,
-        ),
-        CatBones.tail3: const SineChannel(amplitude: 0.05, phase: 0.24),
-        CatBones.tail4: const SineChannel(amplitude: 0.06, phase: 0.32),
-        CatBones.tail5: const SineChannel(amplitude: 0.045, phase: 0.4),
-        CatBones.tail6: const SineChannel(amplitude: 0.06, phase: 0.48),
+        CatBones.earL: _earFollow(side: 1, amplitude: 0.018, phase: 0.12),
+        CatBones.earR: _earFollow(side: -1, amplitude: 0.018, phase: 0.62),
+        ..._tailFollowThrough(amplitude: 0.08, phase: 0.08),
       },
     );
   }
@@ -7423,13 +7446,11 @@ class CatClips {
           _bugaLegLowerKeys,
           smooth: true,
         ),
-        CatBones.earL: const SineChannel(amplitude: 0.008),
-        CatBones.earR: const SineChannel(amplitude: 0.008, phase: 0.5),
+        CatBones.earL: _earFollow(side: 1, amplitude: 0.022),
+        CatBones.earR: _earFollow(side: -1, amplitude: 0.022, phase: 0.58),
         // Tail carries the follow-through off the rise — boosted so it lags and
         // whips behind the big presenting arm instead of reading stiff.
-        CatBones.tail0: const SineChannel(amplitude: 0.035, bias: -0.34),
-        CatBones.tail3: const SineChannel(amplitude: 0.09, phase: 0.24),
-        CatBones.tail6: const SineChannel(amplitude: 0.12, phase: 0.48),
+        ..._tailFollowThrough(amplitude: 0.13, phase: 0.09),
       },
     );
   }
@@ -7802,11 +7823,9 @@ class CatClips {
         // Neck/head held flat (no inherited dance nod) so the head stays level.
         CatBones.neck: const SineChannel(),
         CatBones.head: const SineChannel(),
-        CatBones.earL: const SineChannel(amplitude: 0.01),
-        CatBones.earR: const SineChannel(amplitude: 0.01, phase: 0.5),
-        CatBones.tail0: const SineChannel(amplitude: 0.03, bias: -0.34),
-        CatBones.tail3: const SineChannel(amplitude: 0.06, phase: 0.24),
-        CatBones.tail6: const SineChannel(amplitude: 0.07, phase: 0.48),
+        CatBones.earL: _earFollow(side: 1, amplitude: 0.016, phase: 0.16),
+        CatBones.earR: _earFollow(side: -1, amplitude: 0.016, phase: 0.66),
+        ..._tailFollowThrough(amplitude: 0.075, phase: 0.14),
       },
     );
   }
@@ -8595,11 +8614,9 @@ class CatClips {
           _sekemHandRKeys,
           smooth: true,
         ),
-        CatBones.earL: const SineChannel(amplitude: 0.02),
-        CatBones.earR: const SineChannel(amplitude: 0.02, phase: 0.5),
-        CatBones.tail0: const SineChannel(amplitude: 0.02, bias: -0.34),
-        CatBones.tail3: const SineChannel(amplitude: 0.05, phase: 0.24),
-        CatBones.tail6: const SineChannel(amplitude: 0.06, phase: 0.48),
+        CatBones.earL: _earFollow(side: 1),
+        CatBones.earR: _earFollow(side: -1, phase: 0.58),
+        ..._tailFollowThrough(amplitude: 0.09, phase: 0.07),
       },
     );
   }

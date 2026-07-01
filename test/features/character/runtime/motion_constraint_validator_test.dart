@@ -146,6 +146,106 @@ void main() {
       );
     });
 
+    test('detects a solved limb locked too close to straight', () {
+      final validator = MotionConstraintValidator(
+        CharacterScene(
+          RigSpec(
+            name: 'locked-test-arm',
+            bones: const [
+              Bone(
+                id: CatBones.hips,
+                parent: null,
+                pivotX: 0,
+                pivotY: 0,
+                z: 0,
+              ),
+              Bone(
+                id: CatBones.armUpperL,
+                parent: CatBones.hips,
+                pivotX: 0,
+                pivotY: 0,
+                z: 1,
+              ),
+              Bone(
+                id: CatBones.armLowerL,
+                parent: CatBones.armUpperL,
+                pivotX: 0,
+                pivotY: 60,
+                z: 2,
+              ),
+              Bone(
+                id: CatBones.handL,
+                parent: CatBones.armLowerL,
+                pivotX: 0,
+                pivotY: 40,
+                z: 3,
+              ),
+            ],
+          ),
+        ),
+      );
+      const clip = Clip(
+        name: 'synthetic-locked-arm',
+        duration: 1,
+        channels: {},
+        limbTargets: [
+          LimbIkTarget(
+            upperBoneId: CatBones.armUpperL,
+            lowerBoneId: CatBones.armLowerL,
+            endBoneId: CatBones.handL,
+            anchorBoneId: CatBones.hips,
+            channel: FixedIkTargetChannel(x: 0, y: 110),
+          ),
+        ],
+      );
+
+      final report = validator.analyze(
+        clip: clip,
+        profile: const MotionConstraintProfile(maxLimbBendDegrees: 170),
+        ikSamples: 4,
+        contactSamplesPerSpan: 1,
+      );
+
+      expect(report.limbBends, hasLength(4));
+      expect(report.straightestLimbBend!.bendDegrees, greaterThan(170));
+      expect(
+        report.violations.map((violation) => violation.category),
+        contains(MotionConstraintCategory.limbBend),
+      );
+    });
+
+    test('reports bend-side mismatch from resolved limb samples', () {
+      const report = MotionConstraintReport(
+        clipName: 'synthetic-bend-flip',
+        profile: MotionConstraintProfile(),
+        contactDrifts: [],
+        supportBalances: [],
+        ikReaches: [],
+        ikTargetResiduals: [],
+        limbBends: [
+          MotionLimbBend(
+            clipName: 'synthetic-bend-flip',
+            upperBoneId: CatBones.armUpperL,
+            lowerBoneId: CatBones.armLowerL,
+            endBoneId: CatBones.handL,
+            phase: 0.25,
+            weight: 1,
+            expectedBendDirection: -1,
+            actualBendDirection: 1,
+            signedArea: -1200,
+            bendDegrees: 95,
+            straightnessDegrees: 85,
+          ),
+        ],
+        limbLanes: [],
+      );
+
+      expect(
+        report.violations.map((violation) => violation.category),
+        contains(MotionConstraintCategory.limbBendDirection),
+      );
+    });
+
     test('detects support-foot drift during a declared stable contact', () {
       final validator = MotionConstraintValidator(
         CharacterScene(buildCatInSuitRig()),
@@ -248,6 +348,67 @@ void main() {
         );
       }
     });
+
+    test(
+      'catalogue hand targets preserve elbow bend and authored bend side',
+      () {
+        final validator = MotionConstraintValidator(
+          CharacterScene(buildCatInSuitRig()),
+        );
+
+        for (final clip in [
+          CatClips.shaku,
+          CatClips.zanku,
+          CatClips.azonto,
+          CatClips.buga,
+          CatClips.sekem,
+        ]) {
+          final report = validator.analyze(clip: clip);
+          final directionViolations = report.violations.where(
+            (violation) =>
+                violation.category ==
+                    MotionConstraintCategory.limbBendDirection &&
+                (violation.boneId == CatBones.handL ||
+                    violation.boneId == CatBones.handR),
+          );
+          final highWeightHandBends =
+              report.limbBends
+                  .where(
+                    (bend) =>
+                        bend.weight > 0.98 &&
+                        (bend.endBoneId == CatBones.handL ||
+                            bend.endBoneId == CatBones.handR),
+                  )
+                  .toList()
+                ..sort((a, b) => b.bendDegrees.compareTo(a.bendDegrees));
+
+          expect(
+            directionViolations,
+            isEmpty,
+            reason:
+                '${clip.name} should not solve a limb onto the opposite bend '
+                'side from its authored IK target; first violations: '
+                '${directionViolations.take(3).map((v) => v.message).join(' | ')}',
+          );
+          expect(
+            highWeightHandBends,
+            isNotEmpty,
+            reason: '${clip.name} should expose high-weight hand bend samples',
+          );
+          final straightest = highWeightHandBends.first;
+          expect(
+            straightest.bendDegrees,
+            lessThan(178),
+            reason:
+                '${clip.name} ${straightest.endBoneId} should keep a visible '
+                'elbow bend at high target weight; p='
+                '${straightest.phase.toStringAsFixed(4)} bend='
+                '${straightest.bendDegrees.toStringAsFixed(1)} actualDir='
+                '${straightest.actualBendDirection}',
+          );
+        }
+      },
+    );
 
     test('catalogue high-weight hand targets resolve near their controls', () {
       final validator = MotionConstraintValidator(

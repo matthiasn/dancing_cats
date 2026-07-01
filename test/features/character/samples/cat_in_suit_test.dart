@@ -740,6 +740,54 @@ void main() {
       );
     });
 
+    test('catalogue ears and tails keep bounded secondary follow-through', () {
+      for (final clip in [
+        CatClips.shaku,
+        CatClips.zanku,
+        CatClips.azonto,
+        CatClips.buga,
+        CatClips.pouncingCat,
+        CatClips.sekem,
+      ]) {
+        final earLRange = _rotationRange(clip.channels[CatBones.earL]!);
+        final earRRange = _rotationRange(clip.channels[CatBones.earR]!);
+        expect(
+          earLRange,
+          greaterThan(0.03),
+          reason: '${clip.name} left ear should not look pinned to the skull',
+        );
+        expect(
+          earRRange,
+          greaterThan(0.03),
+          reason: '${clip.name} right ear should not look pinned to the skull',
+        );
+        expect(
+          [earLRange, earRRange],
+          everyElement(lessThan(0.16)),
+          reason: '${clip.name} ears should flop, not dominate the dance',
+        );
+
+        final rootRange = _rotationRange(clip.channels[CatBones.tail0]!);
+        final midRange = _rotationRange(clip.channels[CatBones.tail3]!);
+        final tipRange = _rotationRange(clip.channels[CatBones.tail6]!);
+        expect(
+          midRange,
+          greaterThan(rootRange * 1.4),
+          reason: '${clip.name} tail should build motion away from the hips',
+        );
+        expect(
+          tipRange,
+          greaterThan(midRange * 1.05),
+          reason: '${clip.name} tail tip should lag as follow-through',
+        );
+        expect(
+          tipRange,
+          lessThan(0.42),
+          reason: '${clip.name} tail should stay secondary, not become the act',
+        );
+      }
+    });
+
     test('catalogue arms stay seated in their shoulder sockets', () {
       final scene = CharacterScene(buildCatInSuitRig());
       for (final clip in [
@@ -2223,6 +2271,17 @@ double _luma(int argb) {
 
 double _maxAbsLocalX(SkinnedMeshVertex vertex) =>
     vertex.influences.map((influence) => influence.x.abs()).reduce(math.max);
+
+double _rotationRange(JointChannel channel) {
+  var min = double.infinity;
+  var max = double.negativeInfinity;
+  for (var i = 0; i <= 64; i++) {
+    final rotation = channel.sample(i / 64).rotation;
+    min = math.min(min, rotation);
+    max = math.max(max, rotation);
+  }
+  return max - min;
+}
 
 double _targetDistance(IkTargetChannel channel, int fromFrame, int toFrame) {
   final from = channel.sample(fromFrame / CatClips.dancePhrase.frameCount);

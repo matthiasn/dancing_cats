@@ -43,6 +43,7 @@ class MotionConstraintValidator {
     );
     final reaches = _sampleIkReach(clip, profile, ikSamples);
     final targetResiduals = _sampleIkTargetResiduals(clip, profile, ikSamples);
+    final limbBends = _sampleLimbBends(clip, profile, ikSamples);
     final limbLanes = _sampleLimbLanes(clip, profile, ikSamples);
 
     return MotionConstraintReport(
@@ -52,6 +53,7 @@ class MotionConstraintValidator {
       supportBalances: supports,
       ikReaches: reaches,
       ikTargetResiduals: targetResiduals,
+      limbBends: limbBends,
       limbLanes: limbLanes,
     );
   }
@@ -154,6 +156,73 @@ class MotionConstraintValidator {
             endReversal: endReversal,
             reversalDistance: math.max(elbowReversal, endReversal),
             horizontalFold: (elbowX - shoulderX) * (endX - elbowX),
+          ),
+        );
+      }
+    }
+    return checks;
+  }
+
+  List<MotionLimbBend> _sampleLimbBends(
+    Clip clip,
+    MotionConstraintProfile profile,
+    int samples,
+  ) {
+    if (clip.limbTargets.isEmpty) return const [];
+    final checks = <MotionLimbBend>[];
+    for (var i = 0; i < samples; i++) {
+      final phase = i / samples;
+      final timeSeconds = _phaseTime(clip, phase);
+      final frame = scene.frameAt(clip: clip, timeSeconds: timeSeconds);
+      for (final target in clip.limbTargets) {
+        final sample = target.channel.sample(phase);
+        if (sample.weight < profile.minIkWeight) continue;
+        final upperWorld = frame.world[target.upperBoneId];
+        final lowerWorld = frame.world[target.lowerBoneId];
+        final endWorld = frame.world[target.endBoneId];
+        if (upperWorld == null || lowerWorld == null || endWorld == null) {
+          continue;
+        }
+
+        final upper = upperWorld.origin;
+        final middle = lowerWorld.origin;
+        final end = endWorld.origin;
+        final upperDx = middle.x - upper.x;
+        final upperDy = middle.y - upper.y;
+        final lowerDx = end.x - middle.x;
+        final lowerDy = end.y - middle.y;
+        final upperLength = _distance(upperDx, upperDy);
+        final lowerLength = _distance(lowerDx, lowerDy);
+        if (upperLength <= 1e-6 || lowerLength <= 1e-6) continue;
+
+        final elbowToUpperX = upper.x - middle.x;
+        final elbowToUpperY = upper.y - middle.y;
+        final elbowToEndX = end.x - middle.x;
+        final elbowToEndY = end.y - middle.y;
+        final dot = elbowToUpperX * elbowToEndX + elbowToUpperY * elbowToEndY;
+        final denom = upperLength * lowerLength;
+        final bendRadians = math.acos((dot / denom).clamp(-1.0, 1.0));
+        final bendDegrees = bendRadians * 180 / math.pi;
+        final signedArea = upperDx * lowerDy - upperDy * lowerDx;
+        final actualBendDirection =
+            signedArea.abs() < profile.minBendDirectionArea
+            ? 0
+            : signedArea < 0
+            ? 1
+            : -1;
+        checks.add(
+          MotionLimbBend(
+            clipName: clip.name,
+            upperBoneId: target.upperBoneId,
+            lowerBoneId: target.lowerBoneId,
+            endBoneId: target.endBoneId,
+            phase: phase,
+            weight: sample.weight,
+            expectedBendDirection: target.bendDirection,
+            actualBendDirection: actualBendDirection,
+            signedArea: signedArea,
+            bendDegrees: bendDegrees,
+            straightnessDegrees: 180 - bendDegrees,
           ),
         );
       }
@@ -350,6 +419,9 @@ class MotionConstraintProfile {
     this.maxSupportOffset = 58,
     this.maxIkReachRatio = 0.96,
     this.maxIkTargetResidual = 18,
+    this.minLimbBendDegrees = 3,
+    this.maxLimbBendDegrees = 178,
+    this.minBendDirectionArea = 10,
     this.maxLimbLaneReversal = 5,
     this.minSameSideTargetX = 48,
     this.minIkWeight = 0.05,
@@ -370,6 +442,15 @@ class MotionConstraintProfile {
        assert(
          maxIkTargetResidual >= 0,
          'max IK target residual must be non-negative',
+       ),
+       assert(minLimbBendDegrees >= 0, 'min limb bend must be non-negative'),
+       assert(
+         maxLimbBendDegrees <= 180 && maxLimbBendDegrees > 0,
+         'max limb bend must be in 0..180',
+       ),
+       assert(
+         minBendDirectionArea >= 0,
+         'min bend direction area must be non-negative',
        ),
        assert(maxLimbLaneReversal >= 0, 'limb reversal must be non-negative'),
        assert(
@@ -406,6 +487,24 @@ class MotionConstraintProfile {
   /// visually detached from the choreographic control point.
   final double maxIkTargetResidual;
 
+  /// Minimum allowed interior angle at a solved elbow/knee.
+  ///
+  /// Very small angles mean the limb has folded into itself. This is a broad
+  /// anatomy guard, not a style target.
+  final double minLimbBendDegrees;
+
+  /// Maximum allowed interior angle at a solved elbow/knee.
+  ///
+  /// Angles near 180 are mathematically reachable but visually read as locked
+  /// stick limbs and leave no muscular bend for dance weight.
+  final double maxLimbBendDegrees;
+
+  /// Ignore bend-direction signs when the limb is nearly straight.
+  ///
+  /// Signed triangle area gets numerically meaningless when shoulder/elbow/wrist
+  /// are almost collinear; locked-limb validation handles those frames instead.
+  final double minBendDirectionArea;
+
   /// Maximum allowed same-side lane reversal in world pixels.
   ///
   /// Larger values mean either the elbow has crossed inside its shoulder or the
@@ -428,6 +527,7 @@ class MotionConstraintReport {
     required this.supportBalances,
     required this.ikReaches,
     required this.ikTargetResiduals,
+    required this.limbBends,
     required this.limbLanes,
   });
 
@@ -437,6 +537,7 @@ class MotionConstraintReport {
   final List<MotionSupportBalance> supportBalances;
   final List<MotionIkReach> ikReaches;
   final List<MotionIkTargetResidual> ikTargetResiduals;
+  final List<MotionLimbBend> limbBends;
   final List<MotionLimbLane> limbLanes;
 
   MotionContactDrift? get worstContactDrift =>
@@ -450,6 +551,12 @@ class MotionConstraintReport {
 
   MotionIkTargetResidual? get worstIkTargetResidual =>
       _maxOrNull(ikTargetResiduals, (check) => check.distance);
+
+  MotionLimbBend? get straightestLimbBend =>
+      _maxOrNull(limbBends, (check) => check.bendDegrees);
+
+  MotionLimbBend? get tightestLimbBend =>
+      _maxOrNull(limbBends, (check) => -check.bendDegrees);
 
   MotionLimbLane? get worstLimbLane =>
       _maxOrNull(limbLanes, (check) => check.reversalDistance);
@@ -521,6 +628,54 @@ class MotionConstraintReport {
             message:
                 '${check.endBoneId} resolves '
                 '${check.distance.toStringAsFixed(1)} px from its IK target',
+          ),
+        );
+      }
+    }
+    for (final check in limbBends) {
+      final straightSeverity = check.bendDegrees - profile.maxLimbBendDegrees;
+      if (straightSeverity > 0) {
+        result.add(
+          MotionConstraintViolation(
+            category: MotionConstraintCategory.limbBend,
+            clipName: clipName,
+            boneId: check.endBoneId,
+            phase: check.phase,
+            severity: straightSeverity,
+            message:
+                '${check.lowerBoneId} is locked at '
+                '${check.bendDegrees.toStringAsFixed(1)} degrees',
+          ),
+        );
+      }
+      final foldSeverity = profile.minLimbBendDegrees - check.bendDegrees;
+      if (foldSeverity > 0) {
+        result.add(
+          MotionConstraintViolation(
+            category: MotionConstraintCategory.limbBend,
+            clipName: clipName,
+            boneId: check.endBoneId,
+            phase: check.phase,
+            severity: foldSeverity,
+            message:
+                '${check.lowerBoneId} folds to '
+                '${check.bendDegrees.toStringAsFixed(1)} degrees',
+          ),
+        );
+      }
+      if (check.actualBendDirection != 0 &&
+          check.actualBendDirection != check.expectedBendDirection) {
+        result.add(
+          MotionConstraintViolation(
+            category: MotionConstraintCategory.limbBendDirection,
+            clipName: clipName,
+            boneId: check.endBoneId,
+            phase: check.phase,
+            severity: check.signedArea.abs(),
+            message:
+                '${check.lowerBoneId} bends opposite its authored side '
+                '(expected ${check.expectedBendDirection}, '
+                'actual ${check.actualBendDirection})',
           ),
         );
       }
@@ -659,6 +814,37 @@ class MotionIkTargetResidual {
   final double distance;
 }
 
+class MotionLimbBend {
+  const MotionLimbBend({
+    required this.clipName,
+    required this.upperBoneId,
+    required this.lowerBoneId,
+    required this.endBoneId,
+    required this.phase,
+    required this.weight,
+    required this.expectedBendDirection,
+    required this.actualBendDirection,
+    required this.signedArea,
+    required this.bendDegrees,
+    required this.straightnessDegrees,
+  });
+
+  final String clipName;
+  final String upperBoneId;
+  final String lowerBoneId;
+  final String endBoneId;
+  final double phase;
+  final double weight;
+  final int expectedBendDirection;
+
+  /// `0` means the limb was too close to straight to infer a side robustly.
+  final int actualBendDirection;
+
+  final double signedArea;
+  final double bendDegrees;
+  final double straightnessDegrees;
+}
+
 class MotionLimbLane {
   const MotionLimbLane({
     required this.clipName,
@@ -698,6 +884,8 @@ enum MotionConstraintCategory {
   supportBalance,
   ikReach,
   ikTargetResidual,
+  limbBend,
+  limbBendDirection,
   limbLane,
 }
 
