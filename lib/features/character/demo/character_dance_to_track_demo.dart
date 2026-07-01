@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:dancing_cats/features/character/demo/color_grade_panel.dart';
 import 'package:dancing_cats/features/character/demo/dance_app_frame_exporter.dart';
 import 'package:dancing_cats/features/character/demo/dance_ffmpeg_encoder.dart';
 import 'package:dancing_cats/features/character/demo/dance_lip_sync.dart';
@@ -15,6 +16,7 @@ import 'package:dancing_cats/features/character/demo/dance_transport_bar.dart';
 import 'package:dancing_cats/features/character/model/beat_map.dart';
 import 'package:dancing_cats/features/character/runtime/character_painter.dart';
 import 'package:dancing_cats/features/character/runtime/character_renderer.dart';
+import 'package:dancing_cats/features/scenery/model/backdrop_grade.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
@@ -228,6 +230,12 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
   // Mute forces the player volume to zero; the video keeps playing. The app has
   // no volume slider, so unmuting restores full (100) volume.
   bool _muted = false;
+  // Live colour-grade wheels (Lift/Gamma/Gain + saturation) driving the backdrop
+  // grade shader. All neutral by default → identity grade → no grade pass.
+  GradeWheel _lift = const GradeWheel();
+  GradeWheel _gamma = const GradeWheel();
+  GradeWheel _gain = const GradeWheel();
+  double _saturation = 1;
   ui.Image? _backdrop;
   ui.Image? _clouds;
   ui.Image? _waves;
@@ -633,8 +641,15 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
     // singing mouths. The whole composite is the generalized DanceStageView,
     // rendered identically by the live app and every offline renderer — there is
     // no second paint path to drift.
+    final grade = gradeFromWheels(
+      lift: _lift,
+      gamma: _gamma,
+      gain: _gain,
+      saturation: _saturation,
+    );
     final stageView = DanceStageView(
       boundaryKey: _stageBoundaryKey,
+      grade: grade,
       cast: _cast,
       renderer: _renderer,
       stage: stage,
@@ -698,6 +713,22 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
                       setState(() => _useNewBackdrop = !_useNewBackdrop),
                   onToggleMute: () => unawaited(_toggleMute()),
                   onSeekToSeconds: _seekToTime,
+                ),
+                ColorGradePanel(
+                  lift: _lift,
+                  gamma: _gamma,
+                  gain: _gain,
+                  saturation: _saturation,
+                  onLift: (w) => setState(() => _lift = w),
+                  onGamma: (w) => setState(() => _gamma = w),
+                  onGain: (w) => setState(() => _gain = w),
+                  onSaturation: (v) => setState(() => _saturation = v),
+                  onReset: () => setState(() {
+                    _lift = const GradeWheel();
+                    _gamma = const GradeWheel();
+                    _gain = const GradeWheel();
+                    _saturation = 1;
+                  }),
                 ),
               ],
             ),

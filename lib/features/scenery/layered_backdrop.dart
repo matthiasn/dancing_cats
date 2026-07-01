@@ -2,8 +2,10 @@ import 'dart:async';
 import 'dart:ui' as ui;
 
 import 'package:dancing_cats/features/scenery/layers/backdrop_layer.dart';
+import 'package:dancing_cats/features/scenery/model/backdrop_grade.dart';
 import 'package:dancing_cats/features/scenery/model/backdrop_palette.dart';
 import 'package:dancing_cats/features/scenery/model/backdrop_scene.dart';
+import 'package:dancing_cats/features/scenery/runtime/backdrop_grade_painter.dart';
 import 'package:dancing_cats/features/scenery/runtime/scenery_shaders.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
@@ -45,10 +47,12 @@ class LayeredBackdrop extends StatefulWidget {
     this.skyProgramLoader,
     this.oceanProgramLoader,
     this.cityLightsProgramLoader,
+    this.gradeProgramLoader,
     this.imageLoader,
     this.onReady,
     this.timeOverride,
     this.parallaxForDepth,
+    this.grade = BackdropGrade.identity,
     super.key,
   });
 
@@ -68,6 +72,7 @@ class LayeredBackdrop extends StatefulWidget {
   final SceneryShaderProgramLoader? skyProgramLoader;
   final SceneryShaderProgramLoader? oceanProgramLoader;
   final SceneryShaderProgramLoader? cityLightsProgramLoader;
+  final SceneryShaderProgramLoader? gradeProgramLoader;
   final SceneryImageLoader? imageLoader;
 
   /// Called after the first frame that has all scene bitmap assets and shader
@@ -83,6 +88,11 @@ class LayeredBackdrop extends StatefulWidget {
   /// depth. Null → the scene paints flat (no camera).
   final Matrix4 Function(double depth, Size size)? parallaxForDepth;
 
+  /// Colour grade applied to the composited backdrop (the painted world) as a
+  /// final SOP+S pass. Identity (the default) skips the grade entirely and keeps
+  /// the cheaper direct paint.
+  final BackdropGrade grade;
+
   @override
   State<LayeredBackdrop> createState() => _LayeredBackdropState();
 }
@@ -96,6 +106,7 @@ class _LayeredBackdropState extends State<LayeredBackdrop>
   ui.FragmentProgram? _skyProgram;
   ui.FragmentProgram? _oceanProgram;
   ui.FragmentProgram? _cityLightsProgram;
+  ui.FragmentProgram? _gradeProgram;
   final Map<String, ui.Image> _images = {};
   int _imagesVersion = 0;
   bool _readyNotified = false;
@@ -123,7 +134,8 @@ class _LayeredBackdropState extends State<LayeredBackdrop>
     super.didUpdateWidget(oldWidget);
     if (oldWidget.skyProgramLoader != widget.skyProgramLoader ||
         oldWidget.oceanProgramLoader != widget.oceanProgramLoader ||
-        oldWidget.cityLightsProgramLoader != widget.cityLightsProgramLoader) {
+        oldWidget.cityLightsProgramLoader != widget.cityLightsProgramLoader ||
+        oldWidget.gradeProgramLoader != widget.gradeProgramLoader) {
       _readyNotified = false;
       _loadPrograms();
     }
@@ -148,8 +160,11 @@ class _LayeredBackdropState extends State<LayeredBackdrop>
         widget.skyProgramLoader ?? SceneryShaderProgramCache.loadSky;
     final oceanLoader =
         widget.oceanProgramLoader ?? SceneryShaderProgramCache.loadOcean;
+    final gradeLoader =
+        widget.gradeProgramLoader ?? SceneryShaderProgramCache.loadGrade;
     unawaited(_assignProgram(skyLoader, (p) => _skyProgram = p));
     unawaited(_assignProgram(oceanLoader, (p) => _oceanProgram = p));
+    unawaited(_assignProgram(gradeLoader, (p) => _gradeProgram = p));
     unawaited(
       _assignProgram(
         widget.cityLightsProgramLoader ??
@@ -230,7 +245,11 @@ class _LayeredBackdropState extends State<LayeredBackdrop>
   @override
   Widget build(BuildContext context) {
     final time = _time;
-    final background = _backdropPaint(widget.scene.layers, time);
+    final background = _backdropPaint(
+      widget.scene.layers,
+      time,
+      grade: widget.grade,
+    );
     _notifyReadyAfterPaintIfNeeded();
 
     if (widget.child == null && widget.scene.foregroundLayers.isEmpty) {
@@ -252,7 +271,11 @@ class _LayeredBackdropState extends State<LayeredBackdrop>
   // viewport itself (the master plate via BoxFit.cover, the lights via the same
   // coverFit mapping), so painted art, shader mask sampling and light anchors
   // all stay aligned at any aspect ratio.
-  Widget _backdropPaint(List<BackdropLayer> layers, double time) {
+  Widget _backdropPaint(
+    List<BackdropLayer> layers,
+    double time, {
+    BackdropGrade grade = BackdropGrade.identity,
+  }) {
     return RepaintBoundary(
       child: CustomPaint(
         painter: _BackdropPainter(
@@ -267,6 +290,8 @@ class _LayeredBackdropState extends State<LayeredBackdrop>
           images: _images,
           imagesVersion: _imagesVersion,
           parallaxForDepth: widget.parallaxForDepth,
+          grade: grade,
+          gradeProgram: _gradeProgram,
         ),
         child: const SizedBox.expand(),
       ),
@@ -287,6 +312,8 @@ class _BackdropPainter extends CustomPainter {
     this.oceanProgram,
     this.cityLightsProgram,
     this.parallaxForDepth,
+    this.grade = BackdropGrade.identity,
+    this.gradeProgram,
   });
 
   final List<BackdropLayer> layers;
@@ -300,6 +327,8 @@ class _BackdropPainter extends CustomPainter {
   final ui.FragmentProgram? oceanProgram;
   final ui.FragmentProgram? cityLightsProgram;
   final Matrix4 Function(double depth, Size size)? parallaxForDepth;
+  final BackdropGrade grade;
+  final ui.FragmentProgram? gradeProgram;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -316,9 +345,14 @@ class _BackdropPainter extends CustomPainter {
       images: images,
       parallaxForDepth: parallaxForDepth,
     );
-    for (final layer in layers) {
-      layer.paint(canvas, ctx);
-    }
+    paintGradedBackdrop(
+      canvas: canvas,
+      size: size,
+      layers: layers,
+      ctx: ctx,
+      grade: grade,
+      gradeProgram: gradeProgram,
+    );
   }
 
   @override
@@ -332,6 +366,8 @@ class _BackdropPainter extends CustomPainter {
         old.oceanProgram != oceanProgram ||
         old.cityLightsProgram != cityLightsProgram ||
         old.imagesVersion != imagesVersion ||
-        old.parallaxForDepth != parallaxForDepth;
+        old.parallaxForDepth != parallaxForDepth ||
+        old.grade != grade ||
+        old.gradeProgram != gradeProgram;
   }
 }
