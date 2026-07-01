@@ -84,6 +84,7 @@ void main() {
           'shoulder-girdle',
           'limb-ik',
           'contact-lock',
+          'sole-flex',
         ],
         reason:
             'body modifiers should run as an ordered constraint pipeline: '

@@ -797,6 +797,8 @@ const defaultMotionJointEnvelopeRules = <MotionJointEnvelopeRule>[
   MotionJointEnvelopeRule(boneIdToken: 'leg_upper', maxAbsRotation: 1.55),
   MotionJointEnvelopeRule(boneIdToken: 'leg_lower', maxAbsRotation: 2.45),
   MotionJointEnvelopeRule(boneIdToken: 'foot', maxAbsRotation: 1.3),
+  // Ball-of-foot sole bend — driven by the scene's sole-flex pass.
+  MotionJointEnvelopeRule(boneIdToken: 'toe_flex', maxAbsRotation: 0.8),
 ];
 
 class MotionConstraintProfile {

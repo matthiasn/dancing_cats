@@ -81,8 +81,9 @@ const int _tie = 0xFF7A2233; // maroon
 const int _shoe = 0xFFF6F3EC; // 90s basketball-boot WHITE leather upper
 // — pops against the navy trousers and the dark deck, echoes the shirt
 // cuffs/collar, and reads instantly as the era.
-const int _shoeToe = 0xFFF6F3EC; // toe box — same clean white; the toe is
-// part of the boot's ONE silhouette, not a separately outlined blob.
+const int _shoeToe = 0xFF7E2536; // toe box — the 90s colour-blocked
+// accent (maroon, rhyming with the tie): a generic high-top panel scheme,
+// deliberately WITHOUT any brand marks.
 const int _shoeSole = 0xFFCFC9BB; // sneaker midsole — the full-length rubber
 // band along the bottom, a half-step grey under the white upper so the two
 // planes split by ink AND value, like a real AF1 wall.
@@ -219,6 +220,8 @@ class CatBones {
   static const shoeToeL = 'shoe_toe.L';
   static const shoeCounterL = 'shoe_counter.L';
   static const shoeTabL = 'shoe_tab.L';
+  static const toeFlexL = 'toe_flex.L';
+  static const shoeSoleFrontL = 'shoe_sole_front.L';
   static const hipBlendR = 'hip_blend.R';
   static const legUpperR = 'leg_upper.R';
   static const legQuadR = 'leg_quad.R';
@@ -229,6 +232,8 @@ class CatBones {
   static const shoeToeR = 'shoe_toe.R';
   static const shoeCounterR = 'shoe_counter.R';
   static const shoeTabR = 'shoe_tab.R';
+  static const toeFlexR = 'toe_flex.R';
+  static const shoeSoleFrontR = 'shoe_sole_front.R';
   static const tail0 = 'tail_0';
   static const tail1 = 'tail_1';
   static const tail2 = 'tail_2';
@@ -451,9 +456,9 @@ RigSpec buildCatInSuitRig({
         // solvers key off this drawable's bottom. FLAT white, no interior
         // ink: the boot is ONE union silhouette, and cel gradients made the
         // white leather look dingy.
-        width: 37,
+        width: 33,
         height: 12,
-        dx: -9,
+        dx: -7,
         dy: 4,
         cornerRadius: 5,
         color: _shoe,
@@ -464,7 +469,8 @@ RigSpec buildCatInSuitRig({
     ),
     // High-top collar: the 90s basketball-boot ankle wrap — rises well
     // above the vamp and hugs the ankle so the trouser breaks ON the boot.
-    // Same white, NO interior ink: it melts into the boot's one silhouette.
+    // Accent-blocked (with the toe box) against the white body; still NO
+    // interior ink — colour panels separate themselves.
     const Bone(
       id: CatBones.shoeCounterR,
       parent: CatBones.footR,
@@ -478,17 +484,28 @@ RigSpec buildCatInSuitRig({
         dx: 2.5,
         dy: -1.5,
         cornerRadius: 6,
-        color: _shoe,
+        color: _shoeToe,
         outlineColor: _outline,
         outlineWidth: 2,
         celShade: false,
       ),
     ),
+    // Ball-of-foot flex joint: the sneaker BENDS here. The sole-flex pass
+    // counter-rotates this bone when the heel lifts while the ball still
+    // bears on the floor, so the sole curves through toe-offs and heel-toe
+    // knocks instead of tilting as a rigid plank.
+    const Bone(
+      id: CatBones.toeFlexR,
+      parent: CatBones.footR,
+      pivotX: -16,
+      pivotY: 8,
+      z: 6,
+    ),
     // Toe box: rounds the front of the boot as part of the ONE silhouette —
-    // same white, no interior circle line.
+    // same white, no interior circle line. Rides the flex joint.
     const Bone(
       id: CatBones.shoeToeR,
-      parent: CatBones.footR,
+      parent: CatBones.toeFlexR,
       pivotX: 0,
       pivotY: 0,
       z: 6,
@@ -496,8 +513,8 @@ RigSpec buildCatInSuitRig({
         kind: BoneShapeKind.ellipse,
         width: 14,
         height: 11,
-        dx: -23,
-        dy: 4.3,
+        dx: -7,
+        dy: -3.7,
         color: _shoeToe,
         outlineColor: _outline,
         outlineWidth: 2,
@@ -533,10 +550,33 @@ RigSpec buildCatInSuitRig({
       z: 7,
       drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
-        width: 40,
+        width: 27,
         height: 6,
-        dx: -9,
+        dx: -2.5,
         dy: 6.9,
+        cornerRadius: 3,
+        color: _shoeSole,
+        outlineColor: _outline,
+        outlineWidth: 2,
+        celShade: false,
+        inkOverFill: true,
+      ),
+    ),
+    // Front midsole: the toe half of the sole, riding the flex joint so the
+    // rubber visibly bends at the ball (overlaps the rear half at the crease
+    // so the union stays closed while bending).
+    const Bone(
+      id: CatBones.shoeSoleFrontR,
+      parent: CatBones.toeFlexR,
+      pivotX: 0,
+      pivotY: 0,
+      z: 7,
+      drawable: BoneDrawable(
+        kind: BoneShapeKind.roundedRect,
+        width: 15,
+        height: 6,
+        dx: -5.5,
+        dy: -1.1,
         cornerRadius: 3,
         color: _shoeSole,
         outlineColor: _outline,
@@ -603,9 +643,9 @@ RigSpec buildCatInSuitRig({
         // solvers key off this drawable's bottom. FLAT white, no interior
         // ink: the boot is ONE union silhouette, and cel gradients made the
         // white leather look dingy.
-        width: 37,
+        width: 33,
         height: 12,
-        dx: -9,
+        dx: -7,
         dy: 4,
         cornerRadius: 5,
         color: _shoe,
@@ -616,7 +656,8 @@ RigSpec buildCatInSuitRig({
     ),
     // High-top collar: the 90s basketball-boot ankle wrap — rises well
     // above the vamp and hugs the ankle so the trouser breaks ON the boot.
-    // Same white, NO interior ink: it melts into the boot's one silhouette.
+    // Accent-blocked (with the toe box) against the white body; still NO
+    // interior ink — colour panels separate themselves.
     const Bone(
       id: CatBones.shoeCounterL,
       parent: CatBones.footL,
@@ -630,17 +671,28 @@ RigSpec buildCatInSuitRig({
         dx: 2.5,
         dy: -1.5,
         cornerRadius: 6,
-        color: _shoe,
+        color: _shoeToe,
         outlineColor: _outline,
         outlineWidth: 2,
         celShade: false,
       ),
     ),
+    // Ball-of-foot flex joint: the sneaker BENDS here. The sole-flex pass
+    // counter-rotates this bone when the heel lifts while the ball still
+    // bears on the floor, so the sole curves through toe-offs and heel-toe
+    // knocks instead of tilting as a rigid plank.
+    const Bone(
+      id: CatBones.toeFlexL,
+      parent: CatBones.footL,
+      pivotX: -16,
+      pivotY: 8,
+      z: 9,
+    ),
     // Toe box: rounds the front of the boot as part of the ONE silhouette —
-    // same white, no interior circle line.
+    // same white, no interior circle line. Rides the flex joint.
     const Bone(
       id: CatBones.shoeToeL,
-      parent: CatBones.footL,
+      parent: CatBones.toeFlexL,
       pivotX: 0,
       pivotY: 0,
       z: 9,
@@ -648,8 +700,8 @@ RigSpec buildCatInSuitRig({
         kind: BoneShapeKind.ellipse,
         width: 14,
         height: 11,
-        dx: -23,
-        dy: 4.3,
+        dx: -7,
+        dy: -3.7,
         color: _shoeToe,
         outlineColor: _outline,
         outlineWidth: 2,
@@ -685,10 +737,33 @@ RigSpec buildCatInSuitRig({
       z: 10,
       drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
-        width: 40,
+        width: 27,
         height: 6,
-        dx: -9,
+        dx: -2.5,
         dy: 6.9,
+        cornerRadius: 3,
+        color: _shoeSole,
+        outlineColor: _outline,
+        outlineWidth: 2,
+        celShade: false,
+        inkOverFill: true,
+      ),
+    ),
+    // Front midsole: the toe half of the sole, riding the flex joint so the
+    // rubber visibly bends at the ball (overlaps the rear half at the crease
+    // so the union stays closed while bending).
+    const Bone(
+      id: CatBones.shoeSoleFrontL,
+      parent: CatBones.toeFlexL,
+      pivotX: 0,
+      pivotY: 0,
+      z: 10,
+      drawable: BoneDrawable(
+        kind: BoneShapeKind.roundedRect,
+        width: 15,
+        height: 6,
+        dx: -5.5,
+        dy: -1.1,
         cornerRadius: 3,
         color: _shoeSole,
         outlineColor: _outline,

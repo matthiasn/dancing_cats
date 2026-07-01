@@ -94,6 +94,13 @@ class CharacterScene {
         modifier: (context, pose) =>
             _contactLockedPose(context.clip, context.timeSeconds, pose),
       ),
+      PoseModifierPass(
+        id: 'sole-flex',
+        description:
+            'Bend each sneaker at the ball of the foot when the heel lifts '
+            'while the ball still bears on the floor.',
+        modifier: (context, pose) => _soleFlexedPose(pose),
+      ),
     ]);
   }
 
@@ -1253,6 +1260,65 @@ class CharacterScene {
       dy: (anchor.y - current.y) * strength.y * scale,
     );
   }
+
+  /// Bends the shoe at the ball of the foot — real soles flex when dancing.
+  ///
+  /// For each `toe_flex` joint (pivoted at the ball), the solved world pitch
+  /// of its foot is measured. When the foot pitches TOE-DOWN (heel lifting)
+  /// while the ball is still at floor height, the flex joint counter-rotates
+  /// so the toe segment stays flat on the floor — the sole visibly curves
+  /// through toe-offs and heel-toe knocks. The bend is weighted by the
+  /// ball's proximity to the floor, so an airborne pointed toe keeps a
+  /// straight sole, and it is one-sided: soles do not bend backwards on
+  /// heel strikes. Pure in pose+rig (rig-space floor from [restFeetOffset]),
+  /// so film strips stay deterministic.
+  Pose _soleFlexedPose(Pose pose) {
+    final flexIds = _toeFlexBoneIds;
+    if (flexIds.isEmpty) return pose;
+
+    final world = solver.solve(pose);
+    final floorY = restFeetOffset;
+    Map<String, JointPose>? joints;
+
+    for (final flexId in flexIds) {
+      final flexBone = rig.bone(flexId)!;
+      final footWorld = world[flexBone.parent];
+      final flexWorld = world[flexId];
+      if (footWorld == null || flexWorld == null) continue;
+
+      // Toe-down pitch: the foot's toe points local -x, so a NEGATIVE world
+      // rotation drops the toe / raises the heel.
+      final pitch = _worldRotation(footWorld);
+      if (pitch >= -0.06) continue;
+
+      // Ball proximity to the floor (the flex pivot sits at the ball, 2
+      // units above the sole plane).
+      final ball = flexWorld.origin;
+      final gap = (floorY - (ball.y + 2)).abs();
+      final proximity = (1 - (gap - 2) / 8).clamp(0.0, 1.0);
+      if (proximity <= 0) continue;
+
+      final flex = (-pitch - 0.06) * proximity;
+      final delta = flex.clamp(0.0, 0.75);
+      if (delta < 0.01) continue;
+
+      joints ??= Map<String, JointPose>.of(pose.joints);
+      joints[flexId] = _addJointRotation(pose.jointOf(flexId), delta);
+    }
+
+    if (joints == null) return pose;
+    return Pose(
+      joints: joints,
+      rootDx: pose.rootDx,
+      rootDy: pose.rootDy,
+      rootRotation: pose.rootRotation,
+    );
+  }
+
+  late final List<String> _toeFlexBoneIds = [
+    for (final bone in rig.bones)
+      if (bone.id.toLowerCase().contains('toe_flex')) bone.id,
+  ];
 
   double _clipPhase(Clip clip, double timeSeconds) {
     if (clip.duration <= 0) return 0;

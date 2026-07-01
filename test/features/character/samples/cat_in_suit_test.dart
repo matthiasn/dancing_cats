@@ -468,60 +468,65 @@ void main() {
       }
     });
 
-    test('shoes read as sneakers: cream midsole, toe bump, heel collar', () {
+    test('shoes read as colour-blocked 90s high-tops with flexing soles', () {
       for (final side in const [
         (
           foot: CatBones.footL,
           toe: CatBones.shoeToeL,
+          flex: CatBones.toeFlexL,
           sole: CatBones.shoeHighlightL,
+          soleFront: CatBones.shoeSoleFrontL,
           counter: CatBones.shoeCounterL,
         ),
         (
           foot: CatBones.footR,
           toe: CatBones.shoeToeR,
+          flex: CatBones.toeFlexR,
           sole: CatBones.shoeHighlightR,
+          soleFront: CatBones.shoeSoleFrontR,
           counter: CatBones.shoeCounterR,
         ),
       ]) {
         final last = rig.bone(side.foot)!.drawable!;
-        final toe = rig.bone(side.toe)!.drawable!;
+        final toe = rig.bone(side.toe)!;
+        final flex = rig.bone(side.flex)!;
         final sole = rig.bone(side.sole)!.drawable!;
+        final soleFront = rig.bone(side.soleFront)!.drawable!;
         final counter = rig.bone(side.counter)!.drawable!;
-        // The 90s boot is ONE clean white silhouette (vamp, toe box, and
-        // high-top collar in the same flat white — no interior ink, no cel
-        // gradient dinging the leather) over a grey rubber midsole whose
-        // top edge is the boot's single interior line.
+
+        // White leather body with the era's colour blocking: toe box and
+        // collar share one accent panel colour (NO brand marks of any kind).
         expect(_luma(last.color), greaterThan(200));
-        expect(toe.color, last.color);
-        expect(counter.color, last.color);
-        for (final unionPart in [last, toe, counter]) {
-          expect(
-            unionPart.inkOverFill,
-            isFalse,
-            reason: 'the white upper is one union silhouette, not a cluster '
-                'of separately outlined blobs',
-          );
-          expect(unionPart.celShade, isFalse);
-          expect(unionPart.outlineColor, isNotNull);
+        expect(toe.drawable!.color, counter.color);
+        expect(
+          _luma(toe.drawable!.color),
+          lessThan(_luma(last.color) * 0.5),
+          reason: 'the accent panels contrast the white body',
+        );
+        // The upper is ONE union silhouette: flat panels, no interior ink.
+        for (final part in [last, toe.drawable!, counter]) {
+          expect(part.inkOverFill, isFalse);
+          expect(part.celShade, isFalse);
+          expect(part.outlineColor, isNotNull);
         }
-        expect(_luma(sole.color), lessThan(_luma(last.color)));
-        expect(sole.inkOverFill, isTrue);
-        expect(sole.width, greaterThanOrEqualTo(last.width));
+        // The sole is split at the BALL of the foot and bends there: the
+        // front half rides the toe_flex joint the sole-flex pass drives.
+        expect(flex.parent, side.foot);
         expect(
-          sole.dy + sole.height / 2,
-          lessThanOrEqualTo(last.dy + last.height / 2),
-          reason: 'the midsole must not lower the contact plane',
+          flex.pivotX,
+          lessThan(-8),
+          reason: 'the flex pivot sits at the ball, forward of the heel',
         );
+        expect(toe.parent, side.flex);
         expect(
-          toe.dx - toe.width / 2,
-          lessThan(last.dx - last.width / 2 + 2),
-          reason: 'the toe box rounds the very front of the last',
+          sole.width + soleFront.width,
+          greaterThanOrEqualTo(last.width),
+          reason: 'the two sole halves together run the full last',
         );
-        expect(
-          counter.dy - counter.height / 2,
-          lessThan(last.dy - last.height / 2),
-          reason: 'the collar step gives the boot its high-top silhouette',
-        );
+        for (final half in [sole, soleFront]) {
+          expect(half.inkOverFill, isTrue);
+          expect(_luma(half.color), greaterThan(150));
+        }
       }
     });
 
