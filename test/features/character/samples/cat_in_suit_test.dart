@@ -101,24 +101,37 @@ void main() {
       expect(cuffR?.z, lessThan(rig.bone(CatBones.handR)!.z));
     });
 
-    test('elbow creases read as subtle sleeve shadows, not hard bars', () {
+    test('arm guide bones do not render as hard elbow details', () {
+      final bicepL = rig.bone(CatBones.armBicepL);
+      final bicepR = rig.bone(CatBones.armBicepR);
+      final forearmL = rig.bone(CatBones.armForearmL);
+      final forearmR = rig.bone(CatBones.armForearmR);
       final creaseL = rig.bone(CatBones.armElbowCreaseL);
       final creaseR = rig.bone(CatBones.armElbowCreaseR);
 
+      expect(bicepL?.parent, CatBones.armUpperL);
+      expect(bicepR?.parent, CatBones.armUpperR);
+      expect(forearmL?.parent, CatBones.armLowerL);
+      expect(forearmR?.parent, CatBones.armLowerR);
       expect(creaseL?.parent, CatBones.armLowerL);
       expect(creaseR?.parent, CatBones.armLowerR);
-      expect(creaseL?.drawable?.height, lessThan(creaseL!.drawable!.width));
-      expect(creaseR?.drawable?.height, lessThan(creaseR!.drawable!.width));
-      expect(creaseL.drawable!.width, lessThanOrEqualTo(5));
-      expect(creaseR.drawable!.width, lessThanOrEqualTo(5));
-      expect(creaseL.drawable!.height, lessThanOrEqualTo(0.9));
-      expect(creaseR.drawable!.height, lessThanOrEqualTo(0.9));
-      expect(creaseL.drawable!.outlineColor, isNull);
-      expect(creaseR.drawable!.outlineColor, isNull);
-      expect(creaseL.drawable!.outlineWidth, 0);
-      expect(creaseR.drawable!.outlineWidth, 0);
-      expect(creaseL.z, greaterThan(rig.bone(CatBones.armUpperL)!.z));
-      expect(creaseR.z, greaterThan(rig.bone(CatBones.armUpperR)!.z));
+      for (final guide in [
+        bicepL,
+        bicepR,
+        forearmL,
+        forearmR,
+        creaseL,
+        creaseR,
+      ]) {
+        expect(
+          guide?.drawable,
+          isNull,
+          reason:
+              '${guide?.id} is a ribbon guide/control only; tiny visible bars '
+              'read as bone artifacts inside the elbow',
+        );
+        expect(rig.hiddenDrawableBoneIds, contains(guide?.id));
+      }
     });
 
     test('sleeve values separate crossed arms from the jacket shell', () {
@@ -150,8 +163,6 @@ void main() {
       final arm = rig.ribbons.singleWhere((ribbon) {
         return ribbon.id == 'arm.L.ribbon';
       });
-      final bicepPlane = rig.bone(CatBones.armBicepL)!.drawable!;
-      final forearmPlane = rig.bone(CatBones.armForearmL)!.drawable!;
       final cuff = rig.bone(CatBones.wristCuffL)!.drawable!;
       final hand = rig.bone(CatBones.handL)!.drawable!;
 
@@ -165,34 +176,33 @@ void main() {
           CatBones.handL,
         ],
       );
-      expect(arm.halfWidths, const [7.2, 10.8, 4.2, 6.4, 2.8]);
+      expect(arm.halfWidths, const [9.8, 13.0, 7.6, 10.4, 6.4]);
       expect(arm.formRound, isFalse);
       expect(arm.roundCaps, isFalse);
       expect(arm.halfWidths[1], greaterThan(arm.halfWidths.first));
       expect(
         arm.halfWidths[2],
-        lessThan(arm.halfWidths[1] * 0.5),
-        reason: 'the elbow should pinch clearly below the bicep mass',
+        lessThan(arm.halfWidths[1] * 0.65),
+        reason:
+            'the elbow should pinch below the bicep mass without becoming a '
+            'thin hinge',
       );
       expect(
         arm.halfWidths.last,
-        lessThan(arm.halfWidths[3] * 0.5),
-        reason: 'the wrist must taper after the forearm before the cuff break',
+        lessThan(arm.halfWidths[3] * 0.7),
+        reason:
+            'the wrist should taper after the forearm while still connecting to '
+            'the larger paw/cuff',
       );
       expect(
         arm.halfWidths[3],
-        greaterThan(arm.halfWidths[2] * 1.35),
+        greaterThan(arm.halfWidths[2] * 1.25),
         reason: 'the forearm should wedge back out after the elbow pinch',
       );
-      for (final plane in [bicepPlane, forearmPlane]) {
-        expect(plane.width, lessThan(arm.halfWidths[1] * 0.45));
-        expect(plane.height, greaterThan(plane.width * 3));
-        expect(plane.outlineColor, isNull);
-        expect(plane.outlineWidth, 0);
-        expect(plane.celShade, isFalse);
-      }
+      expect(hand.width, greaterThan(22));
+      expect(hand.height, greaterThan(20));
       expect(cuff.width, lessThan(hand.width));
-      expect(cuff.width, lessThanOrEqualTo(18));
+      expect(cuff.width, greaterThanOrEqualTo(18));
     });
 
     test('shoes carry a subtle sole edge for footwork readability', () {
@@ -322,19 +332,21 @@ void main() {
         greaterThan(leadLeg.halfWidths[2]),
         reason: 'the calf must bulge past the knee dip',
       );
-      expect(baseArm.halfWidths, const [7.2, 10.8, 4.2, 6.4, 2.8]);
+      expect(baseArm.halfWidths, const [9.8, 13.0, 7.6, 10.4, 6.4]);
       expect(
         leadArm.halfWidths[1],
-        closeTo(10.8 * kDanceLeadArmWidthScale, 0.001),
+        closeTo(13.0 * kDanceLeadArmWidthScale, 0.001),
       );
       expect(
         leadArm.halfWidths[2],
-        lessThan(leadArm.halfWidths[1] * 0.6),
-        reason: 'the elbow valley should keep crossed arms readable',
+        lessThan(leadArm.halfWidths[1] * 0.65),
+        reason:
+            'the elbow valley should keep crossed arms readable without '
+            'becoming stringy',
       );
       expect(
         leadArm.halfWidths[3],
-        closeTo(6.4 * kDanceLeadArmWidthScale, 0.001),
+        closeTo(10.4 * kDanceLeadArmWidthScale, 0.001),
       );
       expect(leadTail.halfWidths, baseTail.halfWidths);
     });
@@ -962,7 +974,7 @@ void main() {
       expect(freezeLeftHand.x, lessThan(-68));
       expect(
         freezeLeftHand.y,
-        inInclusiveRange(-10, -2),
+        inInclusiveRange(-16, -4),
         reason:
             'the exact Zanku freeze should punch the left counter-hit down/out '
             'from a rib guard, not dangle below the jacket',
@@ -1219,14 +1231,14 @@ void main() {
       );
       expect(
         _targetDistance(handR, 14, 15),
-        greaterThan(40),
+        greaterThan(32),
         reason:
             'right Buga show-off should release after the readable peak instead '
             'of freezing through the next groove count',
       );
       expect(
         _targetDistance(handL, 30, 31),
-        greaterThan(40),
+        greaterThan(32),
         reason:
             'left Buga show-off should release after the readable peak instead '
             'of freezing through the next groove count',
@@ -1373,19 +1385,19 @@ void main() {
         final rightPlantHand = handR.sample(0);
         expect(
           leftPlantHand.x,
-          lessThan(-62),
+          lessThanOrEqualTo(-64),
           reason:
               'Sekem left hand should stay in the left anatomical lane; '
               'cross-body targets make the arms fold impossibly',
         );
         expect(
           leftPlantHand.y,
-          greaterThan(32),
-          reason: 'the low Sekem hand should visibly sit on the beltline',
+          greaterThan(-4),
+          reason: 'the low Sekem hand should visibly sit in a compact scoop',
         );
         expect(
           rightPlantHand.x,
-          greaterThan(100),
+          greaterThan(78),
           reason:
               'the opposite hand should paddle outward in its own lane so '
               'the move reads as Sekem without folded forearms',
@@ -1397,14 +1409,14 @@ void main() {
         final rightRecover = handR.sample(2.55 / phrase.frameCount);
         expect(
           leftPullbackApproach.x,
-          lessThan(-84),
+          lessThan(-72),
           reason:
               'the delayed Sekem pullback may not sweep through the torso '
               'while the paw is still approaching its late hit',
         );
         expect(
           leftPullback.x,
-          inInclusiveRange(-100, -92),
+          inInclusiveRange(-96, -86),
           reason:
               'the left Sekem offbeat should rebound up in the left lane on '
               'its delayed wrist follow-through, not on the integer frame',
@@ -1416,7 +1428,7 @@ void main() {
         );
         expect(
           rightRecover.x,
-          greaterThan(92),
+          greaterThan(74),
           reason:
               'the right Sekem recover must stay outside the right shoulder '
               'line; centerline targets create impossible folded arms',
@@ -1440,7 +1452,7 @@ void main() {
         final rightSweep = handR.sample(4.55 / phrase.frameCount);
         expect(
           leftPoint.x,
-          lessThan(-100),
+          lessThan(-82),
           reason:
               'the next plant should swap: left hand becomes the outward '
               'paddle',
@@ -1461,13 +1473,13 @@ void main() {
         );
         expect(
           rightSweep.y,
-          greaterThan(32),
-          reason: 'the low Sekem hand should visibly sit on the beltline',
+          greaterThan(-4),
+          reason: 'the low Sekem hand should visibly sit in a compact scoop',
         );
         final rightSweepInward = handR.sample(6.55 / phrase.frameCount);
         expect(
           rightSweepInward.x,
-          greaterThan(92),
+          greaterThan(74),
           reason: 'right Sekem sweep must never cross the torso centreline',
         );
         final leftPickup = footL.sample(6 / phrase.frameCount);
@@ -1669,7 +1681,10 @@ void main() {
           greaterThanOrEqualTo(0),
           reason:
               'Sekem frame $frame should not reverse the left forearm back '
-              'through its upper arm; that renders as an impossible folded X',
+              'through its upper arm; that renders as an impossible folded X '
+              '(shoulder=${leftShoulder.toStringAsFixed(1)}, '
+              'elbow=${leftElbow.toStringAsFixed(1)}, '
+              'hand=${leftHand.toStringAsFixed(1)})',
         );
         expect(
           horizontalFold(
@@ -1680,7 +1695,10 @@ void main() {
           greaterThanOrEqualTo(0),
           reason:
               'Sekem frame $frame should not reverse the right forearm back '
-              'through its upper arm; that renders as an impossible folded X',
+              'through its upper arm; that renders as an impossible folded X '
+              '(shoulder=${rightShoulder.toStringAsFixed(1)}, '
+              'elbow=${rightElbow.toStringAsFixed(1)}, '
+              'hand=${rightHand.toStringAsFixed(1)})',
         );
         expect(
           leftElbow,
