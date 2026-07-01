@@ -57,6 +57,7 @@ class MotionConstraintValidator {
       profile,
       ikSamples,
     );
+    final jointEnvelopes = _sampleJointEnvelopes(clip, profile, ikSamples);
 
     return MotionConstraintReport(
       clipName: clip.name,
@@ -69,7 +70,43 @@ class MotionConstraintValidator {
       limbLanes: limbLanes,
       shoulderResponses: shoulderResponses,
       shoulderMeshBridges: shoulderMeshBridges,
+      jointEnvelopes: jointEnvelopes,
     );
+  }
+
+  List<MotionJointEnvelope> _sampleJointEnvelopes(
+    Clip clip,
+    MotionConstraintProfile profile,
+    int samples,
+  ) {
+    if (profile.jointEnvelopeRules.isEmpty) return const [];
+    final checks = <MotionJointEnvelope>[];
+    for (var i = 0; i < samples; i++) {
+      final phase = i / samples;
+      final pose = scene.poseAt(
+        clip: clip,
+        timeSeconds: _phaseTime(clip, phase),
+        includeAutonomic: false,
+      );
+      for (final bone in scene.rig.bones) {
+        final rule = _jointEnvelopeRuleFor(bone.id, profile);
+        if (rule == null) continue;
+        final joint = pose.jointOf(bone.id);
+        checks.add(
+          MotionJointEnvelope(
+            clipName: clip.name,
+            boneId: bone.id,
+            phase: phase,
+            rotation: joint.rotation,
+            scaleX: joint.scaleX,
+            scaleY: joint.scaleY,
+            maxAbsRotation: rule.maxAbsRotation,
+            maxScaleDelta: rule.maxScaleDelta,
+          ),
+        );
+      }
+    }
+    return checks;
   }
 
   List<MotionContactDrift> _sampleStableContacts(
@@ -565,6 +602,17 @@ class MotionConstraintValidator {
     return null;
   }
 
+  MotionJointEnvelopeRule? _jointEnvelopeRuleFor(
+    String boneId,
+    MotionConstraintProfile profile,
+  ) {
+    final id = boneId.toLowerCase();
+    for (final rule in profile.jointEnvelopeRules) {
+      if (id.contains(rule.boneIdToken.toLowerCase())) return rule;
+    }
+    return null;
+  }
+
   List<({double x, double y})> _vertexSubset(
     List<({double x, double y})> vertices,
     List<int> indices,
@@ -655,6 +703,74 @@ class MotionConstraintValidator {
   }
 }
 
+class MotionJointEnvelopeRule {
+  const MotionJointEnvelopeRule({
+    required this.boneIdToken,
+    this.maxAbsRotation,
+    this.maxScaleDelta,
+  }) : assert(boneIdToken.length > 0, 'bone token must not be empty'),
+       assert(
+         maxAbsRotation != null || maxScaleDelta != null,
+         'at least one joint envelope limit must be set',
+       ),
+       assert(
+         maxAbsRotation == null || maxAbsRotation >= 0,
+         'max rotation must be non-negative',
+       ),
+       assert(
+         maxScaleDelta == null || maxScaleDelta >= 0,
+         'max scale delta must be non-negative',
+       );
+
+  /// Lower-case substring matched against resolved bone ids.
+  ///
+  /// Rules are evaluated in order, so specific controls such as
+  /// `shoulder_socket` should appear before broader tokens if those are ever
+  /// added.
+  final String boneIdToken;
+
+  /// Maximum absolute local joint rotation in radians.
+  final double? maxAbsRotation;
+
+  /// Maximum absolute deviation from neutral scale on either axis.
+  final double? maxScaleDelta;
+}
+
+const defaultMotionJointEnvelopeRules = <MotionJointEnvelopeRule>[
+  MotionJointEnvelopeRule(boneIdToken: 'head', maxAbsRotation: 0.18),
+  MotionJointEnvelopeRule(boneIdToken: 'neck', maxAbsRotation: 0.25),
+  MotionJointEnvelopeRule(
+    boneIdToken: 'torso',
+    maxAbsRotation: 0.75,
+    maxScaleDelta: 0.42,
+  ),
+  MotionJointEnvelopeRule(
+    boneIdToken: 'hips',
+    maxAbsRotation: 1.1,
+    maxScaleDelta: 0.08,
+  ),
+  MotionJointEnvelopeRule(
+    boneIdToken: 'clavicle',
+    maxAbsRotation: 0.55,
+    maxScaleDelta: 0.08,
+  ),
+  MotionJointEnvelopeRule(
+    boneIdToken: 'shoulder_socket',
+    maxAbsRotation: 0.5,
+    maxScaleDelta: 0.3,
+  ),
+  MotionJointEnvelopeRule(
+    boneIdToken: 'arm_bicep',
+    maxAbsRotation: 0.25,
+    maxScaleDelta: 0.25,
+  ),
+  MotionJointEnvelopeRule(boneIdToken: 'arm_upper', maxAbsRotation: 4.25),
+  MotionJointEnvelopeRule(boneIdToken: 'arm_lower', maxAbsRotation: 4.4),
+  MotionJointEnvelopeRule(boneIdToken: 'leg_upper', maxAbsRotation: 1.55),
+  MotionJointEnvelopeRule(boneIdToken: 'leg_lower', maxAbsRotation: 2.45),
+  MotionJointEnvelopeRule(boneIdToken: 'foot', maxAbsRotation: 1.3),
+];
+
 class MotionConstraintProfile {
   const MotionConstraintProfile({
     this.contactEdgeFraction = 0.24,
@@ -676,6 +792,7 @@ class MotionConstraintProfile {
     this.minRaisedShoulderMeshSpan = 29,
     this.minRaisedShoulderToBicepRatio = 0.83,
     this.maxRaisedUpperArmMeshEdge = 34,
+    this.jointEnvelopeRules = defaultMotionJointEnvelopeRules,
   }) : assert(
          contactEdgeFraction >= 0 && contactEdgeFraction < 0.5,
          'contact edge fraction must be in [0, 0.5)',
@@ -816,6 +933,9 @@ class MotionConstraintProfile {
   /// Maximum adjacent edge length around the raised sleeve shoulder/bicep
   /// contour. Long edges are what make the arm read as a triangle fan.
   final double maxRaisedUpperArmMeshEdge;
+
+  /// Resolved local-joint envelopes used to catch impossible authored poses.
+  final List<MotionJointEnvelopeRule> jointEnvelopeRules;
 }
 
 class MotionConstraintReport {
@@ -830,6 +950,7 @@ class MotionConstraintReport {
     required this.limbLanes,
     required this.shoulderResponses,
     required this.shoulderMeshBridges,
+    required this.jointEnvelopes,
   });
 
   final String clipName;
@@ -842,6 +963,7 @@ class MotionConstraintReport {
   final List<MotionLimbLane> limbLanes;
   final List<MotionShoulderResponse> shoulderResponses;
   final List<MotionShoulderMeshBridge> shoulderMeshBridges;
+  final List<MotionJointEnvelope> jointEnvelopes;
 
   MotionContactDrift? get worstContactDrift =>
       _maxOrNull(contactDrifts, (check) => check.distance);
@@ -871,6 +993,9 @@ class MotionConstraintReport {
 
   MotionShoulderMeshBridge? get worstShoulderMeshBridge =>
       _maxOrNull(shoulderMeshBridges, (check) => check.gap);
+
+  MotionJointEnvelope? get worstJointEnvelope =>
+      _maxOrNull(jointEnvelopes, (check) => check.severity);
 
   List<MotionConstraintViolation> get violations {
     final result = <MotionConstraintViolation>[];
@@ -1059,6 +1184,27 @@ class MotionConstraintReport {
                 'shoulder/bicep='
                 '${check.shoulderToBicepRatio.toStringAsFixed(2)}, '
                 'edge=${check.maxUpperArmEdge.toStringAsFixed(1)} px',
+          ),
+        );
+      }
+    }
+    for (final check in jointEnvelopes) {
+      final severity = check.severity;
+      if (severity > 0) {
+        result.add(
+          MotionConstraintViolation(
+            category: MotionConstraintCategory.jointEnvelope,
+            clipName: clipName,
+            boneId: check.boneId,
+            phase: check.phase,
+            severity: severity,
+            message:
+                '${check.boneId} exceeds dancer joint envelope: '
+                'rot=${check.rotation.toStringAsFixed(2)} '
+                'limit=${check.maxAbsRotation?.toStringAsFixed(2) ?? 'n/a'}, '
+                'scale=(${check.scaleX.toStringAsFixed(2)}, '
+                '${check.scaleY.toStringAsFixed(2)}) '
+                'deltaLimit=${check.maxScaleDelta?.toStringAsFixed(2) ?? 'n/a'}',
           ),
         );
       }
@@ -1306,6 +1452,38 @@ class MotionShoulderMeshBridge {
       bicepSpan <= 1e-6 ? double.infinity : shoulderSpan / bicepSpan;
 }
 
+class MotionJointEnvelope {
+  const MotionJointEnvelope({
+    required this.clipName,
+    required this.boneId,
+    required this.phase,
+    required this.rotation,
+    required this.scaleX,
+    required this.scaleY,
+    required this.maxAbsRotation,
+    required this.maxScaleDelta,
+  });
+
+  final String clipName;
+  final String boneId;
+  final double phase;
+  final double rotation;
+  final double scaleX;
+  final double scaleY;
+  final double? maxAbsRotation;
+  final double? maxScaleDelta;
+
+  double get rotationSeverity =>
+      maxAbsRotation == null ? 0 : rotation.abs() - maxAbsRotation!;
+
+  double get scaleSeverity {
+    if (maxScaleDelta == null) return 0;
+    return math.max((scaleX - 1).abs(), (scaleY - 1).abs()) - maxScaleDelta!;
+  }
+
+  double get severity => math.max(rotationSeverity, scaleSeverity);
+}
+
 enum MotionConstraintCategory {
   footContact,
   supportBalance,
@@ -1316,6 +1494,7 @@ enum MotionConstraintCategory {
   limbLane,
   shoulderResponse,
   shoulderMeshBridge,
+  jointEnvelope,
 }
 
 class MotionConstraintViolation {

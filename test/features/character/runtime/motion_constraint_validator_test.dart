@@ -309,12 +309,44 @@ void main() {
         limbLanes: [],
         shoulderResponses: [],
         shoulderMeshBridges: [],
+        jointEnvelopes: [],
       );
 
       expect(
         report.violations.map((violation) => violation.category),
         contains(MotionConstraintCategory.limbBendDirection),
       );
+    });
+
+    test('detects resolved joints outside the dancer envelope', () {
+      final validator = MotionConstraintValidator(
+        CharacterScene(buildCatInSuitRig()),
+      );
+      const clip = Clip(
+        name: 'synthetic-impossible-torso',
+        duration: 1,
+        channels: {
+          CatBones.torso: KeyframeChannel([
+            Keyframe(p: 0, rotation: 1.35, scaleX: 1.72, scaleY: 0.48),
+            Keyframe(p: 1, rotation: 1.35, scaleX: 1.72, scaleY: 0.48),
+          ]),
+        },
+      );
+
+      final report = validator.analyze(
+        clip: clip,
+        ikSamples: 4,
+        contactSamplesPerSpan: 1,
+      );
+      final jointViolations = report.violations.where(
+        (violation) =>
+            violation.category == MotionConstraintCategory.jointEnvelope,
+      );
+
+      expect(report.jointEnvelopes, isNotEmpty);
+      expect(report.worstJointEnvelope?.boneId, CatBones.torso);
+      expect(jointViolations, isNotEmpty);
+      expect(jointViolations.first.boneId, CatBones.torso);
     });
 
     test('detects support-foot drift during a declared stable contact', () {
@@ -550,6 +582,35 @@ void main() {
               '${clip.name} should not send hands above shoulder height while '
               'leaving the clavicle/socket controls static: '
               '${shoulderViolations.take(4).map((v) => '${v.boneId}@${v.phase.toStringAsFixed(3)} ${v.message}').join(' | ')}',
+        );
+      }
+    });
+
+    test('catalogue clips keep resolved joints inside dancer envelopes', () {
+      final validator = MotionConstraintValidator(
+        CharacterScene(buildCatInSuitRig()),
+      );
+
+      for (final clip in [
+        CatClips.shaku,
+        CatClips.zanku,
+        CatClips.azonto,
+        CatClips.buga,
+        CatClips.sekem,
+        CatClips.pouncingCat,
+      ]) {
+        final report = validator.analyze(clip: clip, ikSamples: 64);
+        final jointViolations = report.violations.where(
+          (violation) =>
+              violation.category == MotionConstraintCategory.jointEnvelope,
+        );
+
+        expect(
+          jointViolations,
+          isEmpty,
+          reason:
+              '${clip.name} should stay inside the resolved joint envelope; '
+              '${jointViolations.take(4).map((v) => '${v.boneId}@${v.phase.toStringAsFixed(3)} ${v.message}').join(' | ')}',
         );
       }
     });
