@@ -419,12 +419,13 @@ void main() {
       const outerDeltoid = 2;
       const outerBicepCrown = 3;
       const outerBicep = 4;
-      const outerElbow = 5;
-      const outerForearm = 6;
-      const outerWrist = 7;
-      const innerBicep = 11;
+      const outerUpperArmTransition = 5;
+      const outerElbow = 6;
+      const outerForearm = 7;
+      const outerWrist = 8;
+      const innerBicep = 13;
 
-      expect(arm.boundary, hasLength(16));
+      expect(arm.boundary, hasLength(18));
       expect(arm.formRound, isFalse);
       expect(
         arm.smoothBoundary,
@@ -435,10 +436,10 @@ void main() {
       );
       expect(
         arm.boundaryCornerSmoothing,
-        inInclusiveRange(0.28, 0.38),
+        inInclusiveRange(0.42, 0.5),
         reason:
-            'sleeves need lower-tension smoothing than the organic body meshes '
-            'so they keep taper without returning to sausage tubes',
+            'sleeves need enough contour smoothing to hide polygon facets while '
+            'the authored taper keeps them from returning to sausage tubes',
       );
       expect(arm.outlineWidth, greaterThanOrEqualTo(2));
       expect(
@@ -474,6 +475,26 @@ void main() {
       expect(_maxAbsLocalX(arm.vertices[outerDeltoid]), greaterThan(13));
       expect(_maxAbsLocalX(arm.vertices[outerBicepCrown]), greaterThan(14));
       expect(_maxAbsLocalX(arm.vertices[outerBicep]), greaterThan(13));
+      expect(
+        arm.vertices[outerUpperArmTransition].influences.map((i) => i.boneId),
+        containsAll([CatBones.armBicepL, CatBones.armLowerL]),
+        reason:
+            'the upper sleeve needs a bicep-to-elbow transition landmark; '
+            'otherwise the inner arm renders as one long triangle edge',
+      );
+      expect(
+        _maxAbsLocalX(arm.vertices[outerUpperArmTransition]),
+        lessThan(_maxAbsLocalX(arm.vertices[outerBicep])),
+        reason:
+            'the transition should taper away from the bicep before the elbow',
+      );
+      expect(
+        _maxAbsLocalX(arm.vertices[outerUpperArmTransition]),
+        greaterThan(_maxAbsLocalX(arm.vertices[outerElbow]) * 1.6),
+        reason:
+            'the transition landmark should keep a visible upper-arm plane, '
+            'not collapse straight into the elbow pinch',
+      );
       expect(
         _maxAbsLocalX(arm.vertices[outerBicep]),
         greaterThan(_maxAbsLocalX(arm.vertices[outerForearm]) * 1.42),
@@ -643,8 +664,8 @@ void main() {
         reason: 'the calf must bulge past the knee dip',
       );
       const outerBicep = 4;
-      const outerElbow = 5;
-      const outerForearm = 6;
+      const outerElbow = 6;
+      const outerForearm = 7;
 
       expect(
         _maxAbsLocalX(leadArm.vertices[outerBicep]),

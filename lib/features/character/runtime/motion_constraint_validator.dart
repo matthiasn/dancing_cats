@@ -473,6 +473,18 @@ class MotionConstraintValidator {
         final armShoulder = _vertexSubset(arm, const [0, 1, 2, 3]);
         final foldBridge = _vertexSubset(fold, const [0, 1, 2, 3]);
         if (armShoulder.isEmpty || foldBridge.isEmpty) continue;
+        final upperWorld = frame.world[target.upperBoneId];
+        final lowerWorld = frame.world[target.lowerBoneId];
+        if (upperWorld == null || lowerWorld == null) continue;
+        final axisDx = lowerWorld.origin.x - upperWorld.origin.x;
+        final axisDy = lowerWorld.origin.y - upperWorld.origin.y;
+        final axisLength = _distance(axisDx, axisDy);
+        if (axisLength <= 1e-6) continue;
+        final normalX = -axisDy / axisLength;
+        final normalY = axisDx / axisLength;
+        final shoulderIndices = _armShoulderCapIndices(arm.length);
+        final bicepIndices = _armBicepIndices(arm.length);
+        final upperArmIndices = {...shoulderIndices, ...bicepIndices};
 
         final gap = _minPointSetDistance(armShoulder, foldBridge);
         checks.add(
@@ -484,6 +496,18 @@ class MotionConstraintValidator {
             phase: phase,
             targetY: targetPose.y,
             gap: gap,
+            shoulderSpan: _projectedSpan(
+              arm,
+              shoulderIndices,
+              normalX,
+              normalY,
+            ),
+            bicepSpan: _projectedSpan(arm, bicepIndices, normalX, normalY),
+            maxUpperArmEdge: _maxAdjacentBoundaryEdgeTouching(
+              arm,
+              armMesh.boundary,
+              upperArmIndices,
+            ),
           ),
         );
       }
@@ -549,6 +573,57 @@ class MotionConstraintValidator {
       if (index >= 0 && index < vertices.length) vertices[index],
   ];
 
+  List<int> _armShoulderCapIndices(int vertexCount) => vertexCount >= 18
+      ? const [0, 1, 2, 15, 16, 17]
+      : const [0, 1, 2, 13, 14, 15];
+
+  List<int> _armBicepIndices(int vertexCount) => vertexCount >= 18
+      ? const [2, 3, 4, 5, 13, 14, 15]
+      : const [2, 3, 4, 11, 12, 13];
+
+  double _projectedSpan(
+    List<({double x, double y})> vertices,
+    List<int> indices,
+    double normalX,
+    double normalY,
+  ) {
+    var minProjection = double.infinity;
+    var maxProjection = -double.infinity;
+    for (final index in indices) {
+      if (index < 0 || index >= vertices.length) continue;
+      final point = vertices[index];
+      final projection = point.x * normalX + point.y * normalY;
+      minProjection = math.min(minProjection, projection);
+      maxProjection = math.max(maxProjection, projection);
+    }
+    if (minProjection == double.infinity) return 0;
+    return maxProjection - minProjection;
+  }
+
+  double _maxAdjacentBoundaryEdgeTouching(
+    List<({double x, double y})> vertices,
+    List<int> boundary,
+    Set<int> included,
+  ) {
+    var longest = 0.0;
+    for (var i = 0; i < boundary.length; i++) {
+      final aIndex = boundary[i];
+      final bIndex = boundary[(i + 1) % boundary.length];
+      if (!included.contains(aIndex) && !included.contains(bIndex)) continue;
+      if (aIndex < 0 ||
+          bIndex < 0 ||
+          aIndex >= vertices.length ||
+          bIndex >= vertices.length) {
+        continue;
+      }
+      longest = math.max(
+        longest,
+        _pointDistance(vertices[aIndex], vertices[bIndex]),
+      );
+    }
+    return longest;
+  }
+
   double _minPointSetDistance(
     List<({double x, double y})> a,
     List<({double x, double y})> b,
@@ -598,6 +673,9 @@ class MotionConstraintProfile {
     this.minRaisedShoulderResponse = 0.18,
     this.minRaisedSocketResponse = 0.06,
     this.maxRaisedShoulderMeshGap = 24,
+    this.minRaisedShoulderMeshSpan = 29,
+    this.minRaisedShoulderToBicepRatio = 0.83,
+    this.maxRaisedUpperArmMeshEdge = 34,
   }) : assert(
          contactEdgeFraction >= 0 && contactEdgeFraction < 0.5,
          'contact edge fraction must be in [0, 0.5)',
@@ -645,6 +723,18 @@ class MotionConstraintProfile {
        assert(
          maxRaisedShoulderMeshGap >= 0,
          'raised shoulder mesh gap must be non-negative',
+       ),
+       assert(
+         minRaisedShoulderMeshSpan >= 0,
+         'raised shoulder mesh span must be non-negative',
+       ),
+       assert(
+         minRaisedShoulderToBicepRatio >= 0,
+         'raised shoulder-to-bicep ratio must be non-negative',
+       ),
+       assert(
+         maxRaisedUpperArmMeshEdge >= 0,
+         'raised upper-arm mesh edge must be non-negative',
        );
 
   /// Fraction at each contact-span edge ignored as handoff/toe-roll time.
@@ -716,6 +806,16 @@ class MotionConstraintProfile {
   /// Maximum nearest visible gap between a raised sleeve mesh and its shoulder
   /// fold bridge.
   final double maxRaisedShoulderMeshGap;
+
+  /// Minimum cross-axis width of the resolved sleeve shoulder cap.
+  final double minRaisedShoulderMeshSpan;
+
+  /// Minimum shoulder-cap width relative to the resolved bicep width.
+  final double minRaisedShoulderToBicepRatio;
+
+  /// Maximum adjacent edge length around the raised sleeve shoulder/bicep
+  /// contour. Long edges are what make the arm read as a triangle fan.
+  final double maxRaisedUpperArmMeshEdge;
 }
 
 class MotionConstraintReport {
@@ -930,7 +1030,20 @@ class MotionConstraintReport {
       }
     }
     for (final check in shoulderMeshBridges) {
-      final severity = check.gap - profile.maxRaisedShoulderMeshGap;
+      final gapSeverity = check.gap - profile.maxRaisedShoulderMeshGap;
+      final spanSeverity =
+          profile.minRaisedShoulderMeshSpan - check.shoulderSpan;
+      final ratioSeverity =
+          (profile.minRaisedShoulderToBicepRatio - check.shoulderToBicepRatio) *
+          profile.minRaisedShoulderMeshSpan;
+      final edgeSeverity =
+          check.maxUpperArmEdge - profile.maxRaisedUpperArmMeshEdge;
+      final severity = [
+        gapSeverity,
+        spanSeverity,
+        ratioSeverity,
+        edgeSeverity,
+      ].reduce(math.max);
       if (severity > 0) {
         result.add(
           MotionConstraintViolation(
@@ -940,8 +1053,12 @@ class MotionConstraintReport {
             phase: check.phase,
             severity: severity,
             message:
-                '${check.armMeshId} is ${check.gap.toStringAsFixed(1)} px '
-                'from ${check.foldMeshId} during a raised-arm target',
+                '${check.armMeshId} raised shoulder gap='
+                '${check.gap.toStringAsFixed(1)} px, span='
+                '${check.shoulderSpan.toStringAsFixed(1)} px, '
+                'shoulder/bicep='
+                '${check.shoulderToBicepRatio.toStringAsFixed(2)}, '
+                'edge=${check.maxUpperArmEdge.toStringAsFixed(1)} px',
           ),
         );
       }
@@ -1169,6 +1286,9 @@ class MotionShoulderMeshBridge {
     required this.phase,
     required this.targetY,
     required this.gap,
+    required this.shoulderSpan,
+    required this.bicepSpan,
+    required this.maxUpperArmEdge,
   });
 
   final String clipName;
@@ -1178,6 +1298,12 @@ class MotionShoulderMeshBridge {
   final double phase;
   final double targetY;
   final double gap;
+  final double shoulderSpan;
+  final double bicepSpan;
+  final double maxUpperArmEdge;
+
+  double get shoulderToBicepRatio =>
+      bicepSpan <= 1e-6 ? double.infinity : shoulderSpan / bicepSpan;
 }
 
 enum MotionConstraintCategory {

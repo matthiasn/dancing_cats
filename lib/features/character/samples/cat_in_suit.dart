@@ -1214,10 +1214,10 @@ RigSpec buildCatInSuitRig({
     required int color,
   }) {
     final s = side.toDouble();
-    final shoulderCapOuter = 22.5 * armWidthScale;
-    final shoulderCapInner = 16.4 * armWidthScale;
-    final bicepOuter = 18.0 * armWidthScale;
-    final bicepInner = 12.8 * armWidthScale;
+    final shoulderCapOuter = 31.5 * armWidthScale;
+    final shoulderCapInner = 25.5 * armWidthScale;
+    final bicepOuter = 20.0 * armWidthScale;
+    final bicepInner = 14.6 * armWidthScale;
     final elbowOuter = 5.6 * armWidthScale;
     final elbowInner = 4.6 * armWidthScale;
     final forearmOuter = 9.6 * armWidthScale;
@@ -1312,6 +1312,20 @@ RigSpec buildCatInSuitRig({
           MeshInfluence(boneId: bicep, x: s * bicepOuter, y: -2, weight: 1),
         ]),
         SkinnedMeshVertex([
+          MeshInfluence(
+            boneId: bicep,
+            x: s * (bicepOuter * 0.82),
+            y: 8,
+            weight: 0.55,
+          ),
+          MeshInfluence(
+            boneId: lower,
+            x: s * (elbowOuter * 1.05),
+            y: -11,
+            weight: 0.45,
+          ),
+        ]),
+        SkinnedMeshVertex([
           MeshInfluence(boneId: lower, x: s * elbowOuter, y: -1, weight: 1),
         ]),
         SkinnedMeshVertex([
@@ -1338,6 +1352,20 @@ RigSpec buildCatInSuitRig({
         ]),
         SkinnedMeshVertex([
           MeshInfluence(boneId: lower, x: -s * elbowInner, y: -1, weight: 1),
+        ]),
+        SkinnedMeshVertex([
+          MeshInfluence(
+            boneId: lower,
+            x: -s * (elbowInner * 1.02),
+            y: -11,
+            weight: 0.45,
+          ),
+          MeshInfluence(
+            boneId: bicep,
+            x: -s * (bicepInner * 0.88),
+            y: 8,
+            weight: 0.55,
+          ),
         ]),
         SkinnedMeshVertex([
           MeshInfluence(boneId: bicep, x: -s * bicepInner, y: -3, weight: 1),
@@ -1417,7 +1445,26 @@ RigSpec buildCatInSuitRig({
           ),
         ]),
       ],
-      boundary: const [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+      boundary: const [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+      ],
       hiddenBoneIds: [
         socket,
         upper,
@@ -1431,7 +1478,7 @@ RigSpec buildCatInSuitRig({
       outlineColor: _outline,
       outlineWidth: 2.2,
       formRound: false,
-      boundaryCornerSmoothing: 0.32,
+      boundaryCornerSmoothing: 0.46,
     );
   }
 

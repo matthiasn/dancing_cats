@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:dancing_cats/features/character/model/bone.dart';
 import 'package:dancing_cats/features/character/model/clip.dart';
 import 'package:dancing_cats/features/character/model/easing.dart';
@@ -611,6 +613,18 @@ void main() {
       final leftBridges = report.shoulderMeshBridges
           .where((bridge) => bridge.endBoneId == CatBones.handL)
           .toList();
+      final narrowestShoulderSpan = report.shoulderMeshBridges.fold<double>(
+        double.infinity,
+        (value, bridge) => math.min(value, bridge.shoulderSpan),
+      );
+      final narrowestShoulderRatio = report.shoulderMeshBridges.fold<double>(
+        double.infinity,
+        (value, bridge) => math.min(value, bridge.shoulderToBicepRatio),
+      );
+      final longestUpperArmEdge = report.shoulderMeshBridges.fold<double>(
+        0,
+        (value, bridge) => math.max(value, bridge.maxUpperArmEdge),
+      );
 
       expect(rightBridges, isNotEmpty);
       expect(leftBridges, isNotEmpty);
@@ -628,6 +642,25 @@ void main() {
         reason:
             'worst raised sleeve/fold bridge should remain within the current '
             'cartoon fabric overlap envelope',
+      );
+      expect(
+        narrowestShoulderSpan,
+        greaterThan(report.profile.minRaisedShoulderMeshSpan),
+        reason: 'raised sleeve shoulder cap should not pinch into a triangle',
+      );
+      expect(
+        narrowestShoulderRatio,
+        greaterThan(report.profile.minRaisedShoulderToBicepRatio),
+        reason:
+            'raised deltoid should stay close to bicep width instead of '
+            'narrowing into a wire at the jacket edge',
+      );
+      expect(
+        longestUpperArmEdge,
+        lessThan(report.profile.maxRaisedUpperArmMeshEdge),
+        reason:
+            'upper sleeve contour needs intermediate landmarks, not one long '
+            'triangle edge from elbow to bicep',
       );
     });
 
