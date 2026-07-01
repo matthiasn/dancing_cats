@@ -22,7 +22,7 @@ const int _shoulderFold = 0x2625304B; // translucent armpit cloth shadow
 const int _sleeve = 0xFF28334F; // same navy fabric, far-side sleeve shade
 const int _sleeveNear = 0xFF324061; // same navy fabric, near-side sleeve shade
 const int _sleeveContour =
-    0x8A12182A; // translucent drawn-in sleeve volume edge
+    0x3812182A; // translucent drawn-in sleeve volume edge
 const int _button = 0xFFAE955C; // muted brass placket button — a dark horn
 // button vanished on the navy front; a metal tone reads as a button line.
 const int _lapel = 0xFF5A6FA8; // jacket lapel — a CLEAR step lighter than the
@@ -1134,6 +1134,9 @@ RigSpec buildCatInSuitRig({
   List<double> scaledLegWidths(List<double> widths) => [
     for (final width in widths) width * legWidthScale,
   ];
+  List<double> scaledArmWidths(List<double> widths) => [
+    for (final width in widths) width * armWidthScale,
+  ];
   final ribbons = <LimbRibbonSpec>[
     LimbRibbonSpec(
       id: 'tail.ribbon',
@@ -1160,6 +1163,56 @@ RigSpec buildCatInSuitRig({
       color: palette.fur,
       outlineColor: _outline,
       outlineWidth: 2,
+    ),
+    LimbRibbonSpec(
+      id: 'arm.R.ribbon',
+      jointBoneIds: const [
+        CatBones.armUpperR,
+        CatBones.armBicepR,
+        CatBones.armLowerR,
+        CatBones.armForearmR,
+        CatBones.handR,
+      ],
+      hiddenBoneIds: const [
+        CatBones.armUpperR,
+        CatBones.armBicepR,
+        CatBones.armLowerR,
+        CatBones.armForearmR,
+        CatBones.armElbowCreaseR,
+      ],
+      halfWidths: scaledArmWidths(const [11.6, 13.3, 7.2, 8.9, 5.2]),
+      z: 15,
+      color: _sleeve,
+      outlineColor: _outline,
+      outlineWidth: 2.1,
+      samplesPerSegment: 12,
+      formRound: false,
+      roundCaps: false,
+    ),
+    LimbRibbonSpec(
+      id: 'arm.L.ribbon',
+      jointBoneIds: const [
+        CatBones.armUpperL,
+        CatBones.armBicepL,
+        CatBones.armLowerL,
+        CatBones.armForearmL,
+        CatBones.handL,
+      ],
+      hiddenBoneIds: const [
+        CatBones.armUpperL,
+        CatBones.armBicepL,
+        CatBones.armLowerL,
+        CatBones.armForearmL,
+        CatBones.armElbowCreaseL,
+      ],
+      halfWidths: scaledArmWidths(const [11.6, 13.3, 7.2, 8.9, 5.2]),
+      z: 16,
+      color: _sleeveNear,
+      outlineColor: _outline,
+      outlineWidth: 2.1,
+      samplesPerSegment: 12,
+      formRound: false,
+      roundCaps: false,
     ),
     LimbRibbonSpec(
       id: 'leg.R.ribbon',
@@ -1497,14 +1550,6 @@ RigSpec buildCatInSuitRig({
         3,
         4,
         5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12,
-        13,
         14,
         15,
         16,
@@ -1520,8 +1565,6 @@ RigSpec buildCatInSuitRig({
       ],
       z: z,
       color: color,
-      outlineColor: _outline,
-      outlineWidth: 2.2,
       formRound: false,
       boundaryCornerSmoothing: 0.46,
     );
@@ -1645,7 +1688,7 @@ RigSpec buildCatInSuitRig({
           ),
         ]),
       ],
-      boundary: const [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+      boundary: const [1, 2, 3, 4, 5, 6, 7, 8],
       z: z,
       color: _sleeveContour,
       formRound: false,
