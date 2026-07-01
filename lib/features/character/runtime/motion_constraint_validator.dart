@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:dancing_cats/features/character/model/clip.dart';
+import 'package:dancing_cats/features/character/model/pose.dart';
 import 'package:dancing_cats/features/character/model/rig_spec.dart';
 import 'package:dancing_cats/features/character/runtime/character_scene.dart';
 
@@ -45,6 +46,11 @@ class MotionConstraintValidator {
     final targetResiduals = _sampleIkTargetResiduals(clip, profile, ikSamples);
     final limbBends = _sampleLimbBends(clip, profile, ikSamples);
     final limbLanes = _sampleLimbLanes(clip, profile, ikSamples);
+    final shoulderResponses = _sampleRaisedShoulderResponses(
+      clip,
+      profile,
+      ikSamples,
+    );
 
     return MotionConstraintReport(
       clipName: clip.name,
@@ -55,6 +61,7 @@ class MotionConstraintValidator {
       ikTargetResiduals: targetResiduals,
       limbBends: limbBends,
       limbLanes: limbLanes,
+      shoulderResponses: shoulderResponses,
     );
   }
 
@@ -369,6 +376,61 @@ class MotionConstraintValidator {
     return checks;
   }
 
+  List<MotionShoulderResponse> _sampleRaisedShoulderResponses(
+    Clip clip,
+    MotionConstraintProfile profile,
+    int samples,
+  ) {
+    if (clip.limbTargets.isEmpty) return const [];
+    final checks = <MotionShoulderResponse>[];
+    for (var i = 0; i < samples; i++) {
+      final phase = i / samples;
+      final timeSeconds = _phaseTime(clip, phase);
+      final pose = scene.evaluator.evaluate(clip, timeSeconds);
+      for (final target in clip.limbTargets) {
+        if (!_isHand(target.endBoneId)) continue;
+        final targetPose = target.channel.sample(phase);
+        if (targetPose.weight < profile.minIkWeight ||
+            targetPose.y > profile.raisedHandTargetY) {
+          continue;
+        }
+        final upper = scene.rig.bone(target.upperBoneId);
+        final clavicleId = upper?.parent;
+        if (clavicleId == null) continue;
+
+        final claviclePose = pose.jointOf(clavicleId);
+        final socketId = _shoulderSocketIdFor(clavicleId, target.upperBoneId);
+        final socketPose = socketId == null
+            ? JointPose.identity
+            : pose.jointOf(socketId);
+        final socketResponse =
+            socketPose.rotation.abs() +
+            (socketPose.scaleX - 1).abs() +
+            (socketPose.scaleY - 1).abs();
+        final totalResponse = claviclePose.rotation.abs() + socketResponse;
+
+        checks.add(
+          MotionShoulderResponse(
+            clipName: clip.name,
+            upperBoneId: target.upperBoneId,
+            endBoneId: target.endBoneId,
+            clavicleBoneId: clavicleId,
+            socketBoneId: socketId,
+            phase: phase,
+            targetY: targetPose.y,
+            clavicleRotation: claviclePose.rotation,
+            socketRotation: socketPose.rotation,
+            socketScaleX: socketPose.scaleX,
+            socketScaleY: socketPose.scaleY,
+            socketResponse: socketResponse,
+            totalResponse: totalResponse,
+          ),
+        );
+      }
+    }
+    return checks;
+  }
+
   double _phaseTime(Clip clip, double phase) {
     if (clip.duration <= 0) return 0;
     final p = clip.loop ? _unitPhase(phase) : phase.clamp(0.0, 1.0);
@@ -409,6 +471,25 @@ class MotionConstraintValidator {
     if (endBoneId.endsWith('.R') && targetX > 0) return 1;
     return 0;
   }
+
+  bool _isHand(String boneId) => boneId.toLowerCase().contains('hand');
+
+  String? _shoulderSocketIdFor(String clavicleId, String upperBoneId) {
+    final suffix = _sideSuffix(upperBoneId);
+    for (final bone in scene.rig.bones) {
+      if (bone.parent != clavicleId) continue;
+      if (!bone.id.toLowerCase().contains('shoulder')) continue;
+      if (suffix != null && !bone.id.endsWith(suffix)) continue;
+      return bone.id;
+    }
+    return null;
+  }
+
+  String? _sideSuffix(String boneId) {
+    final index = boneId.lastIndexOf('.');
+    if (index < 0 || index == boneId.length - 1) return null;
+    return boneId.substring(index);
+  }
 }
 
 class MotionConstraintProfile {
@@ -425,6 +506,9 @@ class MotionConstraintProfile {
     this.maxLimbLaneReversal = 5,
     this.minSameSideTargetX = 48,
     this.minIkWeight = 0.05,
+    this.raisedHandTargetY = -60,
+    this.minRaisedShoulderResponse = 0.18,
+    this.minRaisedSocketResponse = 0.06,
   }) : assert(
          contactEdgeFraction >= 0 && contactEdgeFraction < 0.5,
          'contact edge fraction must be in [0, 0.5)',
@@ -460,6 +544,14 @@ class MotionConstraintProfile {
        assert(
          minIkWeight >= 0 && minIkWeight <= 1,
          'min IK weight must be in 0..1',
+       ),
+       assert(
+         minRaisedShoulderResponse >= 0,
+         'raised shoulder response must be non-negative',
+       ),
+       assert(
+         minRaisedSocketResponse >= 0,
+         'raised socket response must be non-negative',
        );
 
   /// Fraction at each contact-span edge ignored as handoff/toe-roll time.
@@ -517,6 +609,16 @@ class MotionConstraintProfile {
 
   /// Ignore near-disabled IK targets.
   final double minIkWeight;
+
+  /// Local hand-target y threshold for an arm that is visibly above shoulder
+  /// height and therefore must pull the shoulder girdle with it.
+  final double raisedHandTargetY;
+
+  /// Minimum combined clavicle + socket response for an overhead hand target.
+  final double minRaisedShoulderResponse;
+
+  /// Minimum socket/corrective deformation for an overhead hand target.
+  final double minRaisedSocketResponse;
 }
 
 class MotionConstraintReport {
@@ -529,6 +631,7 @@ class MotionConstraintReport {
     required this.ikTargetResiduals,
     required this.limbBends,
     required this.limbLanes,
+    required this.shoulderResponses,
   });
 
   final String clipName;
@@ -539,6 +642,7 @@ class MotionConstraintReport {
   final List<MotionIkTargetResidual> ikTargetResiduals;
   final List<MotionLimbBend> limbBends;
   final List<MotionLimbLane> limbLanes;
+  final List<MotionShoulderResponse> shoulderResponses;
 
   MotionContactDrift? get worstContactDrift =>
       _maxOrNull(contactDrifts, (check) => check.distance);
@@ -560,6 +664,11 @@ class MotionConstraintReport {
 
   MotionLimbLane? get worstLimbLane =>
       _maxOrNull(limbLanes, (check) => check.reversalDistance);
+
+  MotionShoulderResponse? get weakestRaisedShoulderResponse => _maxOrNull(
+    shoulderResponses,
+    (check) => -math.min(check.totalResponse, check.socketResponse),
+  );
 
   List<MotionConstraintViolation> get violations {
     final result = <MotionConstraintViolation>[];
@@ -693,6 +802,27 @@ class MotionConstraintReport {
             message:
                 '${check.endBoneId} reverses through ${check.lowerBoneId} '
                 'on a same-side target',
+          ),
+        );
+      }
+    }
+    for (final check in shoulderResponses) {
+      final totalSeverity =
+          profile.minRaisedShoulderResponse - check.totalResponse;
+      final socketSeverity =
+          profile.minRaisedSocketResponse - check.socketResponse;
+      if (totalSeverity > 0 || socketSeverity > 0) {
+        result.add(
+          MotionConstraintViolation(
+            category: MotionConstraintCategory.shoulderResponse,
+            clipName: clipName,
+            boneId: check.endBoneId,
+            phase: check.phase,
+            severity: math.max(totalSeverity, socketSeverity),
+            message:
+                '${check.endBoneId} targets high at y='
+                '${check.targetY.toStringAsFixed(1)} without enough '
+                'clavicle/socket response',
           ),
         );
       }
@@ -879,6 +1009,38 @@ class MotionLimbLane {
   final double horizontalFold;
 }
 
+class MotionShoulderResponse {
+  const MotionShoulderResponse({
+    required this.clipName,
+    required this.upperBoneId,
+    required this.endBoneId,
+    required this.clavicleBoneId,
+    required this.socketBoneId,
+    required this.phase,
+    required this.targetY,
+    required this.clavicleRotation,
+    required this.socketRotation,
+    required this.socketScaleX,
+    required this.socketScaleY,
+    required this.socketResponse,
+    required this.totalResponse,
+  });
+
+  final String clipName;
+  final String upperBoneId;
+  final String endBoneId;
+  final String clavicleBoneId;
+  final String? socketBoneId;
+  final double phase;
+  final double targetY;
+  final double clavicleRotation;
+  final double socketRotation;
+  final double socketScaleX;
+  final double socketScaleY;
+  final double socketResponse;
+  final double totalResponse;
+}
+
 enum MotionConstraintCategory {
   footContact,
   supportBalance,
@@ -887,6 +1049,7 @@ enum MotionConstraintCategory {
   limbBend,
   limbBendDirection,
   limbLane,
+  shoulderResponse,
 }
 
 class MotionConstraintViolation {

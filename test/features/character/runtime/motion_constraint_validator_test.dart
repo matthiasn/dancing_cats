@@ -214,6 +214,39 @@ void main() {
       );
     });
 
+    test('detects a high hand target without shoulder-girdle response', () {
+      final validator = MotionConstraintValidator(
+        CharacterScene(buildCatInSuitRig()),
+      );
+      const clip = Clip(
+        name: 'synthetic-static-raised-shoulder',
+        duration: 1,
+        channels: {},
+        limbTargets: [
+          LimbIkTarget(
+            upperBoneId: CatBones.armUpperL,
+            lowerBoneId: CatBones.armLowerL,
+            endBoneId: CatBones.handL,
+            anchorBoneId: CatBones.torso,
+            channel: FixedIkTargetChannel(x: -72, y: -90),
+          ),
+        ],
+      );
+
+      final report = validator.analyze(
+        clip: clip,
+        ikSamples: 4,
+        contactSamplesPerSpan: 1,
+      );
+
+      expect(report.shoulderResponses, hasLength(4));
+      expect(report.weakestRaisedShoulderResponse?.socketResponse, 0);
+      expect(
+        report.violations.map((violation) => violation.category),
+        contains(MotionConstraintCategory.shoulderResponse),
+      );
+    });
+
     test('reports bend-side mismatch from resolved limb samples', () {
       const report = MotionConstraintReport(
         clipName: 'synthetic-bend-flip',
@@ -238,6 +271,7 @@ void main() {
           ),
         ],
         limbLanes: [],
+        shoulderResponses: [],
       );
 
       expect(
@@ -452,6 +486,75 @@ void main() {
               'target=(${worst.targetX.toStringAsFixed(1)}, ${worst.targetY.toStringAsFixed(1)})',
         );
       }
+    });
+
+    test('catalogue raised hand targets carry shoulder response', () {
+      final validator = MotionConstraintValidator(
+        CharacterScene(buildCatInSuitRig()),
+      );
+
+      for (final clip in [
+        CatClips.shaku,
+        CatClips.zanku,
+        CatClips.azonto,
+        CatClips.buga,
+        CatClips.sekem,
+      ]) {
+        final report = validator.analyze(clip: clip, ikSamples: 64);
+        final shoulderViolations = report.violations.where(
+          (violation) =>
+              violation.category == MotionConstraintCategory.shoulderResponse,
+        );
+
+        expect(
+          shoulderViolations,
+          isEmpty,
+          reason:
+              '${clip.name} should not send hands above shoulder height while '
+              'leaving the clavicle/socket controls static: '
+              '${shoulderViolations.take(4).map((v) => '${v.boneId}@${v.phase.toStringAsFixed(3)} ${v.message}').join(' | ')}',
+        );
+      }
+    });
+
+    test('buga raised presents deform clavicle and shoulder sockets', () {
+      final validator = MotionConstraintValidator(
+        CharacterScene(buildCatInSuitRig()),
+      );
+
+      final report = validator.analyze(
+        clip: CatClips.buga,
+        ikSamples: 64,
+      );
+      final shoulderViolations = report.violations.where(
+        (violation) =>
+            violation.category == MotionConstraintCategory.shoulderResponse,
+      );
+      final rightResponses =
+          report.shoulderResponses
+              .where((response) => response.endBoneId == CatBones.handR)
+              .toList()
+            ..sort((a, b) => b.socketResponse.compareTo(a.socketResponse));
+      final leftResponses =
+          report.shoulderResponses
+              .where((response) => response.endBoneId == CatBones.handL)
+              .toList()
+            ..sort((a, b) => b.socketResponse.compareTo(a.socketResponse));
+
+      expect(
+        shoulderViolations,
+        isEmpty,
+        reason:
+            'Buga overhead hands should pull clavicle/socket controls with '
+            'them instead of hinging from a static jacket edge: '
+            '${shoulderViolations.take(4).map((v) => '${v.boneId}@${v.phase.toStringAsFixed(3)} ${v.message}').join(' | ')}',
+      );
+      expect(rightResponses, isNotEmpty);
+      expect(leftResponses, isNotEmpty);
+      expect(rightResponses.first.socketResponse, greaterThan(0.28));
+      expect(leftResponses.first.socketResponse, greaterThan(0.28));
+      expect(rightResponses.first.clavicleRotation, lessThan(-0.2));
+      expect(leftResponses.first.clavicleRotation, greaterThan(0.2));
     });
 
     test('sekem same-side hand targets keep a solved anatomical lane', () {

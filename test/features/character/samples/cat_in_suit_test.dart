@@ -1648,6 +1648,10 @@ void main() {
       );
       final clavicleR = buga.channels[CatBones.clavicleR]!;
       final clavicleL = buga.channels[CatBones.clavicleL]!;
+      final shoulderSocketR = buga.channels[CatBones.shoulderSocketR]!;
+      final shoulderSocketL = buga.channels[CatBones.shoulderSocketL]!;
+      final bicepR = buga.channels[CatBones.armBicepR]!;
+      final bicepL = buga.channels[CatBones.armBicepL]!;
       expect(
         clavicleR.sample(13 / phrase.frameCount).rotation,
         lessThan(-0.28),
@@ -1662,6 +1666,48 @@ void main() {
             'the mirrored Buga overhead present should lift through the left '
             'shoulder girdle as well',
       );
+      final rightSocketPeak = shoulderSocketR.sample(13 / phrase.frameCount);
+      expect(
+        rightSocketPeak.rotation,
+        lessThan(-0.16),
+        reason:
+            'the right Buga sleeve cap should rotate/deform with the raised '
+            'arm instead of staying as a static shoulder patch',
+      );
+      expect(rightSocketPeak.scaleX, greaterThan(1.12));
+      expect(rightSocketPeak.scaleY, lessThan(0.94));
+      final leftSocketPeak = shoulderSocketL.sample(29 / phrase.frameCount);
+      expect(
+        leftSocketPeak.rotation,
+        greaterThan(0.16),
+        reason:
+            'the mirrored Buga sleeve cap should rotate/deform with the raised '
+            'left arm instead of staying as a static shoulder patch',
+      );
+      expect(leftSocketPeak.scaleX, greaterThan(1.12));
+      expect(leftSocketPeak.scaleY, lessThan(0.94));
+      expect(
+        shoulderSocketR.sample(0).rotation,
+        lessThan(-0.07),
+        reason:
+            'Buga loops into a raised right arm, so frame 0 needs shoulder '
+            'response too; otherwise the loop boundary detaches the sleeve',
+      );
+      expect(
+        shoulderSocketL.sample(16 / phrase.frameCount).rotation,
+        greaterThan(0.07),
+        reason:
+            'the mirrored raised-arm phrase begins at frame 16, so the left '
+            'socket should already be engaged before the big hit',
+      );
+      expect(
+        bicepR.sample(13 / phrase.frameCount).scaleX,
+        greaterThan(1.08),
+        reason:
+            'the upper sleeve should carry bicep mass during the raised-arm '
+            'show-off instead of tapering into a thin rotating strip',
+      );
+      expect(bicepL.sample(29 / phrase.frameCount).scaleX, greaterThan(1.08));
       final rootHit = buga.root.sample(12 / phrase.frameCount);
       final rootMirrorHit = buga.root.sample(28 / phrase.frameCount);
       expect(

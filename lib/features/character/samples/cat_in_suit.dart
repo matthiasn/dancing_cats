@@ -7446,6 +7446,52 @@ class CatClips {
     DanceJointKey(30, rotation: 0.22),
     DanceJointKey(32, rotation: 0.02),
   ];
+  static const _bugaShoulderSocketRKeys = [
+    DanceJointKey(0, rotation: -0.1, scaleX: 1.08, scaleY: 0.96),
+    DanceJointKey(8, rotation: -0.1, scaleX: 1.08, scaleY: 0.96),
+    DanceJointKey(10, rotation: -0.12, scaleX: 1.1, scaleY: 0.95),
+    DanceJointKey(12, rotation: -0.16, scaleX: 1.12, scaleY: 0.94),
+    DanceJointKey(13, rotation: -0.2, scaleX: 1.16, scaleY: 0.92),
+    DanceJointKey(14, rotation: -0.13, scaleX: 1.1, scaleY: 0.95),
+    DanceJointKey(15, rotation: -0.1, scaleX: 1.08, scaleY: 0.96),
+    DanceJointKey(16),
+    DanceJointKey(24),
+    DanceJointKey(32, rotation: -0.1, scaleX: 1.08, scaleY: 0.96),
+  ];
+  static const _bugaShoulderSocketLKeys = [
+    DanceJointKey(0),
+    DanceJointKey(12),
+    DanceJointKey(14, rotation: 0.08, scaleX: 1.06, scaleY: 0.97),
+    DanceJointKey(16, rotation: 0.1, scaleX: 1.08, scaleY: 0.96),
+    DanceJointKey(24, rotation: 0.1, scaleX: 1.08, scaleY: 0.96),
+    DanceJointKey(26, rotation: 0.12, scaleX: 1.1, scaleY: 0.95),
+    DanceJointKey(28, rotation: 0.16, scaleX: 1.12, scaleY: 0.94),
+    DanceJointKey(29, rotation: 0.2, scaleX: 1.16, scaleY: 0.92),
+    DanceJointKey(30, rotation: 0.13, scaleX: 1.1, scaleY: 0.95),
+    DanceJointKey(31, rotation: 0.1, scaleX: 1.08, scaleY: 0.96),
+    DanceJointKey(32),
+  ];
+  static const _bugaBicepRKeys = [
+    DanceJointKey(0, scaleX: 1.06, scaleY: 0.98),
+    DanceJointKey(8, scaleX: 1.06, scaleY: 0.98),
+    DanceJointKey(10, scaleX: 1.04, scaleY: 0.99),
+    DanceJointKey(12, scaleX: 1.09, scaleY: 0.97),
+    DanceJointKey(13, scaleX: 1.12, scaleY: 0.96),
+    DanceJointKey(14, scaleX: 1.08, scaleY: 0.98),
+    DanceJointKey(16),
+    DanceJointKey(32, scaleX: 1.06, scaleY: 0.98),
+  ];
+  static const _bugaBicepLKeys = [
+    DanceJointKey(0),
+    DanceJointKey(14, scaleX: 1.04, scaleY: 0.99),
+    DanceJointKey(16, scaleX: 1.06, scaleY: 0.98),
+    DanceJointKey(24, scaleX: 1.06, scaleY: 0.98),
+    DanceJointKey(26, scaleX: 1.04, scaleY: 0.99),
+    DanceJointKey(28, scaleX: 1.09, scaleY: 0.97),
+    DanceJointKey(29, scaleX: 1.12, scaleY: 0.96),
+    DanceJointKey(30, scaleX: 1.08, scaleY: 0.98),
+    DanceJointKey(32),
+  ];
   // The present is a HIGH diagonal "show-off" thrust (up AND out, above the
   // shoulder at y -56), not a horizontal side-poke at chest height. The non-
   // presenting hand drops low/back on the hit so the silhouette opens into a
@@ -7614,6 +7660,22 @@ class CatClips {
           base.channels[CatBones.clavicleL]!,
           _dancePhrase.jointChannel(_bugaClavicleLKeys, smooth: true),
         ]),
+        CatBones.shoulderSocketR: _dancePhrase.jointChannel(
+          _bugaShoulderSocketRKeys,
+          smooth: true,
+        ),
+        CatBones.shoulderSocketL: _dancePhrase.jointChannel(
+          _bugaShoulderSocketLKeys,
+          smooth: true,
+        ),
+        CatBones.armBicepR: _dancePhrase.jointChannel(
+          _bugaBicepRKeys,
+          smooth: true,
+        ),
+        CatBones.armBicepL: _dancePhrase.jointChannel(
+          _bugaBicepLKeys,
+          smooth: true,
+        ),
         CatBones.legLowerL: _dancePhrase.jointChannel(
           _bugaLegLowerKeys,
           smooth: true,
