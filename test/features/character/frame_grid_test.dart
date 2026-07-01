@@ -691,24 +691,28 @@ void main() {
       for (final name in selected) {
         final clip = clipsByName[name]!;
         final catalogueDance = _isCatalogueDanceClip(clip);
+        // Mirror the shipped cast: limb thickness follows each lane's staged
+        // plane scale (lead = the front reference, flankers upstage).
+        final flankThickness = limbThicknessForPlaneScale(
+          danceLanePlaneScale(0, 3) / danceLanePlaneScale(1, 3),
+        );
         final scene = CharacterScene(
-          buildCatInSuitRig(
-            legWidthScale: catalogueDance ? kDanceLeadLegWidthScale : 1,
-            armWidthScale: catalogueDance ? kDanceLeadArmWidthScale : 1,
-          ),
+          buildCatInSuitRig(),
           autonomic: _reviewAutonomic(11),
         );
         final partnerScene = CharacterScene(
           buildCatInSuitRig(
             palette: CatInSuitPalette.silverTabby,
-            armWidthScale: catalogueDance ? kDanceBackupArmWidthScale : 1,
+            legWidthScale: catalogueDance ? flankThickness : 1,
+            armWidthScale: catalogueDance ? flankThickness : 1,
           ),
           autonomic: _reviewAutonomic(29),
         );
         final thirdScene = CharacterScene(
           buildCatInSuitRig(
             palette: CatInSuitPalette.darkBrown,
-            armWidthScale: catalogueDance ? kDanceBackupArmWidthScale : 1,
+            legWidthScale: catalogueDance ? flankThickness : 1,
+            armWidthScale: catalogueDance ? flankThickness : 1,
           ),
           autonomic: _reviewAutonomic(47),
         );

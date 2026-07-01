@@ -3,6 +3,7 @@ import 'package:dancing_cats/features/character/demo/dance_stage_view.dart';
 import 'package:dancing_cats/features/character/model/beat_map.dart';
 import 'package:dancing_cats/features/character/model/face.dart';
 import 'package:dancing_cats/features/character/model/rig_spec.dart';
+import 'package:dancing_cats/features/character/runtime/character_painter.dart';
 import 'package:dancing_cats/features/character/runtime/character_renderer.dart';
 import 'package:dancing_cats/features/character/samples/cat_in_suit.dart';
 import 'package:dancing_cats/features/scenery/layered_backdrop.dart';
@@ -189,38 +190,29 @@ void main() {
   });
 
   group('DanceCast', () {
-    test('uses widened sleeve meshes for the shipped trio', () {
-      final baseArm = _leftArmMesh(buildCatInSuitRig());
+    test('builds trio limb thickness from each lane plane scale', () {
+      final base = _leftArmRibbon(buildCatInSuitRig());
       final cast = DanceCast.build();
+      final flankThickness = limbThicknessForPlaneScale(
+        danceLanePlaneScale(0, 3) / danceLanePlaneScale(1, 3),
+      );
 
       expect(
-        _maxAbsLocalX(_leftArmMesh(cast.lead.rig).vertices[2]),
-        closeTo(
-          _maxAbsLocalX(baseArm.vertices[2]) * kDanceLeadArmWidthScale,
-          0.001,
-        ),
+        _leftArmRibbon(cast.lead.rig).halfWidths,
+        base.halfWidths,
+        reason: 'the downstage lead IS the reference plane',
       );
-      expect(
-        _maxAbsLocalX(_leftArmMesh(cast.left.rig).vertices[2]),
-        closeTo(
-          _maxAbsLocalX(baseArm.vertices[2]) * kDanceBackupArmWidthScale,
-          0.001,
-        ),
-      );
-      expect(
-        _maxAbsLocalX(_leftArmMesh(cast.right.rig).vertices[2]),
-        closeTo(
-          _maxAbsLocalX(baseArm.vertices[2]) * kDanceBackupArmWidthScale,
-          0.001,
-        ),
-      );
-      expect(
-        kDanceBackupArmWidthScale,
-        greaterThan(1.1),
-        reason:
-            'scaled-down background cats need enough sleeve volume to avoid '
-            'turning their arms into dark wires',
-      );
+      for (final backup in [cast.left.rig, cast.right.rig]) {
+        expect(
+          _leftArmRibbon(backup).halfWidths.first,
+          closeTo(base.halfWidths.first * flankThickness, 0.001),
+          reason:
+              'upstage lanes thin by the plane curve so they keep silhouette '
+              'negative space instead of ballooning',
+        );
+      }
+      expect(flankThickness, lessThan(1));
+      expect(flankThickness, greaterThanOrEqualTo(0.78));
     });
 
     test('keeps the lead lower-body silhouette stronger than backups', () {
@@ -296,13 +288,8 @@ void main() {
   });
 }
 
-SkinnedMeshSpec _leftArmMesh(RigSpec rig) =>
-    rig.meshes.singleWhere((mesh) => mesh.id == 'arm.L.mesh');
+LimbRibbonSpec _leftArmRibbon(RigSpec rig) =>
+    rig.ribbons.singleWhere((ribbon) => ribbon.id == 'arm.L.ribbon');
 
 LimbRibbonSpec _leftLegRibbon(RigSpec rig) =>
     rig.ribbons.singleWhere((ribbon) => ribbon.id == 'leg.L.ribbon');
-
-double _maxAbsLocalX(SkinnedMeshVertex vertex) => vertex.influences.fold(
-  0,
-  (maxX, influence) => influence.x.abs() > maxX ? influence.x.abs() : maxX,
-);

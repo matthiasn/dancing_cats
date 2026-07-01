@@ -21,7 +21,7 @@ void main() {
       }
     });
 
-    test('raised hand targets automatically engage shoulder volume', () {
+    test('raised hand targets engage the shoulder girdle', () {
       final scene = CharacterScene(buildCatInSuitRig());
       const clip = Clip(
         name: 'synthetic-raised-hand',
@@ -39,35 +39,35 @@ void main() {
       );
 
       final raw = scene.evaluator.evaluate(clip, 0);
-      expect(raw.jointOf(CatBones.shoulderSocketR).rotation, 0);
-      expect(raw.jointOf(CatBones.armBicepR).scaleX, 1);
+      expect(raw.jointOf(CatBones.clavicleR).rotation, 0);
 
       final posed = scene.poseAt(
         clip: clip,
         timeSeconds: 0,
         includeAutonomic: false,
       );
-      final socket = posed.jointOf(CatBones.shoulderSocketR);
-      final bicep = posed.jointOf(CatBones.armBicepR);
       final clavicle = posed.jointOf(CatBones.clavicleR);
+      final socket = posed.jointOf(CatBones.shoulderSocketR);
 
-      expect(
-        socket.rotation,
-        lessThan(-0.15),
-        reason:
-            'a high right-hand target should lift the right shoulder socket '
-            'even when the clip did not author socket keys',
-      );
-      expect(socket.scaleX, greaterThan(1.11));
-      expect(socket.scaleY, lessThan(0.94));
-      expect(bicep.scaleX, greaterThan(1.08));
       expect(
         clavicle.rotation,
         lessThan(-0.06),
         reason:
-            'the shoulder girdle should answer a raised arm before IK solves '
-            'the elbow/wrist',
+            'the shoulder girdle should shrug toward a raised hand before IK '
+            'solves the elbow/wrist — a rotation carries the deltoid, '
+            'armhole, and ribbon sleeve root with it',
       );
+      expect(
+        clavicle.rotation,
+        greaterThan(-0.2),
+        reason: 'the shrug is a nudge, not an over-rotated hinge',
+      );
+      // The sleeve is a ribbon with a fixed anatomical width profile: no pass
+      // may inflate joint scales per pose to fake sleeve volume anymore.
+      expect(socket.scaleX, 1);
+      expect(socket.scaleY, 1);
+      expect(clavicle.scaleX, 1);
+      expect(clavicle.scaleY, 1);
     });
 
     test('pose modifier stack exposes anatomy-safe solve order', () {
@@ -79,14 +79,16 @@ void main() {
           'breath',
           'support-balance',
           'secondary-follow',
+          'spine-distribute',
+          'girdle-follow',
           'shoulder-girdle',
           'limb-ik',
           'contact-lock',
         ],
         reason:
             'body modifiers should run as an ordered constraint pipeline: '
-            'primary body timing, balance, secondary follow-through, shoulder '
-            'response, IK, then contact',
+            'primary body timing, balance, secondary follow-through, spine '
+            'distribution, shoulder response, IK, then contact',
       );
       expect(
         scene.poseModifierPasses.map((pass) => pass.mix),

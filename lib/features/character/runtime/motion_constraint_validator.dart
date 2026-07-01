@@ -764,6 +764,14 @@ const defaultMotionJointEnvelopeRules = <MotionJointEnvelopeRule>[
     maxAbsRotation: 0.75,
     maxScaleDelta: 0.42,
   ),
+  // Thoracic joint: receives its share of the trunk rotation from the scene's
+  // spine-distribute pass, plus any authored chest accent. A real thoracic
+  // spine twists/side-bends less than the lumbar joint below it.
+  MotionJointEnvelopeRule(
+    boneIdToken: 'chest',
+    maxAbsRotation: 0.5,
+    maxScaleDelta: 0.2,
+  ),
   MotionJointEnvelopeRule(
     boneIdToken: 'hips',
     maxAbsRotation: 1.1,
@@ -806,8 +814,14 @@ class MotionConstraintProfile {
     this.minSameSideTargetX = 48,
     this.minIkWeight = 0.05,
     this.raisedHandTargetY = -60,
-    this.minRaisedShoulderResponse = 0.18,
-    this.minRaisedSocketResponse = 0.06,
+    // The girdle answers a raised hand with a clavicle ROTATION (a shrug).
+    // The old, larger default also counted socket/bicep scale inflation — a
+    // per-pose patch for hand-authored sleeve meshes that no longer exists
+    // (the ribbon sleeve holds its anatomical profile in every pose), so the
+    // expected response is now the rotation alone and the socket minimum
+    // defaults to off.
+    this.minRaisedShoulderResponse = 0.05,
+    this.minRaisedSocketResponse = 0,
     this.maxRaisedShoulderMeshGap = 24,
     this.minRaisedShoulderMeshSpan = 12,
     this.minRaisedShoulderToBicepRatio = 0.66,

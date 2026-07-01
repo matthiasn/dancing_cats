@@ -61,6 +61,22 @@ class CharacterScene {
             _secondaryFollowPose(context.clip, context.timeSeconds, pose),
       ),
       PoseModifierPass(
+        id: 'spine-distribute',
+        description:
+            'Split the authored torso rotation across the lumbar and '
+            'thoracic joints so the trunk bends instead of tilting.',
+        modifier: (context, pose) =>
+            _spineDistributedPose(context.clip, context.timeSeconds, pose),
+      ),
+      PoseModifierPass(
+        id: 'girdle-follow',
+        description:
+            'Ripple a lagged share of the trunk drive through the clavicles '
+            'so the shoulder line answers the groove.',
+        modifier: (context, pose) =>
+            _girdleFollowPose(context.clip, context.timeSeconds, pose),
+      ),
+      PoseModifierPass(
         id: 'shoulder-girdle',
         description: 'Engage clavicle, socket, and bicep volume before IK.',
         modifier: (context, pose) =>
@@ -367,6 +383,126 @@ class CharacterScene {
     );
   }
 
+  /// Distributes the clip's authored `torso` (lumbar) rotation up the spine.
+  ///
+  /// Clips keep authoring one trunk channel; this pass hands [_kThoracicShare]
+  /// of that rotation to the thoracic `chest` joint, sampled with a slight lag
+  /// on looping clips so the ribcage/shoulder mass follows through behind the
+  /// pelvis. The summed world orientation at the shoulders stays what the clip
+  /// authored (exactly so when the lag is zero) — the trunk now *bends* through
+  /// two centres instead of swinging as one rigid plate. Rigs without a chest
+  /// bone are untouched.
+  Pose _spineDistributedPose(Clip clip, double timeSeconds, Pose pose) {
+    final chestId = _chestBoneId;
+    if (chestId == null) return pose;
+    final torsoId = rig.bone(chestId)!.parent!;
+    final authored = pose.jointOf(torsoId);
+
+    final lag = clip.loop && clip.duration > 0
+        ? clip.duration / 32
+        : 0.0;
+    final source = lag > 0
+        ? evaluator.evaluate(clip, timeSeconds - lag).jointOf(torsoId).rotation
+        : authored.rotation;
+    final chestDelta = _kThoracicShare * source;
+    final torsoRotation = authored.rotation * (1 - _kThoracicShare);
+    if (chestDelta.abs() < 0.0001 &&
+        (authored.rotation - torsoRotation).abs() < 0.0001) {
+      return pose;
+    }
+
+    final joints = Map<String, JointPose>.of(pose.joints);
+    joints[torsoId] = JointPose(
+      rotation: torsoRotation,
+      scaleX: authored.scaleX,
+      scaleY: authored.scaleY,
+    );
+    joints[chestId] = _addJointRotation(pose.jointOf(chestId), chestDelta);
+    return Pose(
+      joints: joints,
+      rootDx: pose.rootDx,
+      rootDy: pose.rootDy,
+      rootRotation: pose.rootRotation,
+    );
+  }
+
+  /// Fraction of the authored trunk rotation carried by the thoracic joint.
+  static const double _kThoracicShare = 0.45;
+
+  /// Shoulders answer the trunk a beat late: the clavicles pick up a clamped
+  /// share of how much the trunk has MOVED over the last [_girdleLagFraction]
+  /// of the clip (a lagged difference — pure in time, so film strips stay
+  /// deterministic). When the chest whips into a new direction the shoulder
+  /// line trails and catches up, instead of the whole girdle arriving with the
+  /// trunk like a welded plate. Composes with authored clavicle keys and the
+  /// raised-arm shrug ([_shoulderCorrectedPose]).
+  Pose _girdleFollowPose(Clip clip, double timeSeconds, Pose pose) {
+    if (!_isDanceFamily(clip) || clip.duration <= 0) return pose;
+    final clavicleIds = _clavicleBoneIds;
+    if (clavicleIds.isEmpty) return pose;
+
+    final lag = clip.duration * _girdleLagFraction;
+    final delta = _clampMagnitude(
+      (_trunkDriveEstimate(clip, timeSeconds - lag) -
+              _trunkDriveEstimate(clip, timeSeconds)) *
+          0.35,
+      0.045,
+    );
+    if (delta.abs() < 0.0005) return pose;
+
+    final joints = Map<String, JointPose>.of(pose.joints);
+    for (final clavicleId in clavicleIds) {
+      joints[clavicleId] = _addJointRotation(pose.jointOf(clavicleId), delta);
+    }
+    return Pose(
+      joints: joints,
+      rootDx: pose.rootDx,
+      rootDy: pose.rootDy,
+      rootRotation: pose.rootRotation,
+    );
+  }
+
+  static const double _girdleLagFraction = 1 / 24;
+
+  /// The head trails a touch longer than the shoulders — the follow-through
+  /// travels UP the body (trunk → girdle → skull), each stage a little later.
+  static const double _headLagFraction = 1 / 16;
+
+  late final List<String> _clavicleBoneIds = [
+    for (final bone in rig.bones)
+      if (bone.id.toLowerCase().contains('clavicle')) bone.id,
+  ];
+
+  /// Cheap estimate of the trunk's world bank at [timeSeconds], straight from
+  /// the raw clip pose (no FK solve): the rotation chain that reaches the neck
+  /// root. Used by the lagged-difference follow terms (girdle, head), where
+  /// only the CHANGE of bank over a short lag matters.
+  double _trunkDriveEstimate(Clip clip, double timeSeconds) {
+    final pose = evaluator.evaluate(clip, timeSeconds);
+    return pose.rootRotation +
+        _jointRotationForAny(pose, const ['hips', 'pelvis']) +
+        _jointRotationForAny(pose, const ['torso', 'chest']);
+  }
+
+  /// The thoracic spine bone: a child of the torso whose id names the chest.
+  late final String? _chestBoneId = () {
+    for (final bone in rig.bones) {
+      if (bone.parent != null && bone.id.toLowerCase().contains('chest')) {
+        return bone.id;
+      }
+    }
+    return null;
+  }();
+
+  /// Rotates the clavicle toward a raised/wide hand target before IK solves
+  /// the elbow and wrist — the shoulder girdle shrugging with the reach, which
+  /// carries the deltoid, armhole, and sleeve root along.
+  ///
+  /// This is the ONLY girdle corrective now. The old pass additionally
+  /// inflated socket/bicep scales per pose to patch hand-authored sleeve
+  /// meshes whose profile collapsed outside their tuned range; the ribbon
+  /// sleeve keeps its anatomical width profile in every pose, so no fabric
+  /// inflation exists anymore.
   Pose _shoulderCorrectedPose(Clip clip, double timeSeconds, Pose pose) {
     if (clip.limbTargets.isEmpty) return pose;
 
@@ -385,35 +521,19 @@ class CharacterScene {
 
       final upper = rig.bone(target.upperBoneId);
       if (upper == null || upper.parent == null) continue;
-      final socketId = _shoulderSocketIdFor(upper.parent!, upper.id);
-      if (socketId == null) continue;
-
       final side = _sideSign(target.endBoneId);
       if (side == 0) continue;
 
+      // Only a real girdle bone may shrug. In a rig whose arm hangs straight
+      // off the trunk there is nothing anatomical to rotate — and the motion
+      // validator should keep flagging that rig, not have this pass twist the
+      // trunk to fake a response.
       final clavicleId = upper.parent!;
-      joints[clavicleId] = _ensureSignedRotationAndScale(
+      if (!clavicleId.toLowerCase().contains('clavicle')) continue;
+      joints[clavicleId] = _ensureSignedRotation(
         pose: joints[clavicleId] ?? JointPose.identity,
-        signedRotation: side * 0.1 * engagement,
-        minScaleX: 1 + 0.026 * engagement,
-        maxScaleY: 1 - 0.014 * engagement,
+        signedRotation: side * 0.09 * engagement,
       );
-      joints[socketId] = _ensureSignedRotationAndScale(
-        pose: joints[socketId] ?? JointPose.identity,
-        signedRotation: side * 0.18 * engagement,
-        minScaleX: 1 + 0.14 * engagement,
-        maxScaleY: 1 - 0.07 * engagement,
-      );
-
-      final bicepId = _childControlIdFor(upper.id, 'bicep');
-      if (bicepId != null) {
-        joints[bicepId] = _ensureSignedRotationAndScale(
-          pose: joints[bicepId] ?? JointPose.identity,
-          signedRotation: 0,
-          minScaleX: 1 + 0.12 * engagement,
-          maxScaleY: 1 - 0.04 * engagement,
-        );
-      }
       changed = true;
     }
 
@@ -762,8 +882,26 @@ class CharacterScene {
     // under a fixated head. Keeping ~26% of the lean lets the head ride WITH the
     // body — still damped well under the "subtle wobble" bound, but no longer a
     // fixed pivot the torso dangles from.
+    //
+    // On top of the damped ride, the head FOLLOWS THROUGH: a lagged-difference
+    // term (trunk bank a moment ago minus now — pure in time, deterministic)
+    // makes the skull trail the trunk into each direction change and catch up
+    // after, the whip a dancer's head actually has, instead of arriving welded
+    // to the chest.
+    final headFollow = _isDanceFamily(clip) && clip.duration > 0
+        ? _clampMagnitude(
+            (_trunkDriveEstimate(
+                      clip,
+                      timeSeconds - clip.duration * _headLagFraction,
+                    ) -
+                    _trunkDriveEstimate(clip, timeSeconds)) *
+                0.45 *
+                clip.danceHeadBobScale,
+            0.06,
+          )
+        : 0.0;
     final rotationCorrection = _isDanceFamily(clip)
-        ? -headRotation * 0.74 + danceAttitude
+        ? -headRotation * 0.74 + danceAttitude + headFollow
         : 0.0;
     final correction = _rigidLinearCorrection(
       headWorld,
@@ -778,9 +916,27 @@ class CharacterScene {
       anchor.x,
       anchor.y,
     ).multiply(correction).multiply(Affine2D.translation(-anchor.x, -anchor.y));
+    // Lateral follow-through, same lagged-difference model as the rotation:
+    // the skull trails the pelvis groove by a few px and catches up, so fast
+    // side-to-side pockets read as a head riding a spring, not a bolted mass.
+    // Clamped tight — the collar join must never gap.
+    final headDxFollow = _isDanceFamily(clip) && clip.duration > 0
+        ? _clampMagnitude(
+            (evaluator
+                        .evaluate(
+                          clip,
+                          timeSeconds - clip.duration * _headLagFraction,
+                        )
+                        .rootDx -
+                    rootDx) *
+                0.22,
+            5,
+          )
+        : 0.0;
     final headCounterTranslate = _isDanceFamily(clip)
         ? Affine2D.translation(
-            _danceHeadHorizontalCounter(rootDx, clip.danceHeadBobScale) *
+            (_danceHeadHorizontalCounter(rootDx, clip.danceHeadBobScale) +
+                    headDxFollow) *
                 baseScale,
             _danceHeadVerticalCounter(rootDy, clip.danceHeadBobScale) *
                 baseScale,
@@ -964,11 +1120,11 @@ class CharacterScene {
     return math.max(raised, wideReach).clamp(0.0, 1.0);
   }
 
-  JointPose _ensureSignedRotationAndScale({
+  /// Nudges [pose]'s rotation to at least [signedRotation] in its direction,
+  /// leaving any stronger same-direction authored rotation alone.
+  JointPose _ensureSignedRotation({
     required JointPose pose,
     required double signedRotation,
-    required double minScaleX,
-    required double maxScaleY,
   }) {
     var rotation = pose.rotation;
     if (signedRotation != 0 &&
@@ -978,30 +1134,9 @@ class CharacterScene {
     }
     return JointPose(
       rotation: rotation,
-      scaleX: math.max(pose.scaleX, minScaleX),
-      scaleY: math.min(pose.scaleY, maxScaleY),
+      scaleX: pose.scaleX,
+      scaleY: pose.scaleY,
     );
-  }
-
-  String? _shoulderSocketIdFor(String clavicleId, String upperBoneId) {
-    final suffix = _sideSuffix(upperBoneId);
-    for (final bone in rig.bones) {
-      if (bone.parent != clavicleId) continue;
-      if (!bone.id.toLowerCase().contains('shoulder')) continue;
-      if (suffix != null && !bone.id.endsWith(suffix)) continue;
-      return bone.id;
-    }
-    return null;
-  }
-
-  String? _childControlIdFor(String parentId, String token) {
-    final needle = token.toLowerCase();
-    for (final bone in rig.bones) {
-      if (bone.parent == parentId && bone.id.toLowerCase().contains(needle)) {
-        return bone.id;
-      }
-    }
-    return null;
   }
 
   bool _isHandBone(String boneId) => boneId.toLowerCase().contains('hand');
@@ -1010,12 +1145,6 @@ class CharacterScene {
     if (boneId.endsWith('.L')) return 1;
     if (boneId.endsWith('.R')) return -1;
     return 0;
-  }
-
-  String? _sideSuffix(String boneId) {
-    final index = boneId.lastIndexOf('.');
-    if (index < 0 || index == boneId.length - 1) return null;
-    return boneId.substring(index);
   }
 
   /// In-place performance clips do not locomote, but their support foot still

@@ -148,6 +148,23 @@ bool _isTrioDanceClip(Clip clip) =>
 /// Per the plan's perf guidance the live ticker lives in the widget `State`,
 /// not in a provider; this painter just turns `(clip, time, expression)` into
 /// pixels via the shared [CharacterRenderer].
+/// The static plane scale of a dance-trio lane: how large that lane's dancer
+/// renders relative to the shared cast scale, from its role scale (lead
+/// centred and bigger) times the hero staging (lead downstage, flankers
+/// upstage). This is the number rig construction needs so limb thickness can
+/// follow a dancer's PLANE — see `limbThicknessForPlaneScale` — instead of
+/// being hand-tuned per cast member. Time-varying formation breathing is
+/// deliberately excluded: depth staging is constant per lane.
+double danceLanePlaneScale(
+  int index,
+  int memberCount, {
+  bool heroStaging = true,
+}) =>
+    CharacterPainter._roleScale(index, memberCount) *
+    (heroStaging
+        ? CharacterPainter._heroStaging(index, memberCount).scale
+        : 1);
+
 class CharacterPainter extends CustomPainter {
   CharacterPainter({
     required this.scene,

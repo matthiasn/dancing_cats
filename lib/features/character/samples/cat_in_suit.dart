@@ -7,29 +7,51 @@
 /// the authoring scale (~210 tall).
 library;
 
+import 'dart:math' as math;
+
 import 'package:dancing_cats/features/character/model/bone.dart';
 import 'package:dancing_cats/features/character/model/clip.dart';
 import 'package:dancing_cats/features/character/model/dance_phrase.dart';
 import 'package:dancing_cats/features/character/model/easing.dart';
 import 'package:dancing_cats/features/character/model/face.dart';
 import 'package:dancing_cats/features/character/model/rig_spec.dart';
+import 'package:dancing_cats/features/character/model/trunk_surface.dart';
 
 // Palette (ARGB). Kept local to the sample; real characters carry their own
 // colours in the rig art (plan decision D6 — no design-system colour tokens).
-const int _suit = 0xFF2E3A59; // navy jacket (torso)
-const int _suitShadow = 0xFF25304B; // side tailoring that breaks the shell read
-const int _sleeve = 0xFF28334F; // same navy fabric, far-side sleeve shade
-const int _sleeveNear = 0xFF324061; // same navy fabric, near-side sleeve shade
-const int _sleeveContour =
-    0x3812182A; // translucent drawn-in sleeve volume edge
+
+/// The ONE suit cloth. Every navy surface of the garment derives from [base]
+/// by a uniform value scale — same hue, different plane value — so the jacket,
+/// sleeves, trousers, and lapels always read as a single fabric. Before this,
+/// each surface had its own hand-picked constant and the hues drifted apart,
+/// which showed up as a "different material" patch where the near sleeve's
+/// deltoid overlaps the jacket yoke.
+class SuitFabric {
+  const SuitFabric(this.base);
+
+  final int base;
+
+  /// The fabric at [value] brightness (1 = the jacket reference plane). RGB is
+  /// scaled uniformly and hue is untouched: brighter planes face the key or
+  /// sit downstage, darker planes fall upstage.
+  int plane(double value) {
+    int chan(int shift) =>
+        (((base >> shift) & 0xFF) * value).round().clamp(0, 255);
+    return 0xFF000000 | (chan(16) << 16) | (chan(8) << 8) | chan(0);
+  }
+}
+
+const SuitFabric kSuitFabric = SuitFabric(0xFF2E3A59);
+final int _suit = kSuitFabric.plane(1); // navy jacket (torso)
+final int _sleeve = kSuitFabric.plane(0.92); // far sleeve, a step upstage
+final int _sleeveNear = kSuitFabric.plane(1.06); // near sleeve catches the key
 const int _button = 0xFFAE955C; // muted brass placket button — a dark horn
 // button vanished on the navy front; a metal tone reads as a button line.
-const int _lapel = 0xFF5A6FA8; // jacket lapel — a CLEAR step lighter than the
-// suit so the folded-back collar panels read as their own planes against the
-// navy front even on the dimmed, cool-pooled backup dancers (a subtle step
-// vanished under their grade and left them reading as flat turtleneck blobs).
-const int _trouser = 0xFF26304A; // darker navy
-const int _trouserRear = 0xFF202941; // slightly darker rear leg
+final int _lapel = kSuitFabric.plane(1.94); // lapel — a CLEAR step lighter
+// than the suit so the folded-back collar panels read as their own planes
+// against the navy front even on the dimmed, cool-pooled backup dancers.
+final int _trouser = kSuitFabric.plane(0.83); // darker navy
+final int _trouserRear = kSuitFabric.plane(0.7); // slightly darker rear leg
 const int _fur = 0xFFE8A55A; // orange tabby
 const int _furDark = 0xFFD08A3C; // tail tip / shading
 const int _shirt = 0xFFF3EFE6; // collar
@@ -46,9 +68,20 @@ const int _muzzle = 0xFFF3DCB8; // lighter snout patch
 const int _nose = 0xFFC8696B; // pink nose
 const int _whisker = 0xFF8A765C; // muted whisker
 
-const double kDanceLeadLegWidthScale = 1.44;
-const double kDanceLeadArmWidthScale = 1.12;
-const double kDanceBackupArmWidthScale = 1.11;
+/// Limb thickness as a pure function of a dancer's PLANE scale, relative to
+/// the front (lead) reference plane at 1.0.
+///
+/// Perceptual, not projective: uniform scaling already keeps proportions, but
+/// a HALF-scale upstage dancer whose limbs keep the front dancer's relative
+/// thickness fuses into a balloon blob — the negative space between arm and
+/// torso is what makes a small silhouette read, and it vanishes first. So
+/// thickness follows the plane with a gentle quarter-power curve: the front
+/// dancer carries full anatomical mass, a 0.49-plane backup thins to ~0.84 of
+/// it. Replaces the old hand-tuned per-cast width constants entirely.
+double limbThicknessForPlaneScale(double relativePlaneScale) {
+  final curved = math.pow(relativePlaneScale.clamp(0.1, 4.0), 0.25).toDouble();
+  return curved.clamp(0.78, 1.15);
+}
 
 /// Fur/face colours for a cat-in-suit rig variant.
 ///
@@ -108,6 +141,7 @@ class CatInSuitPalette {
 class CatBones {
   static const hips = 'hips';
   static const torso = 'torso';
+  static const chest = 'chest';
   static const clavicleL = 'clavicle.L';
   static const clavicleR = 'clavicle.R';
   static const shirtV = 'shirt_v';
@@ -465,7 +499,7 @@ RigSpec buildCatInSuitRig({
     // and over the thigh roots: enough glute/hip mass that the legs feel
     // attached to a body, but not the two rounded thigh caps that read as
     // separate butt cheeks.
-    const Bone(
+    Bone(
       id: CatBones.hips,
       parent: null,
       pivotX: 0,
@@ -487,7 +521,7 @@ RigSpec buildCatInSuitRig({
       id: CatBones.shoulderSocketR,
       parent: CatBones.clavicleR,
       pivotX: 0,
-      pivotY: 4,
+      pivotY: 10,
       z: 14,
       restRotation: -0.14,
       drawable: _tapered(
@@ -505,7 +539,7 @@ RigSpec buildCatInSuitRig({
       id: CatBones.armUpperR,
       parent: CatBones.clavicleR,
       pivotX: 0,
-      pivotY: 0,
+      pivotY: 6,
       // Starts under the clavicle shoulder plane instead of on top of it, so the
       // arm reads as a sleeve hanging from a moving jacket shoulder.
       z: 15,
@@ -557,8 +591,8 @@ RigSpec buildCatInSuitRig({
       z: 17,
       drawable: BoneDrawable(
         kind: BoneShapeKind.ellipse,
-        width: 22.5,
-        height: 21,
+        width: 22.5 * armWidthScale,
+        height: 21 * armWidthScale,
         dy: 1,
         color: palette.fur,
         outlineColor: _outline,
@@ -568,17 +602,17 @@ RigSpec buildCatInSuitRig({
     ),
     // Hand-parented cuff: it rotates with the paw, so it stays on the wrist
     // side instead of sliding out from the forearm as a white blob in the palm.
-    const Bone(
+    Bone(
       id: CatBones.wristCuffR,
       parent: CatBones.handR,
       pivotX: 0,
-      pivotY: -12,
+      pivotY: -12 * armWidthScale,
       z: 16,
       restRotation: -0.08,
       drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
-        width: 18,
-        height: 7,
+        width: 18 * armWidthScale,
+        height: 7 * armWidthScale,
         dy: -1,
         cornerRadius: 3,
         color: _shirt,
@@ -593,14 +627,14 @@ RigSpec buildCatInSuitRig({
     Bone(
       id: CatBones.pawToeR1,
       parent: CatBones.handR,
-      pivotX: -6,
+      pivotX: -6 * armWidthScale,
       pivotY: 0,
       z: 16,
       drawable: BoneDrawable(
         kind: BoneShapeKind.ellipse,
-        width: 9.2,
-        height: 9.2,
-        dy: 8,
+        width: 9.2 * armWidthScale,
+        height: 9.2 * armWidthScale,
+        dy: 8 * armWidthScale,
         color: palette.fur,
         outlineColor: _outline,
         outlineWidth: 2.5,
@@ -610,14 +644,14 @@ RigSpec buildCatInSuitRig({
     Bone(
       id: CatBones.pawToeR2,
       parent: CatBones.handR,
-      pivotX: 5,
+      pivotX: 5 * armWidthScale,
       pivotY: 0,
       z: 16,
       drawable: BoneDrawable(
         kind: BoneShapeKind.ellipse,
-        width: 9.2,
-        height: 9.2,
-        dy: 8,
+        width: 9.2 * armWidthScale,
+        height: 9.2 * armWidthScale,
+        dy: 8 * armWidthScale,
         color: palette.fur,
         outlineColor: _outline,
         outlineWidth: 2.5,
@@ -631,14 +665,14 @@ RigSpec buildCatInSuitRig({
     Bone(
       id: CatBones.thumbR,
       parent: CatBones.handR,
-      pivotX: -9,
+      pivotX: -9 * armWidthScale,
       pivotY: 2,
       z: 18,
       restRotation: 0.8,
       drawable: _tapered(
-        9.4,
-        5.8,
-        13.5,
+        9.4 * armWidthScale,
+        5.8 * armWidthScale,
+        13.5 * armWidthScale,
         palette.fur,
         dy: 1,
         outlineWidth: 2.5,
@@ -648,7 +682,7 @@ RigSpec buildCatInSuitRig({
     // Torso (suit jacket): a tapered wedge — wide at the shoulders (top),
     // narrowing to the waist (bottom) — so it reads as a tailored jacket with a
     // shoulder line, not a barrel/box. The pelvis flares back out below it.
-    const Bone(
+    Bone(
       id: CatBones.torso,
       parent: CatBones.hips,
       pivotX: 0,
@@ -665,22 +699,36 @@ RigSpec buildCatInSuitRig({
         outlineWidth: 2,
       ),
     ),
+    // Thoracic joint: a transform-only spine link at sternum height. The clip
+    // channels keep driving `torso` (the lumbar joint, local space unchanged),
+    // and the scene's spine-distribute pass hands a share of that rotation to
+    // this bone with a slight lag — so the body bends through TWO centres (an
+    // S-curve: pelvis, waist, ribcage) instead of tilting as one plate.
+    const Bone(
+      id: CatBones.chest,
+      parent: CatBones.torso,
+      pivotX: 0,
+      pivotY: -56,
+      z: 13,
+    ),
     // Transform-only shoulder girdle controls. The arms, lapels, collar points,
-    // and the upper jacket mesh hang from these instead of the whole jacket
-    // shell, so dance accents can ripple through the shoulders without turning
-    // the torso into a rigid plate.
+    // and the upper jacket surface hang from the chest through these, so dance
+    // accents ripple through the shoulders and the shoulder mass answers the
+    // thoracic bend instead of riding a rigid shell. Raised slightly above the
+    // chest joint so the shoulder line sits square like a dancer's, not sloped
+    // off a low armhole.
     const Bone(
       id: CatBones.clavicleR,
-      parent: CatBones.torso,
+      parent: CatBones.chest,
       pivotX: 35,
-      pivotY: -56,
+      pivotY: -6,
       z: 14,
     ),
     const Bone(
       id: CatBones.clavicleL,
-      parent: CatBones.torso,
+      parent: CatBones.chest,
       pivotX: -35,
-      pivotY: -56,
+      pivotY: -6,
       z: 14,
     ),
 
@@ -693,9 +741,9 @@ RigSpec buildCatInSuitRig({
     // apex-down) showing the collar opening behind the tie.
     const Bone(
       id: CatBones.shirtV,
-      parent: CatBones.torso,
+      parent: CatBones.chest,
       pivotX: 0,
-      pivotY: -88,
+      pivotY: -32,
       z: 13,
       restScaleY: -1,
       drawable: BoneDrawable(
@@ -719,7 +767,7 @@ RigSpec buildCatInSuitRig({
       id: CatBones.lapelL,
       parent: CatBones.clavicleL,
       pivotX: 19,
-      pivotY: -34,
+      pivotY: -28,
       z: 13,
       restRotation: 0.6,
       drawable: _tapered(18, 5, 42, _lapel, dy: 17),
@@ -728,7 +776,7 @@ RigSpec buildCatInSuitRig({
       id: CatBones.lapelR,
       parent: CatBones.clavicleR,
       pivotX: -19,
-      pivotY: -34,
+      pivotY: -28,
       z: 13,
       restRotation: -0.6,
       drawable: _tapered(18, 5, 42, _lapel, dy: 17),
@@ -742,7 +790,7 @@ RigSpec buildCatInSuitRig({
       id: CatBones.collarL,
       parent: CatBones.clavicleL,
       pivotX: 24,
-      pivotY: -38,
+      pivotY: -32,
       z: 13,
       restRotation: 0.5,
       drawable: _tapered(15, 4, 26, _shirt, dy: 11, celShade: false),
@@ -751,7 +799,7 @@ RigSpec buildCatInSuitRig({
       id: CatBones.collarR,
       parent: CatBones.clavicleR,
       pivotX: -24,
-      pivotY: -38,
+      pivotY: -32,
       z: 13,
       restRotation: -0.5,
       drawable: _tapered(15, 4, 26, _shirt, dy: 11, celShade: false),
@@ -762,9 +810,9 @@ RigSpec buildCatInSuitRig({
     // — so it reads as a tie and trails like fabric, not a rigid stick.
     const Bone(
       id: CatBones.tie,
-      parent: CatBones.torso,
+      parent: CatBones.chest,
       pivotX: 0,
-      pivotY: -80,
+      pivotY: -24,
       z: 14,
       drawable: BoneDrawable(
         kind: BoneShapeKind.taperedCapsule,
@@ -849,7 +897,7 @@ RigSpec buildCatInSuitRig({
       id: CatBones.shoulderSocketL,
       parent: CatBones.clavicleL,
       pivotX: 0,
-      pivotY: 4,
+      pivotY: 10,
       z: 15,
       restRotation: 0.14,
       drawable: _tapered(
@@ -867,7 +915,7 @@ RigSpec buildCatInSuitRig({
       id: CatBones.armUpperL,
       parent: CatBones.clavicleL,
       pivotX: 0,
-      pivotY: 0,
+      pivotY: 6,
       z: 16,
       restRotation: 0.06,
       drawable: _tapered(27, 21, 56, _sleeveNear, dy: 23),
@@ -913,8 +961,8 @@ RigSpec buildCatInSuitRig({
       z: 18,
       drawable: BoneDrawable(
         kind: BoneShapeKind.ellipse,
-        width: 22.5,
-        height: 21,
+        width: 22.5 * armWidthScale,
+        height: 21 * armWidthScale,
         dy: 1,
         color: palette.fur,
         outlineColor: _outline,
@@ -922,17 +970,17 @@ RigSpec buildCatInSuitRig({
         celShade: false,
       ),
     ),
-    const Bone(
+    Bone(
       id: CatBones.wristCuffL,
       parent: CatBones.handL,
       pivotX: 0,
-      pivotY: -12,
+      pivotY: -12 * armWidthScale,
       z: 17,
       restRotation: 0.08,
       drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
-        width: 18,
-        height: 7,
+        width: 18 * armWidthScale,
+        height: 7 * armWidthScale,
         dy: -1,
         cornerRadius: 3,
         color: _shirt,
@@ -944,14 +992,14 @@ RigSpec buildCatInSuitRig({
     Bone(
       id: CatBones.pawToeL1,
       parent: CatBones.handL,
-      pivotX: 6,
+      pivotX: 6 * armWidthScale,
       pivotY: 0,
       z: 17,
       drawable: BoneDrawable(
         kind: BoneShapeKind.ellipse,
-        width: 9.2,
-        height: 9.2,
-        dy: 8,
+        width: 9.2 * armWidthScale,
+        height: 9.2 * armWidthScale,
+        dy: 8 * armWidthScale,
         color: palette.fur,
         outlineColor: _outline,
         outlineWidth: 2.5,
@@ -961,14 +1009,14 @@ RigSpec buildCatInSuitRig({
     Bone(
       id: CatBones.pawToeL2,
       parent: CatBones.handL,
-      pivotX: -5,
+      pivotX: -5 * armWidthScale,
       pivotY: 0,
       z: 17,
       drawable: BoneDrawable(
         kind: BoneShapeKind.ellipse,
-        width: 9.2,
-        height: 9.2,
-        dy: 8,
+        width: 9.2 * armWidthScale,
+        height: 9.2 * armWidthScale,
+        dy: 8 * armWidthScale,
         color: palette.fur,
         outlineColor: _outline,
         outlineWidth: 2.5,
@@ -978,14 +1026,14 @@ RigSpec buildCatInSuitRig({
     Bone(
       id: CatBones.thumbL,
       parent: CatBones.handL,
-      pivotX: 9,
+      pivotX: 9 * armWidthScale,
       pivotY: 2,
       z: 20,
       restRotation: -0.8,
       drawable: _tapered(
-        9.4,
-        5.8,
-        13.5,
+        9.4 * armWidthScale,
+        5.8 * armWidthScale,
+        13.5 * armWidthScale,
         palette.fur,
         dy: 1,
         outlineWidth: 2.5,
@@ -1065,18 +1113,19 @@ RigSpec buildCatInSuitRig({
     // mesh jiggles under it.
     Bone(
       id: CatBones.neck,
-      parent: CatBones.torso,
+      parent: CatBones.chest,
       pivotX: 0,
-      pivotY: -84,
+      pivotY: -31,
       z: 12,
       drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
-        // Keep the neck as an anatomical anchor, but let the collar/jacket hide
-        // most of it so the head does not sit on a visible brown stalk.
-        width: 12,
-        height: 12,
-        dy: -4,
-        cornerRadius: 6,
+        // A real (if mostly collar-hidden) fur link: wide and tall enough
+        // that the head's follow-through lag reads as a neck flexing, not as
+        // the skull separating from the collar.
+        width: 15,
+        height: 17,
+        dy: -6,
+        cornerRadius: 7,
         color: palette.furDark,
         outlineColor: _outline,
         outlineWidth: 1.4,
@@ -1131,6 +1180,9 @@ RigSpec buildCatInSuitRig({
   List<double> scaledLegWidths(List<double> widths) => [
     for (final width in widths) width * legWidthScale,
   ];
+  List<double> scaledArmWidths(List<double> widths) => [
+    for (final width in widths) width * armWidthScale,
+  ];
   final ribbons = <LimbRibbonSpec>[
     LimbRibbonSpec(
       id: 'tail.ribbon',
@@ -1171,7 +1223,7 @@ RigSpec buildCatInSuitRig({
       // Tailored athletic trouser profile: enough thigh mass to feel strong,
       // a decisive knee pinch, a fitted calf, then a narrow ankle. Keep it lean
       // rather than bodybuilder-wide so the dance reads agile in quarter view.
-      halfWidths: scaledLegWidths(const [12.4, 11.1, 7.2, 9.2, 5.5]),
+      halfWidths: scaledLegWidths(const [12.8, 11.6, 8.8, 9.8, 5.9]),
       z: 3,
       color: _trouserRear,
       outlineColor: _outline,
@@ -1188,464 +1240,70 @@ RigSpec buildCatInSuitRig({
         CatBones.footL,
       ],
       hiddenBoneIds: const [CatBones.legUpperL, CatBones.legLowerL],
-      halfWidths: scaledLegWidths(const [12.4, 11.1, 7.2, 9.2, 5.5]),
+      halfWidths: scaledLegWidths(const [12.8, 11.6, 8.8, 9.8, 5.9]),
       z: 6,
       color: _trouser,
       outlineColor: _outline,
       outlineWidth: 2,
       samplesPerSegment: 12,
     ),
-  ];
-
-  SkinnedMeshSpec armSleeveMesh({
-    required String id,
-    required int side,
-    required String socket,
-    required String clavicle,
-    required String upper,
-    required String bicep,
-    required String lower,
-    required String forearm,
-    required String hand,
-    required String elbowCrease,
-    required int z,
-    required int color,
-  }) {
-    final s = side.toDouble();
-    final shoulderOuter = 14.8 * armWidthScale;
-    final bicepOuter = 13.4 * armWidthScale;
-    final bicepInner = 8.8 * armWidthScale;
-    final elbowOuter = 7.6 * armWidthScale;
-    final elbowInner = 5.6 * armWidthScale;
-    final forearmOuter = 10.4 * armWidthScale;
-    final forearmInner = 8.0 * armWidthScale;
-    final wristOuter = 6.7 * armWidthScale;
-    final wristInner = 5.9 * armWidthScale;
-
-    return SkinnedMeshSpec(
-      id: id,
-      vertices: [
-        SkinnedMeshVertex([
-          MeshInfluence(
-            boneId: CatBones.torso,
-            x: s * 27,
-            y: -68,
-            weight: 0.54,
-          ),
-          MeshInfluence(
-            boneId: clavicle,
-            x: -s * 2,
-            y: -13,
-            weight: 0.46,
-          ),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(
-            boneId: CatBones.torso,
-            x: s * 31,
-            y: -64,
-            weight: 0.2,
-          ),
-          MeshInfluence(
-            boneId: clavicle,
-            x: s * 6,
-            y: -14,
-            weight: 0.42,
-          ),
-          MeshInfluence(
-            boneId: socket,
-            x: s * 7.0 * armWidthScale,
-            y: -8,
-            weight: 0.24,
-          ),
-          MeshInfluence(
-            boneId: upper,
-            x: s * 2.8 * armWidthScale,
-            y: -2,
-            weight: 0.14,
-          ),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(
-            boneId: socket,
-            x: s * shoulderOuter,
-            y: -6,
-            weight: 0.22,
-          ),
-          MeshInfluence(
-            boneId: upper,
-            x: s * 11.0 * armWidthScale,
-            y: 4,
-            weight: 0.54,
-          ),
-          MeshInfluence(
-            boneId: bicep,
-            x: s * 3.8 * armWidthScale,
-            y: -11,
-            weight: 0.24,
-          ),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(
-            boneId: upper,
-            x: s * 9.2 * armWidthScale,
-            y: 17,
-            weight: 0.2,
-          ),
-          MeshInfluence(
-            boneId: bicep,
-            x: s * bicepOuter,
-            y: -4,
-            weight: 0.64,
-          ),
-          MeshInfluence(
-            boneId: lower,
-            x: s * 4.0 * armWidthScale,
-            y: -8,
-            weight: 0.16,
-          ),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(
-            boneId: bicep,
-            x: s * (bicepOuter * 0.98),
-            y: 5,
-            weight: 0.7,
-          ),
-          MeshInfluence(
-            boneId: lower,
-            x: s * 5.0 * armWidthScale,
-            y: -8,
-            weight: 0.3,
-          ),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(
-            boneId: bicep,
-            x: s * 7.0 * armWidthScale,
-            y: 12,
-            weight: 0.24,
-          ),
-          MeshInfluence(
-            boneId: lower,
-            x: s * elbowOuter,
-            y: -2,
-            weight: 0.76,
-          ),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(
-            boneId: forearm,
-            x: s * forearmOuter,
-            y: 2,
-            weight: 0.86,
-          ),
-          MeshInfluence(
-            boneId: lower,
-            x: s * 4.0 * armWidthScale,
-            y: 13,
-            weight: 0.14,
-          ),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(boneId: hand, x: s * wristOuter, y: -12, weight: 1),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(boneId: hand, x: -s * wristInner, y: -12, weight: 1),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(
-            boneId: forearm,
-            x: -s * forearmInner,
-            y: 0,
-            weight: 0.86,
-          ),
-          MeshInfluence(
-            boneId: lower,
-            x: -s * 3.8 * armWidthScale,
-            y: 12,
-            weight: 0.14,
-          ),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(
-            boneId: lower,
-            x: -s * elbowInner,
-            y: -2,
-            weight: 0.78,
-          ),
-          MeshInfluence(
-            boneId: bicep,
-            x: -s * 5.0 * armWidthScale,
-            y: 10,
-            weight: 0.22,
-          ),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(
-            boneId: bicep,
-            x: -s * bicepInner,
-            y: -4,
-            weight: 0.68,
-          ),
-          MeshInfluence(
-            boneId: upper,
-            x: -s * 4.8 * armWidthScale,
-            y: 13,
-            weight: 0.2,
-          ),
-          MeshInfluence(
-            boneId: socket,
-            x: -s * 3.4 * armWidthScale,
-            y: 6,
-            weight: 0.12,
-          ),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(
-            boneId: bicep,
-            x: -s * 4.6 * armWidthScale,
-            y: -9,
-            weight: 0.42,
-          ),
-          MeshInfluence(
-            boneId: upper,
-            x: -s * 8.2 * armWidthScale,
-            y: 5,
-            weight: 0.34,
-          ),
-          MeshInfluence(
-            boneId: socket,
-            x: -s * 5.4 * armWidthScale,
-            y: 1,
-            weight: 0.24,
-          ),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(
-            boneId: CatBones.torso,
-            x: s * 27,
-            y: -43,
-            weight: 0.54,
-          ),
-          MeshInfluence(
-            boneId: clavicle,
-            x: s * 2,
-            y: 15,
-            weight: 0.28,
-          ),
-          MeshInfluence(
-            boneId: upper,
-            x: -s * 1.6 * armWidthScale,
-            y: 20,
-            weight: 0.12,
-          ),
-          MeshInfluence(
-            boneId: bicep,
-            x: -s * 1.8 * armWidthScale,
-            y: 4,
-            weight: 0.06,
-          ),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(
-            boneId: CatBones.torso,
-            x: s * 29,
-            y: -53,
-            weight: 0.66,
-          ),
-          MeshInfluence(
-            boneId: clavicle,
-            x: -s * 1,
-            y: 5,
-            weight: 0.29,
-          ),
-          MeshInfluence(
-            boneId: socket,
-            x: s * 1.6 * armWidthScale,
-            y: 3,
-            weight: 0.05,
-          ),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(
-            boneId: CatBones.torso,
-            x: s * 29,
-            y: -63,
-            weight: 0.58,
-          ),
-          MeshInfluence(
-            boneId: clavicle,
-            x: s * 1,
-            y: -8,
-            weight: 0.36,
-          ),
-          MeshInfluence(
-            boneId: socket,
-            x: s * 2.4 * armWidthScale,
-            y: -5,
-            weight: 0.06,
-          ),
-        ]),
+    // Arms: the same continuous-ribbon treatment that already makes the legs
+    // read as one bending limb. The centreline flows clavicle→shoulder→elbow→
+    // wrist with an anatomical half-width profile — widest at the DELTOID (the
+    // round start cap doubles as the shoulder muscle), tapering through bicep
+    // and elbow to a slim wrist with a slight forearm swell. This inverts the
+    // old "sausage" tell (thinnest at the attachment point).
+    //
+    // ANTI-HINGE: the first TWO joints (clavicle, socket) are both rigidly
+    // clavicle-anchored, so the ribbon's root section cannot rotate with the
+    // arm. When the arm swings, the curve bends over the socket→bicep span —
+    // a fabric crease BELOW the anchored deltoid dome — instead of the whole
+    // shoulder cap sweeping around a pin like a paper-doll rivet.
+    LimbRibbonSpec(
+      id: 'arm.R.ribbon',
+      jointBoneIds: const [
+        CatBones.clavicleR,
+        CatBones.shoulderSocketR,
+        CatBones.armBicepR,
+        CatBones.armLowerR,
+        CatBones.armForearmR,
+        CatBones.handR,
       ],
-      boundary: const [
-        0,
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12,
-        13,
-        14,
+      hiddenBoneIds: const [
+        CatBones.shoulderSocketR,
+        CatBones.armUpperR,
+        CatBones.armLowerR,
       ],
-      hiddenBoneIds: [
-        socket,
-        upper,
-        bicep,
-        lower,
-        forearm,
-        elbowCrease,
-      ],
-      z: z,
-      color: color,
+      halfWidths: scaledArmWidths(const [11.4, 11.0, 9.2, 7.5, 7.9, 5.3]),
+      z: 15,
+      color: _sleeve,
       outlineColor: _outline,
-      outlineWidth: 2.1,
-      formRound: false,
-    );
-  }
-
-  SkinnedMeshSpec armSleeveShadowMesh({
-    required String id,
-    required int side,
-    required String socket,
-    required String clavicle,
-    required String upper,
-    required String bicep,
-    required String lower,
-    required String forearm,
-    required String hand,
-    required int z,
-  }) {
-    final s = side.toDouble();
-    final inner = -s;
-    final contourScale = armWidthScale;
-
-    return SkinnedMeshSpec(
-      id: id,
-      vertices: [
-        SkinnedMeshVertex([
-          MeshInfluence(
-            boneId: clavicle,
-            x: inner * 1.5 * contourScale,
-            y: -7,
-            weight: 0.38,
-          ),
-          MeshInfluence(
-            boneId: socket,
-            x: inner * 6.2 * contourScale,
-            y: -2,
-            weight: 0.34,
-          ),
-          MeshInfluence(
-            boneId: upper,
-            x: inner * 4.3 * contourScale,
-            y: 3,
-            weight: 0.28,
-          ),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(
-            boneId: bicep,
-            x: inner * 4.5 * contourScale,
-            y: -2,
-            weight: 1,
-          ),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(
-            boneId: lower,
-            x: inner * 2.3 * contourScale,
-            y: -1,
-            weight: 1,
-          ),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(
-            boneId: forearm,
-            x: inner * 3.2 * contourScale,
-            y: 1,
-            weight: 1,
-          ),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(
-            boneId: hand,
-            x: inner * 2.4 * contourScale,
-            y: -12,
-            weight: 1,
-          ),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(
-            boneId: hand,
-            x: inner * 4.8 * contourScale,
-            y: -12,
-            weight: 1,
-          ),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(
-            boneId: forearm,
-            x: inner * 6.9 * contourScale,
-            y: 0,
-            weight: 1,
-          ),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(
-            boneId: lower,
-            x: inner * 4.2 * contourScale,
-            y: -1,
-            weight: 1,
-          ),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(
-            boneId: bicep,
-            x: inner * 8.0 * contourScale,
-            y: -3,
-            weight: 1,
-          ),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(
-            boneId: socket,
-            x: inner * 10.0 * contourScale,
-            y: 10,
-            weight: 0.58,
-          ),
-          MeshInfluence(
-            boneId: upper,
-            x: inner * 7.0 * contourScale,
-            y: 10,
-            weight: 0.42,
-          ),
-        ]),
+      outlineWidth: 2,
+      samplesPerSegment: 12,
+    ),
+    LimbRibbonSpec(
+      id: 'arm.L.ribbon',
+      jointBoneIds: const [
+        CatBones.clavicleL,
+        CatBones.shoulderSocketL,
+        CatBones.armBicepL,
+        CatBones.armLowerL,
+        CatBones.armForearmL,
+        CatBones.handL,
       ],
-      boundary: const [1, 2, 3, 4, 5, 6, 7, 8],
-      z: z,
-      color: _sleeveContour,
-      formRound: false,
-      boundaryCornerSmoothing: 0.28,
-    );
-  }
+      hiddenBoneIds: const [
+        CatBones.shoulderSocketL,
+        CatBones.armUpperL,
+        CatBones.armLowerL,
+      ],
+      halfWidths: scaledArmWidths(const [11.4, 11.0, 9.2, 7.5, 7.9, 5.3]),
+      z: 16,
+      color: _sleeveNear,
+      outlineColor: _outline,
+      outlineWidth: 2,
+      samplesPerSegment: 12,
+    ),
+  ];
 
   final meshes = <SkinnedMeshSpec>[
     SkinnedMeshSpec(
@@ -1702,254 +1360,32 @@ RigSpec buildCatInSuitRig({
       // so the lower body reads as one continuous trouser form, not a panel.
       formRound: false,
     ),
-    SkinnedMeshSpec(
+    // Jacket: ONE generated trunk surface. The silhouette is a width table
+    // (hem → waist pinch → ribs → armhole) plus a neckline crown, and the skin
+    // weights blend down the hips→torso→chest spine automatically — see
+    // buildTrunkSurface. The spine-distribute pass bends this surface through
+    // the waist and sternum, so the jacket flexes like a torso instead of
+    // riding the dance as one rigid shell. Replaces the hand-weighted
+    // jacket.mesh + two side panels that only deformed well in tuned poses.
+    buildTrunkSurface(
       id: 'jacket.mesh',
-      vertices: const [
-        SkinnedMeshVertex([
-          MeshInfluence(boneId: CatBones.torso, x: -24, y: -82, weight: 0.52),
-          MeshInfluence(
-            boneId: CatBones.clavicleL,
-            x: 7,
-            y: -26,
-            weight: 0.48,
-          ),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(boneId: CatBones.torso, x: -10, y: -88, weight: 0.78),
-          MeshInfluence(
-            boneId: CatBones.clavicleL,
-            x: 25,
-            y: -32,
-            weight: 0.22,
-          ),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(boneId: CatBones.torso, x: 10, y: -88, weight: 0.78),
-          MeshInfluence(
-            boneId: CatBones.clavicleR,
-            x: -25,
-            y: -32,
-            weight: 0.22,
-          ),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(boneId: CatBones.torso, x: 24, y: -82, weight: 0.52),
-          MeshInfluence(
-            boneId: CatBones.clavicleR,
-            x: -7,
-            y: -26,
-            weight: 0.48,
-          ),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(boneId: CatBones.torso, x: 34, y: -60, weight: 0.42),
-          MeshInfluence(
-            boneId: CatBones.clavicleR,
-            x: 12,
-            y: -6,
-            weight: 0.58,
-          ),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(boneId: CatBones.torso, x: 28, y: -36, weight: 0.62),
-          MeshInfluence(
-            boneId: CatBones.clavicleR,
-            x: 7,
-            y: 18,
-            weight: 0.38,
-          ),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(boneId: CatBones.torso, x: 24, y: -14, weight: 0.78),
-          MeshInfluence(boneId: CatBones.hips, x: 24, y: -2, weight: 0.22),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(boneId: CatBones.torso, x: 17, y: 10, weight: 0.5),
-          MeshInfluence(boneId: CatBones.hips, x: 19, y: 8, weight: 0.5),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(boneId: CatBones.torso, x: 8, y: 18, weight: 0.34),
-          MeshInfluence(boneId: CatBones.hips, x: 10, y: 20, weight: 0.66),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(boneId: CatBones.torso, x: 0, y: 20, weight: 0.28),
-          MeshInfluence(boneId: CatBones.hips, x: 0, y: 21, weight: 0.72),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(boneId: CatBones.torso, x: -8, y: 18, weight: 0.34),
-          MeshInfluence(boneId: CatBones.hips, x: -10, y: 20, weight: 0.66),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(boneId: CatBones.torso, x: -17, y: 10, weight: 0.5),
-          MeshInfluence(boneId: CatBones.hips, x: -19, y: 8, weight: 0.5),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(boneId: CatBones.torso, x: -24, y: -14, weight: 0.78),
-          MeshInfluence(boneId: CatBones.hips, x: -24, y: -2, weight: 0.22),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(boneId: CatBones.torso, x: -28, y: -36, weight: 0.62),
-          MeshInfluence(
-            boneId: CatBones.clavicleL,
-            x: -7,
-            y: 18,
-            weight: 0.38,
-          ),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(boneId: CatBones.torso, x: -34, y: -60, weight: 0.42),
-          MeshInfluence(
-            boneId: CatBones.clavicleL,
-            x: -12,
-            y: -6,
-            weight: 0.58,
-          ),
-        ]),
+      bones: bones,
+      stations: const [
+        TrunkStation(boneId: CatBones.hips, y: 12, halfWidth: 21.5),
+        TrunkStation(boneId: CatBones.torso, y: -8, halfWidth: 19.5),
+        TrunkStation(boneId: CatBones.torso, y: -34, halfWidth: 24.5),
+        TrunkStation(boneId: CatBones.chest, y: -60, halfWidth: 32.5),
       ],
-      boundary: const [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
-      hiddenBoneIds: const [CatBones.torso],
+      // The yoke: a near-vertical armhole side seam up to the shoulder corner,
+      // then a ~25° trapezius line into the collar — NOT a steep straight
+      // ramp from deltoid to head. The arm ribbon's deltoid dome crowns just
+      // above the corner and reads as the shoulder point.
+      crown: const [(x: -29.0, y: -75.0), (x: -13.0, y: -81.5)],
       z: 13,
       color: _suit,
       outlineColor: _outline,
       outlineWidth: 1,
-      formRound: false,
-      boundaryCornerSmoothing: 0.24,
-    ),
-    SkinnedMeshSpec(
-      id: 'jacket.side.L',
-      vertices: const [
-        SkinnedMeshVertex([
-          MeshInfluence(boneId: CatBones.torso, x: -27, y: -70, weight: 0.58),
-          MeshInfluence(
-            boneId: CatBones.clavicleL,
-            x: -2,
-            y: -16,
-            weight: 0.42,
-          ),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(boneId: CatBones.torso, x: -30, y: -44, weight: 0.58),
-          MeshInfluence(boneId: CatBones.clavicleL, x: -8, y: 8, weight: 0.42),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(boneId: CatBones.torso, x: -28, y: -14, weight: 0.7),
-          MeshInfluence(boneId: CatBones.hips, x: -28, y: -1, weight: 0.3),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(boneId: CatBones.torso, x: -16, y: 10, weight: 0.38),
-          MeshInfluence(boneId: CatBones.hips, x: -18, y: 16, weight: 0.62),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(boneId: CatBones.torso, x: -12, y: -28, weight: 1),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(boneId: CatBones.torso, x: -18, y: -66, weight: 0.78),
-          MeshInfluence(
-            boneId: CatBones.clavicleL,
-            x: 14,
-            y: -24,
-            weight: 0.22,
-          ),
-        ]),
-      ],
-      boundary: const [0, 1, 2, 3, 4, 5],
-      z: 13,
-      color: _suitShadow,
-      formRound: false,
-    ),
-    SkinnedMeshSpec(
-      id: 'jacket.side.R',
-      vertices: const [
-        SkinnedMeshVertex([
-          MeshInfluence(boneId: CatBones.torso, x: 27, y: -70, weight: 0.58),
-          MeshInfluence(
-            boneId: CatBones.clavicleR,
-            x: 2,
-            y: -16,
-            weight: 0.42,
-          ),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(boneId: CatBones.torso, x: 30, y: -44, weight: 0.58),
-          MeshInfluence(boneId: CatBones.clavicleR, x: 8, y: 8, weight: 0.42),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(boneId: CatBones.torso, x: 28, y: -14, weight: 0.7),
-          MeshInfluence(boneId: CatBones.hips, x: 28, y: -1, weight: 0.3),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(boneId: CatBones.torso, x: 16, y: 10, weight: 0.38),
-          MeshInfluence(boneId: CatBones.hips, x: 18, y: 16, weight: 0.62),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(boneId: CatBones.torso, x: 12, y: -28, weight: 1),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(boneId: CatBones.torso, x: 18, y: -66, weight: 0.78),
-          MeshInfluence(
-            boneId: CatBones.clavicleR,
-            x: -14,
-            y: -24,
-            weight: 0.22,
-          ),
-        ]),
-      ],
-      boundary: const [0, 1, 2, 3, 4, 5],
-      z: 13,
-      color: _suitShadow,
-      formRound: false,
-    ),
-    armSleeveMesh(
-      id: 'arm.R.mesh',
-      side: 1,
-      socket: CatBones.shoulderSocketR,
-      clavicle: CatBones.clavicleR,
-      upper: CatBones.armUpperR,
-      bicep: CatBones.armBicepR,
-      lower: CatBones.armLowerR,
-      forearm: CatBones.armForearmR,
-      hand: CatBones.handR,
-      elbowCrease: CatBones.armElbowCreaseR,
-      z: 15,
-      color: _sleeve,
-    ),
-    armSleeveShadowMesh(
-      id: 'arm.R.shadow',
-      side: 1,
-      socket: CatBones.shoulderSocketR,
-      clavicle: CatBones.clavicleR,
-      upper: CatBones.armUpperR,
-      bicep: CatBones.armBicepR,
-      lower: CatBones.armLowerR,
-      forearm: CatBones.armForearmR,
-      hand: CatBones.handR,
-      z: 15,
-    ),
-    armSleeveMesh(
-      id: 'arm.L.mesh',
-      side: -1,
-      socket: CatBones.shoulderSocketL,
-      clavicle: CatBones.clavicleL,
-      upper: CatBones.armUpperL,
-      bicep: CatBones.armBicepL,
-      lower: CatBones.armLowerL,
-      forearm: CatBones.armForearmL,
-      hand: CatBones.handL,
-      elbowCrease: CatBones.armElbowCreaseL,
-      z: 16,
-      color: _sleeveNear,
-    ),
-    armSleeveShadowMesh(
-      id: 'arm.L.shadow',
-      side: -1,
-      socket: CatBones.shoulderSocketL,
-      clavicle: CatBones.clavicleL,
-      upper: CatBones.armUpperL,
-      bicep: CatBones.armBicepL,
-      lower: CatBones.armLowerL,
-      forearm: CatBones.armForearmL,
-      hand: CatBones.handL,
-      z: 16,
+      hiddenBoneIds: const [CatBones.torso],
     ),
   ];
 
@@ -5622,6 +5058,7 @@ class CatClips {
       endBoneId: CatBones.handL,
       anchorBoneId: CatBones.torso,
       channel: _shakuHandLTarget,
+      bendDirection: -1,
     ),
     LimbIkTarget(
       upperBoneId: CatBones.armUpperR,
@@ -5629,7 +5066,6 @@ class CatClips {
       endBoneId: CatBones.handR,
       anchorBoneId: CatBones.torso,
       channel: _shakuHandRTarget,
-      bendDirection: -1,
     ),
     _danceLimbTargets[2].withChannel(_shakuFootLTarget),
     _danceLimbTargets[3].withChannel(_shakuFootRTarget),
