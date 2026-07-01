@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:dancing_cats/features/character/model/clip.dart';
 import 'package:dancing_cats/features/character/model/rig_spec.dart';
 import 'package:dancing_cats/features/character/runtime/character_scene.dart';
+import 'package:dancing_cats/features/character/runtime/skinned_mesh_solver.dart';
 import 'package:dancing_cats/features/character/samples/cat_in_suit.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -190,6 +191,13 @@ void main() {
         expect(fold.boundary, hasLength(9));
         expect(fold.formRound, isFalse);
         expect(fold.outlineColor, isNull);
+        expect(
+          _alpha(fold.color),
+          lessThan(0x58),
+          reason:
+              '${side.foldId} should read as a soft armpit shadow, not an '
+              'opaque bat-wing cloth panel',
+        );
         expect(fold.z, lessThanOrEqualTo(arm.z));
         expect(fold.boundaryCornerSmoothing, greaterThanOrEqualTo(0.4));
         expect(
@@ -215,11 +223,32 @@ void main() {
               'one triangular edge',
         );
         expect(
+          _maxAbsLocalXForBones(fold.vertices[2], {
+            side.socket,
+            side.upper,
+            side.bicep,
+          }),
+          lessThan(15),
+          reason:
+              '${side.foldId} deltoid bridge should stay compact around the '
+              'shoulder instead of becoming a wide wing membrane',
+        );
+        expect(
           fold.vertices[4].influences.map((i) => i.boneId),
           containsAll([CatBones.torso, side.clavicle, side.upper, side.bicep]),
           reason:
               '${side.foldId} needs a lower armpit bridge so the raised sleeve '
               'stays connected without forming a bat-wing dent',
+        );
+        expect(
+          _maxAbsLocalXForBones(fold.vertices[4], {
+            side.upper,
+            side.bicep,
+          }),
+          lessThan(5),
+          reason:
+              '${side.foldId} lower armpit bridge should tuck under the arm '
+              'instead of spanning out toward the wrist',
         );
         expect(
           drawOrder.indexOf(side.foldId),
@@ -241,6 +270,123 @@ void main() {
               '${side.foldId} needs torso/clavicle and upper-arm weights so '
               'raised sleeves stay visually welded to the jacket',
         );
+      }
+    });
+
+    test('shoulder caps cover the sleeve socket seam', () {
+      for (final side in const [
+        (
+          capId: 'shoulder.L.cap',
+          foldId: 'shoulder.L.fold',
+          armId: 'arm.L.mesh',
+          clavicle: CatBones.clavicleL,
+          socket: CatBones.shoulderSocketL,
+          upper: CatBones.armUpperL,
+          bicep: CatBones.armBicepL,
+        ),
+        (
+          capId: 'shoulder.R.cap',
+          foldId: 'shoulder.R.fold',
+          armId: 'arm.R.mesh',
+          clavicle: CatBones.clavicleR,
+          socket: CatBones.shoulderSocketR,
+          upper: CatBones.armUpperR,
+          bicep: CatBones.armBicepR,
+        ),
+      ]) {
+        final cap = rig.meshes.singleWhere((m) => m.id == side.capId);
+        final arm = rig.meshes.singleWhere((m) => m.id == side.armId);
+        final drawOrder = rig.meshDrawOrder.map((m) => m.id).toList();
+
+        expect(cap.boundary, hasLength(7));
+        expect(cap.outlineColor, isNull);
+        expect(cap.formRound, isFalse);
+        expect(cap.color, arm.color);
+        expect(cap.z, arm.z);
+        expect(
+          drawOrder.indexOf(side.capId),
+          greaterThan(drawOrder.indexOf(side.armId)),
+          reason:
+              '${side.capId} should paint over the sleeve root seam without '
+              'adding another outline',
+        );
+        expect(
+          drawOrder.indexOf(side.capId),
+          greaterThan(drawOrder.indexOf(side.foldId)),
+          reason:
+              '${side.capId} is the actual suit-volume overlap; the fold below '
+              'it is only a shadow',
+        );
+        expect(
+          cap.vertices.expand((v) => v.influences).map((i) => i.boneId),
+          containsAll([
+            CatBones.torso,
+            side.clavicle,
+            side.socket,
+            side.upper,
+            side.bicep,
+          ]),
+          reason:
+              '${side.capId} must be skinned across jacket and upper arm so '
+              'the shoulder cannot detach during raised poses',
+        );
+        expect(
+          _maxAbsLocalXForBones(cap.vertices[3], {
+            side.upper,
+            side.bicep,
+          }),
+          lessThan(15),
+          reason:
+              '${side.capId} should fill the shoulder socket, not extend into '
+              'a wing panel down the arm',
+        );
+      }
+    });
+
+    test('shoulder caps stay attached in solved wide-arm poses', () {
+      final scene = CharacterScene(buildCatInSuitRig());
+      for (final side in const [
+        (
+          capId: 'shoulder.L.cap',
+          armId: 'arm.L.mesh',
+          label: 'left',
+        ),
+        (
+          capId: 'shoulder.R.cap',
+          armId: 'arm.R.mesh',
+          label: 'right',
+        ),
+      ]) {
+        final capMesh = scene.rig.meshes.singleWhere((m) => m.id == side.capId);
+        final armMesh = scene.rig.meshes.singleWhere((m) => m.id == side.armId);
+        for (final clip in [CatClips.sekem, CatClips.buga]) {
+          for (
+            var frame = 0;
+            frame <= CatClips.dancePhrase.frameCount;
+            frame += 2
+          ) {
+            final phase = frame / CatClips.dancePhrase.frameCount;
+            final solved = scene.frameAt(
+              clip: clip,
+              timeSeconds: phase * clip.duration,
+            );
+            final cap = resolveSkinnedMeshVertices(capMesh, solved.world)!;
+            final arm = resolveSkinnedMeshVertices(armMesh, solved.world)!;
+            final shoulderGap = _minPointSetDistance(
+              _vertexSubset(arm, const [0, 1, 2, 17, 18, 19]),
+              cap,
+            );
+
+            expect(
+              shoulderGap,
+              lessThan(10),
+              reason:
+                  '${clip.name} frame $frame ${side.label} shoulder cap must '
+                  'overlap the sleeve root; larger gaps render as detached '
+                  'arms against the background',
+            );
+          }
+        }
       }
     });
 
@@ -2539,8 +2685,43 @@ double _luma(int argb) {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
+int _alpha(int argb) => (argb >> 24) & 0xFF;
+
 double _maxAbsLocalX(SkinnedMeshVertex vertex) =>
     vertex.influences.map((influence) => influence.x.abs()).reduce(math.max);
+
+double _maxAbsLocalXForBones(SkinnedMeshVertex vertex, Set<String> bones) =>
+    vertex.influences
+        .where((influence) => bones.contains(influence.boneId))
+        .map((influence) => influence.x.abs())
+        .reduce(math.max);
+
+List<({double x, double y})> _vertexSubset(
+  List<({double x, double y})> vertices,
+  List<int> indices,
+) => [
+  for (final index in indices)
+    if (index >= 0 && index < vertices.length) vertices[index],
+];
+
+double _minPointSetDistance(
+  List<({double x, double y})> a,
+  List<({double x, double y})> b,
+) {
+  var best = double.infinity;
+  for (final pa in a) {
+    for (final pb in b) {
+      best = math.min(best, _pointDistance(pa, pb));
+    }
+  }
+  return best;
+}
+
+double _pointDistance(({double x, double y}) a, ({double x, double y}) b) {
+  final dx = a.x - b.x;
+  final dy = a.y - b.y;
+  return math.sqrt(dx * dx + dy * dy);
+}
 
 double _rotationRange(JointChannel channel) {
   var min = double.infinity;
