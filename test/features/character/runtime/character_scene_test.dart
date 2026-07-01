@@ -78,13 +78,15 @@ void main() {
         [
           'breath',
           'support-balance',
+          'secondary-follow',
           'shoulder-girdle',
           'limb-ik',
           'contact-lock',
         ],
         reason:
             'body modifiers should run as an ordered constraint pipeline: '
-            'primary body timing, balance, shoulder response, IK, then contact',
+            'primary body timing, balance, secondary follow-through, shoulder '
+            'response, IK, then contact',
       );
       expect(
         scene.poseModifierPasses.map((pass) => pass.mix),
@@ -93,6 +95,93 @@ void main() {
       expect(
         scene.poseModifierPasses.map((pass) => pass.description),
         everyElement(isNotEmpty),
+      );
+    });
+
+    test('dance secondary pass adds tail-tip and ear follow-through', () {
+      final scene = CharacterScene(buildCatInSuitRig());
+      final clip = CatClips.zanku;
+      const samples = 96;
+      var maxRootTailExtra = 0.0;
+      var maxTipTailExtra = 0.0;
+      var maxLeftEarExtra = 0.0;
+      var maxRightEarExtra = 0.0;
+      var maxTipTailRotation = 0.0;
+      var maxEarRotation = 0.0;
+
+      for (var i = 0; i < samples; i++) {
+        final phase = i / samples;
+        final pose = scene.poseAt(
+          clip: clip,
+          timeSeconds: clip.duration * phase,
+          includeAutonomic: false,
+        );
+        final rawTailRoot = clip.channels[CatBones.tail0]!.sample(phase);
+        final rawTailTip = clip.channels[CatBones.tail6]!.sample(phase);
+        final rawEarL = clip.channels[CatBones.earL]!.sample(phase);
+        final rawEarR = clip.channels[CatBones.earR]!.sample(phase);
+        final tailRoot = pose.jointOf(CatBones.tail0);
+        final tailTip = pose.jointOf(CatBones.tail6);
+        final earL = pose.jointOf(CatBones.earL);
+        final earR = pose.jointOf(CatBones.earR);
+
+        maxRootTailExtra = math.max(
+          maxRootTailExtra,
+          (tailRoot.rotation - rawTailRoot.rotation).abs(),
+        );
+        maxTipTailExtra = math.max(
+          maxTipTailExtra,
+          (tailTip.rotation - rawTailTip.rotation).abs(),
+        );
+        maxLeftEarExtra = math.max(
+          maxLeftEarExtra,
+          (earL.rotation - rawEarL.rotation).abs(),
+        );
+        maxRightEarExtra = math.max(
+          maxRightEarExtra,
+          (earR.rotation - rawEarR.rotation).abs(),
+        );
+        maxTipTailRotation = math.max(
+          maxTipTailRotation,
+          tailTip.rotation.abs(),
+        );
+        maxEarRotation = math.max(
+          maxEarRotation,
+          math.max(earL.rotation.abs(), earR.rotation.abs()),
+        );
+      }
+
+      expect(
+        maxTipTailExtra,
+        greaterThan(maxRootTailExtra * 2.4),
+        reason:
+            'secondary tail motion should build toward the tip instead of '
+            'swinging as one stiff appendage',
+      );
+      expect(
+        maxTipTailExtra,
+        greaterThan(0.035),
+        reason: 'tail tip needs visible inertial lag on dance body accents',
+      );
+      expect(
+        maxLeftEarExtra,
+        greaterThan(0.01),
+        reason: 'left ear should answer the body groove at runtime',
+      );
+      expect(
+        maxRightEarExtra,
+        greaterThan(0.01),
+        reason: 'right ear should answer the body groove at runtime',
+      );
+      expect(
+        maxTipTailRotation,
+        lessThan(0.34),
+        reason: 'tail follow-through should stay secondary to the dance',
+      );
+      expect(
+        maxEarRotation,
+        lessThan(0.12),
+        reason: 'ear follow-through should not become rubbery flapping',
       );
     });
 

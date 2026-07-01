@@ -55,6 +55,12 @@ class CharacterScene {
             _supportBalancedPose(context.clip, context.timeSeconds, pose),
       ),
       PoseModifierPass(
+        id: 'secondary-follow',
+        description: 'Lag tail and ears from the body groove.',
+        modifier: (context, pose) =>
+            _secondaryFollowPose(context.clip, context.timeSeconds, pose),
+      ),
+      PoseModifierPass(
         id: 'shoulder-girdle',
         description: 'Engage clavicle, socket, and bicep volume before IK.',
         modifier: (context, pose) =>
@@ -292,6 +298,71 @@ class CharacterScene {
       joints: pose.joints,
       rootDx: pose.rootDx,
       rootDy: pose.rootDy + breath * 1.4,
+      rootRotation: pose.rootRotation,
+    );
+  }
+
+  Pose _secondaryFollowPose(Clip clip, double timeSeconds, Pose pose) {
+    if (!_isDanceFamily(clip) || clip.duration <= 0) return pose;
+
+    final tailIds = _tailBoneIds();
+    final earIds = _outerEarBoneIds();
+    if (tailIds.isEmpty && earIds.isEmpty) return pose;
+
+    final dt = clip.duration / 64;
+    final previous = evaluator.evaluate(clip, timeSeconds - dt);
+    final next = evaluator.evaluate(clip, timeSeconds + dt);
+    final lateralVelocity = (next.rootDx - previous.rootDx) * 0.5;
+    final verticalImpulse = previous.rootDy - 2 * pose.rootDy + next.rootDy;
+    final bodyRotation =
+        pose.rootRotation +
+        _jointRotationForAny(pose, const ['hips', 'pelvis']) * 0.4 +
+        _jointRotationForAny(pose, const ['torso', 'chest']) * 0.3;
+    final followDrive =
+        (-lateralVelocity * 0.014) -
+        bodyRotation * 0.28 +
+        verticalImpulse * 0.006;
+    if (followDrive.abs() < 0.0001) return pose;
+
+    final phase = _clipPhase(clip, timeSeconds);
+    final joints = Map<String, JointPose>.of(pose.joints);
+    var changed = false;
+
+    for (var i = 0; i < tailIds.length; i++) {
+      final t = tailIds.length == 1 ? 1.0 : i / (tailIds.length - 1);
+      final lag = _clampMagnitude(followDrive * (0.08 + 0.96 * t), 0.065);
+      final ripple =
+          math.sin(2 * math.pi * (phase * 4 - t * 0.18)) *
+          followDrive.abs() *
+          (0.04 + 0.28 * t);
+      final delta = lag + ripple;
+      if (delta.abs() < 0.0001) continue;
+      joints[tailIds[i]] = _addJointRotation(pose.jointOf(tailIds[i]), delta);
+      changed = true;
+    }
+
+    final earDrive = _clampMagnitude(
+      followDrive * 0.34 + lateralVelocity * 0.0025,
+      0.024,
+    );
+    for (final earId in earIds) {
+      final side = _sideSign(earId);
+      final sidePhase = side >= 0 ? 0.13 : 0.63;
+      final flick =
+          math.sin(2 * math.pi * (phase * 4 + sidePhase)) *
+          followDrive.abs() *
+          0.18;
+      final delta = side * earDrive + flick;
+      if (delta.abs() < 0.0001) continue;
+      joints[earId] = _addJointRotation(pose.jointOf(earId), delta);
+      changed = true;
+    }
+
+    if (!changed) return pose;
+    return Pose(
+      joints: joints,
+      rootDx: pose.rootDx,
+      rootDy: pose.rootDy,
       rootRotation: pose.rootRotation,
     );
   }
@@ -1185,6 +1256,52 @@ class CharacterScene {
   double _smoothUnit(double t) {
     final x = t.clamp(0.0, 1.0);
     return x * x * (3 - 2 * x);
+  }
+
+  double _clampMagnitude(double value, double limit) =>
+      value.clamp(-limit, limit);
+
+  JointPose _addJointRotation(JointPose pose, double delta) => JointPose(
+    rotation: pose.rotation + delta,
+    scaleX: pose.scaleX,
+    scaleY: pose.scaleY,
+  );
+
+  double _jointRotationForAny(Pose pose, List<String> boneIds) {
+    for (final boneId in boneIds) {
+      final joint = pose.joints[boneId];
+      if (joint != null) return joint.rotation;
+    }
+    return 0;
+  }
+
+  List<String> _tailBoneIds() {
+    final ids = [
+      for (final bone in rig.bones)
+        if (bone.id.toLowerCase().startsWith('tail')) bone.id,
+    ]..sort((a, b) => _trailingIndex(a).compareTo(_trailingIndex(b)));
+    return ids;
+  }
+
+  List<String> _outerEarBoneIds() => [
+    for (final bone in rig.bones)
+      if (_isOuterEarBone(bone.id)) bone.id,
+  ];
+
+  bool _isOuterEarBone(String boneId) {
+    final id = boneId.toLowerCase();
+    return id.contains('ear') && !id.contains('inner');
+  }
+
+  int _trailingIndex(String boneId) {
+    var start = boneId.length;
+    while (start > 0) {
+      final unit = boneId.codeUnitAt(start - 1);
+      if (unit < 0x30 || unit > 0x39) break;
+      start--;
+    }
+    if (start == boneId.length) return 0;
+    return int.tryParse(boneId.substring(start)) ?? 0;
   }
 
   bool _isDanceFamily(Clip clip) => clip.transitionPlan != null
