@@ -130,8 +130,13 @@ class CharacterRenderer {
     final groupBounds = celShade == null
         ? const <String, Rect>{}
         : _shadeGroupBounds(rig, world);
+    final seamMeshes = [
+      for (final mesh in rig.meshDrawOrder)
+        if (mesh.inkSeams.isNotEmpty && mesh.inkSeamWidth > 0) mesh,
+    ]..sort((a, b) => a.inkSeamZ.compareTo(b.inkSeamZ));
     var ribbonIndex = 0;
     var meshIndex = 0;
+    var seamIndex = 0;
     for (final bone in rig.drawOrder) {
       while (ribbonIndex < ribbons.length && ribbons[ribbonIndex].z <= bone.z) {
         _drawRibbonFill(canvas, ribbons[ribbonIndex], world);
@@ -159,6 +164,11 @@ class CharacterRenderer {
           );
         }
         meshIndex++;
+      }
+      while (seamIndex < seamMeshes.length &&
+          seamMeshes[seamIndex].inkSeamZ <= bone.z) {
+        _drawMeshInkSeams(canvas, seamMeshes[seamIndex], world);
+        seamIndex++;
       }
       if (hiddenBones.contains(bone.id)) continue;
       final drawable = bone.drawable;
@@ -200,6 +210,42 @@ class CharacterRenderer {
         );
       }
       meshIndex++;
+    }
+    while (seamIndex < seamMeshes.length) {
+      _drawMeshInkSeams(canvas, seamMeshes[seamIndex], world);
+      seamIndex++;
+    }
+  }
+
+  /// Drawn tailoring seams over a skinned surface (see
+  /// [SkinnedMeshSpec.inkSeams]): polylines through deformed vertices, stroked
+  /// in the outline colour — e.g. the jacket's shoulder seam from armhole to
+  /// collar, continuing a sleeve's ink line up to the neck cutoff.
+  void _drawMeshInkSeams(
+    Canvas canvas,
+    SkinnedMeshSpec mesh,
+    Map<String, Affine2D> world,
+  ) {
+    final outline = mesh.outlineColor;
+    if (mesh.inkSeams.isEmpty || mesh.inkSeamWidth <= 0 || outline == null) {
+      return;
+    }
+    final points = resolveSkinnedMeshVertices(mesh, world);
+    if (points == null) return;
+    _paint
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = mesh.inkSeamWidth
+      ..strokeJoin = StrokeJoin.round
+      ..strokeCap = StrokeCap.round
+      ..color = Color(outline)
+      ..isAntiAlias = antiAlias;
+    for (final seam in mesh.inkSeams) {
+      final path = Path()
+        ..moveTo(points[seam.first].x, points[seam.first].y);
+      for (var i = 1; i < seam.length; i++) {
+        path.lineTo(points[seam[i]].x, points[seam[i]].y);
+      }
+      canvas.drawPath(path, _paint);
     }
   }
 

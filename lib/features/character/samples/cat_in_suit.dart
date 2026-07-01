@@ -1435,11 +1435,11 @@ RigSpec buildCatInSuitRig({
       // FRONT profile [clavicle, deltoid, bicep, elbow, forearm, wrist]:
       // the BICEP carries the upper-arm mass and the forearm swells with the
       // brachioradialis before tapering into the wrist.
-      halfWidths: scaledArmWidths(const [11.4, 11.2, 10.4, 7.2, 8.5, 5.2]),
+      halfWidths: scaledArmWidths(const [10.8, 11.0, 11.2, 7.2, 8.5, 5.2]),
       // BACK profile: fuller triceps up high, a tight bony elbow point, and
       // a lean forearm underside — the same put-the-mass-where-the-muscle-is
       // asymmetry that makes the legs read athletic.
-      backHalfWidths: scaledArmWidths(const [11.4, 10.6, 8.9, 7.4, 7.2, 5.0]),
+      backHalfWidths: scaledArmWidths(const [10.8, 10.4, 10.2, 7.4, 7.2, 5.0]),
       z: 15,
       color: _sleeve,
       outlineColor: _outline,
@@ -1470,11 +1470,11 @@ RigSpec buildCatInSuitRig({
       // FRONT profile [clavicle, deltoid, bicep, elbow, forearm, wrist]:
       // the BICEP carries the upper-arm mass and the forearm swells with the
       // brachioradialis before tapering into the wrist.
-      halfWidths: scaledArmWidths(const [11.4, 11.2, 10.4, 7.2, 8.5, 5.2]),
+      halfWidths: scaledArmWidths(const [10.8, 11.0, 11.2, 7.2, 8.5, 5.2]),
       // BACK profile: fuller triceps up high, a tight bony elbow point, and
       // a lean forearm underside — the same put-the-mass-where-the-muscle-is
       // asymmetry that makes the legs read athletic.
-      backHalfWidths: scaledArmWidths(const [11.4, 10.6, 8.9, 7.4, 7.2, 5.0]),
+      backHalfWidths: scaledArmWidths(const [10.8, 10.4, 10.2, 7.4, 7.2, 5.0]),
       z: 16,
       color: _sleeveNear,
       outlineColor: _outline,
@@ -1583,6 +1583,11 @@ RigSpec buildCatInSuitRig({
       outlineWidth: 1,
       hiddenBoneIds: const [CatBones.torso],
       shadeGroup: kJacketShadeGroup,
+      // Drawn shoulder seams: continue each sleeve's armhole ink up over the
+      // yoke to the collar — same line weight as the limb ink, stroked ABOVE
+      // the sleeves (a shoulder seam lies on top of the shoulder).
+      crownSeamWidth: 2,
+      crownSeamZ: 17,
     ),
   ];
 

@@ -240,6 +240,20 @@ class RigSpec {
           );
         }
       }
+      for (final seam in mesh.inkSeams) {
+        if (seam.length < 2) {
+          throw ArgumentError(
+            'Mesh "${mesh.id}" ink seams need at least two points',
+          );
+        }
+        for (final index in seam) {
+          if (index < 0 || index >= mesh.vertices.length) {
+            throw ArgumentError(
+              'Mesh "${mesh.id}" ink seam index $index is out of range',
+            );
+          }
+        }
+      }
       for (final vertex in mesh.vertices) {
         if (vertex.influences.isEmpty) {
           throw ArgumentError('Mesh "${mesh.id}" has an unweighted vertex');
@@ -451,7 +465,14 @@ class SkinnedMeshSpec {
     this.smoothBoundary = true,
     this.boundaryCornerSmoothing = 0.5,
     this.shadeGroup,
-  }) : assert(
+    List<List<int>> inkSeams = const [],
+    this.inkSeamWidth = 0,
+    int? inkSeamZ,
+  }) : inkSeamZ = inkSeamZ ?? z,
+       inkSeams = List<List<int>>.unmodifiable([
+         for (final seam in inkSeams) List<int>.unmodifiable(seam),
+       ]),
+       assert(
          boundaryCornerSmoothing >= 0 && boundaryCornerSmoothing <= 0.5,
          'boundaryCornerSmoothing must be between 0 and 0.5',
        ),
@@ -487,6 +508,19 @@ class SkinnedMeshSpec {
 
   /// Optional shared-lighting group — see [LimbRibbonSpec.shadeGroup].
   final String? shadeGroup;
+
+  /// Drawn-seam polylines: chains of vertex indices stroked over the fill in
+  /// deformed space — tailoring lines (a jacket's shoulder seam from armhole
+  /// to collar) that move with the cloth. Stroked at [inkSeamWidth] in the
+  /// outline colour; empty for plain surfaces.
+  final List<List<int>> inkSeams;
+  final double inkSeamWidth;
+
+  /// Paint depth for the ink seams (defaults to the mesh's own [z]). A
+  /// jacket's shoulder seam lies ON TOP of the shoulder, so it must stroke
+  /// above the sleeve ribbons that cover the yoke — not at the jacket's own
+  /// depth where the deltoid would bury it.
+  final int inkSeamZ;
 }
 
 class SkinnedMeshVertex {

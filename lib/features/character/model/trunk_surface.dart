@@ -61,6 +61,8 @@ SkinnedMeshSpec buildTrunkSurface({
   double boundaryCornerSmoothing = 0.22,
   List<String> hiddenBoneIds = const [],
   String? shadeGroup,
+  double crownSeamWidth = 0,
+  int? crownSeamZ,
 }) {
   assert(stations.length >= 2, 'a trunk surface needs at least two stations');
   final origins = _restWorldOrigins(bones);
@@ -149,6 +151,23 @@ SkinnedMeshSpec buildTrunkSurface({
     vertices.add(vertexAt(s.x + s.halfWidth, s.y, stationWeights(i)));
   }
 
+  // The crown as DRAWN SHOULDER SEAMS (when [crownSeamWidth] > 0): from each
+  // top station vertex up over the yoke to the collar point — the tailoring
+  // line that continues a sleeve's armhole ink up to the neck cutoff.
+  final leftSeam = [
+    stations.length - 1,
+    for (var i = 0; i < crown.length; i++) stations.length + i,
+  ];
+  // Right-side crown vertices were emitted centre-first (the mirrored
+  // reversed walk), so the armhole→corner→collar chain is: the top-right
+  // station vertex, then the crown indices from LAST (outer corner) down to
+  // FIRST (collar point).
+  final rightCrownStart = stations.length + crown.length;
+  final rightSeam = [
+    rightCrownStart + crown.length,
+    for (var i = crown.length - 1; i >= 0; i--) rightCrownStart + i,
+  ];
+
   return SkinnedMeshSpec(
     id: id,
     vertices: vertices,
@@ -161,6 +180,11 @@ SkinnedMeshSpec buildTrunkSurface({
     formRound: formRound,
     boundaryCornerSmoothing: boundaryCornerSmoothing,
     shadeGroup: shadeGroup,
+    inkSeams: crownSeamWidth > 0 && crown.isNotEmpty
+        ? [leftSeam, rightSeam]
+        : const [],
+    inkSeamWidth: crownSeamWidth,
+    inkSeamZ: crownSeamZ,
   );
 }
 
