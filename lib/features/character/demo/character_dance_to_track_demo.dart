@@ -230,12 +230,17 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
   // Mute forces the player volume to zero; the video keeps playing. The app has
   // no volume slider, so unmuting restores full (100) volume.
   bool _muted = false;
-  // Live colour-grade wheels (Lift/Gamma/Gain + saturation) driving the backdrop
-  // grade shader. All neutral by default → identity grade → no grade pass.
+  // Live colour-grade controls (Lift/Gamma/Gain wheels, white balance, contrast,
+  // saturation) driving the backdrop grade shader. All neutral by default →
+  // identity grade → no grade pass. [_bypass] shows the clean plate (before).
   GradeWheel _lift = const GradeWheel();
   GradeWheel _gamma = const GradeWheel();
   GradeWheel _gain = const GradeWheel();
   double _saturation = 1;
+  double _temperature = 0;
+  double _tint = 0;
+  double _contrast = 1;
+  bool _bypass = false;
   ui.Image? _backdrop;
   ui.Image? _clouds;
   ui.Image? _waves;
@@ -641,12 +646,19 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
     // singing mouths. The whole composite is the generalized DanceStageView,
     // rendered identically by the live app and every offline renderer — there is
     // no second paint path to drift.
-    final grade = gradeFromWheels(
-      lift: _lift,
-      gamma: _gamma,
-      gain: _gain,
-      saturation: _saturation,
-    );
+    // Bypass shows the clean plate (the "before"): feed the stage an identity
+    // grade while the panel keeps the dialled look, so a colourist can A/B.
+    final grade = _bypass
+        ? BackdropGrade.identity
+        : gradeFromWheels(
+            lift: _lift,
+            gamma: _gamma,
+            gain: _gain,
+            saturation: _saturation,
+            temperature: _temperature,
+            tint: _tint,
+            contrast: _contrast,
+          );
     final stageView = DanceStageView(
       boundaryKey: _stageBoundaryKey,
       grade: grade,
@@ -719,15 +731,27 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
                   gamma: _gamma,
                   gain: _gain,
                   saturation: _saturation,
+                  temperature: _temperature,
+                  tint: _tint,
+                  contrast: _contrast,
+                  bypass: _bypass,
                   onLift: (w) => setState(() => _lift = w),
                   onGamma: (w) => setState(() => _gamma = w),
                   onGain: (w) => setState(() => _gain = w),
                   onSaturation: (v) => setState(() => _saturation = v),
+                  onTemperature: (v) => setState(() => _temperature = v),
+                  onTint: (v) => setState(() => _tint = v),
+                  onContrast: (v) => setState(() => _contrast = v),
+                  onBypass: (v) => setState(() => _bypass = v),
                   onReset: () => setState(() {
                     _lift = const GradeWheel();
                     _gamma = const GradeWheel();
                     _gain = const GradeWheel();
                     _saturation = 1;
+                    _temperature = 0;
+                    _tint = 0;
+                    _contrast = 1;
+                    _bypass = false;
                   }),
                 ),
               ],

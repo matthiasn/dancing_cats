@@ -26,6 +26,8 @@ class BackdropGrade {
     this.offset = const (r: 0.0, g: 0.0, b: 0.0),
     this.power = const (r: 1.0, g: 1.0, b: 1.0),
     this.saturation = 1.0,
+    this.contrast = 1.0,
+    this.pivot = 0.435,
   });
 
   /// Per-channel multiply (the highlights / "gain" control). 1 = unchanged.
@@ -40,6 +42,15 @@ class BackdropGrade {
   /// Rec.709 saturation: 1 = unchanged, 0 = greyscale, >1 = more colourful.
   final double saturation;
 
+  /// Contrast about [pivot] applied after SOP: `(c - pivot) * contrast + pivot`.
+  /// 1 = unchanged. Shapes the tone (an S-curve pivot) the offset-only wheels
+  /// can't — pulls the subject off a flat, milky plate.
+  final double contrast;
+
+  /// The tonal pivot the [contrast] rotates about (≈ mid grey). Irrelevant when
+  /// contrast is 1.
+  final double pivot;
+
   /// The no-op grade.
   static const identity = BackdropGrade();
 
@@ -49,7 +60,8 @@ class BackdropGrade {
       slope == identity.slope &&
       offset == identity.offset &&
       power == identity.power &&
-      saturation == 1.0;
+      saturation == 1.0 &&
+      contrast == 1.0;
 
   @override
   bool operator ==(Object other) =>
@@ -57,10 +69,13 @@ class BackdropGrade {
       other.slope == slope &&
       other.offset == offset &&
       other.power == power &&
-      other.saturation == saturation;
+      other.saturation == saturation &&
+      other.contrast == contrast &&
+      other.pivot == pivot;
 
   @override
-  int get hashCode => Object.hash(slope, offset, power, saturation);
+  int get hashCode =>
+      Object.hash(slope, offset, power, saturation, contrast, pivot);
 }
 
 /// One 3-way grading wheel's state: a colour [balance] puck (a vector from the
@@ -103,35 +118,51 @@ const double _slopeMasterGain = 0.6; // gain dial → slope
 const double _offsetBalanceGain = 0.2; // lift wheel colour → offset
 const double _offsetMasterGain = 0.3; // lift dial → offset
 const double _gammaGain = 0.6; // gamma wheel/dial → power exponent
+const double _tempGain = 0.25; // temperature → warm/cool slope balance
+const double _tintGain = 0.2; // tint → magenta/green slope balance
 
-/// Builds the ASC CDL [BackdropGrade] from the three wheels plus a global
-/// [saturation]. Gain → Slope (highlights), Lift → Offset (shadows), Gamma →
-/// Power (midtones). A positive master brightens its range; a positive gamma
-/// master lifts the midtones (lower power).
+/// Builds the ASC CDL [BackdropGrade] from the three wheels, a global
+/// [saturation] and [contrast], and a global white-balance [temperature]/[tint].
+/// Gain → Slope (highlights), Lift → Offset (shadows), Gamma → Power (midtones);
+/// a positive master brightens its range, a positive gamma master lifts the
+/// midtones (lower power). Temperature warms (+R/-B), tint shifts magenta/green.
 BackdropGrade gradeFromWheels({
   GradeWheel gain = const GradeWheel(),
   GradeWheel lift = const GradeWheel(),
   GradeWheel gamma = const GradeWheel(),
   double saturation = 1,
+  double contrast = 1,
+  double temperature = 0,
+  double tint = 0,
 }) {
   final gainT = wheelTint(gain.balance);
   final liftT = wheelTint(lift.balance);
   final gammaT = wheelTint(gamma.balance);
 
-  double slopeAt(double tint) => 1 + gain.master * _slopeMasterGain + tint * _slopeBalanceGain;
-  double offsetAt(double tint) => lift.master * _offsetMasterGain + tint * _offsetBalanceGain;
+  double slopeAt(double t) => 1 + gain.master * _slopeMasterGain + t * _slopeBalanceGain;
+  double offsetAt(double t) => lift.master * _offsetMasterGain + t * _offsetBalanceGain;
   // Positive gamma delta → brighter mids → exponent below 1. Clamp so power stays
   // positive and bounded (a colourist never wants a runaway gamma).
-  double powerAt(double tint) {
-    final delta = (gamma.master + tint) * _gammaGain;
-    final p = math.pow(2, -delta).toDouble();
-    return p.clamp(0.2, 3.0);
+  double powerAt(double t) {
+    final delta = (gamma.master + t) * _gammaGain;
+    return math.pow(2, -delta).toDouble().clamp(0.2, 3.0);
   }
 
+  // White balance folds into the slope, kept roughly luma-neutral: temperature
+  // pushes red vs blue, tint pushes green vs magenta.
+  final wbR = temperature * _tempGain + tint * _tintGain;
+  final wbG = -tint * 2 * _tintGain;
+  final wbB = -temperature * _tempGain + tint * _tintGain;
+
   return BackdropGrade(
-    slope: (r: slopeAt(gainT.r), g: slopeAt(gainT.g), b: slopeAt(gainT.b)),
+    slope: (
+      r: slopeAt(gainT.r) + wbR,
+      g: slopeAt(gainT.g) + wbG,
+      b: slopeAt(gainT.b) + wbB,
+    ),
     offset: (r: offsetAt(liftT.r), g: offsetAt(liftT.g), b: offsetAt(liftT.b)),
     power: (r: powerAt(gammaT.r), g: powerAt(gammaT.g), b: powerAt(gammaT.b)),
     saturation: saturation < 0 ? 0 : saturation,
+    contrast: contrast,
   );
 }

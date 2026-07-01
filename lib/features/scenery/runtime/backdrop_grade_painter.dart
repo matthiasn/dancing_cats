@@ -51,6 +51,8 @@ void paintGradedBackdrop({
     ..setFloat(9, grade.power.g)
     ..setFloat(10, grade.power.b)
     ..setFloat(11, grade.saturation)
+    ..setFloat(12, grade.contrast)
+    ..setFloat(13, grade.pivot)
     ..setImageSampler(0, image);
   canvas.drawRect(Offset.zero & size, Paint()..shader = shader);
   image.dispose();

@@ -29,6 +29,21 @@ void main() {
       expect(a, isNot(c));
     });
 
+    test('equality distinguishes contrast and pivot', () {
+      expect(
+        const BackdropGrade(contrast: 1.2),
+        isNot(const BackdropGrade(contrast: 1.3)),
+      );
+      expect(
+        const BackdropGrade(contrast: 1.2, pivot: 0.4),
+        isNot(const BackdropGrade(contrast: 1.2, pivot: 0.5)),
+      );
+      expect(
+        const BackdropGrade(contrast: 1.2).hashCode,
+        const BackdropGrade(contrast: 1.2).hashCode,
+      );
+    });
+
     test('any changed coefficient makes it non-neutral', () {
       expect(
         const BackdropGrade(slope: (r: 1.1, g: 1.0, b: 1.0)).isNeutral,
@@ -43,6 +58,12 @@ void main() {
         isFalse,
       );
       expect(const BackdropGrade(saturation: 0.5).isNeutral, isFalse);
+      expect(const BackdropGrade(contrast: 1.2).isNeutral, isFalse);
+    });
+
+    test('a changed pivot alone (contrast 1) stays neutral', () {
+      // Pivot is irrelevant when contrast is 1 — no tonal change.
+      expect(const BackdropGrade(pivot: 0.6).isNeutral, isTrue);
     });
 
     test('equality distinguishes different grades', () {
@@ -122,6 +143,26 @@ void main() {
       expect(gradeFromWheels(saturation: -1).saturation, 0);
     });
 
+    test('contrast passes through to the grade', () {
+      expect(gradeFromWheels(contrast: 1.3).contrast, 1.3);
+    });
+
+    test('a warm temperature pushes slope toward red, away from blue', () {
+      final g = gradeFromWheels(temperature: 0.8);
+      expect(g.slope.r, greaterThan(g.slope.b));
+    });
+
+    test('a cool temperature pushes slope toward blue, away from red', () {
+      final g = gradeFromWheels(temperature: -0.8);
+      expect(g.slope.b, greaterThan(g.slope.r));
+    });
+
+    test('a positive tint pushes magenta (red+blue) over green', () {
+      final g = gradeFromWheels(tint: 0.8);
+      expect(g.slope.r, greaterThan(g.slope.g));
+      expect(g.slope.b, greaterThan(g.slope.g));
+    });
+
     glados.Glados(glados.any.gradeCase, glados.ExploreConfig(numRuns: 200))
         .test('any wheel input yields a finite, bounded grade', (c) {
           final grade = gradeFromWheels(
@@ -129,6 +170,9 @@ void main() {
             lift: GradeWheel(balance: Offset(c.b, c.c), master: c.b),
             gamma: GradeWheel(balance: Offset(c.c, c.a), master: c.c),
             saturation: c.d,
+            temperature: c.a,
+            tint: c.b,
+            contrast: c.c,
           );
           for (final v in [
             grade.slope.r,
@@ -136,6 +180,7 @@ void main() {
             grade.slope.b,
             grade.offset.r,
             grade.power.r,
+            grade.contrast,
           ]) {
             expect(v.isFinite, isTrue);
           }

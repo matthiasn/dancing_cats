@@ -1,23 +1,39 @@
+import 'dart:math' as math;
+
 import 'package:dancing_cats/features/scenery/model/backdrop_grade.dart';
 import 'package:flutter/material.dart';
 
+/// Which ASC CDL coefficient a wheel drives, so each wheel can show its true
+/// Slope / Offset / Power numbers (a colourist has to be able to read, type and
+/// match a grade — pucks alone can't be reproduced).
+enum GradeRole { lift, gamma, gain }
+
 /// The dance demo's colour-grading console — a new row below the transport
-/// waveform with three ASC-CDL-style colour wheels (Lift / Gamma / Gain), each a
-/// balance puck plus a luminance dial, and a master saturation slider. Purely
-/// presentational: it renders the supplied [GradeWheel] state and reports intent
-/// through callbacks; the page owns the state and builds the [BackdropGrade]
-/// (see `gradeFromWheels`). A dev tool for dialling the blue-hour look, not a
-/// product surface.
+/// waveform. Three ASC-CDL 3-way wheels (Lift / Gamma / Gain), each a balance
+/// puck, a bipolar luminance dial and a live Slope/Offset/Power readout; a
+/// white-balance Temperature/Tint pair; Contrast and Saturation; a before/after
+/// Bypass; and per-wheel plus global reset. Purely presentational: it renders the
+/// supplied state and reports intent through callbacks; the page owns the state
+/// and builds the [BackdropGrade] (see `gradeFromWheels`). A dev tool for
+/// dialling the blue-hour look, not a product surface.
 class ColorGradePanel extends StatelessWidget {
   const ColorGradePanel({
     required this.lift,
     required this.gamma,
     required this.gain,
     required this.saturation,
+    required this.temperature,
+    required this.tint,
+    required this.contrast,
+    required this.bypass,
     required this.onLift,
     required this.onGamma,
     required this.onGain,
     required this.onSaturation,
+    required this.onTemperature,
+    required this.onTint,
+    required this.onContrast,
+    required this.onBypass,
     required this.onReset,
     super.key,
   });
@@ -26,16 +42,28 @@ class ColorGradePanel extends StatelessWidget {
   final GradeWheel gamma;
   final GradeWheel gain;
   final double saturation;
+  final double temperature;
+  final double tint;
+  final double contrast;
+  final bool bypass;
   final ValueChanged<GradeWheel> onLift;
   final ValueChanged<GradeWheel> onGamma;
   final ValueChanged<GradeWheel> onGain;
   final ValueChanged<double> onSaturation;
+  final ValueChanged<double> onTemperature;
+  final ValueChanged<double> onTint;
+  final ValueChanged<double> onContrast;
+  final ValueChanged<bool> onBypass;
   final VoidCallback onReset;
 
-  static const _bg = Color(0xFF14181D);
+  static const _panelTop = Color(0xFF161B21);
+  static const _panelBottom = Color(0xFF0F1317);
   static const _edge = Color(0xFF2A313A);
   static const _textHi = Color(0xFFE7ECF2);
   static const _textLow = Color(0xFF8A94A2);
+  static const _accent = Color(0xFF2FB6A8);
+  static const _warm = Color(0xFFE6A24A);
+  static const _cool = Color(0xFF4A8FE6);
 
   @override
   Widget build(BuildContext context) {
@@ -43,38 +71,87 @@ class ColorGradePanel extends StatelessWidget {
       style: const TextStyle(fontFamily: 'Inter'),
       child: DecoratedBox(
         decoration: const BoxDecoration(
-          color: _bg,
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [_panelTop, _panelBottom],
+          ),
           border: Border(top: BorderSide(color: _edge)),
         ),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+          padding: const EdgeInsets.fromLTRB(18, 10, 18, 12),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const _PanelTitle(),
-              const SizedBox(width: 20),
+              _PanelHeader(bypass: bypass, onBypass: onBypass),
+              const SizedBox(width: 16),
               GradeWheelControl(
+                role: GradeRole.lift,
                 label: 'Lift',
                 sublabel: 'shadows',
                 wheel: lift,
                 onChanged: onLift,
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
               GradeWheelControl(
+                role: GradeRole.gamma,
                 label: 'Gamma',
                 sublabel: 'midtones',
                 wheel: gamma,
                 onChanged: onGamma,
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
               GradeWheelControl(
+                role: GradeRole.gain,
                 label: 'Gain',
                 sublabel: 'highlights',
                 wheel: gain,
                 onChanged: onGain,
               ),
-              const SizedBox(width: 24),
-              _SaturationDial(value: saturation, onChanged: onSaturation),
+              const SizedBox(width: 18),
+              _SliderStack(
+                title: 'BALANCE',
+                children: [
+                  _LabeledSlider(
+                    label: 'Temp',
+                    value: temperature,
+                    min: -1,
+                    max: 1,
+                    lowColor: _cool,
+                    highColor: _warm,
+                    onChanged: onTemperature,
+                  ),
+                  _LabeledSlider(
+                    label: 'Tint',
+                    value: tint,
+                    min: -1,
+                    max: 1,
+                    lowColor: const Color(0xFF5AC46A),
+                    highColor: const Color(0xFFC45AC4),
+                    onChanged: onTint,
+                  ),
+                ],
+              ),
+              const SizedBox(width: 16),
+              _SliderStack(
+                title: 'TONE',
+                children: [
+                  _LabeledSlider(
+                    label: 'Contrast',
+                    value: contrast,
+                    min: 0.5,
+                    max: 1.8,
+                    onChanged: onContrast,
+                  ),
+                  _LabeledSlider(
+                    label: 'Saturation',
+                    value: saturation,
+                    min: 0,
+                    max: 2,
+                    onChanged: onSaturation,
+                  ),
+                ],
+              ),
               const Spacer(),
               _ResetButton(onReset: onReset),
             ],
@@ -85,15 +162,20 @@ class ColorGradePanel extends StatelessWidget {
   }
 }
 
-class _PanelTitle extends StatelessWidget {
-  const _PanelTitle();
+/// Panel title plus the before/after Bypass toggle — a colourist has to be able
+/// to see the clean plate to judge how far a look has been pushed.
+class _PanelHeader extends StatelessWidget {
+  const _PanelHeader({required this.bypass, required this.onBypass});
+
+  final bool bypass;
+  final ValueChanged<bool> onBypass;
 
   @override
   Widget build(BuildContext context) {
-    return const Column(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        const Text(
           'COLOR',
           style: TextStyle(
             color: ColorGradePanel._textHi,
@@ -102,20 +184,81 @@ class _PanelTitle extends StatelessWidget {
             letterSpacing: 2,
           ),
         ),
-        Text(
+        const Text(
           'grade',
           style: TextStyle(color: ColorGradePanel._textLow, fontSize: 11),
         ),
+        const SizedBox(height: 10),
+        _BypassButton(bypass: bypass, onBypass: onBypass),
       ],
     );
   }
 }
 
-/// One 3-way grading wheel: a hue balance puck plus a luminance dial. Drag the
-/// puck to shift this range's colour balance; the slider is the master
-/// luminance; the panel's Reset recentres everything.
+class _BypassButton extends StatelessWidget {
+  const _BypassButton({required this.bypass, required this.onBypass});
+
+  final bool bypass;
+  final ValueChanged<bool> onBypass;
+
+  @override
+  Widget build(BuildContext context) {
+    // Bypassed = showing the clean plate (the "before").
+    final active = bypass;
+    return Tooltip(
+      message: bypass ? 'Showing clean plate' : 'Show clean plate (bypass grade)',
+      child: GestureDetector(
+        key: const Key('gradeBypass'),
+        behavior: HitTestBehavior.opaque,
+        onTap: () => onBypass(!bypass),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: active
+                ? ColorGradePanel._accent.withValues(alpha: 0.9)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(5),
+            border: Border.all(
+              color: active ? ColorGradePanel._accent : ColorGradePanel._edge,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                bypass ? Icons.visibility_off_rounded : Icons.compare_rounded,
+                size: 14,
+                color: active
+                    ? const Color(0xFF0F1317)
+                    : ColorGradePanel._textLow,
+              ),
+              const SizedBox(width: 5),
+              Text(
+                bypass ? 'CLEAN' : 'A / B',
+                style: TextStyle(
+                  color: active
+                      ? const Color(0xFF0F1317)
+                      : ColorGradePanel._textLow,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// One 3-way grading wheel: a hue balance puck, a bipolar luminance dial and a
+/// live Slope/Offset/Power readout. Drag the puck to shift this range's colour
+/// balance; the slider is the master luminance; the small ⟲ recentres just this
+/// wheel; the panel's Reset recentres everything.
 class GradeWheelControl extends StatelessWidget {
   const GradeWheelControl({
+    required this.role,
     required this.label,
     required this.sublabel,
     required this.wheel,
@@ -124,6 +267,7 @@ class GradeWheelControl extends StatelessWidget {
     super.key,
   });
 
+  final GradeRole role;
   final String label;
   final String sublabel;
   final GradeWheel wheel;
@@ -137,16 +281,51 @@ class GradeWheelControl extends StatelessWidget {
     onChanged(GradeWheel(balance: v, master: wheel.master));
   }
 
+  /// This wheel's coefficient triple, computed through the real grade model so
+  /// the readout is the exact CDL the render uses.
+  GradeRgb get _coeff {
+    switch (role) {
+      case GradeRole.lift:
+        return gradeFromWheels(lift: wheel).offset;
+      case GradeRole.gamma:
+        return gradeFromWheels(gamma: wheel).power;
+      case GradeRole.gain:
+        return gradeFromWheels(gain: wheel).slope;
+    }
+  }
+
+  String get _coeffLabel => switch (role) {
+    GradeRole.lift => 'O',
+    GradeRole.gamma => 'P',
+    GradeRole.gain => 'S',
+  };
+
   @override
   Widget build(BuildContext context) {
+    final c = _coeff;
+    final signed = role == GradeRole.lift;
     return Column(
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: ColorGradePanel._textHi,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
+        SizedBox(
+          width: diameter,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  color: ColorGradePanel._textHi,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(width: 4),
+              _WheelReset(
+                label: label,
+                enabled: !wheel.isNeutral,
+                onReset: () => onChanged(const GradeWheel()),
+              ),
+            ],
           ),
         ),
         Text(
@@ -164,22 +343,76 @@ class GradeWheelControl extends StatelessWidget {
             painter: _WheelPainter(balance: wheel.balance),
           ),
         ),
-        SizedBox(
-          width: diameter + 8,
-          child: SliderTheme(
-            data: SliderTheme.of(context).copyWith(
-              trackHeight: 2,
-              overlayShape: SliderComponentShape.noOverlay,
-            ),
-            child: Slider(
-              value: wheel.master.clamp(-1.0, 1.0),
-              min: -1,
-              onChanged: (v) =>
-                  onChanged(GradeWheel(balance: wheel.balance, master: v)),
-            ),
+        const SizedBox(height: 4),
+        _BipolarSlider(
+          value: wheel.master,
+          min: -1,
+          max: 1,
+          width: diameter,
+          accent: ColorGradePanel._accent,
+          onChanged: (v) =>
+              onChanged(GradeWheel(balance: wheel.balance, master: v)),
+        ),
+        Text(
+          _lumReadout(wheel.master),
+          style: const TextStyle(
+            color: ColorGradePanel._textLow,
+            fontSize: 10,
+            fontFeatures: [FontFeature.tabularFigures()],
+          ),
+        ),
+        Text(
+          '$_coeffLabel ${_fmt(c.r, signed)} ${_fmt(c.g, signed)} ${_fmt(c.b, signed)}',
+          style: const TextStyle(
+            color: ColorGradePanel._textLow,
+            fontSize: 9,
+            fontFeatures: [FontFeature.tabularFigures()],
           ),
         ),
       ],
+    );
+  }
+
+  static String _lumReadout(double master) {
+    final sign = master >= 0 ? '+' : '';
+    return 'lum $sign${master.toStringAsFixed(2)}';
+  }
+
+  static String _fmt(double v, bool signed) {
+    if (signed) {
+      final sign = v >= 0 ? '+' : '';
+      return '$sign${v.toStringAsFixed(2)}';
+    }
+    return v.toStringAsFixed(2);
+  }
+}
+
+/// Small per-wheel reset affordance (⟲) — one wrong nudge shouldn't force nuking
+/// the whole grade. Dims to unclickable-looking when the wheel is already home.
+class _WheelReset extends StatelessWidget {
+  const _WheelReset({
+    required this.label,
+    required this.enabled,
+    required this.onReset,
+  });
+
+  final String label;
+  final bool enabled;
+  final VoidCallback onReset;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      key: Key('gradeWheelReset-$label'),
+      behavior: HitTestBehavior.opaque,
+      onTap: enabled ? onReset : null,
+      child: Icon(
+        Icons.restart_alt_rounded,
+        size: 13,
+        color: enabled
+            ? ColorGradePanel._textLow
+            : ColorGradePanel._edge,
+      ),
     );
   }
 }
@@ -189,43 +422,99 @@ class _WheelPainter extends CustomPainter {
 
   final Offset balance;
 
+  // Primary/secondary hue tick angles (screen space) so the target hue is
+  // aimable. Matches `wheelTint`: red at top, green lower-left, blue lower-right.
+  static const _tickAngles = <double>[
+    -math.pi / 2, // red, top
+    -math.pi / 2 - 2 * math.pi / 3, // yellow, upper-left
+    math.pi / 2 + 2 * math.pi / 3, // green, lower-left (== -pi/2 - 4pi/3)
+  ];
+
   @override
   void paint(Canvas canvas, Size size) {
     final radius = size.width / 2;
     final center = Offset(radius, radius);
     final rect = Rect.fromCircle(center: center, radius: radius);
-
-    // Hue ring: a full sweep of the spectrum (red at the top, matching
-    // wheelTint's convention), faded to a neutral grey centre so the middle
-    // reads as "no balance", then a thin edge and the draggable puck.
     final puck = center + balance * radius;
+
     canvas
+      // Smooth hue ring, aligned to wheelTint (red at top, green lower-left,
+      // blue lower-right) so where you drag is the colour you get, with the warm
+      // arc given real angular width instead of a crushed seam.
       ..drawCircle(
         center,
         radius,
         Paint()
           ..shader = const SweepGradient(
-            startAngle: -1.5708, // -90°, so red sits at the top
+            startAngle: 0.5235987755982988, // 30°, where blue sits
+            endAngle: 0.5235987755982988 + 2 * math.pi,
             colors: [
-              Color(0xFFFF4040),
-              Color(0xFFFFFF40),
-              Color(0xFF40FF40),
-              Color(0xFF40FFFF),
-              Color(0xFF4040FF),
-              Color(0xFFFF40FF),
-              Color(0xFFFF4040),
+              Color(0xFF3B6BFF), // blue
+              Color(0xFF33C9D6), // cyan
+              Color(0xFF3FBF57), // green
+              Color(0xFFC9AE3A), // yellow
+              Color(0xFFE0483B), // red (top)
+              Color(0xFFB44AE0), // magenta
+              Color(0xFF3B6BFF), // blue (loop close)
             ],
           ).createShader(rect),
       )
+      // Desaturate toward a neutral centre so the middle reads as "no balance"
+      // and the puck stays legible against the ring.
       ..drawCircle(
         center,
         radius,
         Paint()
           ..shader = const RadialGradient(
-            colors: [Color(0xFF20262E), Color(0x0020262E)],
-            stops: [0.0, 0.62],
+            colors: [Color(0xFF161B21), Color(0x33161B21), Color(0x00161B21)],
+            stops: [0.0, 0.45, 0.82],
           ).createShader(rect),
       )
+      // Inner-shadow rim for depth.
+      ..drawCircle(
+        center,
+        radius - 0.5,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.5
+          ..shader = RadialGradient(
+            colors: [const Color(0x00000000), Colors.black.withValues(alpha: 0.5)],
+            stops: const [0.86, 1.0],
+          ).createShader(rect),
+      );
+
+    // Faint primary/secondary tick marks at the rim (R/Y/G and their opposites).
+    final tickPaint = Paint()
+      ..color = const Color(0x44FFFFFF)
+      ..strokeWidth = 1;
+    for (final a in _WheelPainter._tickAngles) {
+      for (final ang in [a, a + math.pi]) {
+        final dir = Offset(math.cos(ang), math.sin(ang));
+        canvas.drawLine(
+          center + dir * (radius - 6),
+          center + dir * (radius - 2),
+          tickPaint,
+        );
+      }
+    }
+
+    canvas
+      // Crosshair: a neutral reference at the centre.
+      ..drawLine(
+        Offset(center.dx - 5, center.dy),
+        Offset(center.dx + 5, center.dy),
+        Paint()
+          ..color = const Color(0x55FFFFFF)
+          ..strokeWidth = 1,
+      )
+      ..drawLine(
+        Offset(center.dx, center.dy - 5),
+        Offset(center.dx, center.dy + 5),
+        Paint()
+          ..color = const Color(0x55FFFFFF)
+          ..strokeWidth = 1,
+      )
+      // Crisp outer edge.
       ..drawCircle(
         center,
         radius,
@@ -233,15 +522,34 @@ class _WheelPainter extends CustomPainter {
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1
           ..color = ColorGradePanel._edge,
-      )
-      ..drawCircle(puck, 6, Paint()..color = Colors.white)
+      );
+
+    // The balance vector + puck.
+    if (balance != Offset.zero) {
+      canvas.drawLine(
+        center,
+        puck,
+        Paint()
+          ..color = const Color(0xAAFFFFFF)
+          ..strokeWidth = 1.5,
+      );
+    }
+    canvas
       ..drawCircle(
         puck,
-        6,
+        7,
+        Paint()
+          ..color = Colors.black.withValues(alpha: 0.35)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2),
+      )
+      ..drawCircle(puck, 5.5, Paint()..color = Colors.white)
+      ..drawCircle(
+        puck,
+        5.5,
         Paint()
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1.5
-          ..color = Colors.black87,
+          ..color = Colors.black.withValues(alpha: 0.55),
       );
   }
 
@@ -249,41 +557,242 @@ class _WheelPainter extends CustomPainter {
   bool shouldRepaint(_WheelPainter old) => old.balance != balance;
 }
 
-class _SaturationDial extends StatelessWidget {
-  const _SaturationDial({required this.value, required this.onChanged});
+/// A titled column of labelled sliders (the Balance and Tone groups), so the
+/// controls fill the row instead of leaving dead space to the right.
+class _SliderStack extends StatelessWidget {
+  const _SliderStack({required this.title, required this.children});
 
-  final double value;
-  final ValueChanged<double> onChanged;
+  final String title;
+  final List<Widget> children;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Saturation',
-          style: TextStyle(
-            color: ColorGradePanel._textHi,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
         Text(
-          value.toStringAsFixed(2),
-          style: const TextStyle(color: ColorGradePanel._textLow, fontSize: 10),
-        ),
-        const SizedBox(height: 6),
-        SizedBox(
-          width: 150,
-          child: Slider(
-            value: value.clamp(0.0, 2.0),
-            max: 2,
-            onChanged: onChanged,
+          title,
+          style: const TextStyle(
+            color: ColorGradePanel._textLow,
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1.5,
           ),
         ),
+        const SizedBox(height: 8),
+        ...children,
       ],
     );
   }
+}
+
+/// A label + value readout above a bipolar slider (Temp / Tint / Contrast /
+/// Saturation).
+class _LabeledSlider extends StatelessWidget {
+  const _LabeledSlider({
+    required this.label,
+    required this.value,
+    required this.min,
+    required this.max,
+    required this.onChanged,
+    this.lowColor,
+    this.highColor,
+  });
+
+  final String label;
+  final double value;
+  final double min;
+  final double max;
+  final ValueChanged<double> onChanged;
+  final Color? lowColor;
+  final Color? highColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              SizedBox(
+                width: 58,
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    color: ColorGradePanel._textHi,
+                    fontSize: 11,
+                  ),
+                ),
+              ),
+              Text(
+                value.toStringAsFixed(2),
+                style: const TextStyle(
+                  color: ColorGradePanel._textLow,
+                  fontSize: 10,
+                  fontFeatures: [FontFeature.tabularFigures()],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          _BipolarSlider(
+            key: Key('gradeSlider-$label'),
+            value: value,
+            min: min,
+            max: max,
+            width: 118,
+            accent: ColorGradePanel._accent,
+            lowColor: lowColor,
+            highColor: highColor,
+            onChanged: onChanged,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A slider whose fill originates from a centre detent, so polarity and zero are
+/// readable at a glance and every dial in the panel speaks one visual language.
+/// Snaps to the centre within a small dead-band.
+class _BipolarSlider extends StatelessWidget {
+  const _BipolarSlider({
+    required this.value,
+    required this.min,
+    required this.max,
+    required this.width,
+    required this.accent,
+    required this.onChanged,
+    this.lowColor,
+    this.highColor,
+    super.key,
+  });
+
+  final double value;
+  final double min;
+  final double max;
+  final double width;
+  final Color accent;
+  final Color? lowColor;
+  final Color? highColor;
+  final ValueChanged<double> onChanged;
+
+  static const _height = 16.0;
+
+  void _emit(double localX) {
+    final t = (localX / width).clamp(0.0, 1.0);
+    var v = min + t * (max - min);
+    final centre = (min + max) / 2;
+    if ((v - centre).abs() < (max - min) * 0.04) v = centre; // snap to centre
+    onChanged(v);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onPanDown: (d) => _emit(d.localPosition.dx),
+      onPanUpdate: (d) => _emit(d.localPosition.dx),
+      child: CustomPaint(
+        size: Size(width, _height),
+        painter: _BipolarTrackPainter(
+          value: value.clamp(min, max),
+          min: min,
+          max: max,
+          accent: accent,
+          lowColor: lowColor,
+          highColor: highColor,
+        ),
+      ),
+    );
+  }
+}
+
+class _BipolarTrackPainter extends CustomPainter {
+  _BipolarTrackPainter({
+    required this.value,
+    required this.min,
+    required this.max,
+    required this.accent,
+    this.lowColor,
+    this.highColor,
+  });
+
+  final double value;
+  final double min;
+  final double max;
+  final Color accent;
+  final Color? lowColor;
+  final Color? highColor;
+
+  double _x(double v, double width) => (v - min) / (max - min) * width;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cy = size.height / 2;
+    final centre = (min + max) / 2;
+    final centreX = _x(centre, size.width);
+    final valueX = _x(value, size.width);
+
+    final track = RRect.fromRectAndRadius(
+      Rect.fromLTWH(0, cy - 1.5, size.width, 3),
+      const Radius.circular(1.5),
+    );
+    // Fill from the centre detent out to the thumb, coloured by polarity.
+    final positive = value >= centre;
+    final fillColor = positive ? (highColor ?? accent) : (lowColor ?? accent);
+    final fillRect = Rect.fromLTRB(
+      math.min(centreX, valueX),
+      cy - 1.5,
+      math.max(centreX, valueX),
+      cy + 1.5,
+    );
+
+    canvas
+      ..drawRRect(track, Paint()..color = const Color(0xFF2A313A))
+      ..drawRRect(
+        RRect.fromRectAndRadius(fillRect, const Radius.circular(1.5)),
+        Paint()..color = fillColor,
+      )
+      // Centre detent tick.
+      ..drawLine(
+        Offset(centreX, cy - 4),
+        Offset(centreX, cy + 4),
+        Paint()
+          ..color = const Color(0x66FFFFFF)
+          ..strokeWidth = 1,
+      )
+      // Thumb.
+      ..drawCircle(
+        Offset(valueX, cy),
+        6,
+        Paint()..color = Colors.black.withValues(alpha: 0.3),
+      )
+      ..drawCircle(
+        Offset(valueX, cy),
+        5,
+        Paint()..color = ColorGradePanel._textHi,
+      )
+      ..drawCircle(
+        Offset(valueX, cy),
+        5,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1
+          ..color = Colors.black.withValues(alpha: 0.35),
+      );
+  }
+
+  @override
+  bool shouldRepaint(_BipolarTrackPainter old) =>
+      old.value != value ||
+      old.min != min ||
+      old.max != max ||
+      old.accent != accent ||
+      old.lowColor != lowColor ||
+      old.highColor != highColor;
 }
 
 class _ResetButton extends StatelessWidget {
@@ -294,7 +803,7 @@ class _ResetButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Tooltip(
-      message: 'Reset the grade to neutral',
+      message: 'Reset the whole grade to neutral',
       child: TextButton.icon(
         onPressed: onReset,
         icon: const Icon(Icons.restart_alt_rounded, size: 18),
