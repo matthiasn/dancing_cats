@@ -75,12 +75,12 @@ const int _fur = 0xFFE8A55A; // orange tabby
 const int _furDark = 0xFFD08A3C; // tail tip / shading
 const int _shirt = 0xFFF3EFE6; // collar
 const int _tie = 0xFF7A2233; // maroon
-const int _shoe = 0xFF3F2D1E; // brown leather dress shoe — reads instantly
+const int _shoe = 0xFF4A3524; // suede sneaker upper — reads instantly
 // against both the navy trousers and the dark deck (near-black navy shoes
 // dissolved into both), and sits with the brass buttons and warm fur.
-const int _shoeToe = 0xFFD6CDB4; // rubber toe bump — the rounded sneaker
+const int _shoeToe = 0xFFE9E2D2; // rubber toe bump — the rounded sneaker
 // toe cap, a shade under the midsole cream so the ink line reads between.
-const int _shoeSole = 0xFFE3DCC8; // sneaker midsole — the full-length cream
+const int _shoeSole = 0xFFF2EDE2; // sneaker midsole — the full-length cream
 // rubber band along the bottom that makes the silhouette read SNEAKER at any
 // scale, inked like every other drawn part.
 const int _outline = 0xFF1B1B2A;
@@ -1478,10 +1478,11 @@ RigSpec buildCatInSuitRig({
       formRound: false,
       shadeGroup: kJacketShadeGroup,
       inkOverFill: true,
-      // The sleeve's line starts at bicep level: the shoulder area belongs
+      // The sleeve's line starts below mid-arm: the shoulder area belongs
       // to the jacket's seam stroke alone — two nearly-parallel pencil lines
-      // up there read as sloppy sketching.
-      inkStartFraction: 0.34,
+      // up there read as sloppy sketching (even bent poses must not push the
+      // ink's open ends up onto the shoulder).
+      inkStartFraction: 0.45,
     ),
     LimbRibbonSpec(
       id: 'arm.L.ribbon',
@@ -1514,10 +1515,11 @@ RigSpec buildCatInSuitRig({
       formRound: false,
       shadeGroup: kJacketShadeGroup,
       inkOverFill: true,
-      // The sleeve's line starts at bicep level: the shoulder area belongs
+      // The sleeve's line starts below mid-arm: the shoulder area belongs
       // to the jacket's seam stroke alone — two nearly-parallel pencil lines
-      // up there read as sloppy sketching.
-      inkStartFraction: 0.34,
+      // up there read as sloppy sketching (even bent poses must not push the
+      // ink's open ends up onto the shoulder).
+      inkStartFraction: 0.45,
     ),
   ];
 
@@ -1615,13 +1617,15 @@ RigSpec buildCatInSuitRig({
       outlineWidth: 1,
       hiddenBoneIds: const [CatBones.torso],
       shadeGroup: kJacketShadeGroup,
-      // Drawn shoulder seams: ONE stroke per side owning the shoulder area —
-      // it leaves the deltoid's outer silhouette edge (the tip vertex below,
-      // welded to the clavicle so it stays on the dome through a shrug),
-      // arcs over the yoke, and ends at the collar. Same line weight as the
-      // limb ink, stroked ABOVE the sleeves (a seam lies on the shoulder).
+      // Drawn shoulder seams: ONE visible stroke per side, joined to the
+      // sleeve by OCCLUSION rather than curve alignment. The seam is stroked
+      // UNDER the sleeves (z14 — above the jacket, below both arms): its
+      // outer tip hides beneath the deltoid dome, so the visible line always
+      // emerges from exactly behind the sleeve's edge and runs to the collar
+      // — no two strokes to keep aligned, in any pose. (Stroking it ABOVE
+      // the sleeves drew a line ACROSS every raised arm.)
       crownSeamWidth: 2,
-      crownSeamZ: 17,
+      crownSeamZ: 14,
       crownSeamTip: (x: -35 - 7.4 * armWidthScale, y: -64 - 6.8 * armWidthScale),
       crownSeamTipWeights: const {CatBones.clavicleL: 1},
       crownSeamTipWeightsMirrored: const {CatBones.clavicleR: 1},
