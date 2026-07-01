@@ -152,7 +152,8 @@ const List<String> kGradeLayerNames = ['Sky', 'City', 'Yacht', 'Deck', 'Palms'];
 ///   · palms → dark cool near-silhouette.
 const List<BackdropGrade> kLayerBaseGrades = [
   BackdropGrade(slope: (r: 0.12, g: 0.19, b: 0.32)), // sky + ocean
-  BackdropGrade(slope: (r: 0.15, g: 0.32, b: 0.7)), // city + bridge
+  BackdropGrade(slope: (r: 0.2, g: 0.4, b: 0.82)), // city + bridge (lifted a
+  // touch so the cable-stayed bridge reads instead of sinking into the dark city)
   BackdropGrade(slope: (r: 0.56, g: 0.7, b: 0.97)), // yacht
   BackdropGrade(slope: (r: 0.21, g: 0.3, b: 0.72)), // deck
   BackdropGrade(slope: (r: 0.16, g: 0.2, b: 0.42)), // palms (blue held back so

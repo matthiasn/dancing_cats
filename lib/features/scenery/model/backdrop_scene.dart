@@ -43,7 +43,9 @@ const double _depthStage = 0.35; // the foreground deck + its lantern glow —
 // depth reads as an immersive pleasure, not a foreground that jumps at the eye.
 const double _depthSkyOcean = 0.06; // sky + ocean base, farthest
 const double _depthCity = 0.14; // skyline + bridge + its lit windows
-const double _depthYacht = 0.24; // the moored yacht — nearer than the city
+const double _depthYacht = 0.17; // the moored yacht — only just nearer than the
+// city (0.14): a big gap let a camera push-in scale the yacht up OVER the bridge,
+// covering more of it than the original composition; keep them near one plane.
 const double _depthDeck = 0.4; // the wooden deck the cast dances on
 const double _depthPalms = 0.56; // foreground palms / planters / lanterns
 
