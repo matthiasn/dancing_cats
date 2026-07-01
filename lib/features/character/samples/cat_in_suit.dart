@@ -75,11 +75,12 @@ const int _fur = 0xFFE8A55A; // orange tabby
 const int _furDark = 0xFFD08A3C; // tail tip / shading
 const int _shirt = 0xFFF3EFE6; // collar
 const int _tie = 0xFF7A2233; // maroon
-const int _shoe = 0xFF24263A; // dark dress shoe — lifted off near-black so it
-// separates from the near-black deck instead of dissolving into the floor.
-const int _shoeToe = 0xFF31344E; // toe-cap leather catching the key — the
+const int _shoe = 0xFF3F2D1E; // brown leather dress shoe — reads instantly
+// against both the navy trousers and the dark deck (near-black navy shoes
+// dissolved into both), and sits with the brass buttons and warm fur.
+const int _shoeToe = 0xFF59422B; // toe-cap leather catching the key — the
 // cap-toe plane that makes the last read as a dress shoe, not a dark lump.
-const int _shoeHighlight = 0xFF3C4058; // SUBTLE sole edge — a brighter strip
+const int _shoeHighlight = 0xFF6B5638; // SUBTLE sole edge — a brighter strip
 // plus the cap-toe/toe-gloss marks read as a skeletal "bone" inside the
 // stage-lit shoe, so the shoe is now just a clean cel-shaded volume with this
 // gentle sole hint and nothing else.
@@ -214,6 +215,7 @@ class CatBones {
   static const footL = 'foot.L';
   static const shoeHighlightL = 'shoe_highlight.L';
   static const shoeToeL = 'shoe_toe.L';
+  static const shoeCounterL = 'shoe_counter.L';
   static const shoeHeelL = 'shoe_heel.L';
   static const hipBlendR = 'hip_blend.R';
   static const legUpperR = 'leg_upper.R';
@@ -223,6 +225,7 @@ class CatBones {
   static const footR = 'foot.R';
   static const shoeHighlightR = 'shoe_highlight.R';
   static const shoeToeR = 'shoe_toe.R';
+  static const shoeCounterR = 'shoe_counter.R';
   static const shoeHeelR = 'shoe_heel.R';
   static const tail0 = 'tail_0';
   static const tail1 = 'tail_1';
@@ -454,6 +457,27 @@ RigSpec buildCatInSuitRig({
         outlineWidth: 2,
       ),
     ),
+    // Counter/quarter: the shoe's back rises above the vamp at the ankle —
+    // the topline step that gives a dress shoe its silhouette from the side.
+    // Bottom sits flush on the sole plane (contact untouched).
+    const Bone(
+      id: CatBones.shoeCounterR,
+      parent: CatBones.footR,
+      pivotX: 0,
+      pivotY: 0,
+      z: 6,
+      drawable: BoneDrawable(
+        kind: BoneShapeKind.roundedRect,
+        width: 14,
+        height: 15,
+        dx: 3,
+        dy: 2.5,
+        cornerRadius: 4,
+        color: _shoe,
+        outlineColor: _outline,
+        outlineWidth: 2,
+      ),
+    ),
     // Toe cap: a rounded cap-toe plane in lighter leather over the front of
     // the last — the single strongest "dress shoe" cue in silhouette-scale
     // frames. Flat-shaded so the key cannot chrome the small volume.
@@ -500,7 +524,7 @@ RigSpec buildCatInSuitRig({
       z: 7,
       drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
-        width: 8,
+        width: 9,
         height: 3.5,
         dx: 4.5,
         dy: 7.8,
@@ -574,6 +598,27 @@ RigSpec buildCatInSuitRig({
         outlineWidth: 2,
       ),
     ),
+    // Counter/quarter: the shoe's back rises above the vamp at the ankle —
+    // the topline step that gives a dress shoe its silhouette from the side.
+    // Bottom sits flush on the sole plane (contact untouched).
+    const Bone(
+      id: CatBones.shoeCounterL,
+      parent: CatBones.footL,
+      pivotX: 0,
+      pivotY: 0,
+      z: 9,
+      drawable: BoneDrawable(
+        kind: BoneShapeKind.roundedRect,
+        width: 14,
+        height: 15,
+        dx: 3,
+        dy: 2.5,
+        cornerRadius: 4,
+        color: _shoe,
+        outlineColor: _outline,
+        outlineWidth: 2,
+      ),
+    ),
     // Toe cap: a rounded cap-toe plane in lighter leather over the front of
     // the last — the single strongest "dress shoe" cue in silhouette-scale
     // frames. Flat-shaded so the key cannot chrome the small volume.
@@ -620,7 +665,7 @@ RigSpec buildCatInSuitRig({
       z: 10,
       drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
-        width: 8,
+        width: 9,
         height: 3.5,
         dx: 4.5,
         dy: 7.8,
@@ -1367,10 +1412,10 @@ RigSpec buildCatInSuitRig({
       // rather than bodybuilder-wide so the dance reads agile in quarter view.
       // FRONT profile: the quad carries the thigh mass and holds it almost
       // to the knee; the shin's front is near-straight (bone, not muscle).
-      halfWidths: scaledLegWidths(const [13.0, 12.4, 12.4, 8.6, 8.6, 5.5]),
+      halfWidths: scaledLegWidths(const [13.0, 12.6, 13.4, 8.6, 9.0, 5.5]),
       // BACK profile: hamstring eases off the seat, then the CALF bulge —
       // the S-curve that reads athletic where a symmetric tube reads stuffed.
-      backHalfWidths: scaledLegWidths(const [13.0, 11.8, 10.2, 8.2, 11.0, 5.3]),
+      backHalfWidths: scaledLegWidths(const [13.0, 11.8, 10.2, 8.2, 12.0, 5.3]),
       z: 3,
       color: _trouserRear,
       outlineColor: _outline,
@@ -1391,10 +1436,10 @@ RigSpec buildCatInSuitRig({
       hiddenBoneIds: const [CatBones.legUpperL, CatBones.legLowerL],
       // FRONT profile: the quad carries the thigh mass and holds it almost
       // to the knee; the shin's front is near-straight (bone, not muscle).
-      halfWidths: scaledLegWidths(const [13.0, 12.4, 12.4, 8.6, 8.6, 5.5]),
+      halfWidths: scaledLegWidths(const [13.0, 12.6, 13.4, 8.6, 9.0, 5.5]),
       // BACK profile: hamstring eases off the seat, then the CALF bulge —
       // the S-curve that reads athletic where a symmetric tube reads stuffed.
-      backHalfWidths: scaledLegWidths(const [13.0, 11.8, 10.2, 8.2, 11.0, 5.3]),
+      backHalfWidths: scaledLegWidths(const [13.0, 11.8, 10.2, 8.2, 12.0, 5.3]),
       z: 6,
       color: _trouser,
       outlineColor: _outline,
