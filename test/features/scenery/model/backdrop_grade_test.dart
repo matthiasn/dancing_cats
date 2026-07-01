@@ -181,6 +181,10 @@ void main() {
       expect(gradeFromWheels(contrast: 1.3).contrast, 1.3);
     });
 
+    test('the contrast pivot passes through to the grade', () {
+      expect(gradeFromWheels(pivot: 0.55).pivot, 0.55);
+    });
+
     test('a warm temperature pushes slope toward red, away from blue', () {
       final g = gradeFromWheels(temperature: 0.8);
       expect(g.slope.r, greaterThan(g.slope.b));

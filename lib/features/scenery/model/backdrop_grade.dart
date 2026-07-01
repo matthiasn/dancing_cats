@@ -153,6 +153,7 @@ BackdropGrade gradeFromWheels({
   GradeWheel gamma = const GradeWheel(),
   double saturation = 1,
   double contrast = 1,
+  double pivot = 0.435,
   double temperature = 0,
   double tint = 0,
 }) {
@@ -185,5 +186,6 @@ BackdropGrade gradeFromWheels({
     power: (r: powerAt(gammaT.r), g: powerAt(gammaT.g), b: powerAt(gammaT.b)),
     saturation: saturation < 0 ? 0 : saturation,
     contrast: contrast,
+    pivot: pivot,
   );
 }

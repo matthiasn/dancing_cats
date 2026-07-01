@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:dancing_cats/features/scenery/model/backdrop_grade.dart';
+import 'package:dancing_cats/features/scenery/model/scope_histogram.dart';
 import 'package:flutter/material.dart';
 
 /// Which ASC CDL coefficient a wheel drives, so each wheel can show its true
@@ -25,7 +26,9 @@ class ColorGradePanel extends StatelessWidget {
     required this.temperature,
     required this.tint,
     required this.contrast,
+    required this.pivot,
     required this.bypass,
+    required this.parade,
     required this.onLift,
     required this.onGamma,
     required this.onGain,
@@ -33,6 +36,7 @@ class ColorGradePanel extends StatelessWidget {
     required this.onTemperature,
     required this.onTint,
     required this.onContrast,
+    required this.onPivot,
     required this.onBypass,
     required this.onReset,
     super.key,
@@ -45,7 +49,13 @@ class ColorGradePanel extends StatelessWidget {
   final double temperature;
   final double tint;
   final double contrast;
+
+  /// The tonal pivot the contrast rotates about (mid grey ≈ 0.435).
+  final double pivot;
   final bool bypass;
+
+  /// Image-derived RGB parade of the graded stage (empty before first sample).
+  final ScopeHistogram parade;
   final ValueChanged<GradeWheel> onLift;
   final ValueChanged<GradeWheel> onGamma;
   final ValueChanged<GradeWheel> onGain;
@@ -53,6 +63,7 @@ class ColorGradePanel extends StatelessWidget {
   final ValueChanged<double> onTemperature;
   final ValueChanged<double> onTint;
   final ValueChanged<double> onContrast;
+  final ValueChanged<double> onPivot;
   final ValueChanged<bool> onBypass;
   final VoidCallback onReset;
 
@@ -149,6 +160,13 @@ class ColorGradePanel extends StatelessWidget {
                     onChanged: onContrast,
                   ),
                   _LabeledSlider(
+                    label: 'Pivot',
+                    value: pivot,
+                    min: 0.2,
+                    max: 0.7,
+                    onChanged: onPivot,
+                  ),
+                  _LabeledSlider(
                     label: 'Saturation',
                     value: saturation,
                     min: 0,
@@ -157,7 +175,7 @@ class ColorGradePanel extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(width: 26),
+              const SizedBox(width: 24),
               _TransferCurveScope(
                 grade: gradeFromWheels(
                   lift: lift,
@@ -167,9 +185,12 @@ class ColorGradePanel extends StatelessWidget {
                   temperature: temperature,
                   tint: tint,
                   contrast: contrast,
+                  pivot: pivot,
                 ),
                 bypass: bypass,
               ),
+              const SizedBox(width: 18),
+              _ParadeScope(histogram: parade, bypass: bypass),
             ],
           ),
         ),
@@ -828,7 +849,7 @@ class _TransferCurveScope extends StatelessWidget {
   final BackdropGrade grade;
   final bool bypass;
 
-  static const _graphWidth = 300.0;
+  static const _graphWidth = 250.0;
   static const _graphHeight = 118.0;
 
   @override
@@ -841,7 +862,7 @@ class _TransferCurveScope extends StatelessWidget {
           child: Row(
             children: [
               const Text(
-                'CURVES',
+                'RESPONSE',
                 style: TextStyle(
                   color: ColorGradePanel._textLow,
                   fontSize: 10,
@@ -851,7 +872,7 @@ class _TransferCurveScope extends StatelessWidget {
               ),
               const Spacer(),
               Text(
-                bypass ? 'bypassed' : 'R · G · B',
+                bypass ? 'bypassed' : 'transfer R·G·B',
                 style: const TextStyle(
                   color: ColorGradePanel._textLow,
                   fontSize: 9,
@@ -942,6 +963,143 @@ class _CurvePainter extends CustomPainter {
   @override
   bool shouldRepaint(_CurvePainter old) =>
       old.grade != grade || old.bypass != bypass;
+}
+
+/// An image-derived RGB parade: three per-channel histograms of the *actual*
+/// graded stage pixels, so a colourist can verify where tones land — and see
+/// crush (pile-up at the dark edge) or clip (pile-up at the bright edge) that the
+/// transfer curve can only warn about. Shows a "sampling…" placeholder until the
+/// first frame is captured.
+class _ParadeScope extends StatelessWidget {
+  const _ParadeScope({required this.histogram, required this.bypass});
+
+  final ScopeHistogram histogram;
+  final bool bypass;
+
+  static const _graphWidth = 216.0;
+  static const _graphHeight = 118.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final clipped = histogram.clip.r > 0.02 ||
+        histogram.clip.g > 0.02 ||
+        histogram.clip.b > 0.02;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: _graphWidth,
+          child: Row(
+            children: [
+              const Text(
+                'PARADE',
+                style: TextStyle(
+                  color: ColorGradePanel._textLow,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.5,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                !histogram.hasData
+                    ? 'sampling…'
+                    : clipped
+                        ? 'clip'
+                        : 'signal',
+                style: TextStyle(
+                  color: clipped
+                      ? const Color(0xFFE0483B)
+                      : ColorGradePanel._textLow,
+                  fontSize: 9,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        CustomPaint(
+          size: const Size(_graphWidth, _graphHeight),
+          painter: _ParadePainter(histogram: histogram, bypass: bypass),
+        ),
+      ],
+    );
+  }
+}
+
+class _ParadePainter extends CustomPainter {
+  _ParadePainter({required this.histogram, required this.bypass});
+
+  final ScopeHistogram histogram;
+  final bool bypass;
+
+  static const _channelColors = [
+    Color(0xFFE0483B), // R
+    Color(0xFF3FBF57), // G
+    Color(0xFF4A8FE6), // B
+  ];
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    canvas.drawRect(rect, Paint()..color = const Color(0xFF0C1013));
+
+    if (!histogram.hasData) {
+      canvas.drawRect(
+        rect,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1
+          ..color = ColorGradePanel._edge,
+      );
+      return;
+    }
+
+    // Three side-by-side channel cells (R, G, B).
+    const gap = 6.0;
+    final cellW = (size.width - gap * 2) / 3;
+    final channels = [histogram.r, histogram.g, histogram.b];
+    final peak = histogram.peak == 0 ? 1 : histogram.peak;
+    final alpha = bypass ? 0.3 : 1.0;
+
+    for (var c = 0; c < 3; c++) {
+      final left = c * (cellW + gap);
+      final bins = channels[c];
+      final barW = cellW / bins.length;
+      final fill = _channelColors[c].withValues(alpha: alpha);
+      for (var i = 0; i < bins.length; i++) {
+        final h = (bins[i] / peak) * size.height;
+        if (h <= 0) continue;
+        canvas.drawRect(
+          Rect.fromLTWH(left + i * barW, size.height - h, barW + 0.5, h),
+          Paint()..color = fill,
+        );
+      }
+      // Crush / clip edge guides for this channel.
+      final warn = Paint()
+        ..color = const Color(0x66E0483B)
+        ..strokeWidth = 1;
+      canvas
+        ..drawLine(Offset(left, 0), Offset(left, size.height), warn)
+        ..drawLine(
+          Offset(left + cellW, 0),
+          Offset(left + cellW, size.height),
+          warn,
+        );
+    }
+
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1
+        ..color = ColorGradePanel._edge,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_ParadePainter old) =>
+      old.histogram != histogram || old.bypass != bypass;
 }
 
 class _ResetButton extends StatelessWidget {

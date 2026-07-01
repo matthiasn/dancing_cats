@@ -1,5 +1,8 @@
+import 'dart:typed_data';
+
 import 'package:dancing_cats/features/character/demo/color_grade_panel.dart';
 import 'package:dancing_cats/features/scenery/model/backdrop_grade.dart';
+import 'package:dancing_cats/features/scenery/model/scope_histogram.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -14,9 +17,14 @@ class _Rec {
   double? temperature;
   double? tint;
   double? contrast;
+  double? pivot;
   bool? bypass;
   int resets = 0;
 }
+
+/// A non-empty parade histogram (all-white → clips) for the scope tests.
+ScopeHistogram _clippedParade() =>
+    buildScopeHistogram(Uint8List.fromList([255, 255, 255, 255]), bins: 16);
 
 Future<_Rec> _pump(
   WidgetTester tester, {
@@ -27,7 +35,9 @@ Future<_Rec> _pump(
   double temperature = 0,
   double tint = 0,
   double contrast = 1,
+  double pivot = 0.435,
   bool bypass = false,
+  ScopeHistogram? parade,
 }) async {
   final rec = _Rec();
   // The panel is a full-width transport row sized for the 1600px demo window;
@@ -47,7 +57,9 @@ Future<_Rec> _pump(
           temperature: temperature,
           tint: tint,
           contrast: contrast,
+          pivot: pivot,
           bypass: bypass,
+          parade: parade ?? ScopeHistogram.empty(),
           onLift: (w) => rec.lift = w,
           onGamma: (w) => rec.gamma = w,
           onGain: (w) => rec.gain = w,
@@ -55,6 +67,7 @@ Future<_Rec> _pump(
           onTemperature: (v) => rec.temperature = v,
           onTint: (v) => rec.tint = v,
           onContrast: (v) => rec.contrast = v,
+          onPivot: (v) => rec.pivot = v,
           onBypass: (v) => rec.bypass = v,
           onReset: () => rec.resets++,
         ),
@@ -83,15 +96,58 @@ void main() {
       expect(find.text('Saturation'), findsOneWidget);
       expect(find.text('Reset'), findsOneWidget);
       expect(find.byKey(const Key('gradeBypass')), findsOneWidget);
-      expect(find.text('CURVES'), findsOneWidget);
-      expect(find.text('R · G · B'), findsOneWidget);
+      expect(find.text('Contrast'), findsOneWidget);
+      expect(find.text('Pivot'), findsOneWidget);
+      expect(find.text('RESPONSE'), findsOneWidget);
+      expect(find.text('PARADE'), findsOneWidget);
     });
 
-    testWidgets('the curves scope shows a bypassed caption when bypassed', (
+    testWidgets('the response scope shows a bypassed caption when bypassed', (
       tester,
     ) async {
       await _pump(tester, bypass: true, contrast: 1.3);
       expect(find.text('bypassed'), findsOneWidget);
+    });
+
+    testWidgets('the pivot slider reports a change', (tester) async {
+      final rec = await _pump(tester);
+      await tester.tapAt(
+        tester.getCenter(_slider('Pivot')) + const Offset(30, 0),
+      );
+      await tester.pump();
+      expect(rec.pivot, isNotNull);
+      expect(rec.pivot, greaterThan(0.435));
+    });
+
+    testWidgets('the parade shows a sampling placeholder before first frame', (
+      tester,
+    ) async {
+      await _pump(tester); // empty histogram
+      expect(find.text('sampling…'), findsOneWidget);
+    });
+
+    testWidgets('the parade warns when a channel clips', (tester) async {
+      await _pump(tester, parade: _clippedParade());
+      expect(find.text('clip'), findsOneWidget);
+    });
+
+    testWidgets('the parade shows a signal caption for mid-tone data', (
+      tester,
+    ) async {
+      // Mid-grey pixels: data present, nothing pinned at the bright edge.
+      final mid = buildScopeHistogram(
+        Uint8List.fromList([128, 120, 110, 255, 130, 118, 112, 255]),
+        bins: 16,
+      );
+      await _pump(tester, parade: mid);
+      expect(find.text('signal'), findsOneWidget);
+    });
+
+    testWidgets('the parade dims but still renders when bypassed', (
+      tester,
+    ) async {
+      await _pump(tester, parade: _clippedParade(), bypass: true);
+      expect(find.byType(ColorGradePanel), findsOneWidget);
     });
 
     testWidgets('dragging a wheel reports a colour balance', (tester) async {
