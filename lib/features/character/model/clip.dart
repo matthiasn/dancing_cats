@@ -965,6 +965,25 @@ class GroundSpan {
   final double end;
 }
 
+/// Runtime metadata for a clip-to-clip transition.
+///
+/// The transform channels can blend directly, but contact solving needs to know
+/// which support plan came from the outgoing move and which came from the
+/// incoming move. Keeping that data explicit lets the scene apply both contact
+/// corrections with complementary weights instead of hiding a hard support
+/// switch at the midpoint of [blendedClip].
+class ClipTransitionPlan {
+  const ClipTransitionPlan({
+    required this.from,
+    required this.to,
+    required this.weight,
+  }) : assert(weight >= 0 && weight <= 1, 'weight must be in 0..1');
+
+  final Clip from;
+  final Clip to;
+  final double weight;
+}
+
 /// How an in-place performance clip should be kept on the floor.
 ///
 /// [activeSpan] pins the authored support foot span. It is useful for one-shot
@@ -997,6 +1016,7 @@ class Clip {
     this.supportFootWorldAnchor = false,
     this.supportFootWorldAnchorStrength = 0.6,
     this.danceHeadBobScale = 1.0,
+    this.transitionPlan,
   }) : assert(
          supportFootWorldAnchorStrength >= 0 &&
              supportFootWorldAnchorStrength <= 1,
@@ -1064,6 +1084,9 @@ class Clip {
   /// without reverse-engineering shoulder/elbow or hip/knee rotations.
   final List<LimbIkTarget> limbTargets;
 
+  /// Source clips and transition weight when this clip is a runtime blend.
+  final ClipTransitionPlan? transitionPlan;
+
   /// Whether this clip travels across the stage at all (either model).
   bool get locomotes => locomotionSpeed != 0 || groundSpans.isNotEmpty;
 }
@@ -1083,6 +1106,12 @@ Clip blendedClip({
     for (final target in to.limbTargets) target.endBoneId: target,
   };
   final targetIds = {...fromTargets.keys, ...toTargets.keys};
+  final transitionWeight = _smoothUnit(weight);
+  final supportFootAnchorStrength = _transitionSupportAnchorStrength(
+    from,
+    to,
+    transitionWeight,
+  );
 
   return Clip(
     name: name ?? '${from.name}->${to.name}',
@@ -1098,9 +1127,9 @@ Clip blendedClip({
     },
     root: BlendedRootChannel(from: from.root, to: to.root, weight: weight),
     locomotionSpeed: _lerp(from.locomotionSpeed, to.locomotionSpeed, weight),
-    groundSpans: weight < 0.5 ? from.groundSpans : to.groundSpans,
-    contactSpans: weight < 0.5 ? from.contactSpans : to.contactSpans,
-    contactPinning: weight < 0.5 ? from.contactPinning : to.contactPinning,
+    groundSpans: _transitionSpans(from.groundSpans, to.groundSpans),
+    contactSpans: _transitionSpans(from.contactSpans, to.contactSpans),
+    contactPinning: _transitionContactPinning(from, to),
     limbTargets: [
       for (final id in targetIds)
         _blendLimbTarget(
@@ -1109,20 +1138,64 @@ Clip blendedClip({
           weight,
         ),
     ],
-    supportFootWorldAnchor: weight < 0.5
-        ? from.supportFootWorldAnchor
-        : to.supportFootWorldAnchor,
-    supportFootWorldAnchorStrength: _lerp(
-      from.supportFootWorldAnchorStrength,
-      to.supportFootWorldAnchorStrength,
-      weight,
-    ),
+    supportFootWorldAnchor: supportFootAnchorStrength > 0,
+    supportFootWorldAnchorStrength: supportFootAnchorStrength,
     danceHeadBobScale: _lerp(
       from.danceHeadBobScale,
       to.danceHeadBobScale,
       weight,
     ),
+    transitionPlan: ClipTransitionPlan(from: from, to: to, weight: weight),
   );
+}
+
+List<GroundSpan> _transitionSpans(
+  List<GroundSpan> from,
+  List<GroundSpan> to,
+) {
+  if (from.isEmpty) return to;
+  if (to.isEmpty) return from;
+  final spans = [...from, ...to]
+    ..sort((a, b) {
+      final start = a.start.compareTo(b.start);
+      if (start != 0) return start;
+      final end = a.end.compareTo(b.end);
+      if (end != 0) return end;
+      return a.bone.compareTo(b.bone);
+    });
+  final deduped = <GroundSpan>[];
+  for (final span in spans) {
+    final duplicate = deduped.any(
+      (existing) =>
+          existing.bone == span.bone &&
+          existing.start == span.start &&
+          existing.end == span.end,
+    );
+    if (!duplicate) deduped.add(span);
+  }
+  return List<GroundSpan>.unmodifiable(deduped);
+}
+
+ContactPinning _transitionContactPinning(Clip from, Clip to) {
+  if (from.contactPinning == ContactPinning.lowestContact ||
+      to.contactPinning == ContactPinning.lowestContact) {
+    return ContactPinning.lowestContact;
+  }
+  return ContactPinning.activeSpan;
+}
+
+double _transitionSupportAnchorStrength(
+  Clip from,
+  Clip to,
+  double weight,
+) {
+  final outgoing = from.supportFootWorldAnchor
+      ? from.supportFootWorldAnchorStrength * (1 - weight)
+      : 0.0;
+  final incoming = to.supportFootWorldAnchor
+      ? to.supportFootWorldAnchorStrength * weight
+      : 0.0;
+  return (outgoing + incoming).clamp(0.0, 1.0);
 }
 
 LimbIkTarget _blendLimbTarget(
@@ -1146,3 +1219,8 @@ LimbIkTarget _blendLimbTarget(
 }
 
 double _lerp(double a, double b, double t) => a + (b - a) * t;
+
+double _smoothUnit(double t) {
+  final x = t.clamp(0.0, 1.0);
+  return x * x * (3 - 2 * x);
+}

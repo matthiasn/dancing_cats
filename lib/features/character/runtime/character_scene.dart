@@ -383,6 +383,15 @@ class CharacterScene {
   /// [LimbIkTarget] support anchoring lets the stance leg bend against the planted
   /// foot while the upper body comes back over the base of support.
   Pose _supportBalancedPose(Clip clip, double timeSeconds, Pose pose) {
+    final transition = clip.transitionPlan;
+    if (transition != null) {
+      return _transitionSupportBalancedPose(
+        clip,
+        timeSeconds,
+        pose,
+        transition,
+      );
+    }
     if (!_isDanceFamily(clip) ||
         !clip.supportFootWorldAnchor ||
         clip.contactSpans.isEmpty) {
@@ -419,6 +428,74 @@ class CharacterScene {
       rootDy: pose.rootDy,
       rootRotation: pose.rootRotation,
     );
+  }
+
+  Pose _transitionSupportBalancedPose(
+    Clip clip,
+    double timeSeconds,
+    Pose pose,
+    ClipTransitionPlan transition,
+  ) {
+    final p = _clipPhase(clip, timeSeconds);
+    final weight = _smoothUnit(transition.weight);
+    final dx =
+        _supportBalanceRootDelta(
+          source: transition.from,
+          phase: p,
+          pose: pose,
+          scale: 1 - weight,
+        ) +
+        _supportBalanceRootDelta(
+          source: transition.to,
+          phase: p,
+          pose: pose,
+          scale: weight,
+        );
+    if (dx.abs() < 0.001) return pose;
+    return Pose(
+      joints: pose.joints,
+      rootDx: pose.rootDx + dx,
+      rootDy: pose.rootDy,
+      rootRotation: pose.rootRotation,
+    );
+  }
+
+  double _supportBalanceRootDelta({
+    required Clip source,
+    required double phase,
+    required Pose pose,
+    required double scale,
+  }) {
+    if (scale <= 0 ||
+        !_isDanceFamily(source) ||
+        !source.supportFootWorldAnchor ||
+        source.contactSpans.isEmpty) {
+      return 0;
+    }
+    final contact = _activeContactAt(source, phase);
+    if (contact == null) return 0;
+
+    final anchorPose = evaluator.evaluate(
+      source,
+      contact.anchorPhase * source.duration,
+    );
+    final anchorWorld = solver.solve(anchorPose);
+    final support = _contactPoint(anchorWorld, contact.span.bone);
+    if (support == null) return 0;
+
+    final rootId = rig.bones.firstWhere((bone) => bone.parent == null).id;
+    final currentWorld = solver.solve(pose);
+    final hip = currentWorld[rootId]?.origin;
+    if (hip == null) return 0;
+
+    final delta = hip.x - support.x;
+    final envelope = _supportComEnvelope(source, contact.span);
+    if (delta.abs() <= envelope) return 0;
+
+    final targetDelta = delta < 0 ? -envelope : envelope;
+    final blend =
+        _supportComBlend(source, contact.span, contact.strengthPhase) * scale;
+    return (targetDelta - delta) * blend;
   }
 
   ({JointPose upper, JointPose lower})? _solveLimbTarget(
@@ -835,6 +912,10 @@ class CharacterScene {
   /// weaker correction than one-shots so dance contacts gain weight without
   /// snapping at support handoffs.
   Pose _contactLockedPose(Clip clip, double timeSeconds, Pose pose) {
+    final transition = clip.transitionPlan;
+    if (transition != null) {
+      return _transitionContactLockedPose(clip, timeSeconds, pose, transition);
+    }
     final p = _clipPhase(clip, timeSeconds);
     final contact = _activeContactAt(clip, p);
     if (contact == null) return pose;
@@ -856,6 +937,67 @@ class CharacterScene {
       rootDx: pose.rootDx + (anchor.x - current.x) * strength.x,
       rootDy: pose.rootDy + (anchor.y - current.y) * strength.y,
       rootRotation: pose.rootRotation,
+    );
+  }
+
+  Pose _transitionContactLockedPose(
+    Clip clip,
+    double timeSeconds,
+    Pose pose,
+    ClipTransitionPlan transition,
+  ) {
+    final p = _clipPhase(clip, timeSeconds);
+    final weight = _smoothUnit(transition.weight);
+    final outgoing = _contactLockRootDelta(
+      source: transition.from,
+      phase: p,
+      pose: pose,
+      scale: 1 - weight,
+    );
+    final incoming = _contactLockRootDelta(
+      source: transition.to,
+      phase: p,
+      pose: pose,
+      scale: weight,
+    );
+    final dx = outgoing.dx + incoming.dx;
+    final dy = outgoing.dy + incoming.dy;
+    if (dx.abs() < 0.001 && dy.abs() < 0.001) return pose;
+    return Pose(
+      joints: pose.joints,
+      rootDx: pose.rootDx + dx,
+      rootDy: pose.rootDy + dy,
+      rootRotation: pose.rootRotation,
+    );
+  }
+
+  ({double dx, double dy}) _contactLockRootDelta({
+    required Clip source,
+    required double phase,
+    required Pose pose,
+    required double scale,
+  }) {
+    if (scale <= 0 || source.contactSpans.isEmpty) {
+      return (dx: 0.0, dy: 0.0);
+    }
+    final contact = _activeContactAt(source, phase);
+    if (contact == null) return (dx: 0.0, dy: 0.0);
+
+    final span = contact.span;
+    final anchorPose = evaluator.evaluate(
+      source,
+      contact.anchorPhase * source.duration,
+    );
+    final currentWorld = solver.solve(pose);
+    final anchorWorld = solver.solve(anchorPose);
+    final current = _contactPoint(currentWorld, span.bone);
+    final anchor = _contactPoint(anchorWorld, span.bone);
+    if (current == null || anchor == null) return (dx: 0.0, dy: 0.0);
+    final strength = _contactLockStrength(source, span, contact.strengthPhase);
+
+    return (
+      dx: (anchor.x - current.x) * strength.x * scale,
+      dy: (anchor.y - current.y) * strength.y * scale,
     );
   }
 
@@ -1004,14 +1146,16 @@ class CharacterScene {
     return x * x * (3 - 2 * x);
   }
 
-  bool _isDanceFamily(Clip clip) =>
-      clip.name == 'shaku' ||
-      clip.name == 'zanku' ||
-      clip.name == 'azonto' ||
-      clip.name == 'buga' ||
-      clip.name == 'pouncingCat' ||
-      clip.name == 'sekem' ||
-      clip.name.startsWith('danceBackup');
+  bool _isDanceFamily(Clip clip) => clip.transitionPlan != null
+      ? _isDanceFamily(clip.transitionPlan!.from) ||
+            _isDanceFamily(clip.transitionPlan!.to)
+      : clip.name == 'shaku' ||
+            clip.name == 'zanku' ||
+            clip.name == 'azonto' ||
+            clip.name == 'buga' ||
+            clip.name == 'pouncingCat' ||
+            clip.name == 'sekem' ||
+            clip.name.startsWith('danceBackup');
 
   ({double x, double y})? _contactPoint(
     Map<String, Affine2D> world,

@@ -70,6 +70,121 @@ void main() {
       );
     });
 
+    test('transition contact lock blends outgoing and incoming supports', () {
+      const hips = 'hips';
+      const footL = 'foot.L';
+      const footR = 'foot.R';
+      final scene = CharacterScene(
+        RigSpec(
+          name: 'transition-contact-rig',
+          bones: const [
+            Bone(id: hips, parent: null, pivotX: 0, pivotY: 0, z: 0),
+            Bone(
+              id: footL,
+              parent: hips,
+              pivotX: -20,
+              pivotY: 0,
+              z: 1,
+              drawable: BoneDrawable(
+                kind: BoneShapeKind.ellipse,
+                width: 10,
+                height: 10,
+                color: 0xFFFFFFFF,
+              ),
+            ),
+            Bone(
+              id: footR,
+              parent: hips,
+              pivotX: 20,
+              pivotY: 0,
+              z: 1,
+              drawable: BoneDrawable(
+                kind: BoneShapeKind.ellipse,
+                width: 10,
+                height: 10,
+                color: 0xFFFFFFFF,
+              ),
+            ),
+          ],
+        ),
+      );
+      const from = Clip(
+        name: 'from-contact',
+        duration: 1,
+        channels: {},
+        root: KeyframeRootChannel([
+          RootKeyframe(p: 0),
+          RootKeyframe(p: 1, dx: 40),
+        ]),
+        contactSpans: [GroundSpan(footL, 0, 1)],
+      );
+      const to = Clip(
+        name: 'to-contact',
+        duration: 1,
+        channels: {},
+        root: KeyframeRootChannel([
+          RootKeyframe(p: 0, dx: 60),
+          RootKeyframe(p: 1, dx: -20),
+        ]),
+        contactSpans: [GroundSpan(footR, 0, 1)],
+      );
+
+      final transition = blendedClip(from: from, to: to, weight: 0.25);
+      final outgoingOnly = Clip(
+        name: 'legacy-outgoing-contact',
+        duration: transition.duration,
+        channels: transition.channels,
+        root: transition.root,
+        contactSpans: from.contactSpans,
+      );
+      final incomingOnly = Clip(
+        name: 'legacy-incoming-contact',
+        duration: transition.duration,
+        channels: transition.channels,
+        root: transition.root,
+        contactSpans: to.contactSpans,
+      );
+
+      final blendedRoot = scene
+          .poseAt(
+            clip: transition,
+            timeSeconds: 0.5,
+            includeAutonomic: false,
+          )
+          .rootDx;
+      final outgoingRoot = scene
+          .poseAt(
+            clip: outgoingOnly,
+            timeSeconds: 0.5,
+            includeAutonomic: false,
+          )
+          .rootDx;
+      final incomingRoot = scene
+          .poseAt(
+            clip: incomingOnly,
+            timeSeconds: 0.5,
+            includeAutonomic: false,
+          )
+          .rootDx;
+
+      expect(
+        (blendedRoot - outgoingRoot).abs(),
+        greaterThan(0.5),
+        reason:
+            'transition contact solving should include some incoming support '
+            'instead of behaving like the old outgoing-only midpoint switch',
+      );
+      expect(
+        blendedRoot,
+        closeTo(11.5, 1e-9),
+        reason:
+            'the transition root correction should use source clip contact '
+            'anchors with complementary weights, not the blended root channel '
+            'as its own contact anchor',
+      );
+      expect(incomingRoot, outgoingRoot);
+    });
+
     test('public character clips animate in place', () {
       final scene = CharacterScene(buildCatInSuitRig());
 

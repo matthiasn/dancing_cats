@@ -606,6 +606,46 @@ void main() {
       expect(clip.channels['torso']!.sample(0).rotation, closeTo(0.5, 1e-9));
       expect(clip.limbTargets.single.channel.sample(0).x, closeTo(0, 1e-9));
     });
+
+    test('blendedClip carries contact-aware transition metadata', () {
+      const from = Clip(
+        name: 'from',
+        duration: 1,
+        channels: {},
+        contactSpans: [GroundSpan('foot.L', 0, 1)],
+        supportFootWorldAnchor: true,
+        supportFootWorldAnchorStrength: 0.8,
+      );
+      const to = Clip(
+        name: 'to',
+        duration: 1,
+        channels: {},
+        contactSpans: [GroundSpan('foot.R', 0, 1)],
+        contactPinning: ContactPinning.lowestContact,
+        supportFootWorldAnchor: true,
+        supportFootWorldAnchorStrength: 0.4,
+      );
+
+      final clip = blendedClip(from: from, to: to, weight: 0.25);
+
+      expect(clip.transitionPlan, isNotNull);
+      expect(clip.transitionPlan!.from.name, 'from');
+      expect(clip.transitionPlan!.to.name, 'to');
+      expect(clip.transitionPlan!.weight, 0.25);
+      expect(clip.contactSpans.map((span) => span.bone), [
+        'foot.L',
+        'foot.R',
+      ]);
+      expect(clip.contactPinning, ContactPinning.lowestContact);
+      expect(clip.supportFootWorldAnchor, isTrue);
+      expect(
+        clip.supportFootWorldAnchorStrength,
+        closeTo(0.7375, 1e-9),
+        reason:
+            'support anchoring should fade from outgoing to incoming support '
+            'instead of flipping at transition midpoint',
+      );
+    });
   });
 
   group('Keyframe.easeFn', () {
