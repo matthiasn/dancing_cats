@@ -740,12 +740,12 @@ void main() {
         // …but the face split should stay in the same order of magnitude as the
         // body grade, not blow out as a separate sticker pass. The bound is a
         // loose sanity check (a real "sticker" blowout is multiples larger).
-        // The leaner limb silhouette carries less body area than the old broad
-        // sleeve profile, so the face/body total can sit a little higher while
+        // Quarter-view projection narrows the visible torso/limb area relative
+        // to the face, so the face/body total can sit a little higher while
         // still reading as one integrated grade.
         expect(
           headChange,
-          lessThan(bodyChange * 1.4),
+          lessThan(bodyChange * 1.5),
           reason: 'the face grade should stay balanced against the body grade',
         );
       });
@@ -952,8 +952,17 @@ void main() {
 
     expect(leftView.shearX, greaterThan(0));
     expect(rightView.shearX, lessThan(0));
+    expect(leadView.shearX, greaterThan(0.08));
     expect(leftView.foreshortenX, lessThan(leadView.foreshortenX));
     expect(rightView.foreshortenX, lessThan(leadView.foreshortenX));
+    expect(
+      leadView.foreshortenX,
+      lessThan(0.88),
+      reason:
+          'the app lead needs a visible quarter turn, not the old near-front '
+          'projection that looked frontal in screenshots',
+    );
+    expect(leadView.depth, greaterThan(0.25));
 
     final frame = scene.frameAt(clip: CatClips.shaku, timeSeconds: 0.25);
     final leftWorld = CharacterPainter.debugProjectDanceViewWorld(
@@ -965,6 +974,12 @@ void main() {
     final rightWorld = CharacterPainter.debugProjectDanceViewWorld(
       frame.world,
       index: 2,
+      memberCount: 3,
+      scale: 1,
+    );
+    final leadWorld = CharacterPainter.debugProjectDanceViewWorld(
+      frame.world,
+      index: 1,
       memberCount: 3,
       scale: 1,
     );
@@ -1000,6 +1015,14 @@ void main() {
             frame.world[CatBones.hips]!.origin.x,
       ),
       reason: 'quarter turn should separate chest mass from pelvis mass',
+    );
+    expect(
+      (leadWorld[CatBones.torso]!.origin.x - leadWorld[CatBones.hips]!.origin.x)
+          .abs(),
+      greaterThan(1.5),
+      reason:
+          'lead projection should also separate chest from pelvis so the shipped '
+          'app shows a real quarter turn',
     );
   });
 

@@ -1291,11 +1291,12 @@ class CharacterPainter extends CustomPainter {
     }
     return switch (index) {
       // Screen-left backup turns inward toward the lead.
-      0 => (foreshortenX: 0.72, shearX: 0.22, depth: 0.66, facing: 1),
-      // Lead stays mostly front-facing; just enough angle to avoid cardboard.
-      1 => (foreshortenX: 0.92, shearX: 0.04, depth: 0.16, facing: 1),
+      0 => (foreshortenX: 0.68, shearX: 0.24, depth: 0.74, facing: 1),
+      // Lead gets a visible but restrained quarter turn so the shipped app does
+      // not read as a flat frontal cutout while still selling the face.
+      1 => (foreshortenX: 0.84, shearX: 0.10, depth: 0.32, facing: 1),
       // Screen-right backup mirrors inward toward the lead.
-      2 => (foreshortenX: 0.72, shearX: -0.22, depth: 0.66, facing: -1),
+      2 => (foreshortenX: 0.68, shearX: -0.24, depth: 0.74, facing: -1),
       _ => (foreshortenX: 1, shearX: 0, depth: 0, facing: 1),
     };
   }
