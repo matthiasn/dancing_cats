@@ -18,7 +18,7 @@ import 'package:dancing_cats/features/character/model/rig_spec.dart';
 // colours in the rig art (plan decision D6 — no design-system colour tokens).
 const int _suit = 0xFF2E3A59; // navy jacket (torso)
 const int _suitShadow = 0xFF25304B; // side tailoring that breaks the shell read
-const int _shoulderFold = 0x4425304B; // translucent armpit cloth shadow
+const int _shoulderFold = 0x2625304B; // translucent armpit cloth shadow
 const int _sleeve = 0xFF28334F; // same navy fabric, far-side sleeve shade
 const int _sleeveNear = 0xFF324061; // same navy fabric, near-side sleeve shade
 const int _sleeveContour =
@@ -1215,14 +1215,14 @@ RigSpec buildCatInSuitRig({
     required int color,
   }) {
     final s = side.toDouble();
-    final shoulderCapOuter = 26.0 * armWidthScale;
-    final shoulderCapInner = 20.7 * armWidthScale;
-    final bicepOuter = 15.8 * armWidthScale;
-    final bicepInner = 10.8 * armWidthScale;
-    final elbowOuter = 7.0 * armWidthScale;
-    final elbowInner = 5.7 * armWidthScale;
-    final forearmOuter = 10.8 * armWidthScale;
-    final forearmInner = 8.4 * armWidthScale;
+    final shoulderCapOuter = 17.2 * armWidthScale;
+    final shoulderCapInner = 13.4 * armWidthScale;
+    final bicepOuter = 10.2 * armWidthScale;
+    final bicepInner = 7.2 * armWidthScale;
+    final elbowOuter = 5.8 * armWidthScale;
+    final elbowInner = 4.8 * armWidthScale;
+    final forearmOuter = 8.7 * armWidthScale;
+    final forearmInner = 6.8 * armWidthScale;
     final wristOuter = 5.8 * armWidthScale;
     final wristInner = 4.9 * armWidthScale;
 
@@ -1674,163 +1674,101 @@ RigSpec buildCatInSuitRig({
       id: id,
       vertices: [
         SkinnedMeshVertex([
-          MeshInfluence(
-            boneId: CatBones.torso,
-            x: s * 30,
-            y: -66,
-            weight: 0.26,
-          ),
-          MeshInfluence(
-            boneId: clavicle,
-            x: s * 5,
-            y: -13,
-            weight: 0.46,
-          ),
+          MeshInfluence(boneId: clavicle, x: s * 4, y: -13, weight: 0.58),
           MeshInfluence(
             boneId: socket,
-            x: s * 8 * scale,
+            x: s * 3.0 * scale,
             y: -8,
-            weight: 0.28,
+            weight: 0.42,
           ),
         ]),
         SkinnedMeshVertex([
-          MeshInfluence(
-            boneId: clavicle,
-            x: s * 9,
-            y: -10,
-            weight: 0.18,
-          ),
+          MeshInfluence(boneId: clavicle, x: s * 6, y: -9, weight: 0.22),
           MeshInfluence(
             boneId: socket,
-            x: s * 20 * scale,
+            x: s * 9.0 * scale,
             y: -5,
-            weight: 0.46,
+            weight: 0.48,
           ),
           MeshInfluence(
             boneId: upper,
-            x: s * 14 * scale,
+            x: s * 5.0 * scale,
             y: 0,
-            weight: 0.36,
+            weight: 0.3,
           ),
         ]),
         SkinnedMeshVertex([
           MeshInfluence(
             boneId: socket,
-            x: s * 22 * scale,
-            y: 5,
-            weight: 0.32,
+            x: s * 9.0 * scale,
+            y: 4,
+            weight: 0.4,
           ),
           MeshInfluence(
             boneId: upper,
-            x: s * 17 * scale,
-            y: 9,
+            x: s * 5.5 * scale,
+            y: 8,
             weight: 0.46,
           ),
           MeshInfluence(
             boneId: bicep,
-            x: s * 7 * scale,
-            y: -8,
-            weight: 0.22,
-          ),
-        ]),
-        SkinnedMeshVertex([
-          MeshInfluence(
-            boneId: upper,
-            x: s * 14 * scale,
-            y: 18,
-            weight: 0.46,
-          ),
-          MeshInfluence(
-            boneId: bicep,
-            x: s * 6 * scale,
-            y: -2,
-            weight: 0.28,
-          ),
-          MeshInfluence(
-            boneId: clavicle,
-            x: s * 8,
-            y: 7,
-            weight: 0.12,
-          ),
-          MeshInfluence(
-            boneId: CatBones.torso,
-            x: s * 31,
-            y: -50,
+            x: s * 1.4 * scale,
+            y: -7,
             weight: 0.14,
           ),
         ]),
         SkinnedMeshVertex([
           MeshInfluence(
-            boneId: CatBones.torso,
-            x: s * 29,
-            y: -48,
-            weight: 0.36,
-          ),
-          MeshInfluence(
-            boneId: clavicle,
-            x: s * 3,
-            y: 11,
-            weight: 0.34,
-          ),
-          MeshInfluence(
             boneId: upper,
-            x: s * 4 * scale,
-            y: 20,
-            weight: 0.2,
+            x: s * 3.4 * scale,
+            y: 13,
+            weight: 0.54,
           ),
           MeshInfluence(
             boneId: bicep,
-            x: s * 2 * scale,
-            y: 1,
-            weight: 0.1,
+            x: s * 1.0 * scale,
+            y: -2,
+            weight: 0.16,
           ),
+          MeshInfluence(boneId: clavicle, x: s * 2, y: 8, weight: 0.3),
         ]),
         SkinnedMeshVertex([
+          MeshInfluence(boneId: clavicle, x: -s * 1, y: 6, weight: 0.58),
           MeshInfluence(
-            boneId: CatBones.torso,
-            x: s * 25,
-            y: -56,
-            weight: 0.5,
-          ),
-          MeshInfluence(
-            boneId: clavicle,
-            x: -s * 2,
-            y: -4,
-            weight: 0.4,
+            boneId: upper,
+            x: s * 0.7 * scale,
+            y: 10,
+            weight: 0.32,
           ),
           MeshInfluence(
             boneId: socket,
-            x: s * 2 * scale,
+            x: s * 0.8 * scale,
             y: 2,
             weight: 0.1,
           ),
         ]),
         SkinnedMeshVertex([
-          MeshInfluence(
-            boneId: CatBones.torso,
-            x: s * 27,
-            y: -64,
-            weight: 0.48,
-          ),
-          MeshInfluence(
-            boneId: clavicle,
-            x: -s * 1,
-            y: -11,
-            weight: 0.4,
-          ),
+          MeshInfluence(boneId: clavicle, x: -s * 3, y: -3, weight: 0.72),
           MeshInfluence(
             boneId: socket,
-            x: s * 4 * scale,
+            x: s * 0.8 * scale,
+            y: -1,
+            weight: 0.28,
+          ),
+        ]),
+        SkinnedMeshVertex([
+          MeshInfluence(boneId: clavicle, x: -s * 1, y: -11, weight: 0.68),
+          MeshInfluence(
+            boneId: socket,
+            x: s * 2.0 * scale,
             y: -7,
-            weight: 0.12,
+            weight: 0.32,
           ),
         ]),
       ],
       boundary: const [0, 1, 2, 3, 4, 5, 6],
       z: z,
       color: color,
-      formRound: false,
-      boundaryCornerSmoothing: 0.42,
     );
   }
 

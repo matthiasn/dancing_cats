@@ -300,7 +300,7 @@ void main() {
 
         expect(cap.boundary, hasLength(7));
         expect(cap.outlineColor, isNull);
-        expect(cap.formRound, isFalse);
+        expect(cap.formRound, isTrue);
         expect(cap.color, arm.color);
         expect(cap.z, arm.z);
         expect(
@@ -320,22 +320,21 @@ void main() {
         expect(
           cap.vertices.expand((v) => v.influences).map((i) => i.boneId),
           containsAll([
-            CatBones.torso,
             side.clavicle,
             side.socket,
             side.upper,
             side.bicep,
           ]),
           reason:
-              '${side.capId} must be skinned across jacket and upper arm so '
-              'the shoulder cannot detach during raised poses',
+              '${side.capId} must ride with the clavicle/socket/upper arm as '
+              'a compact deltoid plug, not stretch back into a torso wing',
         );
         expect(
           _maxAbsLocalXForBones(cap.vertices[3], {
             side.upper,
             side.bicep,
           }),
-          lessThan(15),
+          lessThan(6),
           reason:
               '${side.capId} should fill the shoulder socket, not extend into '
               'a wing panel down the arm',
@@ -635,9 +634,16 @@ void main() {
             'a raised sleeve needs an intermediate bicep crown, otherwise the '
             'cap-to-bicep transition renders as one triangular side',
       );
-      expect(_maxAbsLocalX(arm.vertices[outerDeltoid]), greaterThan(13));
-      expect(_maxAbsLocalX(arm.vertices[outerBicepCrown]), greaterThan(14));
-      expect(_maxAbsLocalX(arm.vertices[outerBicep]), greaterThan(13));
+      expect(_maxAbsLocalX(arm.vertices[outerDeltoid]), greaterThan(11));
+      expect(_maxAbsLocalX(arm.vertices[outerBicepCrown]), greaterThan(9));
+      expect(_maxAbsLocalX(arm.vertices[outerBicep]), greaterThan(9));
+      expect(
+        _maxAbsLocalX(arm.vertices[outerBicep]),
+        lessThan(12),
+        reason:
+            'the bicep sleeve should stay fitted; wider values re-create the '
+            'bat-wing sheet when Shaku spreads both arms',
+      );
       expect(
         arm.vertices[topShoulderCrown].influences.map((i) => i.boneId),
         containsAll([
@@ -678,21 +684,21 @@ void main() {
       );
       expect(
         _maxAbsLocalX(arm.vertices[outerUpperArmTransition]),
-        greaterThan(_maxAbsLocalX(arm.vertices[outerElbow]) * 1.6),
+        greaterThan(_maxAbsLocalX(arm.vertices[outerElbow]) * 1.35),
         reason:
-            'the transition landmark should keep a visible upper-arm plane, '
-            'not collapse straight into the elbow pinch',
+            'the transition landmark should cushion the elbow pinch without '
+            'forcing the broad upper-arm sheet that reads as a wing',
       );
       expect(
         _maxAbsLocalX(arm.vertices[outerBicep]),
-        greaterThan(_maxAbsLocalX(arm.vertices[outerForearm]) * 1.42),
+        greaterThan(_maxAbsLocalX(arm.vertices[outerForearm]) * 1.1),
         reason:
-            'the upper sleeve should carry a real bicep/upper-arm mass before '
-            'tapering into the forearm',
+            'the upper sleeve should carry visible arm mass without becoming a '
+            'wide shoulder-to-elbow cloth sheet',
       );
       expect(
         _maxAbsLocalX(arm.vertices[outerElbow]),
-        lessThan(_maxAbsLocalX(arm.vertices[outerBicep]) * 0.5),
+        lessThan(_maxAbsLocalX(arm.vertices[outerBicep]) * 0.62),
         reason:
             'the elbow should pinch below the bicep mass without becoming a '
             'thin hinge',
@@ -706,7 +712,7 @@ void main() {
       );
       expect(
         _maxAbsLocalX(arm.vertices[outerForearm]),
-        greaterThan(_maxAbsLocalX(arm.vertices[outerElbow]) * 1.5),
+        greaterThanOrEqualTo(_maxAbsLocalX(arm.vertices[outerElbow]) * 1.5),
         reason: 'the forearm should wedge back out after the elbow pinch',
       );
       expect(
@@ -864,7 +870,7 @@ void main() {
       );
       expect(
         _maxAbsLocalX(leadArm.vertices[outerElbow]),
-        lessThan(_maxAbsLocalX(leadArm.vertices[outerBicep]) * 0.5),
+        lessThan(_maxAbsLocalX(leadArm.vertices[outerBicep]) * 0.65),
         reason:
             'the elbow valley should keep crossed arms readable without '
             'becoming stringy',
