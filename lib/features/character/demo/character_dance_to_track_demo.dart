@@ -142,11 +142,30 @@ const double kDanceDemoAspectRatio = 16 / 9;
 /// `_layerGrades()` feeds `BackdropScene.lagosLayeredWaterfront`.
 const List<String> kGradeLayerNames = ['Sky', 'City', 'Yacht', 'Deck', 'Palms'];
 
+/// Per-layer base grades FITTED to the old `blue_hour_master.webp`: each source
+/// plate and the master were sampled at the same pixels (they are the same scene)
+/// and a per-channel slope solved that maps the bright day plate onto the master's
+/// dusk colour. Pure multiplies — the differing per-channel slopes carry the
+/// darkening AND the desaturation/temperature shift:
+///   sky/ocean → deep muted navy · city → cool blue silhouette · yacht → grey-blue
+///   dim · deck → dark near-neutral (its warmth is the lantern pool, not the wood)
+///   · palms → dark cool near-silhouette.
+const List<BackdropGrade> kLayerBaseGrades = [
+  BackdropGrade(slope: (r: 0.12, g: 0.19, b: 0.32)), // sky + ocean
+  BackdropGrade(slope: (r: 0.15, g: 0.32, b: 0.7)), // city + bridge
+  BackdropGrade(slope: (r: 0.56, g: 0.7, b: 0.97)), // yacht
+  BackdropGrade(slope: (r: 0.21, g: 0.3, b: 0.72)), // deck
+  BackdropGrade(slope: (r: 0.16, g: 0.2, b: 0.42)), // palms (blue held back so
+  // the warm lantern baked into this layer doesn't go cold)
+];
+
 /// Mutable per-layer grade state driven by the console wheels/sliders — one per
-/// gradeable plane. Each plate ships bright/full-range and is graded on its OWN
-/// curve to the blue-hour master, dialled live and independently in the console.
+/// gradeable plane. [base] is the fitted-to-master default (a pure per-channel
+/// multiply); the wheels TRIM it (their grade composes on top of the base), so
+/// the plate opens matched to the master and the console fine-tunes from there.
 class LayerGradeState {
   LayerGradeState({
+    this.base = BackdropGrade.identity,
     this.lift = const GradeWheel(),
     this.gamma = const GradeWheel(),
     this.gain = const GradeWheel(),
@@ -157,6 +176,7 @@ class LayerGradeState {
     this.pivot = 0.435,
   });
 
+  final BackdropGrade base;
   GradeWheel lift;
   GradeWheel gamma;
   GradeWheel gain;
@@ -166,65 +186,38 @@ class LayerGradeState {
   double contrast;
   double pivot;
 
-  BackdropGrade toGrade() => gradeFromWheels(
-    lift: lift,
-    gamma: gamma,
-    gain: gain,
-    saturation: saturation,
-    temperature: temperature,
-    tint: tint,
-    contrast: contrast,
-    pivot: pivot,
-  );
+  /// The fitted [base] multiply with the wheel grade composed on top. Because the
+  /// base is a pure slope applied first, composing is just multiplying the slopes
+  /// (neutral wheels → the base itself).
+  BackdropGrade toGrade() {
+    final w = gradeFromWheels(
+      lift: lift,
+      gamma: gamma,
+      gain: gain,
+      saturation: saturation,
+      temperature: temperature,
+      tint: tint,
+      contrast: contrast,
+      pivot: pivot,
+    );
+    return BackdropGrade(
+      slope: (
+        r: base.slope.r * w.slope.r,
+        g: base.slope.g * w.slope.g,
+        b: base.slope.b * w.slope.b,
+      ),
+      offset: w.offset,
+      power: w.power,
+      saturation: w.saturation,
+      contrast: w.contrast,
+      pivot: w.pivot,
+    );
+  }
 }
 
-/// Per-layer starting grades fitted to the old `blue_hour_master.webp` (sampled
-/// region by region): the sky/city/water go deep and desaturated, the yacht
-/// cools and dims, the deck stays warm dark-wood, the palms drop to near
-/// silhouette. Dialled further in the console per layer.
+/// A fresh per-layer state, each seeded with its fitted [kLayerBaseGrades] base.
 List<LayerGradeState> defaultLayerGrades() => [
-  // Sky + ocean: heavy desaturation to a muted navy, hard gain pull-down and a
-  // negative lift to drag the bright daytime clouds into dark dusk-grey.
-  LayerGradeState(
-    lift: const GradeWheel(balance: Offset(0.03, 0.22), master: -0.26),
-    gamma: const GradeWheel(balance: Offset(0.04, 0.12), master: -0.22),
-    gain: const GradeWheel(balance: Offset(0.10, -0.14), master: -0.88),
-    saturation: 0.46,
-    temperature: -0.3,
-    contrast: 1.02,
-    pivot: 0.44,
-  ),
-  // City + bridge: dark, cool, desaturated silhouette.
-  LayerGradeState(
-    gain: const GradeWheel(balance: Offset(0.04, 0.08), master: -0.7),
-    lift: const GradeWheel(master: -0.12),
-    saturation: 0.5,
-    temperature: -0.28,
-    contrast: 1.05,
-    pivot: 0.42,
-  ),
-  // Yacht: cool grey-blue, dimmed into the field.
-  LayerGradeState(
-    gain: const GradeWheel(balance: Offset(0, 0.1), master: -0.62),
-    saturation: 0.5,
-    temperature: -0.24,
-  ),
-  // Deck: warm dark wood, held against the cool field.
-  LayerGradeState(
-    gain: const GradeWheel(balance: Offset(0.16, -0.2), master: -0.72),
-    saturation: 0.82,
-    temperature: 0.1,
-    contrast: 1.05,
-    pivot: 0.42,
-  ),
-  // Palms: near-black silhouette framing.
-  LayerGradeState(
-    gain: const GradeWheel(master: -0.82),
-    lift: const GradeWheel(master: -0.1),
-    saturation: 0.55,
-    temperature: -0.15,
-    contrast: 1.06,
-  ),
+  for (final b in kLayerBaseGrades) LayerGradeState(base: b),
 ];
 
 // The beat-synced choreography derivation (which move, warped clock, beat,
@@ -873,10 +866,13 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
                   onContrast: (v) => setState(() => _active.contrast = v),
                   onPivot: (v) => setState(() => _active.pivot = v),
                   onBypass: (v) => setState(() => _bypass = v),
-                  // Reset neutralises just the ACTIVE layer (Bypass shows every
-                  // plate raw).
-                  onReset: () =>
-                      setState(() => _layers[_activeLayer] = LayerGradeState()),
+                  // Reset returns just the ACTIVE layer to its fitted-to-master
+                  // base (Bypass shows every plate raw).
+                  onReset: () => setState(
+                    () => _layers[_activeLayer] = LayerGradeState(
+                      base: kLayerBaseGrades[_activeLayer],
+                    ),
+                  ),
                 ),
               ],
             ),
