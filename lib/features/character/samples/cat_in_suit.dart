@@ -1244,7 +1244,7 @@ RigSpec buildCatInSuitRig({
         height: 24,
         dy: -3,
         cornerRadius: 9,
-        color: palette.furDark,
+        color: palette.fur,
         outlineColor: _outline,
         outlineWidth: 1.4,
         formRound: false, // keep the head/neck join clean — see celShade note
@@ -1523,8 +1523,19 @@ RigSpec buildCatInSuitRig({
       // The yoke: a near-vertical armhole side seam up to the shoulder corner,
       // then a ~25° trapezius line into the collar — NOT a steep straight
       // ramp from deltoid to head. The arm ribbon's deltoid dome crowns just
-      // above the corner and reads as the shoulder point.
+      // above the corner and reads as the shoulder point. The OUTER corners
+      // ride the clavicles half-weighted, so a girdle shrug lifts the
+      // trapezius with the raised deltoid instead of leaving a valley
+      // between shoulder and collar.
       crown: const [(x: -29.0, y: -75.0), (x: -13.0, y: -81.5)],
+      crownWeights: const [
+        {CatBones.chest: 0.5, CatBones.clavicleL: 0.5},
+        {CatBones.chest: 0.85, CatBones.clavicleL: 0.15},
+      ],
+      crownWeightsMirrored: const [
+        {CatBones.chest: 0.85, CatBones.clavicleR: 0.15},
+        {CatBones.chest: 0.5, CatBones.clavicleR: 0.5},
+      ],
       z: 13,
       color: _suit,
       outlineColor: _outline,

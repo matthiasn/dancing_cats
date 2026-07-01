@@ -52,6 +52,8 @@ SkinnedMeshSpec buildTrunkSurface({
   required int z,
   required int color,
   List<({double x, double y})> crown = const [],
+  List<Map<String, double>>? crownWeights,
+  List<Map<String, double>>? crownWeightsMirrored,
   double neighborShare = 0.4,
   int? outlineColor,
   double outlineWidth = 0,
@@ -111,16 +113,33 @@ SkinnedMeshSpec buildTrunkSurface({
     boundary.add(vertices.length);
     vertices.add(vertexAt(s.x - s.halfWidth, s.y, stationWeights(i)));
   }
-  // Crown arch across the top, weighted to the top station's bone: out→centre
-  // on the left, mirrored centre→out on the right.
+  // Crown arch across the top: out→centre on the left, mirrored centre→out on
+  // the right. By default crown points ride the top station's bone; passing
+  // [crownWeights] (left side, same order as [crown]) and
+  // [crownWeightsMirrored] (right side, in the REVERSED traversal order)
+  // lets a yoke's outer corners ride the shoulder girdle too — so a shrug
+  // lifts the trapezius line with the deltoid instead of opening a valley
+  // between the raised shoulder and the collar.
+  assert(
+    crownWeights == null || crownWeights.length == crown.length,
+    'crownWeights must match crown length',
+  );
+  assert(
+    crownWeightsMirrored == null || crownWeightsMirrored.length == crown.length,
+    'crownWeightsMirrored must match crown length',
+  );
   final topWeights = stationWeights(stations.length - 1);
-  for (final point in crown) {
+  for (var i = 0; i < crown.length; i++) {
+    final point = crown[i];
     boundary.add(vertices.length);
-    vertices.add(vertexAt(point.x, point.y, topWeights));
+    vertices.add(vertexAt(point.x, point.y, crownWeights?[i] ?? topWeights));
   }
-  for (final point in crown.reversed) {
+  for (var i = 0; i < crown.length; i++) {
+    final point = crown[crown.length - 1 - i];
     boundary.add(vertices.length);
-    vertices.add(vertexAt(-point.x, point.y, topWeights));
+    vertices.add(
+      vertexAt(-point.x, point.y, crownWeightsMirrored?[i] ?? topWeights),
+    );
   }
   // Right edge, top → bottom.
   for (var i = stations.length - 1; i >= 0; i--) {
