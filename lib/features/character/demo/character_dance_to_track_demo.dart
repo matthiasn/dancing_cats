@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:dancing_cats/features/character/demo/color_grade_panel.dart';
 import 'package:dancing_cats/features/character/demo/dance_app_frame_exporter.dart';
 import 'package:dancing_cats/features/character/demo/dance_ffmpeg_encoder.dart';
 import 'package:dancing_cats/features/character/demo/dance_lip_sync.dart';
@@ -15,6 +16,8 @@ import 'package:dancing_cats/features/character/demo/dance_transport_bar.dart';
 import 'package:dancing_cats/features/character/model/beat_map.dart';
 import 'package:dancing_cats/features/character/runtime/character_painter.dart';
 import 'package:dancing_cats/features/character/runtime/character_renderer.dart';
+import 'package:dancing_cats/features/scenery/model/backdrop_grade.dart';
+import 'package:dancing_cats/features/scenery/model/scope_histogram.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
@@ -228,6 +231,27 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
   // Mute forces the player volume to zero; the video keeps playing. The app has
   // no volume slider, so unmuting restores full (100) volume.
   bool _muted = false;
+  // Live colour-grade controls (Lift/Gamma/Gain wheels, white balance, contrast,
+  // saturation) driving the backdrop grade shader. All neutral by default →
+  // identity grade → no grade pass. [_bypass] shows the clean plate (before).
+  GradeWheel _lift = const GradeWheel();
+  GradeWheel _gamma = const GradeWheel();
+  GradeWheel _gain = const GradeWheel();
+  double _saturation = 1;
+  double _temperature = 0;
+  double _tint = 0;
+  double _contrast = 1;
+  double _pivot = 0.435;
+  bool _bypass = false;
+
+  // Image-derived RGB parade: a tiny snapshot of the graded stage, sampled a few
+  // times a second, so the grade panel can show where the actual pixels land
+  // (clip/crush) rather than only what the transfer curve does.
+  ScopeHistogram _scope = ScopeHistogram.empty();
+  double _sinceScopeSample = 0;
+  bool _scopeSampling = false;
+  static const double _scopeInterval = 0.25; // seconds between samples
+  static const double _scopePixelRatio = 0.16; // tiny snapshot, cheap to read
   ui.Image? _backdrop;
   ui.Image? _clouds;
   ui.Image? _waves;
@@ -319,6 +343,7 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
     _lastTick = elapsed;
     if (dt < 0) dt = 0;
     if (dt > 0.1) dt = 0.1; // ignore long stalls (tab switch, etc.)
+    _maybeSampleScope(dt);
     final clockRunning = _advanceRenderClock(dt);
     if (!clockRunning) {
       if (mounted) setState(() {});
@@ -506,6 +531,34 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
     }
   }
 
+  /// Throttled trigger for the grade-panel RGB parade — off in headless export,
+  /// and skipped while a sample is still in flight.
+  void _maybeSampleScope(double dt) {
+    if (kDanceRenderOnly) return;
+    _sinceScopeSample += dt;
+    if (_scopeSampling || _sinceScopeSample < _scopeInterval) return;
+    _sinceScopeSample = 0;
+    _scopeSampling = true;
+    unawaited(_sampleScope());
+  }
+
+  /// Snapshots the graded stage at a tiny resolution and rebuilds the parade
+  /// histogram. Best-effort: any capture hiccup just skips this sample.
+  Future<void> _sampleScope() async {
+    try {
+      final boundary = _stageBoundaryKey.currentContext?.findRenderObject();
+      if (boundary is! RenderRepaintBoundary) return;
+      final image = await boundary.toImage(pixelRatio: _scopePixelRatio);
+      final bytes = (await image.toByteData())?.buffer.asUint8List();
+      image.dispose();
+      if (bytes != null && mounted) {
+        setState(() => _scope = buildScopeHistogram(bytes));
+      }
+    } finally {
+      _scopeSampling = false;
+    }
+  }
+
   /// The transport timeline's section bands: the musical (lyric) sections when
   /// available — labelled Verse/Chorus/Bridge/… with a leading Intro for any
   /// pre-vocal gap — else the structural energy sections (A/B/C/D). Musical
@@ -633,8 +686,23 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
     // singing mouths. The whole composite is the generalized DanceStageView,
     // rendered identically by the live app and every offline renderer — there is
     // no second paint path to drift.
+    // Bypass shows the clean plate (the "before"): feed the stage an identity
+    // grade while the panel keeps the dialled look, so a colourist can A/B.
+    final grade = _bypass
+        ? BackdropGrade.identity
+        : gradeFromWheels(
+            lift: _lift,
+            gamma: _gamma,
+            gain: _gain,
+            saturation: _saturation,
+            temperature: _temperature,
+            tint: _tint,
+            contrast: _contrast,
+            pivot: _pivot,
+          );
     final stageView = DanceStageView(
       boundaryKey: _stageBoundaryKey,
+      grade: grade,
       cast: _cast,
       renderer: _renderer,
       stage: stage,
@@ -698,6 +766,38 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
                       setState(() => _useNewBackdrop = !_useNewBackdrop),
                   onToggleMute: () => unawaited(_toggleMute()),
                   onSeekToSeconds: _seekToTime,
+                ),
+                ColorGradePanel(
+                  lift: _lift,
+                  gamma: _gamma,
+                  gain: _gain,
+                  saturation: _saturation,
+                  temperature: _temperature,
+                  tint: _tint,
+                  contrast: _contrast,
+                  pivot: _pivot,
+                  bypass: _bypass,
+                  parade: _scope,
+                  onLift: (w) => setState(() => _lift = w),
+                  onGamma: (w) => setState(() => _gamma = w),
+                  onGain: (w) => setState(() => _gain = w),
+                  onSaturation: (v) => setState(() => _saturation = v),
+                  onTemperature: (v) => setState(() => _temperature = v),
+                  onTint: (v) => setState(() => _tint = v),
+                  onContrast: (v) => setState(() => _contrast = v),
+                  onPivot: (v) => setState(() => _pivot = v),
+                  onBypass: (v) => setState(() => _bypass = v),
+                  onReset: () => setState(() {
+                    _lift = const GradeWheel();
+                    _gamma = const GradeWheel();
+                    _gain = const GradeWheel();
+                    _saturation = 1;
+                    _temperature = 0;
+                    _tint = 0;
+                    _contrast = 1;
+                    _pivot = 0.435;
+                    _bypass = false;
+                  }),
                 ),
               ],
             ),

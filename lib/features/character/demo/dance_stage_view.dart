@@ -10,6 +10,7 @@ import 'package:dancing_cats/features/character/runtime/character_renderer.dart'
 import 'package:dancing_cats/features/character/runtime/character_scene.dart';
 import 'package:dancing_cats/features/character/samples/cat_in_suit.dart';
 import 'package:dancing_cats/features/scenery/layered_backdrop.dart';
+import 'package:dancing_cats/features/scenery/model/backdrop_grade.dart';
 import 'package:dancing_cats/features/scenery/model/backdrop_scene.dart';
 import 'package:dancing_cats/features/scenery/runtime/stage_lights.dart';
 import 'package:dancing_cats/features/scenery/scene_texture_overlay.dart';
@@ -52,6 +53,7 @@ class DanceStageView extends StatelessWidget {
     this.useNewBackdrop = true,
     this.showCaptions = false,
     this.words = const [],
+    this.grade = BackdropGrade.identity,
     this.onBackdropReady,
     this.backdropImage,
     this.cloudsImage,
@@ -101,6 +103,10 @@ class DanceStageView extends StatelessWidget {
 
   final bool showCaptions;
   final List<DanceWord> words;
+
+  /// Colour grade applied to the painted backdrop (the live grading tool feeds
+  /// this from its wheels). Identity by default (no grade).
+  final BackdropGrade grade;
   final VoidCallback? onBackdropReady;
 
   /// Old-plate images (only used when [useNewBackdrop] is false).
@@ -148,6 +154,7 @@ class DanceStageView extends StatelessWidget {
                         scene: BackdropScene.blueHourWaterfront(),
                         timeSeconds: backdropTimeSeconds,
                         beatPulse: beat,
+                        grade: grade,
                         onReady: onBackdropReady,
                         parallaxForDepth: (depth, s) =>
                             CharacterPainter.danceParallaxMatrixForShotAtDepth(

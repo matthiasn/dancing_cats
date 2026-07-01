@@ -11,6 +11,7 @@ abstract final class SceneryShaderAssets {
   static const sky = 'shaders/scenery_sky.frag';
   static const ocean = 'shaders/scenery_ocean.frag';
   static const cityLights = 'shaders/scenery_city_lights.frag';
+  static const grade = 'shaders/scenery_grade.frag';
 }
 
 /// Memoizing cache for the scenery fragment programs — each `.frag` is compiled
@@ -20,6 +21,7 @@ abstract final class SceneryShaderProgramCache {
   static Future<ui.FragmentProgram>? _sky;
   static Future<ui.FragmentProgram>? _ocean;
   static Future<ui.FragmentProgram>? _cityLights;
+  static Future<ui.FragmentProgram>? _grade;
 
   static Future<ui.FragmentProgram> loadSky() {
     return _sky ??= ui.FragmentProgram.fromAsset(SceneryShaderAssets.sky);
@@ -35,11 +37,16 @@ abstract final class SceneryShaderProgramCache {
     );
   }
 
+  static Future<ui.FragmentProgram> loadGrade() {
+    return _grade ??= ui.FragmentProgram.fromAsset(SceneryShaderAssets.grade);
+  }
+
   @visibleForTesting
   static void reset() {
     _sky = null;
     _ocean = null;
     _cityLights = null;
+    _grade = null;
   }
 }
 
