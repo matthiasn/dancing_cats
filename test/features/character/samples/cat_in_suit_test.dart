@@ -478,9 +478,10 @@ void main() {
         final toe = rig.bone(side.toe)!.drawable!;
         final sole = rig.bone(side.sole)!.drawable!;
         final counter = rig.bone(side.counter)!.drawable!;
-        // The midsole is the sneaker cue: a LIGHT band running the full
-        // length of the last along the sole plane.
-        expect(_luma(sole.color), greaterThan(_luma(last.color) * 2));
+        // The 90s boot is WHITE leather with a full-length rubber midsole a
+        // half-step under it — the planes split by ink and a value step.
+        expect(_luma(last.color), greaterThan(200));
+        expect(_luma(sole.color), lessThan(_luma(last.color)));
         expect(sole.width, greaterThanOrEqualTo(last.width));
         expect(
           sole.dy + sole.height / 2,
@@ -488,7 +489,7 @@ void main() {
           reason: 'the midsole must not lower the contact plane',
         );
         // Rounded rubber toe over the front of the last.
-        expect(_luma(toe.color), greaterThan(_luma(last.color) * 2));
+        expect(_luma(toe.color), greaterThan(180));
         expect(
           toe.dx - toe.width / 2,
           lessThan(last.dx - last.width / 2 + 2),

@@ -75,14 +75,14 @@ const int _fur = 0xFFE8A55A; // orange tabby
 const int _furDark = 0xFFD08A3C; // tail tip / shading
 const int _shirt = 0xFFF3EFE6; // collar
 const int _tie = 0xFF7A2233; // maroon
-const int _shoe = 0xFF4A3524; // suede sneaker upper — reads instantly
-// against both the navy trousers and the dark deck (near-black navy shoes
-// dissolved into both), and sits with the brass buttons and warm fur.
-const int _shoeToe = 0xFFE9E2D2; // rubber toe bump — the rounded sneaker
+const int _shoe = 0xFFF2EFE7; // 90s basketball-boot WHITE leather upper
+// — pops against the navy trousers and the dark deck, echoes the shirt
+// cuffs/collar, and reads instantly as the era.
+const int _shoeToe = 0xFFE8E3D5; // rubber toe bump — the rounded sneaker
 // toe cap, a shade under the midsole cream so the ink line reads between.
-const int _shoeSole = 0xFFF2EDE2; // sneaker midsole — the full-length cream
-// rubber band along the bottom that makes the silhouette read SNEAKER at any
-// scale, inked like every other drawn part.
+const int _shoeSole = 0xFFDCD7C9; // sneaker midsole — the full-length rubber
+// band along the bottom, a half-step grey under the white upper so the two
+// planes split by ink AND value, like a real AF1 wall.
 const int _outline = 0xFF1B1B2A;
 const int _innerEar = 0xFFE7A39B; // soft pink ear
 const int _muzzle = 0xFFF3DCB8; // lighter snout patch
@@ -215,6 +215,7 @@ class CatBones {
   static const shoeHighlightL = 'shoe_highlight.L';
   static const shoeToeL = 'shoe_toe.L';
   static const shoeCounterL = 'shoe_counter.L';
+  static const shoeTabL = 'shoe_tab.L';
   static const hipBlendR = 'hip_blend.R';
   static const legUpperR = 'leg_upper.R';
   static const legQuadR = 'leg_quad.R';
@@ -224,6 +225,7 @@ class CatBones {
   static const shoeHighlightR = 'shoe_highlight.R';
   static const shoeToeR = 'shoe_toe.R';
   static const shoeCounterR = 'shoe_counter.R';
+  static const shoeTabR = 'shoe_tab.R';
   static const tail0 = 'tail_0';
   static const tail1 = 'tail_1';
   static const tail2 = 'tail_2';
@@ -455,9 +457,9 @@ RigSpec buildCatInSuitRig({
         inkOverFill: true,
       ),
     ),
-    // Heel collar: the sneaker's back rises above the vamp at the ankle —
-    // the padded-collar step in the silhouette. Bottom sits flush on the
-    // sole plane (contact untouched).
+    // High-top collar: the 90s basketball-boot ankle wrap — rises well
+    // above the vamp and hugs the ankle so the trouser breaks ON the boot.
+    // Bottom sits flush on the sole plane (contact untouched).
     const Bone(
       id: CatBones.shoeCounterR,
       parent: CatBones.footR,
@@ -466,11 +468,11 @@ RigSpec buildCatInSuitRig({
       z: 6,
       drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
-        width: 14,
-        height: 15,
-        dx: 3,
-        dy: 2.5,
-        cornerRadius: 5,
+        width: 15,
+        height: 20,
+        dx: 2.5,
+        dy: -2,
+        cornerRadius: 6,
         color: _shoe,
         outlineColor: _outline,
         outlineWidth: 2,
@@ -488,15 +490,34 @@ RigSpec buildCatInSuitRig({
       z: 6,
       drawable: BoneDrawable(
         kind: BoneShapeKind.ellipse,
-        width: 12,
-        height: 9.5,
-        dx: -24,
-        dy: 5.2,
+        width: 13,
+        height: 10.5,
+        dx: -24.5,
+        dy: 4.7,
         color: _shoeToe,
         outlineColor: _outline,
         outlineWidth: 2,
         celShade: false,
         inkOverFill: true,
+      ),
+    ),
+    // Heel tab: a small maroon accent on the high-top's back — echoes the
+    // tie, and one colour pop is all the 90s boot needs.
+    const Bone(
+      id: CatBones.shoeTabR,
+      parent: CatBones.footR,
+      pivotX: 0,
+      pivotY: 0,
+      z: 7,
+      drawable: BoneDrawable(
+        kind: BoneShapeKind.roundedRect,
+        width: 4.5,
+        height: 6.5,
+        dx: 7.5,
+        dy: -6,
+        cornerRadius: 2,
+        color: _tie,
+        celShade: false,
       ),
     ),
     // Midsole: the full-length cream rubber band along the bottom — THE
@@ -511,10 +532,10 @@ RigSpec buildCatInSuitRig({
       drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
         width: 41,
-        height: 5.6,
+        height: 6.5,
         dx: -9.5,
-        dy: 7.1,
-        cornerRadius: 2.8,
+        dy: 6.7,
+        cornerRadius: 3.2,
         color: _shoeSole,
         outlineColor: _outline,
         outlineWidth: 2,
@@ -589,9 +610,9 @@ RigSpec buildCatInSuitRig({
         inkOverFill: true,
       ),
     ),
-    // Heel collar: the sneaker's back rises above the vamp at the ankle —
-    // the padded-collar step in the silhouette. Bottom sits flush on the
-    // sole plane (contact untouched).
+    // High-top collar: the 90s basketball-boot ankle wrap — rises well
+    // above the vamp and hugs the ankle so the trouser breaks ON the boot.
+    // Bottom sits flush on the sole plane (contact untouched).
     const Bone(
       id: CatBones.shoeCounterL,
       parent: CatBones.footL,
@@ -600,11 +621,11 @@ RigSpec buildCatInSuitRig({
       z: 9,
       drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
-        width: 14,
-        height: 15,
-        dx: 3,
-        dy: 2.5,
-        cornerRadius: 5,
+        width: 15,
+        height: 20,
+        dx: 2.5,
+        dy: -2,
+        cornerRadius: 6,
         color: _shoe,
         outlineColor: _outline,
         outlineWidth: 2,
@@ -622,15 +643,34 @@ RigSpec buildCatInSuitRig({
       z: 9,
       drawable: BoneDrawable(
         kind: BoneShapeKind.ellipse,
-        width: 12,
-        height: 9.5,
-        dx: -24,
-        dy: 5.2,
+        width: 13,
+        height: 10.5,
+        dx: -24.5,
+        dy: 4.7,
         color: _shoeToe,
         outlineColor: _outline,
         outlineWidth: 2,
         celShade: false,
         inkOverFill: true,
+      ),
+    ),
+    // Heel tab: a small maroon accent on the high-top's back — echoes the
+    // tie, and one colour pop is all the 90s boot needs.
+    const Bone(
+      id: CatBones.shoeTabL,
+      parent: CatBones.footL,
+      pivotX: 0,
+      pivotY: 0,
+      z: 10,
+      drawable: BoneDrawable(
+        kind: BoneShapeKind.roundedRect,
+        width: 4.5,
+        height: 6.5,
+        dx: 7.5,
+        dy: -6,
+        cornerRadius: 2,
+        color: _tie,
+        celShade: false,
       ),
     ),
     // Midsole: the full-length cream rubber band along the bottom — THE
@@ -645,10 +685,10 @@ RigSpec buildCatInSuitRig({
       drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
         width: 41,
-        height: 5.6,
+        height: 6.5,
         dx: -9.5,
-        dy: 7.1,
-        cornerRadius: 2.8,
+        dy: 6.7,
+        cornerRadius: 3.2,
         color: _shoeSole,
         outlineColor: _outline,
         outlineWidth: 2,
