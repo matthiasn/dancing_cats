@@ -184,22 +184,33 @@ void main() {
         for (final side in const [
           (
             meshId: 'arm.L.mesh',
+            shadowId: 'arm.L.shadow',
             socket: CatBones.shoulderSocketL,
             upper: CatBones.armUpperL,
           ),
           (
             meshId: 'arm.R.mesh',
+            shadowId: 'arm.R.shadow',
             socket: CatBones.shoulderSocketR,
             upper: CatBones.armUpperR,
           ),
         ]) {
           final mesh = rig.meshes.singleWhere((mesh) => mesh.id == side.meshId);
+          final shadow = rig.meshes.singleWhere((mesh) {
+            return mesh.id == side.shadowId;
+          });
           expect(mesh.hiddenBoneIds, containsAll([side.socket, side.upper]));
           expect(
             mesh.vertices.expand((v) => v.influences).map((i) => i.boneId),
             containsAll([side.socket, side.upper]),
             reason:
                 '${side.meshId} must be socket-weighted on backup palettes too',
+          );
+          expect(
+            shadow.vertices.expand((v) => v.influences).map((i) => i.boneId),
+            containsAll([side.socket, side.upper]),
+            reason:
+                '${side.shadowId} must deform with the same backup sleeve mesh',
           );
         }
       }
@@ -274,6 +285,65 @@ void main() {
             'near/far sleeve value can help depth, but not enough to look like '
             'different fabric',
       );
+    });
+
+    test('sleeve contours are skinned fabric shadows, not detached bones', () {
+      for (final side in const [
+        (
+          meshId: 'arm.L.mesh',
+          shadowId: 'arm.L.shadow',
+          socket: CatBones.shoulderSocketL,
+          upper: CatBones.armUpperL,
+          bicep: CatBones.armBicepL,
+          lower: CatBones.armLowerL,
+          forearm: CatBones.armForearmL,
+          hand: CatBones.handL,
+        ),
+        (
+          meshId: 'arm.R.mesh',
+          shadowId: 'arm.R.shadow',
+          socket: CatBones.shoulderSocketR,
+          upper: CatBones.armUpperR,
+          bicep: CatBones.armBicepR,
+          lower: CatBones.armLowerR,
+          forearm: CatBones.armForearmR,
+          hand: CatBones.handR,
+        ),
+      ]) {
+        final mesh = rig.meshes.singleWhere((m) => m.id == side.meshId);
+        final shadow = rig.meshes.singleWhere((m) => m.id == side.shadowId);
+        final drawOrder = rig.meshDrawOrder.map((m) => m.id).toList();
+
+        expect(shadow.boundary, hasLength(10));
+        expect(shadow.outlineColor, isNull);
+        expect(shadow.outlineWidth, 0);
+        expect(shadow.formRound, isFalse);
+        expect(shadow.z, mesh.z);
+        expect(
+          drawOrder.indexOf(side.shadowId),
+          greaterThan(drawOrder.indexOf(side.meshId)),
+          reason: '${side.shadowId} must draw over the base sleeve fill',
+        );
+        expect(
+          _luma(shadow.color),
+          lessThan(_luma(mesh.color) * 0.72),
+          reason: 'the contour should read as a drawn dark edge in the fabric',
+        );
+        expect(
+          shadow.vertices.expand((v) => v.influences).map((i) => i.boneId),
+          containsAll([
+            side.socket,
+            side.upper,
+            side.bicep,
+            side.lower,
+            side.forearm,
+            side.hand,
+          ]),
+          reason:
+              '${side.shadowId} must stay welded to the full sleeve chain, '
+              'not float as a separate elbow detail',
+        );
+      }
     });
 
     test('sleeves keep a heroic taper instead of a sausage tube', () {
@@ -383,7 +453,9 @@ void main() {
           'jacket.side.R',
           'hips.mesh',
           'arm.L.mesh',
+          'arm.L.shadow',
           'arm.R.mesh',
+          'arm.R.shadow',
         ]),
       );
       expect(rig.ribbonHiddenBoneIds, contains(CatBones.tail3));

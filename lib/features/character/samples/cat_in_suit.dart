@@ -20,6 +20,8 @@ const int _suit = 0xFF2E3A59; // navy jacket (torso)
 const int _suitShadow = 0xFF25304B; // side tailoring that breaks the shell read
 const int _sleeve = 0xFF28334F; // same navy fabric, far-side sleeve shade
 const int _sleeveNear = 0xFF324061; // same navy fabric, near-side sleeve shade
+const int _sleeveContour =
+    0x8A12182A; // translucent drawn-in sleeve volume edge
 const int _button = 0xFFAE955C; // muted brass placket button — a dark horn
 // button vanished on the navy front; a metal tone reads as a button line.
 const int _lapel = 0xFF5A6FA8; // jacket lapel — a CLEAR step lighter than the
@@ -1345,6 +1347,90 @@ RigSpec buildCatInSuitRig({
     );
   }
 
+  SkinnedMeshSpec armSleeveShadowMesh({
+    required String id,
+    required int side,
+    required String socket,
+    required String clavicle,
+    required String upper,
+    required String bicep,
+    required String lower,
+    required String forearm,
+    required String hand,
+    required int z,
+  }) {
+    final s = side.toDouble();
+    final inner = -s;
+
+    return SkinnedMeshSpec(
+      id: id,
+      vertices: [
+        SkinnedMeshVertex([
+          MeshInfluence(
+            boneId: clavicle,
+            x: inner * 1.5,
+            y: -7,
+            weight: 0.38,
+          ),
+          MeshInfluence(
+            boneId: socket,
+            x: inner * 6.2,
+            y: -2,
+            weight: 0.34,
+          ),
+          MeshInfluence(
+            boneId: upper,
+            x: inner * 4.3,
+            y: 3,
+            weight: 0.28,
+          ),
+        ]),
+        SkinnedMeshVertex([
+          MeshInfluence(boneId: bicep, x: inner * 4.5, y: -2, weight: 1),
+        ]),
+        SkinnedMeshVertex([
+          MeshInfluence(boneId: lower, x: inner * 2.3, y: -1, weight: 1),
+        ]),
+        SkinnedMeshVertex([
+          MeshInfluence(boneId: forearm, x: inner * 3.2, y: 1, weight: 1),
+        ]),
+        SkinnedMeshVertex([
+          MeshInfluence(boneId: hand, x: inner * 2.4, y: -12, weight: 1),
+        ]),
+        SkinnedMeshVertex([
+          MeshInfluence(boneId: hand, x: inner * 4.8, y: -12, weight: 1),
+        ]),
+        SkinnedMeshVertex([
+          MeshInfluence(boneId: forearm, x: inner * 6.9, y: 0, weight: 1),
+        ]),
+        SkinnedMeshVertex([
+          MeshInfluence(boneId: lower, x: inner * 4.2, y: -1, weight: 1),
+        ]),
+        SkinnedMeshVertex([
+          MeshInfluence(boneId: bicep, x: inner * 8.0, y: -3, weight: 1),
+        ]),
+        SkinnedMeshVertex([
+          MeshInfluence(
+            boneId: socket,
+            x: inner * 10.0,
+            y: 10,
+            weight: 0.58,
+          ),
+          MeshInfluence(
+            boneId: upper,
+            x: inner * 7.0,
+            y: 10,
+            weight: 0.42,
+          ),
+        ]),
+      ],
+      boundary: const [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+      z: z,
+      color: _sleeveContour,
+      formRound: false,
+    );
+  }
+
   final meshes = <SkinnedMeshSpec>[
     SkinnedMeshSpec(
       id: 'hips.mesh',
@@ -1610,6 +1696,18 @@ RigSpec buildCatInSuitRig({
       z: 15,
       color: _sleeve,
     ),
+    armSleeveShadowMesh(
+      id: 'arm.R.shadow',
+      side: 1,
+      socket: CatBones.shoulderSocketR,
+      clavicle: CatBones.clavicleR,
+      upper: CatBones.armUpperR,
+      bicep: CatBones.armBicepR,
+      lower: CatBones.armLowerR,
+      forearm: CatBones.armForearmR,
+      hand: CatBones.handR,
+      z: 15,
+    ),
     armSleeveMesh(
       id: 'arm.L.mesh',
       side: -1,
@@ -1623,6 +1721,18 @@ RigSpec buildCatInSuitRig({
       elbowCrease: CatBones.armElbowCreaseL,
       z: 16,
       color: _sleeveNear,
+    ),
+    armSleeveShadowMesh(
+      id: 'arm.L.shadow',
+      side: -1,
+      socket: CatBones.shoulderSocketL,
+      clavicle: CatBones.clavicleL,
+      upper: CatBones.armUpperL,
+      bicep: CatBones.armBicepL,
+      lower: CatBones.armLowerL,
+      forearm: CatBones.armForearmL,
+      hand: CatBones.handL,
+      z: 16,
     ),
   ];
 
