@@ -10,6 +10,7 @@ class _Recorder {
   int loop = 0;
   int captions = 0;
   int backdrop = 0;
+  int mute = 0;
   double? seek;
 }
 
@@ -32,6 +33,7 @@ Future<_Recorder> _pump(
   bool showCaptions = false,
   bool captionsAvailable = true,
   bool useNewBackdrop = true,
+  bool muted = false,
   double bpm = 120,
   double positionSec = 93.433,
   double durationSec = 144.06,
@@ -62,6 +64,7 @@ Future<_Recorder> _pump(
               showCaptions: showCaptions,
               captionsAvailable: captionsAvailable,
               useNewBackdrop: useNewBackdrop,
+              muted: muted,
               bpm: bpm,
               positionSec: positionSec,
               durationSec: durationSec,
@@ -73,6 +76,7 @@ Future<_Recorder> _pump(
               onToggleLoop: () => rec.loop++,
               onToggleCaptions: () => rec.captions++,
               onToggleBackdrop: () => rec.backdrop++,
+              onToggleMute: () => rec.mute++,
               onSeekToSeconds: (s) => rec.seek = s,
             ),
           ],
@@ -162,6 +166,23 @@ void main() {
       expect(rec.play, 1);
       expect(rec.loop, 1);
       expect(rec.backdrop, 1);
+    });
+
+    testWidgets('mute toggle fires and swaps the speaker glyph', (
+      tester,
+    ) async {
+      // Unmuted (default): the speaker-on glyph shows; tapping requests a mute.
+      final rec = await _pump(tester);
+      expect(find.byIcon(Icons.volume_up_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.volume_off_rounded), findsNothing);
+      await tester.tap(find.byIcon(Icons.volume_up_rounded));
+      await tester.pump();
+      expect(rec.mute, 1);
+
+      // Muted: the struck-through glyph shows instead.
+      await _pump(tester, muted: true);
+      expect(find.byIcon(Icons.volume_off_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.volume_up_rounded), findsNothing);
     });
 
     testWidgets('captions toggle fires when lyrics are available', (
