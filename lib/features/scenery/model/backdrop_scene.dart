@@ -8,6 +8,7 @@ import 'package:dancing_cats/features/scenery/layers/cloud_parallax_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/deck_glow_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/distant_jet_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/drone_show_layer.dart';
+import 'package:dancing_cats/features/scenery/layers/emissive_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/image_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/ocean_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/parallax_layer.dart';
@@ -50,7 +51,6 @@ class BackdropScene {
   const BackdropScene({
     required this.layers,
     this.foregroundLayers = const [],
-    this.emissiveLayers = const [],
     this.imageAssets = const [],
     this.sceneSize = kSceneryCanvasSize,
   });
@@ -183,6 +183,12 @@ class BackdropScene {
   /// the plates keep their latitude instead of baking dusk into the art.
   factory BackdropScene.lagosLayeredWaterfront() {
     return const BackdropScene(
+      // Depth-ordered stack. The lit windows are wrapped in [EmissiveLayer] so
+      // the grade painter draws them OUT of the grade (warm against the cool
+      // field) yet in stack order — so the nearer yacht, drawn AFTER the city
+      // windows, correctly occludes the city-building lights behind it instead
+      // of them bleeding onto the hull. Each window field has a soft blurred twin
+      // beneath the crisp one for halation/bloom.
       layers: [
         ParallaxLayer(
           ImageLayer(SceneryAssets.lagosSkyOcean),
@@ -192,13 +198,57 @@ class BackdropScene {
           ImageLayer(SceneryAssets.lagosCityBridge),
           depth: _depthCity,
         ),
-        // The yacht rides its own nearer plane. A cool, dimmed modulate pulls the
-        // baked-bright white hull well down into the dusk field so it stops being
-        // a luminance magnet on the right edge that competes with the lantern and
-        // the (ungraded) cat subjects for the eye.
+        EmissiveLayer(
+          ParallaxLayer(
+            ImageLayer(
+              SceneryAssets.lagosCityWindows,
+              blend: BlendMode.plus,
+              modulate: Color(0xFF97763F),
+              blurSigma: 11,
+              opacity: 0.82,
+            ),
+            depth: _depthCity,
+          ),
+        ),
+        EmissiveLayer(
+          ParallaxLayer(
+            ImageLayer(
+              SceneryAssets.lagosCityWindows,
+              blend: BlendMode.plus,
+              modulate: Color(0xFFFFD08A),
+            ),
+            depth: _depthCity,
+          ),
+        ),
+        // The yacht rides its own nearer plane, drawn AFTER the city windows so
+        // it occludes them. A cool, dimmed modulate pulls the baked-bright white
+        // hull down into the dusk field so it stops being a luminance magnet.
         ParallaxLayer(
           ImageLayer(SceneryAssets.lagosYacht, modulate: Color(0xFF8A93A8)),
           depth: _depthYacht,
+        ),
+        // The yacht's own warm cabin windows glow on its hull.
+        EmissiveLayer(
+          ParallaxLayer(
+            ImageLayer(
+              SceneryAssets.lagosYachtWindows,
+              blend: BlendMode.plus,
+              modulate: Color(0xFF947340),
+              blurSigma: 10,
+              opacity: 0.8,
+            ),
+            depth: _depthYacht,
+          ),
+        ),
+        EmissiveLayer(
+          ParallaxLayer(
+            ImageLayer(
+              SceneryAssets.lagosYachtWindows,
+              blend: BlendMode.plus,
+              modulate: Color(0xFFFFCF86),
+            ),
+            depth: _depthYacht,
+          ),
         ),
         // The deck the cast stands on. A cool, desaturating modulate lets the
         // warm wood catch the cool dusk field away from the lantern instead of
@@ -209,50 +259,6 @@ class BackdropScene {
         ),
         // The framing palms nearest the eye.
         ParallaxLayer(ImageLayer(SceneryAssets.lagosPalms), depth: _depthPalms),
-      ],
-      // Practical lights, painted OVER the grade so they read as warm dusk
-      // sources against the cooled field: the city/high-rise windows on the city
-      // plane and the yacht cabin windows on the yacht plane, added (BlendMode
-      // .plus) with a warm amber cast. Each has a soft blurred twin under it for
-      // halation/bloom, so the windows glow into the humid dusk air rather than
-      // reading as crisp clinical pinpoints.
-      emissiveLayers: [
-        ParallaxLayer(
-          ImageLayer(
-            SceneryAssets.lagosCityWindows,
-            blend: BlendMode.plus,
-            modulate: Color(0xFF97763F),
-            blurSigma: 11,
-            opacity: 0.82,
-          ),
-          depth: _depthCity,
-        ),
-        ParallaxLayer(
-          ImageLayer(
-            SceneryAssets.lagosCityWindows,
-            blend: BlendMode.plus,
-            modulate: Color(0xFFFFD08A),
-          ),
-          depth: _depthCity,
-        ),
-        ParallaxLayer(
-          ImageLayer(
-            SceneryAssets.lagosYachtWindows,
-            blend: BlendMode.plus,
-            modulate: Color(0xFF947340),
-            blurSigma: 10,
-            opacity: 0.8,
-          ),
-          depth: _depthYacht,
-        ),
-        ParallaxLayer(
-          ImageLayer(
-            SceneryAssets.lagosYachtWindows,
-            blend: BlendMode.plus,
-            modulate: Color(0xFFFFCF86),
-          ),
-          depth: _depthYacht,
-        ),
       ],
       foregroundLayers: [VignetteLayer(dim: 0.12)],
       imageAssets: [
@@ -278,12 +284,6 @@ class BackdropScene {
 
   /// Layers painted in front of the content (foreground occluders).
   final List<BackdropLayer> foregroundLayers;
-
-  /// Practical-light layers painted OVER the graded backdrop but still behind the
-  /// content — held out of the colour grade so lit windows / cabin / lanterns
-  /// glow warm against the cooled blue-hour field instead of being cooled and
-  /// crushed with it. They still parallax on their own plane.
-  final List<BackdropLayer> emissiveLayers;
 
   /// Asset paths the scene's [ImageLayer]s need decoded before they can paint.
   final List<String> imageAssets;

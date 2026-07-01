@@ -1,18 +1,26 @@
 import 'dart:ui' as ui;
 
 import 'package:dancing_cats/features/scenery/layers/backdrop_layer.dart';
+import 'package:dancing_cats/features/scenery/layers/emissive_layer.dart';
 import 'package:dancing_cats/features/scenery/model/backdrop_grade.dart';
 import 'package:dancing_cats/features/scenery/model/backdrop_palette.dart';
 import 'package:dancing_cats/features/scenery/runtime/backdrop_grade_painter.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Records how many times it was painted so tests can prove which path ran.
+/// Records paint order into a shared log so tests can prove occlusion order.
 class _RecordingLayer implements BackdropLayer {
+  _RecordingLayer([this.log, this.name]);
+
+  final List<String>? log;
+  final String? name;
   int paints = 0;
 
   @override
-  void paint(Canvas canvas, BackdropContext ctx) => paints++;
+  void paint(Canvas canvas, BackdropContext ctx) {
+    paints++;
+    if (log != null && name != null) log!.add(name!);
+  }
 }
 
 BackdropContext _ctx(Size size) =>
@@ -49,21 +57,23 @@ void main() {
     expect(layer.paints, 1);
   });
 
-  test('the direct-paint path also paints the emissive practical layers', () {
-    final layer = _RecordingLayer();
-    final emissive = _RecordingLayer();
+  test('the direct-paint path paints emissive layers inline, in order', () {
+    final log = <String>[];
     final canvas = Canvas(ui.PictureRecorder());
     paintGradedBackdrop(
       canvas: canvas,
       size: size,
-      layers: [layer],
+      layers: [
+        _RecordingLayer(log, 'city'),
+        EmissiveLayer(_RecordingLayer(log, 'cityLights')),
+        _RecordingLayer(log, 'yacht'),
+      ],
       ctx: _ctx(size),
       grade: BackdropGrade.identity,
       gradeProgram: null,
-      emissiveLayers: [emissive],
     );
-    expect(layer.paints, 1);
-    expect(emissive.paints, 1);
+    // Everything paints once, in stack order (yacht over the city lights).
+    expect(log, ['city', 'cityLights', 'yacht']);
   });
 
   testWidgets('an empty size falls back to direct paint (no offscreen)', (
@@ -96,14 +106,17 @@ void main() {
       final program = await ui.FragmentProgram.fromAsset(
         'shaders/scenery_grade.frag',
       );
-      final layer = _RecordingLayer();
       final recorder = ui.PictureRecorder();
       final canvas = Canvas(recorder);
-      final emissive = _RecordingLayer();
+      final log = <String>[];
       paintGradedBackdrop(
         canvas: canvas,
         size: size,
-        layers: [layer],
+        layers: [
+          _RecordingLayer(log, 'city'),
+          EmissiveLayer(_RecordingLayer(log, 'cityLights')),
+          _RecordingLayer(log, 'yacht'),
+        ],
         ctx: _ctx(size),
         grade: gradeFromWheels(
           gain: const GradeWheel(master: 0.3),
@@ -111,12 +124,11 @@ void main() {
           saturation: 0.8,
         ),
         gradeProgram: program,
-        emissiveLayers: [emissive],
       );
-      // The layers are composited into the offscreen picture, then graded; the
-      // emissive practicals are painted OVER the graded result (not graded).
-      expect(layer.paints, 1);
-      expect(emissive.paints, 1);
+      // The city batch is graded + drawn, then the emissive city lights are
+      // painted OVER it (out of grade), then the yacht batch grades + draws over
+      // the lights — so the nearer yacht occludes the city windows behind it.
+      expect(log, ['city', 'cityLights', 'yacht']);
       // The graded frame rasterizes cleanly.
       final picture = recorder.endRecording();
       final image = await picture.toImage(64, 36);

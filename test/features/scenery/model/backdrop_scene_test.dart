@@ -1,12 +1,14 @@
 import 'dart:ui' show BlendMode;
 
 import 'package:dancing_cats/features/scenery/layers/atmospheric_haze_layer.dart';
+import 'package:dancing_cats/features/scenery/layers/backdrop_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/bridge_police_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/city_lights_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/cloud_parallax_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/deck_glow_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/distant_jet_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/drone_show_layer.dart';
+import 'package:dancing_cats/features/scenery/layers/emissive_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/image_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/ocean_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/parallax_layer.dart';
@@ -141,18 +143,35 @@ void main() {
   });
 
   group('BackdropScene.lagosLayeredWaterfront', () {
-    List<ImageLayer> imageLayers() => [
+    // Unwrap a stack entry (ParallaxLayer, or EmissiveLayer wrapping one) to its
+    // ImageLayer, or null.
+    ImageLayer? imageOf(BackdropLayer l) {
+      final inner = l is EmissiveLayer ? l.child : l;
+      if (inner is ParallaxLayer && inner.child is ImageLayer) {
+        return inner.child as ImageLayer;
+      }
+      return null;
+    }
+
+    // ImageLayers from the NORMAL (graded) layers, in stack order.
+    List<ImageLayer> normalImages() => [
       for (final l in BackdropScene.lagosLayeredWaterfront().layers)
-        if (l is ParallaxLayer && l.child is ImageLayer) l.child as ImageLayer,
+        if (l is! EmissiveLayer && imageOf(l) != null) imageOf(l)!,
+    ];
+
+    // ImageLayers from the EMISSIVE (out-of-grade) layers, in stack order.
+    List<ImageLayer> emissiveImages() => [
+      for (final l in BackdropScene.lagosLayeredWaterfront().layers)
+        if (l is EmissiveLayer && imageOf(l) != null) imageOf(l)!,
     ];
 
     double depthOf(String assetKey) {
-      final scene = BackdropScene.lagosLayeredWaterfront();
-      for (final l in [...scene.layers, ...scene.emissiveLayers]) {
-        if (l is ParallaxLayer &&
-            l.child is ImageLayer &&
-            (l.child as ImageLayer).assetKey == assetKey) {
-          return l.depth;
+      for (final l in BackdropScene.lagosLayeredWaterfront().layers) {
+        final inner = l is EmissiveLayer ? l.child : l;
+        if (inner is ParallaxLayer &&
+            inner.child is ImageLayer &&
+            (inner.child as ImageLayer).assetKey == assetKey) {
+          return inner.depth;
         }
       }
       throw StateError('no ParallaxLayer for $assetKey');
@@ -162,14 +181,12 @@ void main() {
       final scene = BackdropScene.lagosLayeredWaterfront();
       expect(scene.layers, isNotEmpty);
       for (final l in scene.layers) {
-        expect(l, isA<ParallaxLayer>());
-        expect((l as ParallaxLayer).child, isA<ImageLayer>());
+        expect(imageOf(l), isNotNull);
       }
     });
 
     test('composites base -> city -> yacht -> deck -> palms, front to back', () {
-      final keys = [for (final l in imageLayers()) l.assetKey];
-      expect(keys, [
+      expect([for (final l in normalImages()) l.assetKey], [
         SceneryAssets.lagosSkyOcean,
         SceneryAssets.lagosCityBridge,
         SceneryAssets.lagosYacht,
@@ -179,19 +196,16 @@ void main() {
     });
 
     test('the yacht hull is cooled/dimmed so it stops clipping white', () {
-      final yacht = imageLayers().firstWhere(
+      final yacht = normalImages().firstWhere(
         (l) => l.assetKey == SceneryAssets.lagosYacht,
       );
       expect(yacht.modulate, isNotNull);
     });
 
     test('lit windows are emissive: held out of the grade, added, and warm', () {
-      final emissive = [
-        for (final l in BackdropScene.lagosLayeredWaterfront().emissiveLayers)
-          if (l is ParallaxLayer && l.child is ImageLayer) l.child as ImageLayer,
-      ];
+      final emissive = emissiveImages();
       // Both window fields are present (each as a crisp layer plus a blurred
-      // bloom twin) and nothing else.
+      // bloom twin) and nothing else is emissive.
       expect(
         emissive.map((l) => l.assetKey).toSet(),
         {SceneryAssets.lagosCityWindows, SceneryAssets.lagosYachtWindows},
@@ -203,11 +217,33 @@ void main() {
         expect(l.modulate!.r, greaterThan(l.modulate!.b)); // warm
       }
       // Each field has a blurred bloom twin for halation.
-      expect(emissive.where((l) => l.blurSigma > 0).length, greaterThanOrEqualTo(2));
+      expect(
+        emissive.where((l) => l.blurSigma > 0).length,
+        greaterThanOrEqualTo(2),
+      );
+    });
+
+    test('the nearer yacht is drawn after the city windows, so it occludes them', () {
+      // The city-window EmissiveLayers sit BEFORE the (normal, graded) yacht in
+      // the stack, so the yacht grades and draws over them — no city lights bleed
+      // onto the hull.
+      final layers = BackdropScene.lagosLayeredWaterfront().layers;
+      final lastCityLight = layers.lastIndexWhere(
+        (l) =>
+            l is EmissiveLayer &&
+            imageOf(l)?.assetKey == SceneryAssets.lagosCityWindows,
+      );
+      final yachtIndex = layers.indexWhere(
+        (l) =>
+            l is! EmissiveLayer &&
+            imageOf(l)?.assetKey == SceneryAssets.lagosYacht,
+      );
+      expect(lastCityLight, greaterThanOrEqualTo(0));
+      expect(yachtIndex, greaterThan(lastCityLight));
     });
 
     test('the deck is cooled so its warm wood catches the dusk field', () {
-      final deck = imageLayers().firstWhere(
+      final deck = normalImages().firstWhere(
         (l) => l.assetKey == SceneryAssets.lagosDeck,
       );
       expect(deck.modulate, isNotNull);
