@@ -165,14 +165,14 @@ void main() {
       expect(fast.dx, greaterThan(slow.dx));
     });
 
-    test('a held punch settles onto its home within about half a second', () {
+    test('a held punch settles onto its home within about a second', () {
       final rig = DanceCameraRig()
         ..update(target: (zoom: 1.06, dx: 0, dy: 0), punch: false, dt: 1 / 60);
-      const home = (zoom: 1.56, dx: 200.0, dy: 0.0);
-      // ~0.5s of punching (30 frames at 60fps) — several punch time-constants,
-      // so the fast zoom has essentially arrived. A slow glide is only ~halfway
-      // there by this point (see the contrast test below).
-      for (var i = 0; i < 30; i++) {
+      const home = (zoom: 1.44, dx: 200.0, dy: 0.0);
+      // ~1s of punching (60 frames at 60fps) — several punch time-constants at
+      // the slowed 0.30s punch, so the fast zoom has essentially arrived. A slow
+      // glide is still well short by this point (see the contrast test below).
+      for (var i = 0; i < 60; i++) {
         rig.update(target: home, punch: true, dt: 1 / 60);
       }
       expect(rig.current.zoom, moreOrLessEquals(home.zoom, epsilon: 1e-2));

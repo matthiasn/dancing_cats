@@ -210,12 +210,13 @@ Shot _chorusShot(DanceCameraContext c) {
       1.0,
     ); // settle in, then hold
     final midPush =
-        0.05 * math.sin((math.min(c.sectionPhase, 0.9) / 0.9) * math.pi);
-    final z = 1.50 + 0.06 * rise + midPush; // ~1.50 -> 1.56, bulging ~1.61 mid
+        0.04 * math.sin((math.min(c.sectionPhase, 0.9) / 0.9) * math.pi);
+    final z = 1.40 + 0.05 * rise + midPush; // ~1.40 -> 1.45, bulging ~1.49 mid
     // Keep the sway readable but inside the cast-safe band: with hero staging
     // enabled, the old 0.34 amplitude pushed a background dancer into a sliced
-    // side crop during close post-chorus frames.
-    final sway = math.sin(c.phrasePhase * 2 * math.pi) * 0.2; // beat-phrased
+    // side crop during close post-chorus frames. Wider frames now, so it can
+    // carry the parallax laterally rather than tightening.
+    final sway = math.sin(c.phrasePhase * 2 * math.pi) * 0.16; // beat-phrased
     return (zoom: z, dx: sway * z * kSideCatCentreRef, dy: 0);
   }
 
@@ -226,8 +227,8 @@ Shot _chorusShot(DanceCameraContext c) {
   // slow breathing push so the song has room to grow. ONE continuous home; the rig
   // PUNCHES into it on the downbeat — a fast zoom (see [isCameraPunch]).
   if (c.build < 0.30) {
-    final push = 0.05 * c.sectionPhase; // 1.40 -> 1.45 across the section
-    return (zoom: 1.40 + push + breathe, dx: 0, dy: 0);
+    final push = 0.06 * c.sectionPhase; // 1.30 -> 1.36 across the section
+    return (zoom: 1.30 + push + breathe, dx: 0, dy: 0);
   }
 
   // THIRD CHORUS (late, pre-finale): its signature HOME is a committed RIGHT
@@ -239,16 +240,16 @@ Shot _chorusShot(DanceCameraContext c) {
     // Held wider than before (vista + legwork breathe); the right lean is a touch
     // shallower (0.38) so the bright yacht hull on this side doesn't pull focus
     // from the lead.
-    final z = 1.44 + 0.05 * c.sectionPhase; // slow tighten across the section
-    return (zoom: z + breathe, dx: _lean(z, 0.38, left: false), dy: 0);
+    final z = 1.36 + 0.05 * c.sectionPhase; // slow tighten across the section
+    return (zoom: z + breathe, dx: _lean(z, 0.34, left: false), dy: 0);
   }
 
   // SECOND CHORUS: its signature HOME is a committed LEFT two-shot favouring the
   // silver backup — the mirror of chorus 3 and a distinct anchor, so the refrains
   // never read as one looped centred shot. Held wider than before so the vista and
   // legwork breathe; the rig PUNCHES into it on the downbeat ([isCameraPunch]).
-  final z = 1.44 + 0.05 * c.sectionPhase;
-  return (zoom: z + breathe, dx: _lean(z, 0.42, left: true), dy: 0);
+  final z = 1.36 + 0.05 * c.sectionPhase;
+  return (zoom: z + breathe, dx: _lean(z, 0.38, left: true), dy: 0);
 }
 
 /// Bridge (background-only): TWO committed singer-feature framings with a fast
@@ -260,15 +261,15 @@ Shot _chorusShot(DanceCameraContext c) {
 /// a committed lean but holds the whole trio readable.
 Shot _bridgeShot(DanceCameraContext c) {
   final featuringLeft = c.sectionPhase < 0.5;
-  const z = 1.50;
-  return (zoom: z, dx: _lean(z, 0.36, left: featuringLeft), dy: 0);
+  const z = 1.40;
+  return (zoom: z, dx: _lean(z, 0.34, left: featuringLeft), dy: 0);
 }
 
 /// Pre-chorus: a strictly monotonic crane-push, crest capped (~1.52) just under
 /// the chorus drop so the downbeat punches above it for a felt jump (no reset).
 Shot _preChorusShot(DanceCameraContext c) {
   final p = c.sectionPhase; // monotonic 0..1 across the pre-chorus
-  return (zoom: 1.22 + 0.30 * p, dx: 0, dy: 0);
+  return (zoom: 1.18 + 0.20 * p, dx: 0, dy: 0);
 }
 
 /// Outro: ease the energy down across the section so the piece settles into the
@@ -277,13 +278,13 @@ Shot _preChorusShot(DanceCameraContext c) {
 /// rig glides the whole de-escalation as one long pull-back.
 Shot _outroShot(DanceCameraContext c) {
   final p = c.sectionPhase; // 0..1
-  final z = 1.48 - 0.38 * p; // 1.48 -> 1.10, toward the 1.06 establish
+  final z = 1.40 - 0.32 * p; // 1.40 -> 1.08, toward the 1.06 establish
   final sway = math.sin(
     c.phrasePhase * 2 * math.pi,
   ); // smooth, 0 at phrase ends
   return (
     zoom: z,
-    dx: sway * 70 * (1 - p), // gentle truck that fades out as it settles
+    dx: sway * 90 * (1 - p), // slow truck that fades out as it settles
     dy: kHorizonDropPx * p, // eases into the idle establish's wide trim
   );
 }
@@ -295,7 +296,7 @@ Shot _outroShot(DanceCameraContext c) {
 /// bridge — rather than a frozen centred three-shot parked for the section's
 /// length (which read as the operator falling asleep).
 Shot _verseShot(DanceCameraContext c) {
-  final z = 1.36 + 0.09 * c.sectionPhase; // slow push across the section
-  final drift = math.sin(c.phrasePhase * 2 * math.pi) * 0.06; // gentle sway
+  final z = 1.28 + 0.08 * c.sectionPhase; // slow push across the section
+  final drift = math.sin(c.phrasePhase * 2 * math.pi) * 0.12; // slow sway-truck
   return (zoom: z, dx: drift * z * kSideCatCentreRef, dy: 0);
 }

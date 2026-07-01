@@ -2,16 +2,19 @@ import 'package:dancing_cats/features/character/demo/dance_camera_director.dart'
 
 /// Default smoothing time (seconds) for the dance camera rig's ordinary moves.
 /// Roughly how long a framing change takes to resolve, so re-stagings read as
-/// deliberate dolly moves rather than snaps. Tuned for a graceful, high-
-/// production-value glide.
-const double kDanceCameraSmoothTime = 0.7;
+/// deliberate dolly moves rather than snaps. Slowed from 0.7 so the bigger, wider
+/// re-stagings glide in over nearly a second and every settle is itself a slow
+/// plane-slide that lets the multi-plane depth read.
+const double kDanceCameraSmoothTime = 0.85;
 
-/// Fast smoothing time (seconds) for an accented PUNCH — the quick zoom/whip the
-/// director calls for on the Afrobeats chorus drop and the bridge singer
-/// hand-offs (see [DanceCameraRig.update]'s `punch`). Short enough to arrive in
-/// a few tenths of a second so it reads as a deliberate snap-zoom, yet still a
-/// continuous move: it replaces the old hard cut without ever teleporting.
-const double kDanceCameraPunchTime = 0.14;
+/// Fast smoothing time (seconds) for an accented PUNCH — the depth-scaled dolly
+/// the director calls for on the Afrobeats chorus drop and the bridge singer
+/// hand-offs (see [DanceCameraRig.update]'s `punch`). Slowed from 0.14: an ~8-frame
+/// snap was too brief for the eye to track a plane sliding, so it flattened the
+/// parallax exactly on the accent. ~0.30s still lands on the downbeat and reads
+/// 3x faster than the dolly, but slow enough that the deck streaks past the
+/// skyline — the accent becomes the parallax beat, not a scale-pop.
+const double kDanceCameraPunchTime = 0.3;
 
 /// Critically-damped smoothing toward [target] — the standard SmoothDamp. Unlike
 /// a first-order lag it eases BOTH in and out (an S-shaped approach) with no

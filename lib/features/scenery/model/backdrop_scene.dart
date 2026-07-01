@@ -109,7 +109,7 @@ class BackdropScene {
         // clear as the city — a heavy defocus + cool dim made a mid-distance
         // object foggier than the distant towers (a depth inversion). Keep only
         // a light cool exposure pull so it doesn't blaze as a foreground hero,
-        // and NO blur, so the depth ladder stays monotonic. The warm cabin
+        // and NO blur, so it reads as a clean mid-distance object. The warm cabin
         // windows are added after this (CityLightsLayer) so the glow reads on top.
         ParallaxLayer(
           ImageLayer(

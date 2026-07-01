@@ -954,8 +954,17 @@ class CharacterPainter extends CustomPainter {
     bool scaleDy = false,
   }) {
     final pivot = Offset(size.width / 2, size.height * pivotFraction);
+    // Horizontal pivot is centred, so the exposed side margin is symmetric.
     final maxDx = size.width * (camera.zoom - 1) / 2;
-    final maxDy = size.height * (camera.zoom - 1) / 2;
+    // Vertical coverage is ASYMMETRIC: the pivot sits off-centre (the feet line),
+    // and scaling by z about fraction f exposes f·span above the pivot and
+    // (1-f)·span below it. So a plane can travel DOWN by f·span before its top
+    // edge reveals, and UP by (1-f)·span before its bottom edge does. A symmetric
+    // ±span/2 clamp would let a strong upward lift pop the bottom edge open at the
+    // low (0.88) director pivot — this asymmetric bound makes edge-safety exact.
+    final vSpan = size.height * (camera.zoom - 1);
+    final maxDown = pivotFraction * vSpan;
+    final maxUp = (1 - pivotFraction) * vSpan;
     final dx = (camera.dx * size.width / _danceCameraRefWidth).clamp(
       -maxDx,
       maxDx,
@@ -963,7 +972,7 @@ class CharacterPainter extends CustomPainter {
     final rawDy = scaleDy
         ? camera.dy * size.height / _danceCameraRefHeight
         : camera.dy;
-    final dy = rawDy.clamp(-maxDy, maxDy);
+    final dy = rawDy.clamp(-maxUp, maxDown);
     return (pivot: pivot, dx: dx, dy: dy);
   }
 
