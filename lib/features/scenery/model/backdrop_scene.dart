@@ -199,15 +199,33 @@ class BackdropScene {
           ImageLayer(SceneryAssets.lagosYacht, modulate: Color(0xFFAAB6CC)),
           depth: _depthYacht,
         ),
-        // The deck the cast stands on, then the framing palms nearest the eye.
-        ParallaxLayer(ImageLayer(SceneryAssets.lagosDeck), depth: _depthDeck),
+        // The deck the cast stands on. A cool, desaturating modulate lets the
+        // warm wood catch the cool dusk field away from the lantern instead of
+        // running hot against everything else.
+        ParallaxLayer(
+          ImageLayer(SceneryAssets.lagosDeck, modulate: Color(0xFFB4B8C4)),
+          depth: _depthDeck,
+        ),
+        // The framing palms nearest the eye.
         ParallaxLayer(ImageLayer(SceneryAssets.lagosPalms), depth: _depthPalms),
       ],
       // Practical lights, painted OVER the grade so they read as warm dusk
       // sources against the cooled field: the city/high-rise windows on the city
       // plane and the yacht cabin windows on the yacht plane, added (BlendMode
-      // .plus) with a warm amber cast so they bloom rather than sit flat.
+      // .plus) with a warm amber cast. Each has a soft blurred twin under it for
+      // halation/bloom, so the windows glow into the humid dusk air rather than
+      // reading as crisp clinical pinpoints.
       emissiveLayers: [
+        ParallaxLayer(
+          ImageLayer(
+            SceneryAssets.lagosCityWindows,
+            blend: BlendMode.plus,
+            modulate: Color(0xFF8C6E3A),
+            blurSigma: 9,
+            opacity: 0.7,
+          ),
+          depth: _depthCity,
+        ),
         ParallaxLayer(
           ImageLayer(
             SceneryAssets.lagosCityWindows,
@@ -215,6 +233,16 @@ class BackdropScene {
             modulate: Color(0xFFFFD08A),
           ),
           depth: _depthCity,
+        ),
+        ParallaxLayer(
+          ImageLayer(
+            SceneryAssets.lagosYachtWindows,
+            blend: BlendMode.plus,
+            modulate: Color(0xFF8A6A38),
+            blurSigma: 8,
+            opacity: 0.7,
+          ),
+          depth: _depthYacht,
         ),
         ParallaxLayer(
           ImageLayer(

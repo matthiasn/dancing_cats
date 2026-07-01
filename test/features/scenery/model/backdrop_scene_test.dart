@@ -190,16 +190,28 @@ void main() {
         for (final l in BackdropScene.lagosLayeredWaterfront().emissiveLayers)
           if (l is ParallaxLayer && l.child is ImageLayer) l.child as ImageLayer,
       ];
+      // Both window fields are present (each as a crisp layer plus a blurred
+      // bloom twin) and nothing else.
       expect(
-        [for (final l in emissive) l.assetKey],
-        [SceneryAssets.lagosCityWindows, SceneryAssets.lagosYachtWindows],
+        emissive.map((l) => l.assetKey).toSet(),
+        {SceneryAssets.lagosCityWindows, SceneryAssets.lagosYachtWindows},
       );
-      // Additive glow with a warm (amber) cast, so practicals bloom warm.
+      // Every emissive layer is an additive, warm (amber) practical.
       for (final l in emissive) {
         expect(l.blend, BlendMode.plus);
         expect(l.modulate, isNotNull);
         expect(l.modulate!.r, greaterThan(l.modulate!.b)); // warm
       }
+      // Each field has a blurred bloom twin for halation.
+      expect(emissive.where((l) => l.blurSigma > 0).length, greaterThanOrEqualTo(2));
+    });
+
+    test('the deck is cooled so its warm wood catches the dusk field', () {
+      final deck = imageLayers().firstWhere(
+        (l) => l.assetKey == SceneryAssets.lagosDeck,
+      );
+      expect(deck.modulate, isNotNull);
+      expect(deck.modulate!.b, greaterThan(deck.modulate!.r)); // cool
     });
 
     test('each plane rides its own depth: palms nearest, sky farthest', () {

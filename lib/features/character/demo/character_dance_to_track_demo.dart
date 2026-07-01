@@ -148,17 +148,20 @@ const GradeWheel _kBlueHourLift = GradeWheel(
 );
 const GradeWheel _kBlueHourGamma = GradeWheel(
   balance: Offset(0.04, 0.17),
-  master: -0.22,
+  master: -0.13,
 );
 const GradeWheel _kBlueHourGain = GradeWheel(
   balance: Offset(0.17, -0.23),
-  master: -0.8,
+  master: -0.74,
 );
-const double _kBlueHourSaturation = 0.78;
+const double _kBlueHourSaturation = 0.74;
 const double _kBlueHourTemperature = -0.5;
 const double _kBlueHourTint = 0.06;
-const double _kBlueHourContrast = 1.1;
-const double _kBlueHourPivot = 0.44;
+// Low-key but gently compressed: a below-neutral contrast pulls the blown cloud
+// tops DOWN toward the field and lifts the dark zenith UP toward it, so the sky
+// reads as luminous dusk rather than white cumulus over a near-night top.
+const double _kBlueHourContrast = 0.94;
+const double _kBlueHourPivot = 0.5;
 
 // The beat-synced choreography derivation (which move, warped clock, beat,
 // camera context), its data types, the track-config constants and the side-file
