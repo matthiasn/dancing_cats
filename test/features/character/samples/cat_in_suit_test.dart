@@ -393,6 +393,35 @@ void main() {
       expect(cuff.width, greaterThanOrEqualTo(18));
     });
 
+    test('arms carry an asymmetric muscle profile', () {
+      for (final id in const ['arm.L.ribbon', 'arm.R.ribbon']) {
+        final arm = rig.ribbons.singleWhere((r) => r.id == id);
+        final front = arm.halfWidths;
+        final back = arm.backHalfWidths!;
+        // [clavicle, deltoid, bicep, elbow, forearm, wrist]
+        expect(
+          front[2],
+          greaterThan(back[2]),
+          reason: 'the BICEP bulges on the front of the upper arm',
+        );
+        expect(
+          front[4],
+          greaterThan(back[4]),
+          reason: 'the forearm swell (brachioradialis) reads on the front',
+        );
+        expect(
+          front[3] + back[3],
+          lessThan(front[2] + back[2]),
+          reason: 'the elbow pinches between bicep and forearm masses',
+        );
+        expect(
+          front[5] + back[5],
+          lessThan(front[4] + back[4]),
+          reason: 'the wrist tapers out of the forearm',
+        );
+      }
+    });
+
     test('legs carry an asymmetric muscle profile', () {
       for (final id in const ['leg.L.ribbon', 'leg.R.ribbon']) {
         final leg = rig.ribbons.singleWhere((r) => r.id == id);
@@ -586,6 +615,10 @@ void main() {
       final farLeg = far.ribbons.singleWhere((r) => r.id == 'leg.L.ribbon');
       for (var i = 0; i < baseArm.halfWidths.length; i++) {
         expect(farArm.halfWidths[i], closeTo(baseArm.halfWidths[i] * upstage, 0.001));
+        expect(
+          farArm.backHalfWidths![i],
+          closeTo(baseArm.backHalfWidths![i] * upstage, 0.001),
+        );
       }
       for (var i = 0; i < baseLeg.halfWidths.length; i++) {
         expect(farLeg.halfWidths[i], closeTo(baseLeg.halfWidths[i] * upstage, 0.001));

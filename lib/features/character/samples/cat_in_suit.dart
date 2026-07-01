@@ -1374,7 +1374,14 @@ RigSpec buildCatInSuitRig({
         CatBones.armUpperR,
         CatBones.armLowerR,
       ],
-      halfWidths: scaledArmWidths(const [11.4, 11.0, 9.2, 7.5, 7.9, 5.3]),
+      // FRONT profile [clavicle, deltoid, bicep, elbow, forearm, wrist]:
+      // the BICEP carries the upper-arm mass and the forearm swells with the
+      // brachioradialis before tapering into the wrist.
+      halfWidths: scaledArmWidths(const [11.4, 11.2, 9.8, 7.2, 8.2, 5.2]),
+      // BACK profile: fuller triceps up high, a tight bony elbow point, and
+      // a lean forearm underside — the same put-the-mass-where-the-muscle-is
+      // asymmetry that makes the legs read athletic.
+      backHalfWidths: scaledArmWidths(const [11.4, 10.6, 8.6, 7.4, 7.0, 5.0]),
       z: 15,
       color: _sleeve,
       outlineColor: _outline,
@@ -1396,7 +1403,14 @@ RigSpec buildCatInSuitRig({
         CatBones.armUpperL,
         CatBones.armLowerL,
       ],
-      halfWidths: scaledArmWidths(const [11.4, 11.0, 9.2, 7.5, 7.9, 5.3]),
+      // FRONT profile [clavicle, deltoid, bicep, elbow, forearm, wrist]:
+      // the BICEP carries the upper-arm mass and the forearm swells with the
+      // brachioradialis before tapering into the wrist.
+      halfWidths: scaledArmWidths(const [11.4, 11.2, 9.8, 7.2, 8.2, 5.2]),
+      // BACK profile: fuller triceps up high, a tight bony elbow point, and
+      // a lean forearm underside — the same put-the-mass-where-the-muscle-is
+      // asymmetry that makes the legs read athletic.
+      backHalfWidths: scaledArmWidths(const [11.4, 10.6, 8.6, 7.4, 7.0, 5.0]),
       z: 16,
       color: _sleeveNear,
       outlineColor: _outline,
