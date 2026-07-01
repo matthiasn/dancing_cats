@@ -10,12 +10,13 @@
 /// - chorus: each refrain owns a DISTINCT, STABLE home held WIDE enough for the
 ///   vista and legwork to breathe — the first chorus centred, the second a
 ///   committed LEFT two-shot (silver), the third a committed RIGHT two-shot
-///   (dark), all capped well under the climax. The rig CUTS into each chorus on
-///   the downbeat (the Afrobeats cut-on-the-"1") and holds the home;
+///   (dark), all capped well under the climax. The rig PUNCHES into each chorus
+///   on the downbeat (a fast zoom on the Afrobeats "1") and holds the home;
 /// - bridge (background-only): the lead is silent and the backups trade the
-///   vocal, so the camera follows the VOICE — it CUTS onto the silver singer for
-///   the first half, then CUTS to the brown singer for the second, two committed
-///   favoured three-shots rather than one wide sweep that spotlights neither;
+///   vocal, so the camera follows the VOICE — it PUNCHES onto the silver singer
+///   for the first half, then whips to the brown singer for the second, two
+///   committed favoured three-shots rather than one wide sweep that spotlights
+///   neither;
 /// - post-chorus (closing hook): the climax — a grounded centred COIL that
 ///   visibly LOADS off-centre, with one motivated mid-coil push so the long load
 ///   breathes while keeping the full trio planted and readable;
@@ -39,10 +40,11 @@
 /// The demo does not apply it raw: a stateful `DanceCameraRig` eases the live
 /// camera toward this target every tick, so a change of section/home reads as a
 /// motivated DOLLY rather than a snap (a sustained dolly reads as higher
-/// production value than a cut). The exceptions are the genre CUTS: the rig snaps
-/// on the downbeat into each chorus ([isChorusDrop]) and onto each bridge
-/// singer-feature ([isBridgeCut]); verses and the closing hook stay dollies. The
-/// eased shot is what reaches `CharacterPainter.cameraOverride`.
+/// production value than a cut). The exceptions are the genre PUNCHES: on the
+/// chorus downbeat and each bridge singer hand-off ([isCameraPunch]) the rig
+/// zooms FAST to the new home instead of gliding — a snap-zoom, never an instant
+/// cut; verses and the closing hook stay slow dollies. The eased shot is what
+/// reaches `CharacterPainter.cameraOverride`.
 library;
 
 import 'dart:math' as math;
@@ -161,37 +163,32 @@ Shot cameraShot(DanceCameraContext c) {
   }
 }
 
-/// Reserved for future true cuts. The current camera language keeps the closing
-/// hook on a grounded dolly; the old tight legwork cut was dropped because it
-/// cropped the side dancers and weakened floor contact.
-bool isHardCut(DanceCameraContext c) => false;
-
-/// The Afrobeats downbeat cut INTO a chorus: a hard cut on the "1" of each
-/// refrain. The rig SNAPS to the chorus home instead of dollying into it, giving
-/// the choruses the genre's punchy cut-on-the-drop while verses stay dollies.
-/// Fires only on the opening beats of a chorus section; the director's chorus
-/// target itself stays continuous — this just tells the rig to arrive by a cut
-/// rather than a truck.
-bool isChorusDrop(DanceCameraContext c) =>
-    c.energetic && c.section == 'chorus' && c.sectionPhase < 0.03;
-
-/// The bridge singer-feature cuts. The bridge is background-only — the lead is
-/// SILENT while the two backups trade the vocal — so the camera follows the
-/// VOICE: it CUTS onto the silver singer at the bridge's open and CUTS again to
-/// the brown singer at the mid-bridge hand-off, instead of sliding the wide
-/// three-shot between them (which spotlighted neither). The rig snaps on these
-/// two frames; [_bridgeShot] holds a committed singer-feature two-shot between
-/// them. Mirrors the two segment boundaries in [_bridgeShot] (open ~0, hand-off
-/// ~0.5).
-bool isBridgeCut(DanceCameraContext c) =>
-    c.energetic &&
-    c.section == 'bridge' &&
-    (c.sectionPhase < 0.03 || (c.sectionPhase >= 0.5 && c.sectionPhase < 0.53));
+/// The accent frames where the camera arrives by a FAST PUNCH — a quick
+/// zoom/whip (the rig's `punchTime`) — instead of the usual slow dolly. Replaces
+/// the old hard cuts: the target itself stays continuous, so this only tells the
+/// rig to ARRIVE fast, never to teleport. Fires on:
+///   - the Afrobeats drop on the "1" of each chorus (the downbeat punch into the
+///     refrain), and
+///   - the two bridge singer hand-offs — onto the silver singer at the bridge's
+///     open and onto the brown singer at the mid-bridge swap, so the camera
+///     snaps to whoever is singing rather than drifting the wide three-shot
+///     between them (which spotlighted neither). Mirrors the two segment
+///     boundaries in [_bridgeShot] (open ~0, hand-off ~0.5).
+/// Everywhere else the rig glides at its normal slow pace.
+bool isCameraPunch(DanceCameraContext c) {
+  if (!c.energetic) return false;
+  if (c.section == 'chorus') return c.sectionPhase < 0.03;
+  if (c.section == 'bridge') {
+    return c.sectionPhase < 0.03 ||
+        (c.sectionPhase >= 0.5 && c.sectionPhase < 0.53);
+  }
+  return false;
+}
 
 /// Chorus / post-chorus: the hook. Each refrain owns a DISTINCT, STABLE home held
 /// WIDE enough that the golden-hour vista and the legwork both breathe, and the
-/// rig CUTS into it on the downbeat (the Afrobeats cut-on-the-"1"; see
-/// [isChorusDrop]) while verses stay dollies:
+/// rig PUNCHES into it on the downbeat (a fast zoom on the Afrobeats "1"; see
+/// [isCameraPunch]) while verses stay slow dollies:
 ///   - chorus 1 (build < 0.30): centred and the widest of the hooks;
 ///   - chorus 2 (0.30..0.62): a committed LEFT two-shot (silver backup);
 ///   - chorus 3 (build > 0.62): a committed RIGHT two-shot (dark backup);
@@ -227,17 +224,17 @@ Shot _chorusShot(DanceCameraContext c) {
   // FIRST CHORUS — the establish: centred and the WIDEST of the hooks, held wide
   // so the golden-hour Lagos vista breathes and the full legwork reads, with a
   // slow breathing push so the song has room to grow. ONE continuous home; the rig
-  // CUTS into it on the downbeat (see [isChorusDrop]).
+  // PUNCHES into it on the downbeat — a fast zoom (see [isCameraPunch]).
   if (c.build < 0.30) {
     final push = 0.05 * c.sectionPhase; // 1.40 -> 1.45 across the section
     return (zoom: 1.40 + push + breathe, dx: 0, dy: 0);
   }
 
   // THIRD CHORUS (late, pre-finale): its signature HOME is a committed RIGHT
-  // two-shot favouring the dark backup — a different anchor from chorus 2. The rig
-  // DOLLIES into it from the bridge/verse, so the commit reads as a deliberate
-  // truck onto the dark singer, not a cut. One continuous home, gently pushing and
-  // breathing, capped under the same grounded ceiling.
+  // two-shot favouring the dark backup — a different anchor from chorus 2. Like
+  // the other choruses the rig PUNCHES into it on the downbeat (a fast zoom onto
+  // the dark singer). One continuous home, gently pushing and breathing, capped
+  // under the same grounded ceiling.
   if (c.build > 0.62) {
     // Held wider than before (vista + legwork breathe); the right lean is a touch
     // shallower (0.38) so the bright yacht hull on this side doesn't pull focus
@@ -249,16 +246,16 @@ Shot _chorusShot(DanceCameraContext c) {
   // SECOND CHORUS: its signature HOME is a committed LEFT two-shot favouring the
   // silver backup — the mirror of chorus 3 and a distinct anchor, so the refrains
   // never read as one looped centred shot. Held wider than before so the vista and
-  // legwork breathe; the rig CUTS into it on the downbeat ([isChorusDrop]).
+  // legwork breathe; the rig PUNCHES into it on the downbeat ([isCameraPunch]).
   final z = 1.44 + 0.05 * c.sectionPhase;
   return (zoom: z + breathe, dx: _lean(z, 0.42, left: true), dy: 0);
 }
 
-/// Bridge (background-only): TWO committed singer-feature framings with a hard
-/// CUT between them (see [isBridgeCut]). The lead is silent and the backups trade
-/// the vocal, so the camera follows the VOICE — it favours the silver (left)
-/// backup for the first half, then CUTS to the brown (right) backup for the
-/// second. The old version intentionally left the off-side dancer as a thin edge
+/// Bridge (background-only): TWO committed singer-feature framings with a fast
+/// PUNCH between them (see [isCameraPunch]). The lead is silent and the backups
+/// trade the vocal, so the camera follows the VOICE — it favours the silver
+/// (left) backup for the first half, then whips to the brown (right) backup for
+/// the second. The old version intentionally left the off-side dancer as a thin edge
 /// sliver; with hero staging that read as accidental clipping. This version keeps
 /// a committed lean but holds the whole trio readable.
 Shot _bridgeShot(DanceCameraContext c) {

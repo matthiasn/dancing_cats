@@ -204,9 +204,10 @@ class CharacterPainter extends CustomPainter {
   /// When set, replaces the built-in [danceCameraShot] move with a caller-supplied
   /// shot `(zoom, dx, dy)` — applied verbatim (it owns the intensity, so
   /// [danceCameraStrength] is ignored). The dance-to-track demo's "virtual
-  /// director" uses this to cut between section-aware, per-phrase-varied shots
+  /// director" uses this to move between section-aware, per-phrase-varied shots
   /// instead of looping one move. A jump in the value between frames reads as a
-  /// hard cut; a smoothly-moving value reads as a continuous move.
+  /// hard cut; a smoothly-moving value reads as a continuous move (the demo's rig
+  /// always eases, so it dollies — fast on accents, slow otherwise — never cuts).
   final ({double zoom, double dx, double dy})? cameraOverride;
 
   /// Optional per-frame report of each ensemble member's resolved on-screen
@@ -1015,7 +1016,8 @@ class CharacterPainter extends CustomPainter {
   /// The reduced parallax transform a *separate* backdrop widget should apply
   /// for an explicit virtual-director [shot]. The dance-to-track demo drives the
   /// dance camera from `dance_camera_director.dart` (per-section framings with
-  /// cuts) rather than the built-in [danceCameraShot] keyframes, and feeds the same
+  /// fast accent punches) rather than the built-in [danceCameraShot] keyframes,
+  /// and feeds the same
   /// shot here so the scenery lags the dancers exactly as it does under the
   /// in-painter parallax. Mirrors [_applySceneCamera] reduced by
   /// [_parallaxCamera]. Returns identity when [active] is false, the stage is

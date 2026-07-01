@@ -113,7 +113,7 @@ void main() {
       final rig = DanceCameraRig();
       expect(rig.isInitialized, isFalse);
       const target = (zoom: 1.5, dx: 200.0, dy: 0.0);
-      final out = rig.update(target: target, cut: false, dt: 1 / 60);
+      final out = rig.update(target: target, punch: false, dt: 1 / 60);
       expect(out, target);
       expect(rig.current, target);
       expect(rig.isInitialized, isTrue);
@@ -121,9 +121,9 @@ void main() {
 
     test('a non-cut update eases toward the target instead of jumping', () {
       final rig = DanceCameraRig()
-        ..update(target: (zoom: 1.5, dx: 0, dy: 0), cut: false, dt: 1 / 60);
+        ..update(target: (zoom: 1.5, dx: 0, dy: 0), punch: false, dt: 1 / 60);
       const target = (zoom: 2.1, dx: 400.0, dy: 0.0);
-      final out = rig.update(target: target, cut: false, dt: 1 / 60);
+      final out = rig.update(target: target, punch: false, dt: 1 / 60);
       // Moved toward the target on each component, but nowhere near arriving in
       // one frame — a dolly, not a cut.
       expect(out.zoom, greaterThan(1.5));
@@ -132,47 +132,74 @@ void main() {
       expect(out.dx, lessThan(target.dx));
     });
 
-    test('a cut snaps to the target on the frame it fires', () {
-      final rig = DanceCameraRig()
-        ..update(target: (zoom: 1.56, dx: -210, dy: 0), cut: false, dt: 1 / 60);
-      const hero = (zoom: 2.1, dx: 0.0, dy: 0.0);
-      final out = rig.update(target: hero, cut: true, dt: 1 / 60);
-      expect(out, hero); // exact, no easing — the one hard cut
+    test('a punch zooms fast toward the target but never teleports', () {
+      // Same one-frame move, played as a punch and as a normal glide.
+      final fast =
+          (DanceCameraRig()
+                ..update(
+                  target: (zoom: 1.4, dx: 0, dy: 0),
+                  punch: false,
+                  dt: 1 / 60,
+                ))
+              .update(target: (zoom: 2.1, dx: 400, dy: 0), punch: true, dt: 1 / 60);
+      final slow =
+          (DanceCameraRig()
+                ..update(
+                  target: (zoom: 1.4, dx: 0, dy: 0),
+                  punch: false,
+                  dt: 1 / 60,
+                ))
+              .update(
+                target: (zoom: 2.1, dx: 400, dy: 0),
+                punch: false,
+                dt: 1 / 60,
+              );
+      // A punch is still continuous — it does NOT snap to the target in one
+      // frame (that was the old hard cut)...
+      expect(fast.zoom, greaterThan(1.4));
+      expect(fast.zoom, lessThan(2.1));
+      expect(fast.dx, lessThan(400));
+      // ...but it covers much more ground per frame than the slow glide: a fast
+      // zoom, not a teleport and not a lazy dolly.
+      expect(fast.zoom, greaterThan(slow.zoom));
+      expect(fast.dx, greaterThan(slow.dx));
     });
 
-    test('a cut clears momentum, so the move after it starts from rest', () {
+    test('a held punch settles onto its home within about half a second', () {
       final rig = DanceCameraRig()
-        ..update(target: (zoom: 1.5, dx: -300, dy: 0), cut: false, dt: 1 / 60);
-      // Build up POSITIVE dx velocity easing toward a far +dx target...
-      for (var i = 0; i < 10; i++) {
-        rig.update(target: (zoom: 2.0, dx: 400, dy: 0), cut: false, dt: 1 / 60);
+        ..update(target: (zoom: 1.06, dx: 0, dy: 0), punch: false, dt: 1 / 60);
+      const home = (zoom: 1.56, dx: 200.0, dy: 0.0);
+      // ~0.5s of punching (30 frames at 60fps) — several punch time-constants,
+      // so the fast zoom has essentially arrived. A slow glide is only ~halfway
+      // there by this point (see the contrast test below).
+      for (var i = 0; i < 30; i++) {
+        rig.update(target: home, punch: true, dt: 1 / 60);
       }
-      // ...then a hard cut to the centred hero.
-      rig.update(target: (zoom: 2.1, dx: 0, dy: 0), cut: true, dt: 1 / 60);
-      expect(rig.current, (zoom: 2.1, dx: 0.0, dy: 0.0));
-      // One non-cut step toward a NEGATIVE-dx home must head negative
-      // immediately. Had the prior positive velocity survived the cut, the first
-      // step would still drift dx positive (away from the new home); it heading
-      // negative proves the cut zeroed the momentum. And it only inches (a dolly).
-      final out = rig.update(
-        target: (zoom: 1.5, dx: -300, dy: 0),
-        cut: false,
-        dt: 1 / 60,
-      );
-      expect(
-        out.dx,
-        lessThan(0),
-        reason: 'moves toward the new home from rest',
-      );
-      expect(out.dx.abs(), lessThan(60), reason: 'a dolly inches, never jumps');
+      expect(rig.current.zoom, moreOrLessEquals(home.zoom, epsilon: 1e-2));
+      expect(rig.current.dx, moreOrLessEquals(home.dx, epsilon: 2));
+    });
+
+    test('a punch is faster than a glide over the same elapsed time', () {
+      double zoomAfter({required bool punch, required int steps}) {
+        final rig = DanceCameraRig()
+          ..update(target: (zoom: 1.0, dx: 0, dy: 0), punch: false, dt: 1 / 60);
+        for (var i = 0; i < steps; i++) {
+          rig.update(target: (zoom: 2.0, dx: 0, dy: 0), punch: punch, dt: 1 / 60);
+        }
+        return rig.current.zoom;
+      }
+
+      // After 0.1s the punch has covered far more of the 1.0 -> 2.0 push than the
+      // slow glide has.
+      expect(zoomAfter(punch: true, steps: 6), greaterThan(zoomAfter(punch: false, steps: 6)));
     });
 
     test('eventually converges onto a held target', () {
       final rig = DanceCameraRig()
-        ..update(target: (zoom: 1.06, dx: 0, dy: 8), cut: false, dt: 1 / 60);
+        ..update(target: (zoom: 1.06, dx: 0, dy: 8), punch: false, dt: 1 / 60);
       const home = (zoom: 1.52, dx: 220.0, dy: 0.0);
       for (var i = 0; i < 300; i++) {
-        rig.update(target: home, cut: false, dt: 1 / 60);
+        rig.update(target: home, punch: false, dt: 1 / 60);
       }
       expect(rig.current.zoom, moreOrLessEquals(home.zoom, epsilon: 1e-2));
       expect(rig.current.dx, moreOrLessEquals(home.dx, epsilon: 1));
@@ -181,11 +208,11 @@ void main() {
 
     test('a non-positive dt holds the framing (no snap on a stalled tick)', () {
       final rig = DanceCameraRig()
-        ..update(target: (zoom: 1.5, dx: 100, dy: 0), cut: false, dt: 1 / 60);
+        ..update(target: (zoom: 1.5, dx: 100, dy: 0), punch: false, dt: 1 / 60);
       final held = rig.current;
       final out = rig.update(
         target: (zoom: 2.0, dx: 0, dy: 0),
-        cut: false,
+        punch: false,
         dt: 0,
       );
       expect(out, held);
