@@ -678,11 +678,15 @@ class CharacterScene {
 
       commitSolution(solved);
 
-      // Full-strength targets are choreographic controls, not soft hints. Run a
-      // single corrective pass from the just-updated pose so wrists/feet land
-      // closer to their controls when parent rotations and support anchors have
-      // moved the chain during the first solve.
-      if (weight >= 0.98 && target.anchorBoneId != target.upperBoneId) {
+      // Strong targets are choreographic controls, not soft hints. Run a
+      // corrective second solve from the just-updated pose so wrists/feet
+      // land closer to their controls when parent rotations and support
+      // anchors have moved the chain during the first solve. The correction
+      // FADES IN as the authored weight approaches full strength — the old
+      // hard weight>=0.98 gate switched the extra solve on discretely as an
+      // interpolated weight crossed it, stepping the end effector.
+      final refineBlend = _smoothUnit((weight - 0.9) / 0.1);
+      if (refineBlend > 0 && target.anchorBoneId != target.upperBoneId) {
         final refined = _solveLimbTarget(
           target,
           sample,
@@ -692,7 +696,30 @@ class CharacterScene {
           anchorBlend: planted ? footAnchor.blend : 0,
         );
         if (refined != null) {
-          commitSolution(refined);
+          final first = (
+            upper: joints[target.upperBoneId] ?? JointPose.identity,
+            lower: joints[target.lowerBoneId] ?? JointPose.identity,
+          );
+          commitSolution((
+            upper: JointPose(
+              rotation: _lerpAngle(
+                first.upper.rotation,
+                refined.upper.rotation,
+                refineBlend,
+              ),
+              scaleX: refined.upper.scaleX,
+              scaleY: refined.upper.scaleY,
+            ),
+            lower: JointPose(
+              rotation: _lerpAngle(
+                first.lower.rotation,
+                refined.lower.rotation,
+                refineBlend,
+              ),
+              scaleX: refined.lower.scaleX,
+              scaleY: refined.lower.scaleY,
+            ),
+          ));
         }
       }
 

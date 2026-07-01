@@ -113,12 +113,17 @@ class DancePlaybackStepper {
     if (transition == null) return raw;
 
     final elapsed = transition.elapsed + dt;
-    if (elapsed >= kDanceMoveTransitionSeconds) {
+    // Dance↔dance keeps the tight window (hits survive); easing into or out
+    // of REST takes a longer, calmer settle.
+    final window = transition.from.energetic && raw.energetic
+        ? kDanceMoveTransitionSeconds
+        : kDanceRestTransitionSeconds;
+    if (elapsed >= window) {
       _transition = null;
       return raw;
     }
     _transition = transition.withElapsed(elapsed);
-    final weight = smoothstep(elapsed / kDanceMoveTransitionSeconds);
+    final weight = smoothstep(elapsed / window);
     return _blendStage(from: transition.from, to: raw, weight: weight);
   }
 }
@@ -128,6 +133,10 @@ class DancePlaybackStepper {
 /// It is intentionally less than half a beat at 120 BPM: long enough to remove
 /// robotic pose cuts, short enough to preserve Afrobeats hits and foot plants.
 const double kDanceMoveTransitionSeconds = 0.18;
+
+/// The longer settle used when the trio eases into or out of REST (idle):
+/// nothing musical to preserve there, and a calm body change reads better.
+const double kDanceRestTransitionSeconds = 0.45;
 
 const _bodyBlendWindow = ClipBlendWindow(end: 0.72);
 const _shoulderBlendWindow = ClipBlendWindow(start: 0.06, end: 0.88);
@@ -199,17 +208,13 @@ String _stageSignature(DanceStage stage) => [
   for (final clip in stage.ensemble) clip.name,
 ].join('|');
 
-bool _canBlendStages(DanceStage from, DanceStage to) {
-  if (!from.energetic || !to.energetic) return false;
-  if (!_sameDuration(from.lead, to.lead)) return false;
-  if (from.ensemble.length != to.ensemble.length) return false;
-  for (var i = 0; i < from.ensemble.length; i++) {
-    if (!_sameDuration(from.ensemble[i], to.ensemble[i])) return false;
-  }
-  return true;
-}
-
-bool _sameDuration(Clip a, Clip b) => (a.duration - b.duration).abs() < 1e-9;
+bool _canBlendStages(DanceStage from, DanceStage to) =>
+    // Blending needs matching member counts; everything else crossfades.
+    // Idle↔dance and duration-mismatched stages used to HARD-CUT here — the
+    // blended clip samples both sources at the shared phase, so a duration
+    // mismatch only means the outgoing pose drifts speed slightly during the
+    // short window, which reads far better than a pose snap.
+    from.ensemble.length == to.ensemble.length;
 
 DanceStage _blendStage({
   required DanceStage from,
