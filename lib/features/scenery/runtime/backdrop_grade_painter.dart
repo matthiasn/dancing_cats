@@ -21,9 +21,13 @@ void paintGradedBackdrop({
   required BackdropContext ctx,
   required BackdropGrade grade,
   required ui.FragmentProgram? gradeProgram,
+  List<BackdropLayer> emissiveLayers = const [],
 }) {
   if (grade.isNeutral || gradeProgram == null || size.isEmpty) {
     for (final layer in layers) {
+      layer.paint(canvas, ctx);
+    }
+    for (final layer in emissiveLayers) {
       layer.paint(canvas, ctx);
     }
     return;
@@ -56,4 +60,11 @@ void paintGradedBackdrop({
     ..setImageSampler(0, image);
   canvas.drawRect(Offset.zero & size, Paint()..shader = shader);
   image.dispose();
+
+  // Practical lights sit OUT of the CDL: painted over the graded backdrop so
+  // blue-hour windows / cabin glow warm against the cooled field instead of
+  // being cooled and crushed with it.
+  for (final layer in emissiveLayers) {
+    layer.paint(canvas, ctx);
+  }
 }

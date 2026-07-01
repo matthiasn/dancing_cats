@@ -18,6 +18,7 @@ class ImageLayer implements BackdropLayer {
     this.parallaxFraction = 0,
     this.modulate,
     this.blurSigma = 0,
+    this.blend = BlendMode.srcOver,
   });
 
   /// Key into [BackdropContext.images] — an asset path from `SceneryAssets`.
@@ -48,6 +49,12 @@ class ImageLayer implements BackdropLayer {
   /// (portholes, rails, masts) onto its depth plane. 0 leaves it crisp.
   final double blurSigma;
 
+  /// How the bitmap composites onto the canvas. Defaults to normal
+  /// [BlendMode.srcOver]; use [BlendMode.plus] for an emissive/additive glow
+  /// (lit windows, cabin lights) painted OVER the graded backdrop so a practical
+  /// light adds warmth instead of being cooled/crushed by the colour grade.
+  final BlendMode blend;
+
   @override
   void paint(Canvas canvas, BackdropContext ctx) {
     final image = ctx.images[assetKey];
@@ -76,6 +83,7 @@ class ImageLayer implements BackdropLayer {
       // filter crawls on the high-frequency skyline as the camera dollies. This
       // matches the sharpness the legacy single-plate path used.
       filterQuality: FilterQuality.high,
+      blendMode: blend,
       colorFilter: modulate == null
           ? null
           : ColorFilter.mode(modulate!, BlendMode.modulate),

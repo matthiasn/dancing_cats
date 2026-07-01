@@ -1,4 +1,4 @@
-import 'dart:ui' show Color, Size;
+import 'dart:ui' show BlendMode, Color, Size;
 
 import 'package:dancing_cats/features/scenery/layers/atmospheric_haze_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/backdrop_layer.dart';
@@ -32,6 +32,17 @@ const double _depthStage = 0.35; // the foreground deck + its lantern glow —
 // kept gentle (was 0.5) so the deck reads as a subtle depth pleasure rather than
 // a foreground that jumps at the viewer; it moves nearer the background's rate.
 
+// True multi-plane depths for the DE-BAKED Lagos scene. The base is only sky +
+// ocean, so — unlike the baked plate — the skyline, yacht, deck and palms have
+// no baked twins and each can ride its own plane for real parallax separation.
+// Kept a gentle gradient (front→back: palms › deck › yacht › city › sky) so the
+// depth reads as an immersive pleasure, not a foreground that jumps at the eye.
+const double _depthSkyOcean = 0.06; // sky + ocean base, farthest
+const double _depthCity = 0.14; // skyline + bridge + its lit windows
+const double _depthYacht = 0.24; // the moored yacht — nearer than the city
+const double _depthDeck = 0.4; // the wooden deck the cast dances on
+const double _depthPalms = 0.56; // foreground palms / planters / lanterns
+
 /// An ordered, back-to-front stack of [BackdropLayer]s plus the bitmap assets
 /// the scene needs decoded. [layers] are painted behind the consumer's content;
 /// [foregroundLayers] are painted in front of it (occluders).
@@ -39,6 +50,7 @@ class BackdropScene {
   const BackdropScene({
     required this.layers,
     this.foregroundLayers = const [],
+    this.emissiveLayers = const [],
     this.imageAssets = const [],
     this.sceneSize = kSceneryCanvasSize,
   });
@@ -159,6 +171,73 @@ class BackdropScene {
     );
   }
 
+  /// The DE-BAKED Lagos waterfront, assembled from individual alpha-cut layers
+  /// (`SceneryAssets.lagos*`) each on its own true depth plane, back to front:
+  /// the opaque sky+ocean base, the skyline+bridge and its lit city windows, the
+  /// moored yacht and its warm cabin windows, the wooden deck the cast dances on,
+  /// and the framing palms/planters/lanterns nearest the eye. All are background
+  /// layers (behind the dancers); only the screen-space vignette sits in front.
+  ///
+  /// The scene ships bright/full-range — the blue-hour look is applied at runtime
+  /// by the colour grade (`gradeFromWheels`, adjustable in the grade console), so
+  /// the plates keep their latitude instead of baking dusk into the art.
+  factory BackdropScene.lagosLayeredWaterfront() {
+    return const BackdropScene(
+      layers: [
+        ParallaxLayer(
+          ImageLayer(SceneryAssets.lagosSkyOcean),
+          depth: _depthSkyOcean,
+        ),
+        ParallaxLayer(
+          ImageLayer(SceneryAssets.lagosCityBridge),
+          depth: _depthCity,
+        ),
+        // The yacht rides its own nearer plane. A cool, slightly dimmed modulate
+        // pulls the baked-bright white hull down toward a dusk blue-grey so it
+        // stops clipping and competing with the (ungraded) cat subjects.
+        ParallaxLayer(
+          ImageLayer(SceneryAssets.lagosYacht, modulate: Color(0xFFAAB6CC)),
+          depth: _depthYacht,
+        ),
+        // The deck the cast stands on, then the framing palms nearest the eye.
+        ParallaxLayer(ImageLayer(SceneryAssets.lagosDeck), depth: _depthDeck),
+        ParallaxLayer(ImageLayer(SceneryAssets.lagosPalms), depth: _depthPalms),
+      ],
+      // Practical lights, painted OVER the grade so they read as warm dusk
+      // sources against the cooled field: the city/high-rise windows on the city
+      // plane and the yacht cabin windows on the yacht plane, added (BlendMode
+      // .plus) with a warm amber cast so they bloom rather than sit flat.
+      emissiveLayers: [
+        ParallaxLayer(
+          ImageLayer(
+            SceneryAssets.lagosCityWindows,
+            blend: BlendMode.plus,
+            modulate: Color(0xFFFFD08A),
+          ),
+          depth: _depthCity,
+        ),
+        ParallaxLayer(
+          ImageLayer(
+            SceneryAssets.lagosYachtWindows,
+            blend: BlendMode.plus,
+            modulate: Color(0xFFFFCF86),
+          ),
+          depth: _depthYacht,
+        ),
+      ],
+      foregroundLayers: [VignetteLayer(dim: 0.12)],
+      imageAssets: [
+        SceneryAssets.lagosSkyOcean,
+        SceneryAssets.lagosCityBridge,
+        SceneryAssets.lagosCityWindows,
+        SceneryAssets.lagosYacht,
+        SceneryAssets.lagosYachtWindows,
+        SceneryAssets.lagosDeck,
+        SceneryAssets.lagosPalms,
+      ],
+    );
+  }
+
   /// A fully procedural blue-hour sky (gradient, moon, stars, drifting clouds)
   /// with no painted assets — the reusable shader variant / art-free fallback.
   factory BackdropScene.proceduralBlueHour() {
@@ -170,6 +249,12 @@ class BackdropScene {
 
   /// Layers painted in front of the content (foreground occluders).
   final List<BackdropLayer> foregroundLayers;
+
+  /// Practical-light layers painted OVER the graded backdrop but still behind the
+  /// content — held out of the colour grade so lit windows / cabin / lanterns
+  /// glow warm against the cooled blue-hour field instead of being cooled and
+  /// crushed with it. They still parallax on their own plane.
+  final List<BackdropLayer> emissiveLayers;
 
   /// Asset paths the scene's [ImageLayer]s need decoded before they can paint.
   final List<String> imageAssets;

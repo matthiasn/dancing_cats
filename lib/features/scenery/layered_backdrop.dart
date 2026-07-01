@@ -249,6 +249,7 @@ class _LayeredBackdropState extends State<LayeredBackdrop>
       widget.scene.layers,
       time,
       grade: widget.grade,
+      emissiveLayers: widget.scene.emissiveLayers,
     );
     _notifyReadyAfterPaintIfNeeded();
 
@@ -275,6 +276,7 @@ class _LayeredBackdropState extends State<LayeredBackdrop>
     List<BackdropLayer> layers,
     double time, {
     BackdropGrade grade = BackdropGrade.identity,
+    List<BackdropLayer> emissiveLayers = const [],
   }) {
     return RepaintBoundary(
       child: CustomPaint(
@@ -292,6 +294,7 @@ class _LayeredBackdropState extends State<LayeredBackdrop>
           parallaxForDepth: widget.parallaxForDepth,
           grade: grade,
           gradeProgram: _gradeProgram,
+          emissiveLayers: emissiveLayers,
         ),
         child: const SizedBox.expand(),
       ),
@@ -314,6 +317,7 @@ class _BackdropPainter extends CustomPainter {
     this.parallaxForDepth,
     this.grade = BackdropGrade.identity,
     this.gradeProgram,
+    this.emissiveLayers = const [],
   });
 
   final List<BackdropLayer> layers;
@@ -329,6 +333,7 @@ class _BackdropPainter extends CustomPainter {
   final Matrix4 Function(double depth, Size size)? parallaxForDepth;
   final BackdropGrade grade;
   final ui.FragmentProgram? gradeProgram;
+  final List<BackdropLayer> emissiveLayers;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -352,6 +357,7 @@ class _BackdropPainter extends CustomPainter {
       ctx: ctx,
       grade: grade,
       gradeProgram: gradeProgram,
+      emissiveLayers: emissiveLayers,
     );
   }
 
@@ -368,6 +374,7 @@ class _BackdropPainter extends CustomPainter {
         old.imagesVersion != imagesVersion ||
         old.parallaxForDepth != parallaxForDepth ||
         old.grade != grade ||
-        old.gradeProgram != gradeProgram;
+        old.gradeProgram != gradeProgram ||
+        old.emissiveLayers != emissiveLayers;
   }
 }

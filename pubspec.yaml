@@ -32,6 +32,7 @@ flutter:
   assets:
     - assets/scenery/
     - assets/images/character/
+    - assets/images/character/lagos_parallax/
     - assets/sample_track/
   fonts:
     - family: Inter

@@ -151,7 +151,7 @@ class DanceStageView extends StatelessWidget {
                     // injected into the scene rather than one transform over all.
                     ClipRect(
                       child: LayeredBackdrop(
-                        scene: BackdropScene.blueHourWaterfront(),
+                        scene: BackdropScene.lagosLayeredWaterfront(),
                         timeSeconds: backdropTimeSeconds,
                         beatPulse: beat,
                         grade: grade,

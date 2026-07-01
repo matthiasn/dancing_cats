@@ -49,6 +49,23 @@ void main() {
     expect(layer.paints, 1);
   });
 
+  test('the direct-paint path also paints the emissive practical layers', () {
+    final layer = _RecordingLayer();
+    final emissive = _RecordingLayer();
+    final canvas = Canvas(ui.PictureRecorder());
+    paintGradedBackdrop(
+      canvas: canvas,
+      size: size,
+      layers: [layer],
+      ctx: _ctx(size),
+      grade: BackdropGrade.identity,
+      gradeProgram: null,
+      emissiveLayers: [emissive],
+    );
+    expect(layer.paints, 1);
+    expect(emissive.paints, 1);
+  });
+
   testWidgets('an empty size falls back to direct paint (no offscreen)', (
     tester,
   ) async {
@@ -82,6 +99,7 @@ void main() {
       final layer = _RecordingLayer();
       final recorder = ui.PictureRecorder();
       final canvas = Canvas(recorder);
+      final emissive = _RecordingLayer();
       paintGradedBackdrop(
         canvas: canvas,
         size: size,
@@ -93,9 +111,12 @@ void main() {
           saturation: 0.8,
         ),
         gradeProgram: program,
+        emissiveLayers: [emissive],
       );
-      // The layers are composited into the offscreen picture, then graded.
+      // The layers are composited into the offscreen picture, then graded; the
+      // emissive practicals are painted OVER the graded result (not graded).
       expect(layer.paints, 1);
+      expect(emissive.paints, 1);
       // The graded frame rasterizes cleanly.
       final picture = recorder.endRecording();
       final image = await picture.toImage(64, 36);

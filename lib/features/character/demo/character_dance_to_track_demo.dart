@@ -137,6 +137,29 @@ double get kDanceAppExportWarmupSec =>
 const Size kDanceDemoWindowSize = Size(1600, 900);
 const double kDanceDemoAspectRatio = 16 / 9;
 
+/// The shipped blue-hour default grade — the de-baked daytime plate opens graded
+/// to dusk. Cool, deepened shadows (Lift toward teal) and pulled-down, gently
+/// warm highlights (Gain down + toward amber) give the classic blue-hour warm/
+/// cool split; a cool overall temperature, a touch more contrast and slightly
+/// lowered saturation seat the mood. The grade console adjusts from here.
+const GradeWheel _kBlueHourLift = GradeWheel(
+  balance: Offset(0.02, 0.32),
+  master: 0.05,
+);
+const GradeWheel _kBlueHourGamma = GradeWheel(
+  balance: Offset(0.04, 0.17),
+  master: -0.22,
+);
+const GradeWheel _kBlueHourGain = GradeWheel(
+  balance: Offset(0.17, -0.23),
+  master: -0.8,
+);
+const double _kBlueHourSaturation = 0.78;
+const double _kBlueHourTemperature = -0.5;
+const double _kBlueHourTint = 0.06;
+const double _kBlueHourContrast = 1.1;
+const double _kBlueHourPivot = 0.44;
+
 // The beat-synced choreography derivation (which move, warped clock, beat,
 // camera context), its data types, the track-config constants and the side-file
 // loaders all live in the shared dance-core modules so the live player and the
@@ -232,16 +255,18 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
   // no volume slider, so unmuting restores full (100) volume.
   bool _muted = false;
   // Live colour-grade controls (Lift/Gamma/Gain wheels, white balance, contrast,
-  // saturation) driving the backdrop grade shader. All neutral by default →
-  // identity grade → no grade pass. [_bypass] shows the clean plate (before).
-  GradeWheel _lift = const GradeWheel();
-  GradeWheel _gamma = const GradeWheel();
-  GradeWheel _gain = const GradeWheel();
-  double _saturation = 1;
-  double _temperature = 0;
-  double _tint = 0;
-  double _contrast = 1;
-  double _pivot = 0.435;
+  // saturation) driving the backdrop grade shader. The scene ships bright/full-
+  // range and OPENS graded to the blue-hour look ([_kBlueHour*] defaults); the
+  // console adjusts from here, Reset returns to this look, and Bypass shows the
+  // raw daytime plate.
+  GradeWheel _lift = _kBlueHourLift;
+  GradeWheel _gamma = _kBlueHourGamma;
+  GradeWheel _gain = _kBlueHourGain;
+  double _saturation = _kBlueHourSaturation;
+  double _temperature = _kBlueHourTemperature;
+  double _tint = _kBlueHourTint;
+  double _contrast = _kBlueHourContrast;
+  double _pivot = _kBlueHourPivot;
   bool _bypass = false;
 
   // Image-derived RGB parade: a tiny snapshot of the graded stage, sampled a few
@@ -787,15 +812,17 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
                   onContrast: (v) => setState(() => _contrast = v),
                   onPivot: (v) => setState(() => _pivot = v),
                   onBypass: (v) => setState(() => _bypass = v),
+                  // Reset returns to the shipped blue-hour look (Bypass shows
+                  // the raw daytime plate).
                   onReset: () => setState(() {
-                    _lift = const GradeWheel();
-                    _gamma = const GradeWheel();
-                    _gain = const GradeWheel();
-                    _saturation = 1;
-                    _temperature = 0;
-                    _tint = 0;
-                    _contrast = 1;
-                    _pivot = 0.435;
+                    _lift = _kBlueHourLift;
+                    _gamma = _kBlueHourGamma;
+                    _gain = _kBlueHourGain;
+                    _saturation = _kBlueHourSaturation;
+                    _temperature = _kBlueHourTemperature;
+                    _tint = _kBlueHourTint;
+                    _contrast = _kBlueHourContrast;
+                    _pivot = _kBlueHourPivot;
                     _bypass = false;
                   }),
                 ),

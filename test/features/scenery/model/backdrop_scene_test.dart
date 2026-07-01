@@ -1,3 +1,5 @@
+import 'dart:ui' show BlendMode;
+
 import 'package:dancing_cats/features/scenery/layers/atmospheric_haze_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/bridge_police_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/city_lights_layer.dart';
@@ -135,6 +137,108 @@ void main() {
     test('darkens the frame edges with a foreground vignette', () {
       final scene = BackdropScene.blueHourWaterfront();
       expect(scene.foregroundLayers, [isA<VignetteLayer>()]);
+    });
+  });
+
+  group('BackdropScene.lagosLayeredWaterfront', () {
+    List<ImageLayer> imageLayers() => [
+      for (final l in BackdropScene.lagosLayeredWaterfront().layers)
+        if (l is ParallaxLayer && l.child is ImageLayer) l.child as ImageLayer,
+    ];
+
+    double depthOf(String assetKey) {
+      final scene = BackdropScene.lagosLayeredWaterfront();
+      for (final l in [...scene.layers, ...scene.emissiveLayers]) {
+        if (l is ParallaxLayer &&
+            l.child is ImageLayer &&
+            (l.child as ImageLayer).assetKey == assetKey) {
+          return l.depth;
+        }
+      }
+      throw StateError('no ParallaxLayer for $assetKey');
+    }
+
+    test('every background layer is a de-baked image on a parallax plane', () {
+      final scene = BackdropScene.lagosLayeredWaterfront();
+      expect(scene.layers, isNotEmpty);
+      for (final l in scene.layers) {
+        expect(l, isA<ParallaxLayer>());
+        expect((l as ParallaxLayer).child, isA<ImageLayer>());
+      }
+    });
+
+    test('composites base -> city -> yacht -> deck -> palms, front to back', () {
+      final keys = [for (final l in imageLayers()) l.assetKey];
+      expect(keys, [
+        SceneryAssets.lagosSkyOcean,
+        SceneryAssets.lagosCityBridge,
+        SceneryAssets.lagosYacht,
+        SceneryAssets.lagosDeck,
+        SceneryAssets.lagosPalms,
+      ]);
+    });
+
+    test('the yacht hull is cooled/dimmed so it stops clipping white', () {
+      final yacht = imageLayers().firstWhere(
+        (l) => l.assetKey == SceneryAssets.lagosYacht,
+      );
+      expect(yacht.modulate, isNotNull);
+    });
+
+    test('lit windows are emissive: held out of the grade, added, and warm', () {
+      final emissive = [
+        for (final l in BackdropScene.lagosLayeredWaterfront().emissiveLayers)
+          if (l is ParallaxLayer && l.child is ImageLayer) l.child as ImageLayer,
+      ];
+      expect(
+        [for (final l in emissive) l.assetKey],
+        [SceneryAssets.lagosCityWindows, SceneryAssets.lagosYachtWindows],
+      );
+      // Additive glow with a warm (amber) cast, so practicals bloom warm.
+      for (final l in emissive) {
+        expect(l.blend, BlendMode.plus);
+        expect(l.modulate, isNotNull);
+        expect(l.modulate!.r, greaterThan(l.modulate!.b)); // warm
+      }
+    });
+
+    test('each plane rides its own depth: palms nearest, sky farthest', () {
+      // De-baked layers have no baked twin, so depth strictly increases toward
+      // the viewer: sky < city < yacht < deck < palms.
+      final sky = depthOf(SceneryAssets.lagosSkyOcean);
+      final city = depthOf(SceneryAssets.lagosCityBridge);
+      final yacht = depthOf(SceneryAssets.lagosYacht);
+      final deck = depthOf(SceneryAssets.lagosDeck);
+      final palms = depthOf(SceneryAssets.lagosPalms);
+      expect(sky, lessThan(city));
+      expect(city, lessThan(yacht));
+      expect(yacht, lessThan(deck));
+      expect(deck, lessThan(palms));
+      // The city windows share the city plane; the yacht windows the yacht one.
+      expect(depthOf(SceneryAssets.lagosCityWindows), city);
+      expect(depthOf(SceneryAssets.lagosYachtWindows), yacht);
+    });
+
+    test('declares all seven de-baked layers to decode', () {
+      expect(
+        BackdropScene.lagosLayeredWaterfront().imageAssets,
+        containsAll(<String>[
+          SceneryAssets.lagosSkyOcean,
+          SceneryAssets.lagosCityBridge,
+          SceneryAssets.lagosCityWindows,
+          SceneryAssets.lagosYacht,
+          SceneryAssets.lagosYachtWindows,
+          SceneryAssets.lagosDeck,
+          SceneryAssets.lagosPalms,
+        ]),
+      );
+    });
+
+    test('darkens the frame edges with a foreground vignette', () {
+      expect(
+        BackdropScene.lagosLayeredWaterfront().foregroundLayers,
+        [isA<VignetteLayer>()],
+      );
     });
   });
 
