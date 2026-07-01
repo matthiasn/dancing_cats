@@ -1216,12 +1216,12 @@ RigSpec buildCatInSuitRig({
     final s = side.toDouble();
     final shoulderCapOuter = 18.0 * armWidthScale;
     final shoulderCapInner = 12.8 * armWidthScale;
-    final bicepOuter = 12.4 * armWidthScale;
-    final bicepInner = 8.9 * armWidthScale;
-    final elbowOuter = 4.9 * armWidthScale;
-    final elbowInner = 4.0 * armWidthScale;
-    final forearmOuter = 9.5 * armWidthScale;
-    final forearmInner = 7.4 * armWidthScale;
+    final bicepOuter = 13.8 * armWidthScale;
+    final bicepInner = 9.8 * armWidthScale;
+    final elbowOuter = 4.7 * armWidthScale;
+    final elbowInner = 3.8 * armWidthScale;
+    final forearmOuter = 9.1 * armWidthScale;
+    final forearmInner = 7.1 * armWidthScale;
     final wristOuter = 5.8 * armWidthScale;
     final wristInner = 4.9 * armWidthScale;
 
@@ -7307,6 +7307,7 @@ class CatClips {
       cyclic: true,
     ),
     radius: 0.5 / _dancePhrase.frameCount,
+    passes: 2,
     cyclic: true,
   );
   static final IkTargetChannel _bugaHandRTarget = SoftenedIkTargetChannel(
@@ -7316,6 +7317,7 @@ class CatClips {
       cyclic: true,
     ),
     radius: 0.5 / _dancePhrase.frameCount,
+    passes: 2,
     cyclic: true,
   );
   static const _bugaFootLTargetKeys = [
@@ -8443,6 +8445,7 @@ class CatClips {
       microFrames: 0.55,
     ),
     radius: 0.45 / _dancePhrase.frameCount,
+    passes: 2,
   );
   static final IkTargetChannel _sekemHandRTarget = SoftenedIkTargetChannel(
     _dancePhrase.ikTargetChannel(
@@ -8451,6 +8454,7 @@ class CatClips {
       microFrames: 0.55,
     ),
     radius: 0.45 / _dancePhrase.frameCount,
+    passes: 2,
   );
   static final List<LimbIkTarget> _sekemLimbTargets = [
     // Sekem is own-side paddles, not a crossed-arm pose. Use explicit OUTSIDE

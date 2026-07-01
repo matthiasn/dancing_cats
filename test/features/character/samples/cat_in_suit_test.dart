@@ -382,6 +382,13 @@ void main() {
       expect(_maxAbsLocalX(arm.vertices[0]), greaterThan(13));
       expect(_maxAbsLocalX(arm.vertices[2]), greaterThan(10));
       expect(
+        _maxAbsLocalX(arm.vertices[2]),
+        greaterThan(_maxAbsLocalX(arm.vertices[4]) * 1.42),
+        reason:
+            'the upper sleeve should carry a real bicep/upper-arm mass before '
+            'tapering into the forearm',
+      );
+      expect(
         _maxAbsLocalX(arm.vertices[3]),
         lessThan(_maxAbsLocalX(arm.vertices[2]) * 0.5),
         reason:
@@ -601,6 +608,29 @@ void main() {
       expect(channels.containsKey(CatBones.legUpperR), isTrue);
       expect(channels.containsKey(CatBones.armUpperL), isTrue);
       expect(channels.containsKey(CatBones.armUpperR), isTrue);
+    });
+
+    test('high-arm catalogue moves use rounded multi-pass hand paths', () {
+      for (final clip in [
+        CatClips.zanku,
+        CatClips.azonto,
+        CatClips.buga,
+        CatClips.sekem,
+      ]) {
+        for (final hand in [CatBones.handL, CatBones.handR]) {
+          expect(
+            _targetFor(clip, hand).channel,
+            isA<SoftenedIkTargetChannel>().having(
+              (channel) => channel.passes,
+              'passes',
+              greaterThanOrEqualTo(2),
+            ),
+            reason:
+                '${clip.name} $hand should round nearby hand targets enough '
+                'to avoid robotic shoulder/arm pops',
+          );
+        }
+      }
     });
 
     test('dance clips carry alternating shoulder overlap', () {
