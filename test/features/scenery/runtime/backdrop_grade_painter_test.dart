@@ -2,6 +2,7 @@ import 'dart:ui' as ui;
 
 import 'package:dancing_cats/features/scenery/layers/backdrop_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/emissive_layer.dart';
+import 'package:dancing_cats/features/scenery/layers/graded_layer.dart';
 import 'package:dancing_cats/features/scenery/model/backdrop_grade.dart';
 import 'package:dancing_cats/features/scenery/model/backdrop_palette.dart';
 import 'package:dancing_cats/features/scenery/runtime/backdrop_grade_painter.dart';
@@ -57,7 +58,7 @@ void main() {
     expect(layer.paints, 1);
   });
 
-  test('the direct-paint path paints emissive layers inline, in order', () {
+  test('with no program, all layers paint directly in order', () {
     final log = <String>[];
     final canvas = Canvas(ui.PictureRecorder());
     paintGradedBackdrop(
@@ -66,6 +67,7 @@ void main() {
       layers: [
         _RecordingLayer(log, 'city'),
         EmissiveLayer(_RecordingLayer(log, 'cityLights')),
+        GradedLayer(_RecordingLayer(log, 'deck'), grade: BackdropGrade.identity),
         _RecordingLayer(log, 'yacht'),
       ],
       ctx: _ctx(size),
@@ -73,7 +75,63 @@ void main() {
       gradeProgram: null,
     );
     // Everything paints once, in stack order (yacht over the city lights).
-    expect(log, ['city', 'cityLights', 'yacht']);
+    expect(log, ['city', 'cityLights', 'deck', 'yacht']);
+  });
+
+  testWidgets('a neutral global grade with a program still paints directly', (
+    tester,
+  ) async {
+    await tester.runAsync(() async {
+      final program = await ui.FragmentProgram.fromAsset(
+        'shaders/scenery_grade.frag',
+      );
+      final layer = _RecordingLayer();
+      final canvas = Canvas(ui.PictureRecorder());
+      paintGradedBackdrop(
+        canvas: canvas,
+        size: size,
+        layers: [layer],
+        ctx: _ctx(size),
+        grade: BackdropGrade.identity, // neutral → gradeAndDraw paints through
+        gradeProgram: program,
+      );
+      expect(layer.paints, 1);
+    });
+  });
+
+  testWidgets('a GradedLayer grades its child on its own curve, in order', (
+    tester,
+  ) async {
+    await tester.runAsync(() async {
+      final program = await ui.FragmentProgram.fromAsset(
+        'shaders/scenery_grade.frag',
+      );
+      final log = <String>[];
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(recorder);
+      paintGradedBackdrop(
+        canvas: canvas,
+        size: size,
+        layers: [
+          _RecordingLayer(log, 'sky'),
+          // A non-neutral per-layer grade, under a non-neutral global grade.
+          GradedLayer(
+            _RecordingLayer(log, 'deck'),
+            grade: const BackdropGrade(slope: (r: 0.5, g: 0.4, b: 0.3)),
+          ),
+          _RecordingLayer(log, 'palms'),
+        ],
+        ctx: _ctx(size),
+        grade: gradeFromWheels(gain: const GradeWheel(master: -0.4)),
+        gradeProgram: program,
+      );
+      // The global batch (sky) flushes, the deck grades on its own curve, then
+      // the palms batch flushes — all in stack order.
+      expect(log, ['sky', 'deck', 'palms']);
+      final image = await recorder.endRecording().toImage(64, 36);
+      expect(image.width, 64);
+      image.dispose();
+    });
   });
 
   testWidgets('an empty size falls back to direct paint (no offscreen)', (

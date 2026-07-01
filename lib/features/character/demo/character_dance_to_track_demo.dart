@@ -154,7 +154,7 @@ const GradeWheel _kBlueHourGain = GradeWheel(
   balance: Offset(0.16, -0.22),
   master: -0.9,
 );
-const double _kBlueHourSaturation = 0.86;
+const double _kBlueHourSaturation = 0.74;
 const double _kBlueHourTemperature = -0.54;
 const double _kBlueHourTint = 0.06;
 // Low-key dusk: a hard gain pull-down deepens the sky and water, a modest above-

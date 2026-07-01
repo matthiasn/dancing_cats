@@ -1,4 +1,4 @@
-import 'dart:ui' show BlendMode, Color, Size;
+import 'dart:ui' show BlendMode, Color, Offset, Size;
 
 import 'package:dancing_cats/features/scenery/layers/atmospheric_haze_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/backdrop_layer.dart';
@@ -9,11 +9,13 @@ import 'package:dancing_cats/features/scenery/layers/deck_glow_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/distant_jet_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/drone_show_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/emissive_layer.dart';
+import 'package:dancing_cats/features/scenery/layers/graded_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/image_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/ocean_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/parallax_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/sky_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/vignette_layer.dart';
+import 'package:dancing_cats/features/scenery/model/backdrop_grade.dart';
 import 'package:dancing_cats/features/scenery/model/scenery_assets.dart';
 
 /// Parallax depth PLANES — deliberately coarse. The painted base plate has the
@@ -43,6 +45,22 @@ const double _depthCity = 0.14; // skyline + bridge + its lit windows
 const double _depthYacht = 0.24; // the moored yacht — nearer than the city
 const double _depthDeck = 0.4; // the wooden deck the cast dances on
 const double _depthPalms = 0.56; // foreground palms / planters / lanterns
+
+/// The deck holds a WARM dark-wood look independent of the cool blue-hour field
+/// (graded on its own via [GradedLayer]) — like the old baked plate, where the
+/// lantern-lit boards stayed warm brown while the sky/city/water went cool. A
+/// hard multiply darkens the bright wood into deep brown; the warm slope (r > b)
+/// keeps it warm; a little offset holds it just off the crush floor.
+const BackdropGrade _kDeckGrade = BackdropGrade(
+  slope: (r: 0.58, g: 0.45, b: 0.33),
+  offset: (r: 0.012, g: 0.008, b: 0.004),
+  saturation: 0.96,
+  contrast: 1.06,
+);
+
+/// Lantern positions on the de-baked deck (normalized cover-fit art space),
+/// where the warm [DeckGlowLayer] pools spill onto the planks.
+const List<Offset> _kLagosLanterns = [Offset(0.055, 0.72), Offset(0.9, 0.75)];
 
 /// An ordered, back-to-front stack of [BackdropLayer]s plus the bitmap assets
 /// the scene needs decoded. [layers] are painted behind the consumer's content;
@@ -224,7 +242,7 @@ class BackdropScene {
         // it occludes them. A cool, dimmed modulate pulls the baked-bright white
         // hull down into the dusk field so it stops being a luminance magnet.
         ParallaxLayer(
-          ImageLayer(SceneryAssets.lagosYacht, modulate: Color(0xFF8A93A8)),
+          ImageLayer(SceneryAssets.lagosYacht, modulate: Color(0xFF6E7688)),
           depth: _depthYacht,
         ),
         // The yacht's own warm cabin windows glow on its hull.
@@ -265,12 +283,30 @@ class BackdropScene {
           ),
           depth: _depthCity,
         ),
-        // The deck the cast stands on. A cool, desaturating modulate lets the
-        // warm wood catch the cool dusk field away from the lantern instead of
-        // running hot against everything else.
-        ParallaxLayer(
-          ImageLayer(SceneryAssets.lagosDeck, modulate: Color(0xFFB4B8C4)),
-          depth: _depthDeck,
+        // The deck the cast stands on — graded on its OWN warm curve so the
+        // lantern-lit wood stays deep warm brown against the cool field (the old
+        // blue-hour plate did exactly this).
+        GradedLayer(
+          ParallaxLayer(
+            ImageLayer(SceneryAssets.lagosDeck),
+            depth: _depthDeck,
+          ),
+          grade: _kDeckGrade,
+        ),
+        // Warm lantern light pooling on the deck planks (out of the grade) so the
+        // nearest practical is the frame's warmest anchor and throws real spill —
+        // instead of the boards reading as a cool, dead void.
+        EmissiveLayer(
+          ParallaxLayer(
+            DeckGlowLayer(
+              lanterns: _kLagosLanterns,
+              deckTop: 0.6,
+              intensity: 1.15,
+              poolRadiusFraction: 0.2,
+              sheen: 0.22,
+            ),
+            depth: _depthDeck,
+          ),
         ),
         // The framing palms nearest the eye.
         ParallaxLayer(ImageLayer(SceneryAssets.lagosPalms), depth: _depthPalms),

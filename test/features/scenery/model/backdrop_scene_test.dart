@@ -9,6 +9,7 @@ import 'package:dancing_cats/features/scenery/layers/deck_glow_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/distant_jet_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/drone_show_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/emissive_layer.dart';
+import 'package:dancing_cats/features/scenery/layers/graded_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/image_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/ocean_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/parallax_layer.dart';
@@ -143,17 +144,23 @@ void main() {
   });
 
   group('BackdropScene.lagosLayeredWaterfront', () {
-    // Unwrap a stack entry (ParallaxLayer, or EmissiveLayer wrapping one) to its
-    // ImageLayer, or null.
-    ImageLayer? imageOf(BackdropLayer l) {
-      final inner = l is EmissiveLayer ? l.child : l;
-      if (inner is ParallaxLayer && inner.child is ImageLayer) {
-        return inner.child as ImageLayer;
-      }
-      return null;
+    // Unwrap a stack entry — a bare ParallaxLayer, or one wrapped in an
+    // EmissiveLayer / GradedLayer — to its ParallaxLayer.
+    ParallaxLayer? parallaxOf(BackdropLayer l) {
+      final inner = switch (l) {
+        EmissiveLayer(:final child) => child,
+        GradedLayer(:final child) => child,
+        _ => l,
+      };
+      return inner is ParallaxLayer ? inner : null;
     }
 
-    // ImageLayers from the NORMAL (graded) layers, in stack order.
+    ImageLayer? imageOf(BackdropLayer l) {
+      final child = parallaxOf(l)?.child;
+      return child is ImageLayer ? child : null;
+    }
+
+    // ImageLayers from the NORMAL / per-layer-graded layers (not emissive).
     List<ImageLayer> normalImages() => [
       for (final l in BackdropScene.lagosLayeredWaterfront().layers)
         if (l is! EmissiveLayer && imageOf(l) != null) imageOf(l)!,
@@ -167,12 +174,7 @@ void main() {
 
     double depthOf(String assetKey) {
       for (final l in BackdropScene.lagosLayeredWaterfront().layers) {
-        final inner = l is EmissiveLayer ? l.child : l;
-        if (inner is ParallaxLayer &&
-            inner.child is ImageLayer &&
-            (inner.child as ImageLayer).assetKey == assetKey) {
-          return inner.depth;
-        }
+        if (imageOf(l)?.assetKey == assetKey) return parallaxOf(l)!.depth;
       }
       throw StateError('no ParallaxLayer for $assetKey');
     }
@@ -181,10 +183,7 @@ void main() {
       final scene = BackdropScene.lagosLayeredWaterfront();
       expect(scene.layers, isNotEmpty);
       for (final l in scene.layers) {
-        // Either a de-baked image (normal or emissive) or the atmospheric haze,
-        // but always on a depth-assigning ParallaxLayer.
-        final inner = l is EmissiveLayer ? l.child : l;
-        expect(inner, isA<ParallaxLayer>());
+        expect(parallaxOf(l), isNotNull);
       }
     });
 
@@ -253,12 +252,23 @@ void main() {
       expect(yachtIndex, greaterThan(lastCityLight));
     });
 
-    test('the deck is cooled so its warm wood catches the dusk field', () {
-      final deck = normalImages().firstWhere(
-        (l) => l.assetKey == SceneryAssets.lagosDeck,
+    test('the deck is graded on its own WARM curve (independent of the field)', () {
+      final deckLayer = BackdropScene.lagosLayeredWaterfront().layers.firstWhere(
+        (l) => imageOf(l)?.assetKey == SceneryAssets.lagosDeck,
       );
-      expect(deck.modulate, isNotNull);
-      expect(deck.modulate!.b, greaterThan(deck.modulate!.r)); // cool
+      // Per-layer graded, and its grade is warm (slope red > blue) so the wood
+      // stays warm brown against the cool blue-hour field.
+      expect(deckLayer, isA<GradedLayer>());
+      final grade = (deckLayer as GradedLayer).grade;
+      expect(grade.slope.r, greaterThan(grade.slope.b));
+      expect(grade.isNeutral, isFalse);
+    });
+
+    test('warm lantern light pools on the deck as an emissive practical', () {
+      final hasDeckGlow = BackdropScene.lagosLayeredWaterfront().layers.any(
+        (l) => l is EmissiveLayer && parallaxOf(l)?.child is DeckGlowLayer,
+      );
+      expect(hasDeckGlow, isTrue);
     });
 
     test('each plane rides its own depth: palms nearest, sky farthest', () {
