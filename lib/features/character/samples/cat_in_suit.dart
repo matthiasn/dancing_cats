@@ -78,12 +78,11 @@ const int _tie = 0xFF7A2233; // maroon
 const int _shoe = 0xFF3F2D1E; // brown leather dress shoe — reads instantly
 // against both the navy trousers and the dark deck (near-black navy shoes
 // dissolved into both), and sits with the brass buttons and warm fur.
-const int _shoeToe = 0xFF59422B; // toe-cap leather catching the key — the
-// cap-toe plane that makes the last read as a dress shoe, not a dark lump.
-const int _shoeHighlight = 0xFF6B5638; // SUBTLE sole edge — a brighter strip
-// plus the cap-toe/toe-gloss marks read as a skeletal "bone" inside the
-// stage-lit shoe, so the shoe is now just a clean cel-shaded volume with this
-// gentle sole hint and nothing else.
+const int _shoeToe = 0xFFD6CDB4; // rubber toe bump — the rounded sneaker
+// toe cap, a shade under the midsole cream so the ink line reads between.
+const int _shoeSole = 0xFFE3DCC8; // sneaker midsole — the full-length cream
+// rubber band along the bottom that makes the silhouette read SNEAKER at any
+// scale, inked like every other drawn part.
 const int _outline = 0xFF1B1B2A;
 const int _innerEar = 0xFFE7A39B; // soft pink ear
 const int _muzzle = 0xFFF3DCB8; // lighter snout patch
@@ -216,7 +215,6 @@ class CatBones {
   static const shoeHighlightL = 'shoe_highlight.L';
   static const shoeToeL = 'shoe_toe.L';
   static const shoeCounterL = 'shoe_counter.L';
-  static const shoeHeelL = 'shoe_heel.L';
   static const hipBlendR = 'hip_blend.R';
   static const legUpperR = 'leg_upper.R';
   static const legQuadR = 'leg_quad.R';
@@ -226,7 +224,6 @@ class CatBones {
   static const shoeHighlightR = 'shoe_highlight.R';
   static const shoeToeR = 'shoe_toe.R';
   static const shoeCounterR = 'shoe_counter.R';
-  static const shoeHeelR = 'shoe_heel.R';
   static const tail0 = 'tail_0';
   static const tail1 = 'tail_1';
   static const tail2 = 'tail_2';
@@ -443,23 +440,24 @@ RigSpec buildCatInSuitRig({
       z: 5,
       drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
-        // A longer, lower dress-shoe last. Toe points -x (local), which —
-        // through the locomotion mirror — makes the shoe LEAD the direction
-        // of travel instead of trailing it. The sole plane stays at local
-        // y=10: the contact solvers key off this drawable's bottom.
+        // A chunky sneaker last. Toe points -x (local), which — through the
+        // locomotion mirror — makes the shoe LEAD the direction of travel
+        // instead of trailing it. The sole plane stays at local y=10: the
+        // contact solvers key off this drawable's bottom.
         width: 38,
         height: 12,
         dx: -9,
         dy: 4,
-        cornerRadius: 5,
+        cornerRadius: 6,
         color: _shoe,
         outlineColor: _outline,
         outlineWidth: 2,
+        inkOverFill: true,
       ),
     ),
-    // Counter/quarter: the shoe's back rises above the vamp at the ankle —
-    // the topline step that gives a dress shoe its silhouette from the side.
-    // Bottom sits flush on the sole plane (contact untouched).
+    // Heel collar: the sneaker's back rises above the vamp at the ankle —
+    // the padded-collar step in the silhouette. Bottom sits flush on the
+    // sole plane (contact untouched).
     const Bone(
       id: CatBones.shoeCounterR,
       parent: CatBones.footR,
@@ -472,15 +470,16 @@ RigSpec buildCatInSuitRig({
         height: 15,
         dx: 3,
         dy: 2.5,
-        cornerRadius: 4,
+        cornerRadius: 5,
         color: _shoe,
         outlineColor: _outline,
         outlineWidth: 2,
+        inkOverFill: true,
       ),
     ),
-    // Toe cap: a rounded cap-toe plane in lighter leather over the front of
-    // the last — the single strongest "dress shoe" cue in silhouette-scale
-    // frames. Flat-shaded so the key cannot chrome the small volume.
+    // Rubber toe bump: the rounded sneaker toe over the front of the last.
+    // Flat-shaded so the key cannot chrome the small volume; inked so it
+    // reads as a drawn part, not a sticker.
     const Bone(
       id: CatBones.shoeToeR,
       parent: CatBones.footR,
@@ -489,17 +488,20 @@ RigSpec buildCatInSuitRig({
       z: 6,
       drawable: BoneDrawable(
         kind: BoneShapeKind.ellipse,
-        width: 13,
-        height: 10,
-        dx: -22.5,
-        dy: 4.5,
+        width: 12,
+        height: 9.5,
+        dx: -24,
+        dy: 5.2,
         color: _shoeToe,
+        outlineColor: _outline,
+        outlineWidth: 2,
         celShade: false,
+        inkOverFill: true,
       ),
     ),
-    // Split sole line: a front pad strip and a heel strip with an ARCH GAP
-    // between them — the gap is what turns a flat bar into a heeled dress
-    // sole. Both stay above the sole plane so grounding cannot shift.
+    // Midsole: the full-length cream rubber band along the bottom — THE
+    // sneaker cue. Stays a hair above the sole plane so grounding cannot
+    // shift; inked so the sole reads drawn.
     const Bone(
       id: CatBones.shoeHighlightR,
       parent: CatBones.footR,
@@ -508,28 +510,16 @@ RigSpec buildCatInSuitRig({
       z: 7,
       drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
-        width: 15,
-        height: 3.5,
-        dx: -17,
-        dy: 7.8,
-        cornerRadius: 1.75,
-        color: _shoeHighlight,
-      ),
-    ),
-    const Bone(
-      id: CatBones.shoeHeelR,
-      parent: CatBones.footR,
-      pivotX: 0,
-      pivotY: 0,
-      z: 7,
-      drawable: BoneDrawable(
-        kind: BoneShapeKind.roundedRect,
-        width: 9,
-        height: 3.5,
-        dx: 4.5,
-        dy: 7.8,
-        cornerRadius: 1.75,
-        color: _shoeHighlight,
+        width: 41,
+        height: 5.6,
+        dx: -9.5,
+        dy: 7.1,
+        cornerRadius: 2.8,
+        color: _shoeSole,
+        outlineColor: _outline,
+        outlineWidth: 2,
+        celShade: false,
+        inkOverFill: true,
       ),
     ),
     // Near (left) leg controls. The visible leg is a continuous ribbon that
@@ -584,23 +574,24 @@ RigSpec buildCatInSuitRig({
       z: 8,
       drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
-        // A longer, lower dress-shoe last. Toe points -x (local), which —
-        // through the locomotion mirror — makes the shoe LEAD the direction
-        // of travel instead of trailing it. The sole plane stays at local
-        // y=10: the contact solvers key off this drawable's bottom.
+        // A chunky sneaker last. Toe points -x (local), which — through the
+        // locomotion mirror — makes the shoe LEAD the direction of travel
+        // instead of trailing it. The sole plane stays at local y=10: the
+        // contact solvers key off this drawable's bottom.
         width: 38,
         height: 12,
         dx: -9,
         dy: 4,
-        cornerRadius: 5,
+        cornerRadius: 6,
         color: _shoe,
         outlineColor: _outline,
         outlineWidth: 2,
+        inkOverFill: true,
       ),
     ),
-    // Counter/quarter: the shoe's back rises above the vamp at the ankle —
-    // the topline step that gives a dress shoe its silhouette from the side.
-    // Bottom sits flush on the sole plane (contact untouched).
+    // Heel collar: the sneaker's back rises above the vamp at the ankle —
+    // the padded-collar step in the silhouette. Bottom sits flush on the
+    // sole plane (contact untouched).
     const Bone(
       id: CatBones.shoeCounterL,
       parent: CatBones.footL,
@@ -613,15 +604,16 @@ RigSpec buildCatInSuitRig({
         height: 15,
         dx: 3,
         dy: 2.5,
-        cornerRadius: 4,
+        cornerRadius: 5,
         color: _shoe,
         outlineColor: _outline,
         outlineWidth: 2,
+        inkOverFill: true,
       ),
     ),
-    // Toe cap: a rounded cap-toe plane in lighter leather over the front of
-    // the last — the single strongest "dress shoe" cue in silhouette-scale
-    // frames. Flat-shaded so the key cannot chrome the small volume.
+    // Rubber toe bump: the rounded sneaker toe over the front of the last.
+    // Flat-shaded so the key cannot chrome the small volume; inked so it
+    // reads as a drawn part, not a sticker.
     const Bone(
       id: CatBones.shoeToeL,
       parent: CatBones.footL,
@@ -630,17 +622,20 @@ RigSpec buildCatInSuitRig({
       z: 9,
       drawable: BoneDrawable(
         kind: BoneShapeKind.ellipse,
-        width: 13,
-        height: 10,
-        dx: -22.5,
-        dy: 4.5,
+        width: 12,
+        height: 9.5,
+        dx: -24,
+        dy: 5.2,
         color: _shoeToe,
+        outlineColor: _outline,
+        outlineWidth: 2,
         celShade: false,
+        inkOverFill: true,
       ),
     ),
-    // Split sole line: a front pad strip and a heel strip with an ARCH GAP
-    // between them — the gap is what turns a flat bar into a heeled dress
-    // sole. Both stay above the sole plane so grounding cannot shift.
+    // Midsole: the full-length cream rubber band along the bottom — THE
+    // sneaker cue. Stays a hair above the sole plane so grounding cannot
+    // shift; inked so the sole reads drawn.
     const Bone(
       id: CatBones.shoeHighlightL,
       parent: CatBones.footL,
@@ -649,28 +644,16 @@ RigSpec buildCatInSuitRig({
       z: 10,
       drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
-        width: 15,
-        height: 3.5,
-        dx: -17,
-        dy: 7.8,
-        cornerRadius: 1.75,
-        color: _shoeHighlight,
-      ),
-    ),
-    const Bone(
-      id: CatBones.shoeHeelL,
-      parent: CatBones.footL,
-      pivotX: 0,
-      pivotY: 0,
-      z: 10,
-      drawable: BoneDrawable(
-        kind: BoneShapeKind.roundedRect,
-        width: 9,
-        height: 3.5,
-        dx: 4.5,
-        dy: 7.8,
-        cornerRadius: 1.75,
-        color: _shoeHighlight,
+        width: 41,
+        height: 5.6,
+        dx: -9.5,
+        dy: 7.1,
+        cornerRadius: 2.8,
+        color: _shoeSole,
+        outlineColor: _outline,
+        outlineWidth: 2,
+        celShade: false,
+        inkOverFill: true,
       ),
     ),
 
@@ -1422,6 +1405,8 @@ RigSpec buildCatInSuitRig({
       outlineWidth: 2,
       samplesPerSegment: 12,
       shadeGroup: kTrouserShadeGroup,
+      inkOverFill: true,
+      inkStartFraction: 0.16,
     ),
     LimbRibbonSpec(
       id: 'leg.L.ribbon',
@@ -1493,9 +1478,10 @@ RigSpec buildCatInSuitRig({
       formRound: false,
       shadeGroup: kJacketShadeGroup,
       inkOverFill: true,
-      // The sleeve's line leaves the armhole; it must not enclose the
-      // deltoid or the arm reads as pinned onto the jacket.
-      inkStartFraction: 0.2,
+      // The sleeve's line starts at bicep level: the shoulder area belongs
+      // to the jacket's seam stroke alone — two nearly-parallel pencil lines
+      // up there read as sloppy sketching.
+      inkStartFraction: 0.34,
     ),
     LimbRibbonSpec(
       id: 'arm.L.ribbon',
@@ -1528,9 +1514,10 @@ RigSpec buildCatInSuitRig({
       formRound: false,
       shadeGroup: kJacketShadeGroup,
       inkOverFill: true,
-      // The sleeve's line leaves the armhole; it must not enclose the
-      // deltoid or the arm reads as pinned onto the jacket.
-      inkStartFraction: 0.2,
+      // The sleeve's line starts at bicep level: the shoulder area belongs
+      // to the jacket's seam stroke alone — two nearly-parallel pencil lines
+      // up there read as sloppy sketching.
+      inkStartFraction: 0.34,
     ),
   ];
 
@@ -1628,11 +1615,16 @@ RigSpec buildCatInSuitRig({
       outlineWidth: 1,
       hiddenBoneIds: const [CatBones.torso],
       shadeGroup: kJacketShadeGroup,
-      // Drawn shoulder seams: continue each sleeve's armhole ink up over the
-      // yoke to the collar — same line weight as the limb ink, stroked ABOVE
-      // the sleeves (a shoulder seam lies on top of the shoulder).
+      // Drawn shoulder seams: ONE stroke per side owning the shoulder area —
+      // it leaves the deltoid's outer silhouette edge (the tip vertex below,
+      // welded to the clavicle so it stays on the dome through a shrug),
+      // arcs over the yoke, and ends at the collar. Same line weight as the
+      // limb ink, stroked ABOVE the sleeves (a seam lies on the shoulder).
       crownSeamWidth: 2,
       crownSeamZ: 17,
+      crownSeamTip: (x: -35 - 7.4 * armWidthScale, y: -64 - 6.8 * armWidthScale),
+      crownSeamTipWeights: const {CatBones.clavicleL: 1},
+      crownSeamTipWeightsMirrored: const {CatBones.clavicleR: 1},
     ),
   ];
 

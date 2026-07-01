@@ -63,6 +63,9 @@ SkinnedMeshSpec buildTrunkSurface({
   String? shadeGroup,
   double crownSeamWidth = 0,
   int? crownSeamZ,
+  ({double x, double y})? crownSeamTip,
+  Map<String, double>? crownSeamTipWeights,
+  Map<String, double>? crownSeamTipWeightsMirrored,
 }) {
   assert(stations.length >= 2, 'a trunk surface needs at least two stations');
   final origins = _restWorldOrigins(bones);
@@ -151,20 +154,45 @@ SkinnedMeshSpec buildTrunkSurface({
     vertices.add(vertexAt(s.x + s.halfWidth, s.y, stationWeights(i)));
   }
 
-  // The crown as DRAWN SHOULDER SEAMS (when [crownSeamWidth] > 0): from each
-  // top station vertex up over the yoke to the collar point — the tailoring
-  // line that continues a sleeve's armhole ink up to the neck cutoff.
+  // The crown as DRAWN SHOULDER SEAMS (when [crownSeamWidth] > 0): the
+  // tailoring line over the yoke to the collar point. With a [crownSeamTip]
+  // the seam STARTS at that extra skinned vertex — authored to sit on the
+  // shoulder's outer silhouette edge and weighted to the girdle so it stays
+  // welded there through a shrug — making the seam ONE stroke that leaves
+  // the body outline, instead of a floating line ending mid-cloth. Without a
+  // tip it starts at the top station vertex (the armhole edge).
+  final rightCrownStart = stations.length + crown.length;
+  int? tipLeftIndex;
+  int? tipRightIndex;
+  if (crownSeamTip != null) {
+    tipLeftIndex = vertices.length;
+    vertices.add(
+      vertexAt(
+        crownSeamTip.x,
+        crownSeamTip.y,
+        crownSeamTipWeights ?? stationWeights(stations.length - 1),
+      ),
+    );
+    tipRightIndex = vertices.length;
+    vertices.add(
+      vertexAt(
+        -crownSeamTip.x,
+        crownSeamTip.y,
+        crownSeamTipWeightsMirrored ??
+            crownSeamTipWeights ??
+            stationWeights(stations.length - 1),
+      ),
+    );
+  }
   final leftSeam = [
-    stations.length - 1,
+    tipLeftIndex ?? stations.length - 1,
     for (var i = 0; i < crown.length; i++) stations.length + i,
   ];
   // Right-side crown vertices were emitted centre-first (the mirrored
-  // reversed walk), so the armhole→corner→collar chain is: the top-right
-  // station vertex, then the crown indices from LAST (outer corner) down to
-  // FIRST (collar point).
-  final rightCrownStart = stations.length + crown.length;
+  // reversed walk), so the chain runs tip/armhole first, then crown indices
+  // from LAST (outer corner) down to FIRST (collar point).
   final rightSeam = [
-    rightCrownStart + crown.length,
+    tipRightIndex ?? rightCrownStart + crown.length,
     for (var i = crown.length - 1; i >= 0; i--) rightCrownStart + i,
   ];
 

@@ -459,46 +459,52 @@ void main() {
       }
     });
 
-    test('shoes read as dress shoes: toe cap and split sole', () {
+    test('shoes read as sneakers: cream midsole, toe bump, heel collar', () {
       for (final side in const [
         (
           foot: CatBones.footL,
           toe: CatBones.shoeToeL,
           sole: CatBones.shoeHighlightL,
-          heel: CatBones.shoeHeelL,
+          counter: CatBones.shoeCounterL,
         ),
         (
           foot: CatBones.footR,
           toe: CatBones.shoeToeR,
           sole: CatBones.shoeHighlightR,
-          heel: CatBones.shoeHeelR,
+          counter: CatBones.shoeCounterR,
         ),
       ]) {
         final last = rig.bone(side.foot)!.drawable!;
-        final toe = rig.bone(side.toe)!;
-        final sole = rig.bone(side.sole)!;
-        final heel = rig.bone(side.heel)!;
-        for (final part in [toe, sole, heel]) {
-          expect(part.parent, side.foot);
-        }
-        // The lighter cap-toe plane peeks past the front of the last.
-        expect(toe.drawable!.color, isNot(last.color));
+        final toe = rig.bone(side.toe)!.drawable!;
+        final sole = rig.bone(side.sole)!.drawable!;
+        final counter = rig.bone(side.counter)!.drawable!;
+        // The midsole is the sneaker cue: a LIGHT band running the full
+        // length of the last along the sole plane.
+        expect(_luma(sole.color), greaterThan(_luma(last.color) * 2));
+        expect(sole.width, greaterThanOrEqualTo(last.width));
         expect(
-          toe.drawable!.dx - toe.drawable!.width / 2,
+          sole.dy + sole.height / 2,
+          lessThanOrEqualTo(last.dy + last.height / 2),
+          reason: 'the midsole must not lower the contact plane',
+        );
+        // Rounded rubber toe over the front of the last.
+        expect(_luma(toe.color), greaterThan(_luma(last.color) * 2));
+        expect(
+          toe.dx - toe.width / 2,
           lessThan(last.dx - last.width / 2 + 2),
-          reason: 'the toe cap must round the very front of the last',
+          reason: 'the toe bump rounds the very front of the last',
         );
-        // Split sole line: a front pad and a heel strip with an ARCH GAP —
-        // the gap is what turns a flat bar into a heeled dress sole.
-        final padRear = sole.drawable!.dx + sole.drawable!.width / 2;
-        final heelFront = heel.drawable!.dx - heel.drawable!.width / 2;
+        // Heel collar rises above the vamp topline at the back.
         expect(
-          heelFront - padRear,
-          greaterThanOrEqualTo(4),
-          reason: 'the arch gap between sole pad and heel must stay open',
+          counter.dy - counter.height / 2,
+          lessThan(last.dy - last.height / 2),
+          reason: 'the collar step gives the sneaker its ankle silhouette',
         );
-        expect(sole.drawable!.color, heel.drawable!.color);
-        expect(sole.drawable!.width, lessThan(last.width));
+        // Every shoe part is a drawn, inked shape.
+        for (final part in [last, toe, sole, counter]) {
+          expect(part.inkOverFill, isTrue);
+          expect(part.outlineColor, isNotNull);
+        }
       }
     });
 
@@ -511,8 +517,6 @@ void main() {
         (CatBones.footL, CatBones.shoeHighlightL),
         (CatBones.footR, CatBones.shoeToeR),
         (CatBones.footL, CatBones.shoeToeL),
-        (CatBones.footR, CatBones.shoeHeelR),
-        (CatBones.footL, CatBones.shoeHeelL),
       ]) {
         final shoe = rig.bone(pair.$1)!.drawable!;
         final welt = rig.bone(pair.$2)!.drawable!;

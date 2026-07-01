@@ -44,6 +44,7 @@ class BoneDrawable {
     this.outlineWidth = 0,
     this.formRound = true,
     this.celShade = true,
+    this.inkOverFill = false,
   });
 
   final BoneShapeKind kind;
@@ -87,6 +88,12 @@ class BoneDrawable {
   /// flat fill with just the ink outline reads as a clean cartoon paw. Implies
   /// no form-rounding either (the ramp is skipped wholesale).
   final bool celShade;
+
+  /// When true, the drawable's outline is ALSO stroked over its fill — the
+  /// drawn ink line that separates this part from same-colour parts behind
+  /// it (the unified silhouette pass draws no internal outlines). Shoes and
+  /// other overlapping rigid parts use this like the limb ribbons do.
+  final bool inkOverFill;
 }
 
 /// A single rigid bone in the skeleton.

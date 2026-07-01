@@ -182,6 +182,7 @@ class CharacterRenderer {
       if (celShade != null && drawable.celShade) {
         _celShadeKind(canvas, drawable, celShade);
       }
+      _drawKindInk(canvas, drawable);
       canvas.restore();
     }
     while (ribbonIndex < ribbons.length) {
@@ -478,6 +479,22 @@ class CharacterRenderer {
     final round = formRound ? _formRoundPaint(bounds, baseArgb, s) : null;
     if (round != null) canvas.drawRect(bounds, round);
     canvas.restore();
+  }
+
+  /// The drawn ink line over a rigid part (see [BoneDrawable.inkOverFill]):
+  /// strokes the drawable's own shape on top of its fill, separating it from
+  /// same-colour parts behind it.
+  void _drawKindInk(Canvas canvas, BoneDrawable d) {
+    final outline = d.outlineColor;
+    if (!d.inkOverFill || outline == null || d.outlineWidth <= 0) return;
+    _paint
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = d.outlineWidth
+      ..strokeJoin = StrokeJoin.round
+      ..strokeCap = StrokeCap.round
+      ..color = Color(outline)
+      ..isAntiAlias = antiAlias;
+    _drawKind(canvas, d, _paint);
   }
 
   /// Paints the fill of [d] in its own colour (no per-bone outline — the
