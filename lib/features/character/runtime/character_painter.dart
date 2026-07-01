@@ -334,6 +334,14 @@ class CharacterPainter extends CustomPainter {
   /// this older move.
   static const double _builtInDancePivotFraction = 0.56;
 
+  /// Inter-cat parallax depth for the flanking backups (the centred lead is the
+  /// 1.0 reference plane — the "front cat"). Below 1 so a lateral camera truck
+  /// shears the lead against the upstage "background cats" — the trio gets its
+  /// own shallow depth instead of sliding across the frame as one flat cut-out.
+  /// Kept very close to 1: the cast is near-coplanar on the deck, and the shear
+  /// should be felt, not seen — immersive, not obvious. (Was 0.9.)
+  static const double _flankParallaxDepth = 0.95;
+
   @override
   void paint(Canvas canvas, Size size) {
     final floorY = size.height * feetFraction;
@@ -484,6 +492,18 @@ class CharacterPainter extends CustomPainter {
       final anchors = reportAnchors
           ? List<Offset>.filled(members.length, Offset.zero)
           : null;
+      // Inter-cat parallax: the horizontal pan (screen px) the scene camera
+      // applied. Each lane counter-shifts by (depth - 1) * pan / zoom in local
+      // space, so its net screen motion scales by its depth — the near lead
+      // trucks a touch more than the upstage backups. Only the lead-centred
+      // dance trio shears (a lateral truck with a real pan); everywhere else the
+      // depth is 1 and this is a no-op.
+      final camPanDx = _clampedPan(
+        sceneCamera,
+        size,
+        pivotFraction,
+        scaleDy: scaleDy,
+      ).dx;
       for (final i in paintOrder) {
         final memberScene = members[i];
         final memberClip = clips[i];
@@ -521,8 +541,14 @@ class CharacterPainter extends CustomPainter {
                     formation.dy +
                     heroStage.dy) *
                 drawScale;
+        final parallaxDx = leadCentreOrder
+            ? (_memberParallaxDepth(i) - 1) * camPanDx / sceneCamera.zoom
+            : 0.0;
         final memberCentreX =
-            startX + spacing * i + (formation.dx + heroStage.dx) * drawScale;
+            startX +
+            spacing * i +
+            (formation.dx + heroStage.dx) * drawScale +
+            parallaxDx;
         if (anchors != null && cameraMatrix != null) {
           // Map the local foot point through the camera transform to screen,
           // normalized to the canvas (affine — ignore the perspective row).
@@ -928,8 +954,17 @@ class CharacterPainter extends CustomPainter {
     bool scaleDy = false,
   }) {
     final pivot = Offset(size.width / 2, size.height * pivotFraction);
+    // Horizontal pivot is centred, so the exposed side margin is symmetric.
     final maxDx = size.width * (camera.zoom - 1) / 2;
-    final maxDy = size.height * (camera.zoom - 1) / 2;
+    // Vertical coverage is ASYMMETRIC: the pivot sits off-centre (the feet line),
+    // and scaling by z about fraction f exposes f·span above the pivot and
+    // (1-f)·span below it. So a plane can travel DOWN by f·span before its top
+    // edge reveals, and UP by (1-f)·span before its bottom edge does. A symmetric
+    // ±span/2 clamp would let a strong upward lift pop the bottom edge open at the
+    // low (0.88) director pivot — this asymmetric bound makes edge-safety exact.
+    final vSpan = size.height * (camera.zoom - 1);
+    final maxDown = pivotFraction * vSpan;
+    final maxUp = (1 - pivotFraction) * vSpan;
     final dx = (camera.dx * size.width / _danceCameraRefWidth).clamp(
       -maxDx,
       maxDx,
@@ -937,7 +972,7 @@ class CharacterPainter extends CustomPainter {
     final rawDy = scaleDy
         ? camera.dy * size.height / _danceCameraRefHeight
         : camera.dy;
-    final dy = rawDy.clamp(-maxDy, maxDy);
+    final dy = rawDy.clamp(-maxUp, maxDown);
     return (pivot: pivot, dx: dx, dy: dy);
   }
 
@@ -973,7 +1008,9 @@ class CharacterPainter extends CustomPainter {
   }
 
   /// Reduces a scene camera to the gentler backdrop parallax (it lags the
-  /// foreground so the scene reads as deeper).
+  /// foreground so the scene reads as deeper). The legacy single-plane factor
+  /// used for the built-in keyframe path ([danceParallaxTransform]); the layered
+  /// scene uses [_parallaxCameraAtDepth] for a per-plane depth ladder instead.
   static ({double zoom, double dx, double dy}) _parallaxCamera(
     ({double zoom, double dx, double dy}) camera,
   ) {
@@ -981,6 +1018,23 @@ class CharacterPainter extends CustomPainter {
       zoom: 1 + (camera.zoom - 1) * 0.34,
       dx: camera.dx * 0.28,
       dy: camera.dy * 0.18,
+    );
+  }
+
+  /// Scales a scene [camera] to the fraction of its motion a plane at [depth]
+  /// receives: `0` locks the plane at infinity (no drift), `1` moves it fully
+  /// with the dancers (the foreground camera). Applied uniformly to zoom, pan
+  /// and crane so a monotonic depth ladder (far → near) reads as stacked planes
+  /// drifting against one another. Zoom stays >= 1 for any depth (the layer only
+  /// ever grows about the pivot), so a plane never reveals its edges.
+  static ({double zoom, double dx, double dy}) _parallaxCameraAtDepth(
+    ({double zoom, double dx, double dy}) camera,
+    double depth,
+  ) {
+    return (
+      zoom: 1 + (camera.zoom - 1) * depth,
+      dx: camera.dx * depth,
+      dy: camera.dy * depth,
     );
   }
 
@@ -1013,23 +1067,26 @@ class CharacterPainter extends CustomPainter {
     );
   }
 
-  /// The reduced parallax transform a *separate* backdrop widget should apply
-  /// for an explicit virtual-director [shot]. The dance-to-track demo drives the
-  /// dance camera from `dance_camera_director.dart` (per-section framings with
-  /// fast accent punches) rather than the built-in [danceCameraShot] keyframes,
-  /// and feeds the same
-  /// shot here so the scenery lags the dancers exactly as it does under the
-  /// in-painter parallax. Mirrors [_applySceneCamera] reduced by
-  /// [_parallaxCamera]. Returns identity when [active] is false, the stage is
-  /// empty, or the parallax is neutral.
-  static Matrix4 danceParallaxTransformForShot({
+  /// The parallax transform a single background layer at [depth] applies for an
+  /// explicit virtual-director [shot], so the layered scene reads as stacked
+  /// depth planes: far layers (depth → 0) barely drift while the near deck
+  /// (depth → 1) tracks the cast. depth `1` matches the foreground camera
+  /// ([_applySceneCamera]); intermediate depths scale the whole move linearly
+  /// (see [_parallaxCameraAtDepth]). The dance-to-track demo drives the camera
+  /// from `dance_camera_director.dart` (per-section framings with fast accent
+  /// punches) and injects this per layer, so the live stage and the offline
+  /// composer lag every plane identically. Mirrors [_applySceneCamera]'s pivot +
+  /// pan clamp. Returns identity when [active] is false, the stage is empty, or
+  /// [depth] <= 0 (a locked plane).
+  static Matrix4 danceParallaxMatrixForShotAtDepth({
     required ({double zoom, double dx, double dy}) shot,
     required Size size,
+    required double depth,
     bool active = true,
   }) {
-    if (!active || size.isEmpty) return Matrix4.identity();
+    if (!active || size.isEmpty || depth <= 0) return Matrix4.identity();
     return _parallaxMatrix(
-      _parallaxCamera(shot),
+      _parallaxCameraAtDepth(shot, depth),
       size,
       _directorPivotFraction,
       scaleDy: true,
@@ -1094,6 +1151,15 @@ class CharacterPainter extends CustomPainter {
   static double _roleFloorOffset(int index, int memberCount) {
     if (memberCount < 3) return 0;
     return index == 1 ? 28 : -44;
+  }
+
+  /// Per-lane depth for inter-cat parallax within the centred trio: the lead
+  /// (index 1) is the 1.0 reference plane; the flanking backups sit a touch
+  /// upstage ([_flankParallaxDepth]). Only consulted for the lead-centred dance
+  /// trio, so it can assume the three-cat layout.
+  static double _memberParallaxDepth(int index) {
+    if (index == 1) return 1; // the centred lead — the reference plane
+    return _flankParallaxDepth; // flanking backups, a touch upstage
   }
 
   /// Extra HERO STAGING applied only to the layered-scene concert player (keyed

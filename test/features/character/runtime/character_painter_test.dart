@@ -12,6 +12,20 @@ import 'package:dancing_cats/features/character/runtime/character_scene.dart';
 import 'package:dancing_cats/features/character/samples/cat_in_suit.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:glados/glados.dart' as glados;
+
+/// A random parallax case: a director shot plus a plane depth in [0, 1], for the
+/// generative invariants over [CharacterPainter.danceParallaxMatrixForShotAtDepth].
+extension _AnyParallax on glados.Any {
+  glados.Generator<({double zoom, double dx, double dy, double depth})>
+  get parallaxCase => glados.CombinableAny(this).combine4(
+    glados.DoubleAnys(this).doubleInRange(1, 2.4),
+    glados.DoubleAnys(this).doubleInRange(-500, 500),
+    glados.DoubleAnys(this).doubleInRange(-60, 60),
+    glados.DoubleAnys(this).doubleInRange(0, 1),
+    (z, dx, dy, d) => (zoom: z, dx: dx, dy: dy, depth: d),
+  );
+}
 
 void main() {
   late CharacterScene scene;
@@ -1569,125 +1583,131 @@ void main() {
     });
   });
 
-  group('danceParallaxTransformForShot', () {
+  group('danceParallaxMatrixForShotAtDepth', () {
     const size = Size(800, 450);
-    // The director plants its pivot at the dancers' feet (0.88 of the height)
-    // so a zoom grows the cast upward; the backdrop must scale about the SAME
-    // pivot or the scenery would slide off the planted feet.
+    // The director plants its pivot at the dancers' feet (0.88 of the height) so
+    // a zoom grows the cast upward; every plane scales about the SAME pivot or
+    // the scenery would slide off the planted feet.
     const directorPivot = Offset(400, 450 * 0.88); // (400, 396)
 
-    test('is the identity matrix when inactive or the stage is empty', () {
+    Matrix4 at(
+      ({double zoom, double dx, double dy}) shot,
+      double depth, {
+      bool active = true,
+      Size sz = size,
+    }) => CharacterPainter.danceParallaxMatrixForShotAtDepth(
+      shot: shot,
+      size: sz,
+      depth: depth,
+      active: active,
+    );
+
+    test('is identity when inactive, empty, or the plane is locked (depth<=0)', () {
       const shot = (zoom: 2.10, dx: 120.0, dy: 0.0);
-      expect(
-        CharacterPainter.danceParallaxTransformForShot(
-          shot: shot,
-          size: size,
-          active: false,
-        ),
-        Matrix4.identity(),
-      );
-      expect(
-        CharacterPainter.danceParallaxTransformForShot(
-          shot: shot,
-          size: Size.zero,
-        ),
-        Matrix4.identity(),
-      );
+      expect(at(shot, 0.3, active: false), Matrix4.identity());
+      expect(at(shot, 0.3, sz: Size.zero), Matrix4.identity());
+      expect(at(shot, 0), Matrix4.identity()); // locked at infinity
+      expect(at(shot, -0.5), Matrix4.identity());
     });
 
-    test('a neutral shot leaves the backdrop untouched', () {
-      expect(
-        CharacterPainter.danceParallaxTransformForShot(
-          shot: (zoom: 1.0, dx: 0.0, dy: 0.0),
-          size: size,
-        ),
-        Matrix4.identity(),
-      );
+    test('a neutral shot leaves the plane untouched at any depth', () {
+      expect(at((zoom: 1.0, dx: 0.0, dy: 0.0), 0.5), Matrix4.identity());
+      expect(at((zoom: 1.0, dx: 0.0, dy: 0.0), 1), Matrix4.identity());
     });
 
-    test('parallaxes the backdrop far less than the foreground push-in', () {
-      // A strong foreground push to 2.10x only scales the backdrop to
-      // 1 + (2.10 - 1) * 0.34 ≈ 1.374 so the scenery reads as deeper than the
-      // dancers and the move never feels like a flat crop.
-      final m = CharacterPainter.danceParallaxTransformForShot(
-        shot: (zoom: 2.10, dx: 0.0, dy: 0.0),
-        size: size,
-      );
-      expect(m.entry(0, 0), moreOrLessEquals(1.374, epsilon: 1e-9));
-      expect(m.entry(0, 0), greaterThan(1.0));
-      expect(m.entry(0, 0), lessThan(2.10));
+    test('depth scales the zoom linearly toward the full foreground push', () {
+      // zoom entry = 1 + (shot.zoom - 1) * depth: a far plane (0.1) barely grows;
+      // depth 1 matches the foreground camera exactly.
+      const shot = (zoom: 2.10, dx: 0.0, dy: 0.0);
+      expect(at(shot, 0.1).entry(0, 0), moreOrLessEquals(1.11, epsilon: 1e-9));
+      expect(at(shot, 0.5).entry(0, 0), moreOrLessEquals(1.55, epsilon: 1e-9));
+      expect(at(shot, 1).entry(0, 0), moreOrLessEquals(2.10, epsilon: 1e-9));
     });
 
-    test('scales about the feet-planted director pivot, not the head pivot', () {
-      // Under a pure zoom the pivot is the one point that maps to itself.
-      // Proving the feet pivot (0.88h) is fixed — while the head pivot (0.56h)
-      // is pulled up — is what distinguishes this from the built-in
-      // head-height parallax (danceParallaxTransform).
-      final m = CharacterPainter.danceParallaxTransformForShot(
-        shot: (zoom: 2.10, dx: 0.0, dy: 0.0),
-        size: size,
-      );
+    test('scales about the feet-planted director pivot at any depth', () {
+      // Under a pure zoom the pivot is the one point that maps to itself; the
+      // head-height point (0.56h) is pulled up, so it is NOT the pivot.
+      final m = at((zoom: 2.10, dx: 0.0, dy: 0.0), 0.5);
       final fixed = MatrixUtils.transformPoint(m, directorPivot);
       expect(fixed.dx, moreOrLessEquals(directorPivot.dx, epsilon: 1e-6));
       expect(fixed.dy, moreOrLessEquals(directorPivot.dy, epsilon: 1e-6));
-
       const headPivot = Offset(400, 450 * 0.56); // (400, 252)
       final movedHead = MatrixUtils.transformPoint(m, headPivot);
-      expect(
-        movedHead.dy,
-        lessThan(headPivot.dy - 40),
-        reason: 'the head-height point is pulled up, so it is not the pivot',
-      );
+      expect(movedHead.dy, lessThan(headPivot.dy));
     });
 
-    test('pans the backdrop by the reduced, 2560-ref-rescaled dx', () {
-      // dx is authored in 2560-ref px; the backdrop drifts by dx * 0.28 (lag)
-      // rescaled to the stage width. A positive dx slides content right.
-      const shot = (zoom: 1.5, dx: 514.0, dy: 0.0);
-      final m = CharacterPainter.danceParallaxTransformForShot(
-        shot: shot,
-        size: size,
-      );
-      final panned = MatrixUtils.transformPoint(m, directorPivot);
-      const expectedDx = 514.0 * 0.28 * 800 / 2560; // ≈ 44.98, within the clamp
+    test('pans a plane by depth * the 2560-ref-rescaled dx', () {
+      // dx authored in 2560-ref px; a plane at depth d drifts by dx*d rescaled to
+      // the stage width (clamped to the margin the depth-zoom exposes).
+      const shot = (zoom: 1.5, dx: 300.0, dy: 0.0);
+      final panned = MatrixUtils.transformPoint(at(shot, 0.5), directorPivot);
+      const expectedDx = 300.0 * 0.5 * 800 / 2560; // 46.875, within the clamp
       expect(
         panned.dx - directorPivot.dx,
         moreOrLessEquals(expectedDx, epsilon: 1e-6),
       );
-      expect(
-        panned.dx,
-        greaterThan(directorPivot.dx),
-        reason: 'a positive dx slides the scenery right',
-      );
+      expect(panned.dx, greaterThan(directorPivot.dx));
     });
 
-    test('a flat-zoom vertical nudge is clamped away (dy needs headroom)', () {
-      // With no zoom there is no off-screen margin to pan into, so dy clamps to
-      // zero and the backdrop stays put — matching _applySceneCamera.
-      expect(
-        CharacterPainter.danceParallaxTransformForShot(
-          shot: (zoom: 1.0, dx: 0.0, dy: 30.0),
-          size: size,
-        ),
-        Matrix4.identity(),
-      );
+    test('a flat-zoom vertical nudge is clamped away (no headroom)', () {
+      expect(at((zoom: 1.0, dx: 0.0, dy: 30.0), 0.5), Matrix4.identity());
     });
 
-    test('a positive dy lowers the backdrop (more sky on top) once zoomed', () {
-      // dy is parallax-reduced (×0.18) then rescaled to the stage height
-      // (×height/1440), so the same dy frames the same FRACTION at any size:
-      // 40 × 0.18 × 450/1440 = 2.25. Positive pushes content DOWN, opening sky.
-      final m = CharacterPainter.danceParallaxTransformForShot(
-        shot: (zoom: 2.10, dx: 0.0, dy: 40.0),
-        size: size,
+    test('a positive dy lowers a zoomed plane by depth * the rescaled dy', () {
+      // dy scaled by depth then rescaled to the height: 40*0.5*450/1440 = 6.25.
+      final nudged = MatrixUtils.transformPoint(
+        at((zoom: 2.10, dx: 0.0, dy: 40.0), 0.5),
+        directorPivot,
       );
-      final nudged = MatrixUtils.transformPoint(m, directorPivot);
-      expect(
-        nudged.dy - directorPivot.dy,
-        moreOrLessEquals(2.25, epsilon: 1e-6),
-      );
+      expect(nudged.dy - directorPivot.dy, moreOrLessEquals(6.25, epsilon: 1e-6));
       expect(nudged.dy, greaterThan(directorPivot.dy));
     });
+
+    test('a nearer plane always parallaxes at least as much as a farther one', () {
+      // Monotonic depth ladder: more depth -> more zoom growth and more pan.
+      const shot = (zoom: 1.8, dx: 260.0, dy: 0.0);
+      var prevZoom = 1.0;
+      var prevPan = 0.0;
+      for (final d in [0.1, 0.2, 0.3, 0.5, 0.8, 1.0]) {
+        final m = at(shot, d);
+        final zoom = m.entry(0, 0);
+        final pan =
+            MatrixUtils.transformPoint(m, directorPivot).dx - directorPivot.dx;
+        expect(zoom, greaterThanOrEqualTo(prevZoom - 1e-9), reason: 'depth $d');
+        expect(pan, greaterThanOrEqualTo(prevPan - 1e-9), reason: 'depth $d');
+        prevZoom = zoom;
+        prevPan = pan;
+      }
+    });
+
+    glados.Glados(glados.any.parallaxCase, glados.ExploreConfig(numRuns: 300))
+        .test('a plane stays finite, never zooms past the foreground, and grows with depth', (
+          c,
+        ) {
+          final shot = (zoom: c.zoom, dx: c.dx, dy: c.dy);
+          final m = CharacterPainter.danceParallaxMatrixForShotAtDepth(
+            shot: shot,
+            size: size,
+            depth: c.depth,
+          );
+          final z = m.entry(0, 0);
+          expect(z.isFinite, isTrue, reason: '$c');
+          // A plane only ever grows about the pivot (never < 1) and never out-
+          // zooms the foreground camera (depth 1).
+          expect(z, greaterThanOrEqualTo(1 - 1e-9), reason: '$c');
+          expect(z, lessThanOrEqualTo(c.zoom + 1e-9), reason: '$c');
+          // Half the depth parallaxes no more than the full depth.
+          final shallower = CharacterPainter.danceParallaxMatrixForShotAtDepth(
+            shot: shot,
+            size: size,
+            depth: c.depth * 0.5,
+          );
+          expect(
+            z,
+            greaterThanOrEqualTo(shallower.entry(0, 0) - 1e-9),
+            reason: '$c',
+          );
+        }, tags: 'glados');
   });
 
   testWidgets('a locomoting clip travels the cat across the stage', (
@@ -1811,6 +1831,68 @@ void main() {
       // Reported left→right by lane.
       expect(reported![0].dx, lessThan(reported![1].dx));
       expect(reported![1].dx, lessThan(reported![2].dx));
+    });
+  });
+
+  testWidgets('inter-cat parallax shears the trio under a lateral truck', (
+    tester,
+  ) async {
+    await tester.runAsync(() async {
+      List<Offset> anchorsFor(({double zoom, double dx, double dy}) shot) {
+        List<Offset>? reported;
+        final recorder = ui.PictureRecorder();
+        CharacterPainter(
+          scene: scene,
+          partnerScene: CharacterScene(
+            buildCatInSuitRig(palette: CatInSuitPalette.silverTabby),
+          ),
+          ensembleScenes: [
+            CharacterScene(
+              buildCatInSuitRig(palette: CatInSuitPalette.silverTabby),
+            ),
+            CharacterScene(
+              buildCatInSuitRig(palette: CatInSuitPalette.darkBrown),
+            ),
+          ],
+          ensembleClips: [
+            CatClips.shaku,
+            CatClips.danceBackupLeft,
+            CatClips.danceBackupRight,
+          ],
+          synchronousEnsemble: true,
+          walkingPair: true,
+          clip: CatClips.shaku,
+          timeSeconds: 0.25,
+          cameraOverride: shot,
+          shadowColor: const Color(0x00000000),
+          onDancerAnchors: (anchors) => reported = anchors,
+          renderer: renderer,
+        ).paint(Canvas(recorder), const Size(760, 420));
+        recorder.endRecording().dispose();
+        return reported!;
+      }
+
+      // The inter-member gaps depend ONLY on the per-lane parallax (a uniform
+      // camera pan shifts all three equally and cancels in the gaps), so any
+      // change between a centred shot and a lateral truck is the shear itself.
+      final centred = anchorsFor((zoom: 1.4, dx: 0, dy: 0));
+      final trucked = anchorsFor((zoom: 1.4, dx: 380, dy: 0));
+
+      final leftGapDelta =
+          (trucked[1].dx - trucked[0].dx) - (centred[1].dx - centred[0].dx);
+      final rightGapDelta =
+          (trucked[2].dx - trucked[1].dx) - (centred[2].dx - centred[1].dx);
+
+      // The upstage backups (depth < 1) lag the near lead on the rightward truck,
+      // so the left gap widens and the right gap narrows by the same shear —
+      // opposite signs, so the trio leans instead of sliding as one flat cut-out.
+      expect(leftGapDelta, greaterThan(0.004));
+      expect(rightGapDelta, lessThan(-0.004));
+      expect(
+        leftGapDelta,
+        moreOrLessEquals(-rightGapDelta, epsilon: 1e-3),
+        reason: 'both backups lag by the same amount',
+      );
     });
   });
 

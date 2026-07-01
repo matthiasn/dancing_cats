@@ -177,10 +177,10 @@ void main() {
         expect(s.zoom, greaterThan(prev), reason: 'p=$p');
         prev = s.zoom;
       }
-      expect(cameraShot(_ctx(section: 'pre-chorus')).zoom, closeTo(1.22, 1e-9));
+      expect(cameraShot(_ctx(section: 'pre-chorus')).zoom, closeTo(1.18, 1e-9));
       expect(
         cameraShot(_ctx(section: 'pre-chorus', sectionPhase: 1)).zoom,
-        closeTo(1.52, 1e-9),
+        closeTo(1.38, 1e-9),
       );
     });
 
@@ -222,19 +222,19 @@ void main() {
       // Brown feature: leans RIGHT (-dx), held flat across the second half.
       expect(lateA.dx, lessThan(0));
       expect(lateA.dx, closeTo(lateB.dx, 1e-9));
-      // The hand-off is a fast PUNCH: the TARGET dx flips by a big jump across
-      // 0.5 (the rig whips across it in ~0.14s), not a slow sweep through centre.
-      expect(earlyB.dx - lateA.dx, greaterThan(380));
+      // The hand-off is a fast PUNCH: the TARGET dx flips by a jump across 0.5
+      // (the rig whips across it), not a slow sweep through centre.
+      expect(earlyB.dx - lateA.dx, greaterThan(300));
       // Both features hold the same favoured-trio zoom, under the ceiling.
-      expect(earlyA.zoom, closeTo(1.50, 1e-9));
-      expect(lateA.zoom, closeTo(1.50, 1e-9));
+      expect(earlyA.zoom, closeTo(1.40, 1e-9));
+      expect(lateA.zoom, closeTo(1.40, 1e-9));
     });
 
     test('verse is a living medium: slow push plus a two-way drift', () {
       final a = cameraShot(_ctx(section: 'verse'));
       final b = cameraShot(_ctx(section: 'verse', sectionPhase: 1));
-      expect(a.zoom, closeTo(1.36, 1e-9));
-      expect(b.zoom, closeTo(1.45, 1e-9));
+      expect(a.zoom, closeTo(1.28, 1e-9));
+      expect(b.zoom, closeTo(1.36, 1e-9));
       expect(b.zoom, greaterThan(a.zoom)); // pushes across the section
       expect(a.dy, 0);
       // The drift sways both ways within a phrase, so the verse never parks.
@@ -251,8 +251,8 @@ void main() {
     test('outro de-escalates toward the establish and eases its dy in', () {
       final a = cameraShot(_ctx(section: 'outro'));
       final b = cameraShot(_ctx(section: 'outro', sectionPhase: 1));
-      expect(a.zoom, closeTo(1.48, 1e-9));
-      expect(b.zoom, closeTo(1.10, 1e-9));
+      expect(a.zoom, closeTo(1.40, 1e-9));
+      expect(b.zoom, closeTo(1.08, 1e-9));
       expect(b.zoom, lessThan(a.zoom));
       expect(a.dy, 0);
       expect(b.dy, closeTo(kHorizonDropPx, 1e-9));
@@ -304,15 +304,15 @@ void main() {
 
   group('cameraShot — final post-chorus hook', () {
     test('holds a grounded band, loads off-centre, and resolves continuously', () {
-      // The final hook stays in a ~1.56 band with ONE motivated mid-coil push
-      // and no late 2.30 close-crop jump.
+      // The final hook stays in a ~1.45 band (wider than the old 1.56 so the
+      // depth reads) with ONE motivated mid-coil push and no close-crop jump.
       for (final sp in [0.5, 0.62, 0.74, 0.86, 0.90, 0.96, 1.0]) {
         final s = cameraShot(
           _ctx(section: 'post-chorus', build: 0.9, sectionPhase: sp),
         );
         expect(
           s.zoom,
-          inInclusiveRange(1.54, 1.62),
+          inInclusiveRange(1.44, 1.50),
           reason: 'sp=$sp',
         );
         expect(s.dy, 0, reason: 'sp=$sp');
@@ -328,7 +328,7 @@ void main() {
             phrasePhase: 0.25,
           ),
         ).dx.abs(),
-        greaterThan(50),
+        greaterThan(40),
       );
       expect(
         cameraShot(
@@ -349,7 +349,7 @@ void main() {
       final finish = cameraShot(
         _ctx(section: 'post-chorus', build: 0.9, sectionPhase: 1),
       );
-      expect(preFinish.zoom, closeTo(1.56, 0.01));
+      expect(preFinish.zoom, closeTo(1.45, 0.02));
       expect((finish.zoom - preFinish.zoom).abs(), lessThan(0.03));
       expect(finish.dy, 0);
     });
@@ -360,7 +360,7 @@ void main() {
         final s = cameraShot(
           _ctx(section: 'post-chorus', build: 0.9, sectionPhase: i / 400),
         );
-        expect(s.zoom, lessThanOrEqualTo(1.62), reason: 'sp=${i / 400}');
+        expect(s.zoom, lessThanOrEqualTo(1.51), reason: 'sp=${i / 400}');
         expect(
           (s.zoom - prev.zoom).abs(),
           lessThan(0.01),
@@ -388,7 +388,7 @@ void main() {
           }
         }
       }
-      expect(maxShot, lessThanOrEqualTo(1.62));
+      expect(maxShot, lessThanOrEqualTo(1.51));
     });
   });
 
@@ -397,7 +397,7 @@ void main() {
       'no shot ever exceeds the grounded dance ceiling, and all output is finite',
       (c) {
         final s = cameraShot(c);
-        expect(s.zoom, lessThanOrEqualTo(1.6200001), reason: '$c');
+        expect(s.zoom, lessThanOrEqualTo(1.51), reason: '$c');
         expect(s.zoom, greaterThan(1.0), reason: '$c');
         expect(s.zoom.isFinite, isTrue, reason: '$c');
         expect(s.dx.isFinite, isTrue, reason: '$c');

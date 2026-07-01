@@ -20,6 +20,7 @@ class BackdropContext {
     this.cityLightsProgram,
     this.images = const {},
     this.manifest,
+    this.parallaxForDepth,
   });
 
   /// Pixel size of the backdrop.
@@ -51,6 +52,15 @@ class BackdropContext {
 
   /// Light/window anchor geometry for the props layer.
   final SkylineManifest? manifest;
+
+  /// Injected camera → per-plane parallax mapping: given a layer `depth` (0 =
+  /// locked at infinity, 1 = moves with the foreground/dancers) and the paint
+  /// size, returns the transform a `ParallaxLayer` at that depth applies. Null
+  /// when no camera drives the scene, in which case layers paint flat (so
+  /// non-dance uses and unit tests are unaffected). Kept as a strategy so the
+  /// scenery feature stays agnostic to *why* it drifts — the dance stage and the
+  /// offline composer inject the same closure so live and export match.
+  final Matrix4 Function(double depth, Size size)? parallaxForDepth;
 }
 
 /// One painted layer in the back-to-front `BackdropScene` stack. Stateless
