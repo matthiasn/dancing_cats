@@ -192,11 +192,12 @@ class BackdropScene {
           ImageLayer(SceneryAssets.lagosCityBridge),
           depth: _depthCity,
         ),
-        // The yacht rides its own nearer plane. A cool, slightly dimmed modulate
-        // pulls the baked-bright white hull down toward a dusk blue-grey so it
-        // stops clipping and competing with the (ungraded) cat subjects.
+        // The yacht rides its own nearer plane. A cool, dimmed modulate pulls the
+        // baked-bright white hull well down into the dusk field so it stops being
+        // a luminance magnet on the right edge that competes with the lantern and
+        // the (ungraded) cat subjects for the eye.
         ParallaxLayer(
-          ImageLayer(SceneryAssets.lagosYacht, modulate: Color(0xFFAAB6CC)),
+          ImageLayer(SceneryAssets.lagosYacht, modulate: Color(0xFF8A93A8)),
           depth: _depthYacht,
         ),
         // The deck the cast stands on. A cool, desaturating modulate lets the
@@ -220,9 +221,9 @@ class BackdropScene {
           ImageLayer(
             SceneryAssets.lagosCityWindows,
             blend: BlendMode.plus,
-            modulate: Color(0xFF8C6E3A),
-            blurSigma: 9,
-            opacity: 0.7,
+            modulate: Color(0xFF97763F),
+            blurSigma: 11,
+            opacity: 0.82,
           ),
           depth: _depthCity,
         ),
@@ -238,9 +239,9 @@ class BackdropScene {
           ImageLayer(
             SceneryAssets.lagosYachtWindows,
             blend: BlendMode.plus,
-            modulate: Color(0xFF8A6A38),
-            blurSigma: 8,
-            opacity: 0.7,
+            modulate: Color(0xFF947340),
+            blurSigma: 10,
+            opacity: 0.8,
           ),
           depth: _depthYacht,
         ),
