@@ -164,6 +164,56 @@ void main() {
       }
     });
 
+    test('shoulder folds bridge raised sleeves into the jacket', () {
+      for (final side in const [
+        (
+          foldId: 'shoulder.L.fold',
+          armId: 'arm.L.mesh',
+          clavicle: CatBones.clavicleL,
+          socket: CatBones.shoulderSocketL,
+          upper: CatBones.armUpperL,
+          bicep: CatBones.armBicepL,
+        ),
+        (
+          foldId: 'shoulder.R.fold',
+          armId: 'arm.R.mesh',
+          clavicle: CatBones.clavicleR,
+          socket: CatBones.shoulderSocketR,
+          upper: CatBones.armUpperR,
+          bicep: CatBones.armBicepR,
+        ),
+      ]) {
+        final fold = rig.meshes.singleWhere((m) => m.id == side.foldId);
+        final arm = rig.meshes.singleWhere((m) => m.id == side.armId);
+        final drawOrder = rig.meshDrawOrder.map((m) => m.id).toList();
+
+        expect(fold.boundary, hasLength(5));
+        expect(fold.formRound, isFalse);
+        expect(fold.outlineColor, isNull);
+        expect(fold.z, lessThanOrEqualTo(arm.z));
+        expect(
+          drawOrder.indexOf(side.foldId),
+          lessThan(drawOrder.indexOf(side.armId)),
+          reason:
+              '${side.foldId} should sit under the sleeve fill as an armpit '
+              'cloth fold, not overdraw the arm as a detached patch',
+        );
+        expect(
+          fold.vertices.expand((v) => v.influences).map((i) => i.boneId),
+          containsAll([
+            CatBones.torso,
+            side.clavicle,
+            side.socket,
+            side.upper,
+            side.bicep,
+          ]),
+          reason:
+              '${side.foldId} needs torso/clavicle and upper-arm weights so '
+              'raised sleeves stay visually welded to the jacket',
+        );
+      }
+    });
+
     test('paired background cats use the same attached arm meshes', () {
       for (final rig in [
         buildCatInSuitRig(palette: CatInSuitPalette.silverTabby),
@@ -351,7 +401,7 @@ void main() {
       final cuff = rig.bone(CatBones.wristCuffL)!.drawable!;
       final hand = rig.bone(CatBones.handL)!.drawable!;
 
-      expect(arm.boundary, hasLength(12));
+      expect(arm.boundary, hasLength(14));
       expect(arm.formRound, isFalse);
       expect(
         arm.smoothBoundary,
@@ -362,7 +412,7 @@ void main() {
       );
       expect(
         arm.boundaryCornerSmoothing,
-        inInclusiveRange(0.2, 0.35),
+        inInclusiveRange(0.28, 0.38),
         reason:
             'sleeves need lower-tension smoothing than the organic body meshes '
             'so they keep taper without returning to sausage tubes',
@@ -380,36 +430,48 @@ void main() {
         ]),
       );
       expect(_maxAbsLocalX(arm.vertices[0]), greaterThan(13));
-      expect(_maxAbsLocalX(arm.vertices[2]), greaterThan(10));
       expect(
-        _maxAbsLocalX(arm.vertices[2]),
-        greaterThan(_maxAbsLocalX(arm.vertices[4]) * 1.42),
+        arm.vertices[2].influences.map((i) => i.boneId),
+        containsAll([
+          CatBones.shoulderSocketL,
+          CatBones.armUpperL,
+          CatBones.armBicepL,
+        ]),
+        reason:
+            'the sleeve needs a deltoid transition vertex between the shoulder '
+            'cap and bicep; otherwise raised arms collapse into triangles',
+      );
+      expect(_maxAbsLocalX(arm.vertices[2]), greaterThan(13));
+      expect(_maxAbsLocalX(arm.vertices[3]), greaterThan(12));
+      expect(
+        _maxAbsLocalX(arm.vertices[3]),
+        greaterThan(_maxAbsLocalX(arm.vertices[5]) * 1.42),
         reason:
             'the upper sleeve should carry a real bicep/upper-arm mass before '
             'tapering into the forearm',
       );
       expect(
-        _maxAbsLocalX(arm.vertices[3]),
-        lessThan(_maxAbsLocalX(arm.vertices[2]) * 0.5),
+        _maxAbsLocalX(arm.vertices[4]),
+        lessThan(_maxAbsLocalX(arm.vertices[3]) * 0.5),
         reason:
             'the elbow should pinch below the bicep mass without becoming a '
             'thin hinge',
       );
       expect(
-        _maxAbsLocalX(arm.vertices[5]),
-        lessThan(_maxAbsLocalX(arm.vertices[4]) * 0.7),
+        _maxAbsLocalX(arm.vertices[6]),
+        lessThan(_maxAbsLocalX(arm.vertices[5]) * 0.7),
         reason:
             'the wrist should taper after the forearm while still connecting to '
             'the larger paw/cuff',
       );
       expect(
-        _maxAbsLocalX(arm.vertices[4]),
-        greaterThan(_maxAbsLocalX(arm.vertices[3]) * 1.5),
+        _maxAbsLocalX(arm.vertices[5]),
+        greaterThan(_maxAbsLocalX(arm.vertices[4]) * 1.5),
         reason: 'the forearm should wedge back out after the elbow pinch',
       );
       expect(
-        _maxAbsLocalX(arm.vertices[9]),
-        lessThan(_maxAbsLocalX(arm.vertices[2])),
+        _maxAbsLocalX(arm.vertices[10]),
+        lessThan(_maxAbsLocalX(arm.vertices[3])),
         reason:
             'the inner bicep edge should be flatter than the outer shoulder '
             'bulge, avoiding a constant-width tube',
@@ -550,23 +612,23 @@ void main() {
         reason: 'the calf must bulge past the knee dip',
       );
       expect(
-        _maxAbsLocalX(leadArm.vertices[2]),
+        _maxAbsLocalX(leadArm.vertices[3]),
         closeTo(
-          _maxAbsLocalX(baseArm.vertices[2]) * kDanceLeadArmWidthScale,
+          _maxAbsLocalX(baseArm.vertices[3]) * kDanceLeadArmWidthScale,
           0.001,
         ),
       );
       expect(
-        _maxAbsLocalX(leadArm.vertices[3]),
-        lessThan(_maxAbsLocalX(leadArm.vertices[2]) * 0.5),
+        _maxAbsLocalX(leadArm.vertices[4]),
+        lessThan(_maxAbsLocalX(leadArm.vertices[3]) * 0.5),
         reason:
             'the elbow valley should keep crossed arms readable without '
             'becoming stringy',
       );
       expect(
-        _maxAbsLocalX(leadArm.vertices[4]),
+        _maxAbsLocalX(leadArm.vertices[5]),
         closeTo(
-          _maxAbsLocalX(baseArm.vertices[4]) * kDanceLeadArmWidthScale,
+          _maxAbsLocalX(baseArm.vertices[5]) * kDanceLeadArmWidthScale,
           0.001,
         ),
       );
@@ -1588,14 +1650,14 @@ void main() {
       final clavicleL = buga.channels[CatBones.clavicleL]!;
       expect(
         clavicleR.sample(13 / phrase.frameCount).rotation,
-        lessThan(-0.17),
+        lessThan(-0.28),
         reason:
             'the right Buga overhead present should lift through the shoulder '
             'girdle, not hinge from a fixed jacket edge',
       );
       expect(
         clavicleL.sample(29 / phrase.frameCount).rotation,
-        greaterThan(0.17),
+        greaterThan(0.28),
         reason:
             'the mirrored Buga overhead present should lift through the left '
             'shoulder girdle as well',
