@@ -65,9 +65,10 @@ final int _sleeve = kSuitFabric.plane(1); // far sleeve
 final int _sleeveNear = kSuitFabric.plane(1); // near sleeve
 const int _button = 0xFFAE955C; // muted brass placket button — a dark horn
 // button vanished on the navy front; a metal tone reads as a button line.
-final int _lapel = kSuitFabric.plane(1.94); // lapel — a CLEAR step lighter
-// than the suit so the folded-back collar panels read as their own planes
-// against the navy front even on the dimmed, cool-pooled backup dancers.
+final int _lapel = kSuitFabric.plane(1.32); // lapel — one readable step
+// lighter than the suit: a folded jacket edge catching the key. The old
+// near-2x value made the lapels read as big light-blue fabric PATCHES
+// sweeping across the shoulders instead of narrow folds framing the shirt.
 final int _trouser = kSuitFabric.plane(0.83); // darker navy
 final int _trouserRear = kSuitFabric.plane(0.78); // slightly darker rear leg
 const int _fur = 0xFFE8A55A; // orange tabby
@@ -899,20 +900,24 @@ RigSpec buildCatInSuitRig({
     Bone(
       id: CatBones.lapelL,
       parent: CatBones.clavicleL,
-      pivotX: 19,
-      pivotY: -16,
+      pivotX: 15,
+      pivotY: -14,
       z: 13,
-      restRotation: 0.6,
-      drawable: _tapered(18, 5, 42, _lapel, dy: 17),
+      // A narrow fold hugging the shirt V — near-vertical, not a wide wedge
+      // sweeping across the yoke.
+      restRotation: 0.45,
+      drawable: _tapered(11, 4, 36, _lapel, dy: 15),
     ),
     Bone(
       id: CatBones.lapelR,
       parent: CatBones.clavicleR,
-      pivotX: -19,
-      pivotY: -16,
+      pivotX: -15,
+      pivotY: -14,
       z: 13,
-      restRotation: -0.6,
-      drawable: _tapered(18, 5, 42, _lapel, dy: 17),
+      // A narrow fold hugging the shirt V — near-vertical, not a wide wedge
+      // sweeping across the yoke.
+      restRotation: -0.45,
+      drawable: _tapered(11, 4, 36, _lapel, dy: 15),
     ),
     // Shirt collar: two white points standing at the base of the neck, inside
     // the navy lapels, with the tie knot dropping between them — so the head
