@@ -98,10 +98,36 @@ void main() {
       }
     });
 
-    test('arm meshes blend shoulder sockets into the arm chain', () {
+    test('arm meshes are single weighted jacket-sleeve surfaces', () {
+      expect(
+        rig.ribbons.map((ribbon) => ribbon.id),
+        isNot(contains('arm.L.ribbon')),
+      );
+      expect(
+        rig.ribbons.map((ribbon) => ribbon.id),
+        isNot(contains('arm.R.ribbon')),
+      );
+      expect(
+        rig.meshes.map((mesh) => mesh.id),
+        isNot(contains('shoulder.L.cap')),
+      );
+      expect(
+        rig.meshes.map((mesh) => mesh.id),
+        isNot(contains('shoulder.R.cap')),
+      );
+      expect(
+        rig.meshes.map((mesh) => mesh.id),
+        isNot(contains('shoulder.L.fold')),
+      );
+      expect(
+        rig.meshes.map((mesh) => mesh.id),
+        isNot(contains('shoulder.R.fold')),
+      );
+
       for (final side in const [
         (
           meshId: 'arm.L.mesh',
+          shadowId: 'arm.L.shadow',
           clavicle: CatBones.clavicleL,
           socket: CatBones.shoulderSocketL,
           upper: CatBones.armUpperL,
@@ -113,6 +139,7 @@ void main() {
         ),
         (
           meshId: 'arm.R.mesh',
+          shadowId: 'arm.R.shadow',
           clavicle: CatBones.clavicleR,
           socket: CatBones.shoulderSocketR,
           upper: CatBones.armUpperR,
@@ -124,6 +151,7 @@ void main() {
         ),
       ]) {
         final mesh = rig.meshes.singleWhere((m) => m.id == side.meshId);
+        final drawOrder = rig.meshDrawOrder.map((m) => m.id).toList();
         final socket = rig.bone(side.socket)!;
         final upper = rig.bone(side.upper)!;
 
@@ -142,224 +170,83 @@ void main() {
             side.crease,
           ]),
         );
+        expect(mesh.boundary, List<int>.generate(15, (index) => index));
+        expect(mesh.outlineColor, isNotNull);
+        expect(mesh.outlineWidth, greaterThanOrEqualTo(2));
+        expect(mesh.formRound, isFalse);
         expect(
-          mesh.vertices.take(2).expand((v) => v.influences).map((i) {
-            return i.boneId;
-          }),
-          containsAll([side.clavicle, side.socket, side.upper]),
+          drawOrder.indexOf(side.meshId),
+          lessThan(drawOrder.indexOf(side.shadowId)),
           reason:
-              '${side.meshId} shoulder cap must be weighted across clavicle, '
-              'socket, and upper arm instead of beginning as a detached strip',
+              '${side.meshId} owns the visible sleeve silhouette; the shadow is '
+              'only an internal fabric contour',
         );
         expect(
-          mesh.vertices.expand((v) => v.influences).map((i) => i.boneId),
-          containsAll([side.bicep, side.lower, side.forearm, side.hand]),
+          mesh.vertices[0].influences.map((i) => i.boneId),
+          containsAll([CatBones.torso, side.clavicle]),
+          reason:
+              '${side.meshId} begins on the jacket shoulder, not at a floating '
+              'arm cap',
         );
         expect(
-          _maxAbsLocalX(mesh.vertices.first),
+          mesh.vertices[1].influences.map((i) => i.boneId),
+          containsAll([CatBones.torso, side.clavicle, side.socket, side.upper]),
+          reason:
+              '${side.meshId} must blend the jacket shoulder into the arm root',
+        );
+        expect(
+          mesh.vertices[2].influences.map((i) => i.boneId),
+          containsAll([side.socket, side.upper, side.bicep]),
+          reason: '${side.meshId} shoulder volume must ride with the upper arm',
+        );
+        expect(
+          mesh.vertices[6].influences.map((i) => i.boneId),
+          containsAll([side.lower, side.forearm]),
+          reason:
+              '${side.meshId} carries the forearm in the same surface, not a '
+              'separate ribbon',
+        );
+        expect(mesh.vertices[7].influences.single.boneId, side.hand);
+        expect(mesh.vertices[8].influences.single.boneId, side.hand);
+        expect(
+          mesh.vertices[13].influences.map((i) => i.boneId),
+          containsAll([CatBones.torso, side.clavicle, side.upper, side.bicep]),
+          reason:
+              '${side.meshId} returns through a torso-weighted armhole instead '
+              'of closing through a detached sleeve strip',
+        );
+        expect(
+          mesh.vertices[14].influences.map((i) => i.boneId),
+          containsAll([CatBones.torso, side.clavicle, side.socket]),
+        );
+        expect(
+          _maxAbsLocalX(mesh.vertices[2]),
           greaterThanOrEqualTo(socket.drawable!.width * 0.5),
+        );
+        expect(
+          _maxAbsLocalX(mesh.vertices[6]),
+          greaterThan(_maxAbsLocalX(mesh.vertices[10])),
           reason:
-              '${side.meshId} keeps socket landmarks for cap overlap, while the '
-              'visible sleeve boundary stays compact enough to avoid a wing',
+              '${side.meshId} should swell through the forearm and pinch at the '
+              'inside elbow instead of becoming a sausage tube',
         );
       }
     });
 
-    test('shoulder folds bridge raised sleeves into the jacket', () {
-      for (final side in const [
-        (
-          foldId: 'shoulder.L.fold',
-          armId: 'arm.L.mesh',
-          clavicle: CatBones.clavicleL,
-          socket: CatBones.shoulderSocketL,
-          upper: CatBones.armUpperL,
-          bicep: CatBones.armBicepL,
-        ),
-        (
-          foldId: 'shoulder.R.fold',
-          armId: 'arm.R.mesh',
-          clavicle: CatBones.clavicleR,
-          socket: CatBones.shoulderSocketR,
-          upper: CatBones.armUpperR,
-          bicep: CatBones.armBicepR,
-        ),
-      ]) {
-        final fold = rig.meshes.singleWhere((m) => m.id == side.foldId);
-        final arm = rig.meshes.singleWhere((m) => m.id == side.armId);
-        final drawOrder = rig.meshDrawOrder.map((m) => m.id).toList();
-
-        expect(fold.boundary, hasLength(5));
-        expect(fold.formRound, isFalse);
-        expect(fold.outlineColor, isNull);
-        expect(
-          _alpha(fold.color),
-          lessThan(0x58),
-          reason:
-              '${side.foldId} should read as a soft armpit crease, not an '
-              'opaque bat-wing cloth panel',
-        );
-        expect(fold.z, lessThanOrEqualTo(arm.z));
-        expect(fold.boundaryCornerSmoothing, greaterThanOrEqualTo(0.4));
-        expect(
-          fold.vertices[1].influences.map((i) => i.boneId),
-          containsAll([side.socket, side.upper, side.bicep]),
-          reason:
-              '${side.foldId} needs a deltoid bridge under the raised sleeve, '
-              'not only a torso shadow patch',
-        );
-        expect(
-          fold.vertices[3].influences.map((i) => i.boneId),
-          containsAll([CatBones.torso, side.clavicle, side.upper, side.bicep]),
-          reason:
-              '${side.foldId} should keep the armpit crease near the socket '
-              'instead of spanning through the torso shell',
-        );
-        expect(
-          fold.vertices[2].influences.map((i) => i.boneId),
-          containsAll([side.socket, side.upper, side.bicep]),
-          reason:
-              '${side.foldId} needs an intermediate deltoid point so the '
-              'raised shoulder fold rounds into the sleeve instead of cutting '
-              'one triangular edge',
-        );
-        expect(
-          _maxAbsLocalXForBones(fold.vertices[2], {
-            side.socket,
-            side.upper,
-            side.bicep,
-          }),
-          lessThan(15),
-          reason:
-              '${side.foldId} deltoid bridge should stay compact around the '
-              'shoulder instead of becoming a wide wing membrane',
-        );
-        expect(
-          fold.vertices[4].influences.map((i) => i.boneId),
-          containsAll([CatBones.torso, side.clavicle, side.upper, side.bicep]),
-          reason:
-              '${side.foldId} keeps a lower armpit landmark for attachment math, '
-              'but only the compact socket-side crease is drawn',
-        );
-        expect(
-          _maxAbsLocalXForBones(fold.vertices[4], {
-            side.upper,
-            side.bicep,
-          }),
-          lessThan(5),
-          reason:
-              '${side.foldId} lower armpit bridge should tuck under the arm '
-              'instead of spanning out toward the wrist',
-        );
-        expect(
-          drawOrder.indexOf(side.foldId),
-          lessThan(drawOrder.indexOf(side.armId)),
-          reason:
-              '${side.foldId} should sit under the sleeve fill as an armpit '
-              'cloth fold, not overdraw the arm as a detached patch',
-        );
-        expect(
-          fold.vertices.expand((v) => v.influences).map((i) => i.boneId),
-          containsAll([
-            CatBones.torso,
-            side.clavicle,
-            side.socket,
-            side.upper,
-            side.bicep,
-          ]),
-          reason:
-              '${side.foldId} keeps torso/clavicle and upper-arm landmarks for '
-              'attachment while drawing only the compact shoulder crease',
-        );
-      }
-    });
-
-    test('shoulder caps cover the sleeve socket seam', () {
-      for (final side in const [
-        (
-          capId: 'shoulder.L.cap',
-          foldId: 'shoulder.L.fold',
-          armId: 'arm.L.mesh',
-          clavicle: CatBones.clavicleL,
-          socket: CatBones.shoulderSocketL,
-          upper: CatBones.armUpperL,
-          bicep: CatBones.armBicepL,
-        ),
-        (
-          capId: 'shoulder.R.cap',
-          foldId: 'shoulder.R.fold',
-          armId: 'arm.R.mesh',
-          clavicle: CatBones.clavicleR,
-          socket: CatBones.shoulderSocketR,
-          upper: CatBones.armUpperR,
-          bicep: CatBones.armBicepR,
-        ),
-      ]) {
-        final cap = rig.meshes.singleWhere((m) => m.id == side.capId);
-        final arm = rig.meshes.singleWhere((m) => m.id == side.armId);
-        final drawOrder = rig.meshDrawOrder.map((m) => m.id).toList();
-
-        expect(cap.boundary, hasLength(7));
-        expect(cap.outlineColor, isNotNull);
-        expect(cap.outlineWidth, greaterThanOrEqualTo(1));
-        expect(cap.formRound, isTrue);
-        expect(cap.color, arm.color);
-        expect(cap.z, arm.z);
-        expect(
-          drawOrder.indexOf(side.capId),
-          greaterThan(drawOrder.indexOf(side.armId)),
-          reason:
-              '${side.capId} should paint over the sleeve root seam without '
-              'restoring the broad shoulder-fold panel',
-        );
-        expect(
-          drawOrder.indexOf(side.capId),
-          greaterThan(drawOrder.indexOf(side.foldId)),
-          reason:
-              '${side.capId} is the actual suit-volume overlap; the fold below '
-              'it is only a shadow',
-        );
-        expect(
-          cap.vertices.expand((v) => v.influences).map((i) => i.boneId),
-          containsAll([
-            side.clavicle,
-            side.socket,
-            side.upper,
-            side.bicep,
-          ]),
-          reason:
-              '${side.capId} must ride with the clavicle/socket/upper arm as '
-              'a compact deltoid plug, not stretch back into a torso wing',
-        );
-        expect(
-          _maxAbsLocalXForBones(cap.vertices[3], {
-            side.upper,
-            side.bicep,
-          }),
-          lessThan(6),
-          reason:
-              '${side.capId} should fill the shoulder socket, not extend into '
-              'a wing panel down the arm',
-        );
-      }
-    });
-
-    test('shoulder caps stay attached in solved wide-arm poses', () {
+    test('single sleeve meshes stay attached in solved wide-arm poses', () {
       final scene = CharacterScene(buildCatInSuitRig());
       for (final side in const [
         (
-          capId: 'shoulder.L.cap',
           armId: 'arm.L.mesh',
           label: 'left',
         ),
         (
-          capId: 'shoulder.R.cap',
           armId: 'arm.R.mesh',
           label: 'right',
         ),
       ]) {
-        final capMesh = scene.rig.meshes.singleWhere((m) => m.id == side.capId);
         final armMesh = scene.rig.meshes.singleWhere((m) => m.id == side.armId);
-        for (final clip in [CatClips.sekem, CatClips.buga]) {
+        for (final clip in [CatClips.shaku, CatClips.sekem, CatClips.buga]) {
           for (
             var frame = 0;
             frame <= CatClips.dancePhrase.frameCount;
@@ -370,85 +257,80 @@ void main() {
               clip: clip,
               timeSeconds: phase * clip.duration,
             );
-            final cap = resolveSkinnedMeshVertices(capMesh, solved.world)!;
             final arm = resolveSkinnedMeshVertices(armMesh, solved.world)!;
-            final shoulderGap = _minPointSetDistance(
-              _vertexSubset(arm, const [0, 1, 2, 17, 18, 19]),
-              cap,
+            final armholeSpan = _minPointSetDistance(
+              _vertexSubset(arm, const [0, 1, 12, 13, 14]),
+              _vertexSubset(arm, const [2, 3, 10, 11]),
             );
 
             expect(
-              shoulderGap,
-              lessThan(10),
+              armholeSpan,
+              lessThan(42),
               reason:
-                  '${clip.name} frame $frame ${side.label} shoulder cap must '
-                  'overlap the sleeve root; larger gaps render as detached '
-                  'arms against the background',
+                  '${clip.name} frame $frame ${side.label} sleeve must stay '
+                  'inside one armhole mesh; wider spans render as a detached '
+                  'arm or bat membrane',
             );
           }
         }
       }
     });
 
-    test('paired background cats use the same attached arm ribbons', () {
+    test('paired background cats use the same full sleeve meshes', () {
       for (final rig in [
         buildCatInSuitRig(palette: CatInSuitPalette.silverTabby),
         buildCatInSuitRig(palette: CatInSuitPalette.darkBrown),
       ]) {
         expect(
           rig.ribbons.map((ribbon) => ribbon.id),
-          contains('arm.L.ribbon'),
+          isNot(contains('arm.L.ribbon')),
         );
         expect(
           rig.ribbons.map((ribbon) => ribbon.id),
-          contains('arm.R.ribbon'),
+          isNot(contains('arm.R.ribbon')),
         );
         for (final side in const [
           (
-            ribbonId: 'arm.L.ribbon',
             meshId: 'arm.L.mesh',
             shadowId: 'arm.L.shadow',
             socket: CatBones.shoulderSocketL,
+            clavicle: CatBones.clavicleL,
             upper: CatBones.armUpperL,
             bicep: CatBones.armBicepL,
             lower: CatBones.armLowerL,
             forearm: CatBones.armForearmL,
           ),
           (
-            ribbonId: 'arm.R.ribbon',
             meshId: 'arm.R.mesh',
             shadowId: 'arm.R.shadow',
             socket: CatBones.shoulderSocketR,
+            clavicle: CatBones.clavicleR,
             upper: CatBones.armUpperR,
             bicep: CatBones.armBicepR,
             lower: CatBones.armLowerR,
             forearm: CatBones.armForearmR,
           ),
         ]) {
-          final ribbon = rig.ribbons.singleWhere((ribbon) {
-            return ribbon.id == side.ribbonId;
-          });
           final mesh = rig.meshes.singleWhere((mesh) => mesh.id == side.meshId);
           final shadow = rig.meshes.singleWhere((mesh) {
             return mesh.id == side.shadowId;
           });
-          expect(
-            ribbon.hiddenBoneIds,
-            containsAll([side.upper, side.bicep, side.lower, side.forearm]),
-          );
-          expect(
-            ribbon.outlineWidth,
-            greaterThanOrEqualTo(2),
-            reason:
-                '${side.ribbonId} owns the visible sleeve silhouette on all '
-                'cat palettes',
-          );
-          expect(mesh.hiddenBoneIds, containsAll([side.socket, side.upper]));
+          expect(mesh.boundary, List<int>.generate(15, (index) => index));
+          expect(mesh.outlineColor, isNotNull);
           expect(
             mesh.vertices.expand((v) => v.influences).map((i) => i.boneId),
-            containsAll([side.socket, side.upper]),
+            containsAll([
+              CatBones.torso,
+              side.clavicle,
+              side.socket,
+              side.upper,
+              side.bicep,
+              side.lower,
+              side.forearm,
+            ]),
             reason:
-                '${side.meshId} must be socket-weighted on backup palettes too',
+                '${side.meshId} must keep the same full weighted sleeve surface '
+                'on backup palettes too',
           );
           expect(
             shadow.vertices.expand((v) => v.influences).map((i) => i.boneId),
@@ -592,27 +474,21 @@ void main() {
     });
 
     test('sleeves keep a heroic taper instead of a sausage tube', () {
-      final ribbon = rig.ribbons.singleWhere((r) => r.id == 'arm.L.ribbon');
-      final overlay = rig.meshes.singleWhere((mesh) => mesh.id == 'arm.L.mesh');
+      final mesh = rig.meshes.singleWhere((mesh) => mesh.id == 'arm.L.mesh');
       final shadow = rig.meshes.singleWhere(
         (mesh) => mesh.id == 'arm.L.shadow',
       );
       final cuff = rig.bone(CatBones.wristCuffL)!.drawable!;
       final hand = rig.bone(CatBones.handL)!.drawable!;
 
+      expect(mesh.boundary, hasLength(15));
+      expect(mesh.formRound, isFalse);
+      expect(mesh.outlineColor, isNotNull);
+      expect(mesh.outlineWidth, greaterThanOrEqualTo(2));
       expect(
-        ribbon.jointBoneIds,
-        [
-          CatBones.armUpperL,
-          CatBones.armBicepL,
-          CatBones.armLowerL,
-          CatBones.armForearmL,
-          CatBones.handL,
-        ],
-      );
-      expect(
-        ribbon.hiddenBoneIds,
+        mesh.hiddenBoneIds,
         containsAll([
+          CatBones.shoulderSocketL,
           CatBones.armUpperL,
           CatBones.armBicepL,
           CatBones.armLowerL,
@@ -620,75 +496,51 @@ void main() {
           CatBones.armElbowCreaseL,
         ]),
       );
-      expect(ribbon.formRound, isFalse);
-      expect(ribbon.roundCaps, isFalse);
-      expect(ribbon.outlineWidth, greaterThanOrEqualTo(2));
-      expect(ribbon.samplesPerSegment, greaterThanOrEqualTo(12));
       expect(
-        ribbon.halfWidths[1],
-        greaterThan(ribbon.halfWidths[0]),
+        _maxAbsLocalX(mesh.vertices[3]),
+        greaterThan(_maxAbsLocalX(mesh.vertices[2]) * 0.8),
         reason:
             'the sleeve should swell through the bicep instead of reading as a '
             'constant-width tube',
       );
       expect(
-        ribbon.halfWidths[2],
-        lessThan(ribbon.halfWidths[1] * 0.6),
+        _maxAbsLocalX(mesh.vertices[10]),
+        lessThan(_maxAbsLocalX(mesh.vertices[3]) * 0.55),
         reason:
-            'the elbow needs a visible pinch so the arm bends as anatomy, not '
-            'as a sausage',
+            'the inside elbow needs a visible pinch so the arm bends as anatomy',
       );
       expect(
-        ribbon.halfWidths[3],
-        greaterThan(ribbon.halfWidths[2]),
+        _maxAbsLocalX(mesh.vertices[6]),
+        greaterThan(_maxAbsLocalX(mesh.vertices[10])),
         reason: 'the forearm should wedge back out after the elbow pinch',
       );
       expect(
-        ribbon.halfWidths[4],
-        lessThan(ribbon.halfWidths[3] * 0.7),
+        _maxAbsLocalX(mesh.vertices[7]),
+        lessThan(_maxAbsLocalX(mesh.vertices[6]) * 0.72),
         reason: 'the wrist should taper before the cuff and paw',
       );
-
-      expect(overlay.boundary, hasLength(8));
-      expect(overlay.formRound, isFalse);
-      expect(overlay.outlineColor, isNull);
-      expect(overlay.outlineWidth, 0);
       expect(
-        overlay.hiddenBoneIds,
+        mesh.vertices[1].influences.map((i) => i.boneId),
         containsAll([
+          CatBones.torso,
+          CatBones.clavicleL,
           CatBones.shoulderSocketL,
           CatBones.armUpperL,
-          CatBones.armBicepL,
-          CatBones.armLowerL,
-          CatBones.armForearmL,
-          CatBones.armElbowCreaseL,
         ]),
-      );
-      expect(_maxAbsLocalX(overlay.vertices[0]), greaterThan(13));
-      expect(
-        overlay.boundary,
-        isNot(contains(0)),
         reason:
-            'socket landmarks stay available for attachment checks, but the '
-            'visible sleeve overlay must not close through the clavicle root',
+            'the sleeve shoulder must be part of the jacket mesh, not a '
+            'floating cap',
       );
       expect(
-        overlay.boundary,
-        isNot(contains(19)),
-        reason:
-            'the collar-side root landmark should not be part of the filled '
-            'sleeve overlay; including it recreates the bat-wing closure',
-      );
-      expect(
-        overlay.vertices[2].influences.map((i) => i.boneId),
+        mesh.vertices[13].influences.map((i) => i.boneId),
         containsAll([
-          CatBones.shoulderSocketL,
+          CatBones.torso,
+          CatBones.clavicleL,
           CatBones.armUpperL,
           CatBones.armBicepL,
         ]),
         reason:
-            'the sleeve overlay should remain a socket/bicep blend, not a '
-            'separate floating patch',
+            'the returning armhole edge must stay weighted to both torso and arm',
       );
       expect(
         shadow.boundary,
@@ -752,12 +604,12 @@ void main() {
         rig.ribbons.map((r) => r.id),
         containsAll([
           'tail.ribbon',
-          'arm.L.ribbon',
-          'arm.R.ribbon',
           'leg.L.ribbon',
           'leg.R.ribbon',
         ]),
       );
+      expect(rig.ribbons.map((r) => r.id), isNot(contains('arm.L.ribbon')));
+      expect(rig.ribbons.map((r) => r.id), isNot(contains('arm.R.ribbon')));
       expect(
         rig.meshes.map((m) => m.id),
         containsAll([
@@ -841,9 +693,9 @@ void main() {
         greaterThan(leadLeg.halfWidths[2]),
         reason: 'the calf must bulge past the knee dip',
       );
-      const outerBicep = 5;
-      const outerElbow = 7;
-      const outerForearm = 8;
+      const outerBicep = 3;
+      const innerElbow = 10;
+      const outerForearm = 6;
 
       expect(
         _maxAbsLocalX(leadArm.vertices[outerBicep]),
@@ -853,7 +705,7 @@ void main() {
         ),
       );
       expect(
-        _maxAbsLocalX(leadArm.vertices[outerElbow]),
+        _maxAbsLocalX(leadArm.vertices[innerElbow]),
         lessThan(_maxAbsLocalX(leadArm.vertices[outerBicep]) * 0.65),
         reason:
             'the elbow valley should keep crossed arms readable without '
@@ -2679,12 +2531,6 @@ int _alpha(int argb) => (argb >> 24) & 0xFF;
 
 double _maxAbsLocalX(SkinnedMeshVertex vertex) =>
     vertex.influences.map((influence) => influence.x.abs()).reduce(math.max);
-
-double _maxAbsLocalXForBones(SkinnedMeshVertex vertex, Set<String> bones) =>
-    vertex.influences
-        .where((influence) => bones.contains(influence.boneId))
-        .map((influence) => influence.x.abs())
-        .reduce(math.max);
 
 List<({double x, double y})> _vertexSubset(
   List<({double x, double y})> vertices,

@@ -694,20 +694,20 @@ void main() {
         isEmpty,
         reason:
             'raised Buga sleeves should stay visually welded to the shoulder '
-            'fold mesh, not just rotate anatomically: '
+            'inside one armhole mesh, not just rotate anatomically: '
             '${bridgeViolations.take(4).map((v) => '${v.boneId}@${v.phase.toStringAsFixed(3)} ${v.message}').join(' | ')}',
       );
       expect(
         report.worstShoulderMeshBridge!.gap,
         lessThan(24),
         reason:
-            'worst raised sleeve/fold bridge should remain within the current '
+            'worst raised sleeve armhole gap should remain within the current '
             'cartoon fabric overlap envelope',
       );
       expect(
         narrowestShoulderSpan,
         greaterThan(report.profile.minRaisedShoulderMeshSpan),
-        reason: 'raised sleeve shoulder cap should not pinch into a triangle',
+        reason: 'raised sleeve armhole should not pinch into a triangle',
       );
       expect(
         narrowestShoulderRatio,

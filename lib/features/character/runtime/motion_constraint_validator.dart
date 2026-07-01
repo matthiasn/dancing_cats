@@ -501,15 +501,19 @@ class MotionConstraintValidator {
         if (suffix == null) continue;
         final side = suffix.substring(1);
         final armMesh = _meshById('arm.$side.mesh');
-        final foldMesh = _meshById('shoulder.$side.fold');
-        if (armMesh == null || foldMesh == null) continue;
+        if (armMesh == null) continue;
 
         final arm = resolveSkinnedMeshVertices(armMesh, frame.world);
-        final fold = resolveSkinnedMeshVertices(foldMesh, frame.world);
-        if (arm == null || fold == null) continue;
-        final armShoulder = _vertexSubset(arm, const [0, 1, 2, 3]);
-        final foldBridge = _vertexSubset(fold, const [0, 1, 2, 3]);
-        if (armShoulder.isEmpty || foldBridge.isEmpty) continue;
+        if (arm == null) continue;
+        final armShoulder = _vertexSubset(
+          arm,
+          _armSideShoulderIndices(arm.length),
+        );
+        final armhole = _vertexSubset(
+          arm,
+          _torsoSideArmholeIndices(arm.length),
+        );
+        if (armShoulder.isEmpty || armhole.isEmpty) continue;
         final upperWorld = frame.world[target.upperBoneId];
         final lowerWorld = frame.world[target.lowerBoneId];
         if (upperWorld == null || lowerWorld == null) continue;
@@ -523,13 +527,13 @@ class MotionConstraintValidator {
         final bicepIndices = _armBicepIndices(arm.length);
         final upperArmIndices = {...shoulderIndices, ...bicepIndices};
 
-        final gap = _minPointSetDistance(armShoulder, foldBridge);
+        final gap = _minPointSetDistance(armShoulder, armhole);
         checks.add(
           MotionShoulderMeshBridge(
             clipName: clip.name,
             endBoneId: target.endBoneId,
             armMeshId: armMesh.id,
-            foldMeshId: foldMesh.id,
+            foldMeshId: armMesh.id,
             phase: phase,
             targetY: targetPose.y,
             gap: gap,
@@ -625,13 +629,25 @@ class MotionConstraintValidator {
       ? const [0, 1, 2, 17, 18, 19]
       : vertexCount >= 18
       ? const [0, 1, 2, 15, 16, 17]
-      : const [0, 1, 2, 13, 14, 15];
+      : const [0, 1, 2, 12, 13, 14];
 
   List<int> _armBicepIndices(int vertexCount) => vertexCount >= 20
       ? const [2, 3, 4, 5, 6, 14, 15, 16, 17]
       : vertexCount >= 18
       ? const [2, 3, 4, 5, 13, 14, 15]
-      : const [2, 3, 4, 11, 12, 13];
+      : const [2, 3, 4, 10, 11, 12];
+
+  List<int> _armSideShoulderIndices(int vertexCount) => vertexCount >= 20
+      ? const [2, 3, 4, 15, 16, 17]
+      : vertexCount >= 18
+      ? const [2, 3, 4, 13, 14, 15]
+      : const [2, 3, 11, 12];
+
+  List<int> _torsoSideArmholeIndices(int vertexCount) => vertexCount >= 20
+      ? const [0, 1, 18, 19]
+      : vertexCount >= 18
+      ? const [0, 1, 16, 17]
+      : const [0, 1, 13, 14];
 
   double _projectedSpan(
     List<({double x, double y})> vertices,
@@ -795,7 +811,7 @@ class MotionConstraintProfile {
     this.maxRaisedShoulderMeshGap = 24,
     this.minRaisedShoulderMeshSpan = 12,
     this.minRaisedShoulderToBicepRatio = 0.66,
-    this.maxRaisedUpperArmMeshEdge = 34,
+    this.maxRaisedUpperArmMeshEdge = 40,
     this.jointEnvelopeRules = defaultMotionJointEnvelopeRules,
   }) : assert(
          contactEdgeFraction >= 0 && contactEdgeFraction < 0.5,
@@ -924,8 +940,7 @@ class MotionConstraintProfile {
   /// Minimum socket/corrective deformation for an overhead hand target.
   final double minRaisedSocketResponse;
 
-  /// Maximum nearest visible gap between a raised sleeve mesh and its shoulder
-  /// fold bridge.
+  /// Maximum nearest visible gap inside a raised sleeve's single armhole mesh.
   final double maxRaisedShoulderMeshGap;
 
   /// Minimum cross-axis width of the resolved sleeve shoulder cap.
@@ -934,11 +949,12 @@ class MotionConstraintProfile {
   /// catch wire-thin detachment, not force padded shoulder blocks.
   final double minRaisedShoulderMeshSpan;
 
-  /// Minimum shoulder-cap width relative to the resolved bicep width.
+  /// Minimum shoulder/armhole width relative to the resolved bicep width.
   final double minRaisedShoulderToBicepRatio;
 
   /// Maximum adjacent edge length around the raised sleeve shoulder/bicep
-  /// contour. Long edges are what make the arm read as a triangle fan.
+  /// contour. Long edges are what make the continuous sleeve read as a triangle
+  /// fan instead of a shaped garment mesh.
   final double maxRaisedUpperArmMeshEdge;
 
   /// Resolved local-joint envelopes used to catch impossible authored poses.
