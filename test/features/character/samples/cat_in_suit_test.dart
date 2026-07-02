@@ -1528,7 +1528,7 @@ void main() {
       }
     });
 
-    test('azonto keeps a grounded wide base under the point-out groove', () {
+    test('azonto keeps a grounded wide base under the mime groove', () {
       final phrase = CatClips.dancePhrase;
       final azonto = CatClips.azonto;
       final footL = _targetFor(azonto, CatBones.footL).channel;
@@ -1588,52 +1588,61 @@ void main() {
         expect(right.y, greaterThanOrEqualTo(100));
       }
 
-      // Bar 1 is the steering-wheel mime: both paws hold a rim in front of
-      // the chest — close grips on their OWN sides, chest height, never a
-      // straight-arm point-out.
+      // Bar 1 is the steering-wheel mime: the grips stay SEPARATED on their
+      // own sides and trade heights in opposing arcs (panel round 1: close
+      // stacked grips read as one blob clutching the tie).
       for (final frame in [0, 4, 8, 12]) {
         final p = frame / phrase.frameCount;
         final left = handL.sample(p);
         final right = handR.sample(p);
         expect(
           left.x,
-          inExclusiveRange(-30, -12),
+          inExclusiveRange(-26, -10),
           reason:
               'Azonto frame $frame: the left paw should grip the mimed wheel '
               'in front of the chest, not point out',
         );
         expect(
           right.x,
-          inExclusiveRange(12, 30),
+          inExclusiveRange(10, 26),
           reason:
               'Azonto frame $frame: the right paw should grip the mimed wheel '
               'in front of the chest, not point out',
         );
-        expect(left.y, inExclusiveRange(-54, -30));
-        expect(right.y, inExclusiveRange(-54, -30));
+        expect(left.y, inExclusiveRange(-52, -24));
+        expect(right.y, inExclusiveRange(-52, -24));
+        expect(
+          (left.y - right.y).abs(),
+          greaterThan(12),
+          reason:
+              'Azonto frame $frame: the grips must trade heights in opposing '
+              'arcs so the wheel visibly turns',
+        );
       }
 
-      // Bar 2 alternates cross-body jabs: the jabbing paw CROSSES the
-      // midline at chest height while the other paw chambers at the hip.
-      for (final (frame, jab, chamber) in [
-        (16, handL, handR),
-        (20, handR, handL),
-        (24, handL, handR),
-        (28, handR, handL),
+      // Bar 2 alternates FULL-EXTENSION cross-body jabs: the jabbing paw
+      // crosses the midline and breaks the far silhouette line while the
+      // other paw chambers at the hip crest (panel round 1: half-reach jabs
+      // fold the elbow across the belly and the sleeve reads as a stump).
+      for (final (frame, jab, chamber, crossSign) in [
+        (16, handL, handR, 1),
+        (20, handR, handL, -1),
+        (24, handL, handR, 1),
+        (28, handR, handL, -1),
       ]) {
         final p = frame / phrase.frameCount;
         final hit = jab.sample(p);
         final held = chamber.sample(p);
         expect(
-          hit.x.abs(),
-          lessThan(14),
+          hit.x * crossSign,
+          greaterThan(22),
           reason:
-              'Azonto frame $frame: the jab should land across the midline, '
-              'mime over reach',
+              'Azonto frame $frame: the jab must cross the midline to full '
+              'extension past the far shoulder line',
         );
         expect(
           hit.y,
-          lessThan(-44),
+          lessThanOrEqualTo(-42),
           reason: 'Azonto frame $frame: the jab lands at chest height',
         );
         expect(
@@ -1661,12 +1670,12 @@ void main() {
       );
       expect(
         hips.sample(4 / phrase.frameCount).rotation,
-        greaterThan(0.65),
-        reason: 'the Azonto point hit should be driven from the waist',
+        greaterThan(0.3),
+        reason: 'the Azonto hip pop should be driven from the waist',
       );
       expect(
         torso.sample(4.5 / phrase.frameCount).rotation,
-        lessThan(-0.34),
+        lessThan(-0.15),
         reason:
             'the chest should follow as a delayed counter-rotation, not land '
             'on the same frame as the hips',

@@ -6756,40 +6756,41 @@ class CatClips {
   // reaching the extension and freezing — needs the non-smooth channel below.
   // Azonto is MIME: the arms act out everyday actions over the leg groove
   // (the research audit's top azonto finding — straight-arm point-outs read
-  // as generic boy-band, not azonto). Bar 1 drives a steering wheel: both
-  // paws hold a rim in front of the chest and rock it every beat. Bar 2
-  // throws alternating cross-body jabs, the idle paw chambered at the hip.
-  // Every pose keeps the elbows OUTBOARD (see [_azontoLimbTargets]); the old
-  // tuck keys at the jacket centreline asked both elbows to pinch at the
-  // sternum with the paws flared back out — the contralateral fold the
-  // anti-fold clamp now forbids.
+  // as generic boy-band, not azonto). Bar 1 drives a steering wheel; bar 2
+  // throws alternating cross-body jabs with the idle paw chambered at the
+  // hip crest. Panel round 1 lessons baked in: the grips must be SEPARATED
+  // and counter-rotate in opposing vertical arcs or the wheel reads as one
+  // blob clutching the tie, and the jabs must reach FULL extension past the
+  // opposite shoulder line — this rig's upper arm is ~48 world units, so a
+  // half-reach target folds the elbow across the belly and the sleeve reads
+  // as a stump (two-bone flexion grows brutally below full reach).
   static const _azontoHandLTargetKeys = [
-    DanceIkTargetKey(0, x: -18, y: -48, tension: 0.2), // wheel grip high
-    DanceIkTargetKey(4, x: -22, y: -36, tension: 0.2), // wheel grip low
-    DanceIkTargetKey(8, x: -18, y: -48, tension: 0.2),
-    DanceIkTargetKey(12, x: -22, y: -36, tension: 0.2),
-    // bar 2: cross jab (held a frame so the hit reads), then chamber.
-    DanceIkTargetKey(16, x: 8, y: -52, tension: 1), // JAB across
-    DanceIkTargetKey(17, x: 8, y: -52, tension: 1),
-    DanceIkTargetKey(20, x: -44, y: -18, tension: 0.25), // chamber at hip
-    DanceIkTargetKey(24, x: 8, y: -52, tension: 1), // JAB across
-    DanceIkTargetKey(25, x: 8, y: -52, tension: 1),
-    DanceIkTargetKey(28, x: -44, y: -18, tension: 0.25),
-    DanceIkTargetKey(32, x: -18, y: -48, tension: 0.2), // == frame 0
+    DanceIkTargetKey(0, x: -15, y: -48, tension: 0.2), // wheel grip HIGH
+    DanceIkTargetKey(4, x: -19, y: -28, tension: 0.2), // wheel grip LOW
+    DanceIkTargetKey(8, x: -15, y: -48, tension: 0.2),
+    DanceIkTargetKey(12, x: -19, y: -28, tension: 0.2),
+    // bar 2: full-extension cross jab (held a frame), then hip chamber.
+    DanceIkTargetKey(16, x: 28, y: -44, tension: 1), // JAB past the far side
+    DanceIkTargetKey(17, x: 28, y: -44, tension: 1),
+    DanceIkTargetKey(20, x: -44, y: -14, tension: 0.3), // chamber, hip crest
+    DanceIkTargetKey(24, x: 28, y: -44, tension: 1), // JAB
+    DanceIkTargetKey(25, x: 28, y: -44, tension: 1),
+    DanceIkTargetKey(28, x: -44, y: -14, tension: 0.3),
+    DanceIkTargetKey(32, x: -15, y: -48, tension: 0.2), // == frame 0
   ];
   static const _azontoHandRTargetKeys = [
-    DanceIkTargetKey(0, x: 22, y: -36, tension: 0.2), // wheel grip low
-    DanceIkTargetKey(4, x: 18, y: -48, tension: 0.2), // wheel grip high
-    DanceIkTargetKey(8, x: 22, y: -36, tension: 0.2),
-    DanceIkTargetKey(12, x: 18, y: -48, tension: 0.2),
-    // bar 2: chambered while the left jabs, then answering cross jab.
-    DanceIkTargetKey(16, x: 44, y: -18, tension: 0.25), // chamber at hip
-    DanceIkTargetKey(20, x: -8, y: -52, tension: 1), // JAB across
-    DanceIkTargetKey(21, x: -8, y: -52, tension: 1),
-    DanceIkTargetKey(24, x: 44, y: -18, tension: 0.25),
-    DanceIkTargetKey(28, x: -8, y: -52, tension: 1), // JAB across
-    DanceIkTargetKey(29, x: -8, y: -52, tension: 1),
-    DanceIkTargetKey(32, x: 22, y: -36, tension: 0.2),
+    DanceIkTargetKey(0, x: 19, y: -28, tension: 0.2), // wheel grip LOW
+    DanceIkTargetKey(4, x: 15, y: -48, tension: 0.2), // wheel grip HIGH
+    DanceIkTargetKey(8, x: 19, y: -28, tension: 0.2),
+    DanceIkTargetKey(12, x: 15, y: -48, tension: 0.2),
+    // bar 2: chambered while the left jabs, then the answering cross jab.
+    DanceIkTargetKey(16, x: 44, y: -14, tension: 0.3), // chamber, hip crest
+    DanceIkTargetKey(20, x: -25, y: -42, tension: 1), // JAB past the far side
+    DanceIkTargetKey(21, x: -25, y: -42, tension: 1),
+    DanceIkTargetKey(24, x: 44, y: -14, tension: 0.3),
+    DanceIkTargetKey(28, x: -25, y: -42, tension: 1), // JAB
+    DanceIkTargetKey(29, x: -25, y: -42, tension: 1),
+    DanceIkTargetKey(32, x: 19, y: -28, tension: 0.2),
   ];
   // Smooth spline hand path: flows through the authored keys with C1
   // continuity, so no corner-rounding blur wrapper is needed (the old
@@ -6811,35 +6812,45 @@ class CatClips {
     DanceIkTargetKey(0, x: -56, y: 103),
     DanceIkTargetKey(2, x: -56, y: 103), // planted through left support
     DanceIkTargetKey(4, x: -56, y: 103),
-    DanceIkTargetKey(6, x: -48, y: 102), // free-foot redirect
+    DanceIkTargetKey(5, x: -52, y: 96), // pickup — visible passing lift
+    DanceIkTargetKey(6, x: -48, y: 102), // free-foot redirect plants
     DanceIkTargetKey(8, x: -48, y: 102),
     DanceIkTargetKey(10, x: -48, y: 102), // planted through left support
     DanceIkTargetKey(12, x: -48, y: 102),
+    DanceIkTargetKey(13, x: -53, y: 97), // pickup
     DanceIkTargetKey(14, x: -58, y: 103),
     DanceIkTargetKey(16, x: -58, y: 103),
     DanceIkTargetKey(18, x: -58, y: 103), // planted through left support
     DanceIkTargetKey(20, x: -58, y: 103),
+    DanceIkTargetKey(21, x: -54, y: 97), // pickup
     DanceIkTargetKey(22, x: -50, y: 102),
+    DanceIkTargetKey(23, x: -56, y: 97), // pickup
     DanceIkTargetKey(24, x: -62, y: 103),
     DanceIkTargetKey(26, x: -62, y: 103), // planted through left support
     DanceIkTargetKey(28, x: -62, y: 103),
+    DanceIkTargetKey(29, x: -56, y: 97), // pickup
     DanceIkTargetKey(30, x: -50, y: 102),
+    DanceIkTargetKey(31, x: -53, y: 98), // pickup home
     DanceIkTargetKey(32, x: -56, y: 103),
   ];
   static const _azontoFootRTargetKeys = [
     DanceIkTargetKey(0, x: 54, y: 102),
-    DanceIkTargetKey(2, x: 50, y: 102), // free-foot redirect
+    DanceIkTargetKey(1, x: 52, y: 97), // pickup — visible passing lift
+    DanceIkTargetKey(2, x: 50, y: 102), // free-foot redirect plants
     DanceIkTargetKey(4, x: 54, y: 103),
     DanceIkTargetKey(6, x: 54, y: 103), // planted through right support
     DanceIkTargetKey(8, x: 54, y: 103),
+    DanceIkTargetKey(9, x: 51, y: 97), // pickup
     DanceIkTargetKey(10, x: 48, y: 102),
     DanceIkTargetKey(12, x: 48, y: 102),
     DanceIkTargetKey(14, x: 48, y: 102), // planted through right support
     DanceIkTargetKey(16, x: 48, y: 102),
+    DanceIkTargetKey(17, x: 54, y: 97), // pickup
     DanceIkTargetKey(18, x: 60, y: 103),
     DanceIkTargetKey(20, x: 60, y: 103),
     DanceIkTargetKey(22, x: 60, y: 103), // planted through right support
     DanceIkTargetKey(24, x: 60, y: 103),
+    DanceIkTargetKey(25, x: 56, y: 97), // pickup
     DanceIkTargetKey(26, x: 52, y: 102),
     DanceIkTargetKey(28, x: 52, y: 102),
     DanceIkTargetKey(30, x: 52, y: 102), // planted through right support
@@ -6875,154 +6886,154 @@ class CatClips {
   static const _azontoPocketKeys = [
     DanceBodyKey(
       0,
-      rootDx: -18,
+      rootDx: -10.8,
       rootDy: 22,
-      pelvisRotation: -0.28,
-      chestRotation: 0.24,
+      pelvisRotation: -0.14,
+      chestRotation: 0.12,
       chestScaleY: 0.92,
       chestScaleX: 1.06,
     ),
     DanceBodyKey(
       2,
-      rootDx: -18,
+      rootDx: -10.8,
       rootDy: 12,
-      pelvisRotation: -0.12,
-      chestRotation: 0.1,
+      pelvisRotation: -0.06,
+      chestRotation: 0.05,
       chestScaleY: 1.02,
       chestScaleX: 0.99,
     ),
     DanceBodyKey(
       4,
-      rootDx: 18,
+      rootDx: 10.8,
       rootDy: 30,
-      pelvisRotation: 0.34,
-      chestRotation: -0.3,
+      pelvisRotation: 0.17,
+      chestRotation: -0.15,
       chestScaleY: 0.86,
       chestScaleX: 1.1,
     ),
     DanceBodyKey(
       6,
-      rootDx: 18,
+      rootDx: 10.8,
       rootDy: 14,
-      pelvisRotation: 0.14,
-      chestRotation: -0.12,
+      pelvisRotation: 0.07,
+      chestRotation: -0.06,
       chestScaleY: 1.02,
       chestScaleX: 0.99,
     ),
     DanceBodyKey(
       8,
-      rootDx: -20,
+      rootDx: -12,
       rootDy: 24,
-      pelvisRotation: -0.3,
-      chestRotation: 0.26,
+      pelvisRotation: -0.15,
+      chestRotation: 0.13,
       chestScaleY: 0.9,
       chestScaleX: 1.07,
     ),
     DanceBodyKey(
       10,
-      rootDx: -20,
+      rootDx: -12,
       rootDy: 12,
-      pelvisRotation: -0.12,
-      chestRotation: 0.1,
+      pelvisRotation: -0.06,
+      chestRotation: 0.05,
       chestScaleY: 1.02,
       chestScaleX: 0.99,
     ),
     DanceBodyKey(
       12,
-      rootDx: 20,
+      rootDx: 12,
       rootDy: 30,
-      pelvisRotation: 0.34,
-      chestRotation: -0.3,
+      pelvisRotation: 0.17,
+      chestRotation: -0.15,
       chestScaleY: 0.86,
       chestScaleX: 1.1,
     ),
     DanceBodyKey(
       14,
-      rootDx: 20,
+      rootDx: 12,
       rootDy: 14,
-      pelvisRotation: 0.14,
-      chestRotation: -0.12,
+      pelvisRotation: 0.07,
+      chestRotation: -0.06,
       chestScaleY: 1.02,
       chestScaleX: 0.99,
     ),
     DanceBodyKey(
       16,
-      rootDx: -20,
+      rootDx: -9,
       rootDy: 24,
-      pelvisRotation: -0.32,
-      chestRotation: 0.28,
+      pelvisRotation: -0.16,
+      chestRotation: 0.14,
       chestScaleY: 0.9,
       chestScaleX: 1.08,
     ),
     DanceBodyKey(
       18,
-      rootDx: -20,
+      rootDx: -9,
       rootDy: 12,
-      pelvisRotation: -0.12,
-      chestRotation: 0.1,
+      pelvisRotation: -0.06,
+      chestRotation: 0.05,
       chestScaleY: 1.02,
       chestScaleX: 0.99,
     ),
     DanceBodyKey(
       20,
-      rootDx: 20,
+      rootDx: 9,
       rootDy: 30,
-      pelvisRotation: 0.36,
-      chestRotation: -0.32,
+      pelvisRotation: 0.18,
+      chestRotation: -0.16,
       chestScaleY: 0.86,
       chestScaleX: 1.1,
     ),
     DanceBodyKey(
       22,
-      rootDx: 20,
+      rootDx: 9,
       rootDy: 14,
-      pelvisRotation: 0.14,
-      chestRotation: -0.12,
+      pelvisRotation: 0.07,
+      chestRotation: -0.06,
       chestScaleY: 1.02,
       chestScaleX: 0.99,
     ),
     DanceBodyKey(
       24,
-      rootDx: -22,
+      rootDx: -9.9,
       rootDy: 26,
-      pelvisRotation: -0.36,
-      chestRotation: 0.32,
+      pelvisRotation: -0.18,
+      chestRotation: 0.16,
       chestScaleY: 0.88,
       chestScaleX: 1.1,
     ),
     DanceBodyKey(
       26,
-      rootDx: -22,
+      rootDx: -9.9,
       rootDy: 12,
-      pelvisRotation: -0.12,
-      chestRotation: 0.1,
+      pelvisRotation: -0.06,
+      chestRotation: 0.05,
       chestScaleY: 1.02,
       chestScaleX: 0.99,
     ),
     DanceBodyKey(
       28,
-      rootDx: 22,
+      rootDx: 9.9,
       rootDy: 32,
-      pelvisRotation: 0.38,
-      chestRotation: -0.34,
+      pelvisRotation: 0.19,
+      chestRotation: -0.17,
       chestScaleY: 0.84,
       chestScaleX: 1.12,
     ),
     DanceBodyKey(
       30,
-      rootDx: 18,
+      rootDx: 8.1,
       rootDy: 14,
-      pelvisRotation: 0.14,
-      chestRotation: -0.12,
+      pelvisRotation: 0.07,
+      chestRotation: -0.06,
       chestScaleY: 1.02,
       chestScaleX: 0.99,
     ),
     DanceBodyKey(
       32,
-      rootDx: -18,
+      rootDx: -8.1,
       rootDy: 22,
-      pelvisRotation: -0.28,
-      chestRotation: 0.24,
+      pelvisRotation: -0.14,
+      chestRotation: 0.12,
       chestScaleY: 0.92,
       chestScaleX: 1.06,
     ),
