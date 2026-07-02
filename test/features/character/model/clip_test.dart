@@ -773,11 +773,11 @@ void main() {
   });
   group('smooth tension', () {
     const keys = [
-      Keyframe(p: 0, rotation: 0),
+      Keyframe(p: 0),
       Keyframe(p: 0.25, rotation: 1, tension: 1),
-      Keyframe(p: 0.5, rotation: 0),
+      Keyframe(p: 0.5),
       Keyframe(p: 0.75, rotation: -1),
-      Keyframe(p: 1, rotation: 0),
+      Keyframe(p: 1),
     ];
     const channel = KeyframeChannel(keys, smooth: true, cyclic: true);
 
@@ -809,18 +809,18 @@ void main() {
 
     test('tension 0 reproduces the plain smooth spline', () {
       const plain = KeyframeChannel([
-        Keyframe(p: 0, rotation: 0),
+        Keyframe(p: 0),
         Keyframe(p: 0.25, rotation: 1),
-        Keyframe(p: 0.5, rotation: 0),
+        Keyframe(p: 0.5),
         Keyframe(p: 0.75, rotation: -1),
-        Keyframe(p: 1, rotation: 0),
+        Keyframe(p: 1),
       ], smooth: true, cyclic: true);
       const explicit = KeyframeChannel([
-        Keyframe(p: 0, rotation: 0, tension: 0),
-        Keyframe(p: 0.25, rotation: 1, tension: 0),
-        Keyframe(p: 0.5, rotation: 0, tension: 0),
-        Keyframe(p: 0.75, rotation: -1, tension: 0),
-        Keyframe(p: 1, rotation: 0, tension: 0),
+        Keyframe(p: 0),
+        Keyframe(p: 0.25, rotation: 1),
+        Keyframe(p: 0.5),
+        Keyframe(p: 0.75, rotation: -1),
+        Keyframe(p: 1),
       ], smooth: true, cyclic: true);
       for (var i = 0; i <= 40; i++) {
         final p = i / 40;

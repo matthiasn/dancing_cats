@@ -178,6 +178,47 @@ void main() {
       );
     });
 
+    test('the climb-out JUST clears the tall tower antenna (near-miss)', () {
+      // The skyline plate's antenna mast tops out at stage (0.209, 0.225); the
+      // departure gradient is tuned so the jet's lowest opaque pixels (the
+      // engine line) skim past a hair above the tip around t≈41-42s — visibly
+      // a near-miss, never an overlap and never a wide berth.
+      const antennaX = 0.209;
+      const antennaTipY = 0.225;
+      // Aspect (h/w) of assets/scenery/lufthansa_747.png and the normalized
+      // bottom of its opaque pixels, both measured from the shipped asset.
+      const spriteAspect = 0.239;
+      const opaqueBottom = 0.9586;
+      // Find the moment the jet centre crosses the antenna column.
+      var t = kDistantJetStartDelaySeconds;
+      var crossing = sampleDistantJet(t + 30)!;
+      for (var probe = 30.0; probe < 60; probe += 0.01) {
+        final s = sampleDistantJet(kDistantJetStartDelaySeconds + probe);
+        if (s == null) continue;
+        if (s.position.dx <= antennaX) {
+          crossing = s;
+          t = probe;
+          break;
+        }
+      }
+      expect(t, inInclusiveRange(40, 43), reason: 'crossing time drifted');
+      // Stage is 16:9, positions are width/height-normalized: convert the
+      // sprite's half-height below centre into height-normalized units.
+      final heightFraction = crossing.widthFraction * (16 / 9) * spriteAspect;
+      final bottomY =
+          crossing.position.dy + (opaqueBottom - 0.5) * heightFraction;
+      expect(
+        bottomY,
+        lessThan(antennaTipY),
+        reason: 'the jet must MISS the antenna',
+      );
+      expect(
+        bottomY,
+        greaterThan(antennaTipY - 0.012),
+        reason: 'the miss must stay a NEAR-miss (skims the tip)',
+      );
+    });
+
     test('has already cleared the center by the drone-show peak', () {
       final beamPeak = sampleDistantJet(kDroneShowCycleSeconds * 0.38)!;
 

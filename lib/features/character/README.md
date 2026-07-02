@@ -311,60 +311,67 @@ calmer, less over-acted read.
 
 ### Virtual camera — the dance director
 
-The dance-to-track demo's camera is **dolly-first**: a sustained, motivated
-camera move reads as higher production value than a cut, so the spine of the
-piece is continuous moves and cuts are spent only where the genre asks for them —
-the Afrobeats downbeat into each chorus, the two bridge singer hand-offs, and the
-one reserved climax. Two pieces split the job:
+The dance-to-track demo's camera is **dolly-first, all the way**: a sustained,
+motivated camera move reads as higher production value than a cut, so the whole
+piece is one continuous camera path — there are **no cuts and no snap-zooms
+anywhere**. Section boundaries are **anticipated**: starting
+`kCameraAnticipationSeconds` (~2 bars) before every boundary the director's
+target glides toward the next section's opening framing and **parks on it**
+`kCameraArriveLeadSeconds` early, so the rig's settle lands the eased camera on
+the downbeat itself — the musical accent is a dolly *arrival*, not a snap. (The
+earlier design punched a 0.3s fast zoom on the chorus drops and bridge
+hand-offs; the temporal-diff analysis measured those at up to ~815 ref-px/s of
+lateral whip, which flattened the multi-plane parallax exactly on the accents
+it was meant to sell.) Two pieces split the job:
 
 - **`demo/dance_camera_director.dart` — the director (pure).** A deterministic
   `cameraShot(DanceCameraContext) → Shot` (`Shot = ({double zoom, double dx,
   double dy})`) that emits the camera's *target* framing for the frame. A pure
   function of song position — no wall-clock, no randomness — so it is
-  unit-testable and renders identically offline and live.
+  unit-testable and renders identically offline and live. The context carries
+  the current section (plus its **occurrence**, which keys the per-refrain
+  chorus homes) and the **next** section with `secondsToNext`, which drives the
+  anticipated arrivals.
 - **`demo/dance_camera_rig.dart` — the rig (stateful).** A `DanceCameraRig` that
   eases the *live* camera toward the director's target every tick with a
-  critically-damped `smoothDamp` (ease-in **and** ease-out, no overshoot), so a
-  change of section or home becomes a motivated **dolly**. The eased shot is what
-  reaches `CharacterPainter.cameraOverride`. The exceptions are the genre **cuts**,
-  where the rig **snaps** to the target on a single frame instead of easing: the
-  downbeat into each chorus (`isChorusDrop`), each of the two bridge singer
-  features (`isBridgeCut`), and the reserved climax hero (`isHardCut`). Verses,
-  pre-choruses and the outro stay dollies.
+  critically-damped `smoothDamp` (ease-in **and** ease-out, no overshoot). One
+  speed only — the accents live in the target curve, not in a faster rig mode.
+  The eased shot is what reaches `CharacterPainter.cameraOverride`.
 
-`cameraContext(...)` derives just what a dolly-first director needs: the
-`section`, the normalized `build` (= position in the whole clip), the per-section
-`sectionPhase` (drives the continuous moves) and the per-phrase `phrasePhase`
-(drives the gentle breathe). `cameraShot` routes on those to a *target*; the rig
-turns the stream of targets into moves:
+`cameraContext(...)` derives just what the director needs: the `section` and its
+`occurrence`, the per-section `sectionPhase` (drives the continuous moves), the
+per-phrase `phrasePhase` (drives the gentle breathe/drift), and the
+`nextSection`/`secondsToNext` pair (drives the anticipation blend):
 
 ```mermaid
 flowchart LR
-  ctx[cameraContext] --> energetic{energetic?}
-  energetic -- no --> est["establish — wide 1.06, slow breath, dy +8 sky"]
-  energetic -- yes --> sec{section}
-  sec -- chorus / post-chorus --> ch[_chorusShot]
-  sec -- bridge --> br["_bridgeShot — two singer-feature cuts"]
-  sec -- pre-chorus --> pc["_preChorusShot — monotonic tension climb"]
-  sec -- outro --> ou["_outroShot — de-escalate to idle"]
-  sec -- verse / default --> ve["_verseShot — grounded living-medium"]
-  ch --> home{build}
-  home -- "< 0.30" --> c1["chorus 1 — wide, centred"]
-  home -- "0.30..0.62" --> c2["chorus 2 — LEFT two-shot (silver)"]
-  home -- "> 0.62" --> c3["chorus 3 — RIGHT two-shot (dark)"]
-  home -- "closing hook > 0.74" --> hero["coil ~1.56 → hard CUT to ~2.30 legwork-hero"]
-  est & br & pc & ou & ve & c1 & c2 & c3 --> rig
-  hero --> rig["DanceCameraRig: dolly toward target;<br/>snap on chorus / bridge / hero cuts"]
+  ctx[cameraContext] --> sec{section}
+  sec -- "'' calm" --> est["establish — wide 1.06, breathe + slow DRIFT, dy +8"]
+  sec -- "'' dancing" --> pk["pocket — living centred medium"]
+  sec -- chorus --> ch{occurrence}
+  sec -- post-chorus --> co["coil — sway fades in/out, one mid-coil push"]
+  sec -- bridge --> br["one cross-stage TRAVERSE following the voice"]
+  sec -- pre-chorus --> pc["monotonic crane-push, crest under the chorus homes"]
+  sec -- outro --> ou["long pull-back, LANDS on the establish by ¾"]
+  sec -- verse / default --> ve["ONE long eased truck under a slow push"]
+  ch -- "1st" --> c1["centred + whisper arc"]
+  ch -- "2nd" --> c2["LEFT two-shot (silver)"]
+  ch -- "3rd+" --> c3["RIGHT two-shot (dark)"]
+  est & pk & co & br & pc & ou & ve & c1 & c2 & c3 --> ant["anticipation blend:<br/>glide to NEXT section's opening,<br/>park kCameraArriveLeadSeconds early"]
+  ant --> rig["DanceCameraRig — one dolly speed"]
   rig --> cam["CharacterPainter.cameraOverride"]
 ```
 
-**Stable homes, dollied between.** Each section is a *stable* target (a held
-home with a slow breathing push, no per-bar cuts), so across the song the target
-makes a handful of big steps — idle → chorus 1 centre → chorus 2 left → verse →
-bridge features → chorus 3 right → coil → hero → outro. The rig turns each step into
-one deliberate truck across the stage. `smoothTime` (default `0.7s`,
-`kDanceCameraSmoothTime`) is the single knob for how grand vs snappy those moves
-feel.
+**Stable homes, dollied between — and every hold still moves.** Each section is
+a *stable* home, but nothing parks dead: the establish drifts laterally, the
+verse rides one long eased truck, the first chorus pushes with a whisper of
+arc, the bridge traverses the full stage width through the mid-bridge singer
+hand-off, the coil sways on the beat with an envelope that enters and resolves
+at zero. Those slow lateral moves are what keep the multi-plane parallax
+visibly sliding for the entire song. `smoothTime` (default `0.6s`,
+`kDanceCameraSmoothTime`) is the single knob for how grand vs responsive the
+settles feel — tight enough that an anticipated arrival lands within ~0.007
+zoom of its home exactly on the boundary downbeat.
 
 **The transform.** The painter scales about a pivot then applies a *clamped*
 pan: `dx` is authored in 2560-ref px and rescaled to the stage width; a positive
@@ -383,32 +390,27 @@ backdrop lags via `CharacterPainter.danceParallaxTransformForShot`, which reduce
 the same shot (zoom→34 %, dx→28 %, dy→18 %) about the *feet* pivot so the
 scenery reads as deeper than the dancers under a push.
 
-**Reserve the peak.** Every pre-climax hook is capped around `zoom 1.60`. The
-single tightest framing — a `~2.30` **legwork money-shot** that fills the frame
-with the lead head-to-toe (Afrobeats peaks on the legs, so the hero celebrates
-the footwork rather than craning into a face close-up) — is spent **once**, at the
-very end of the final post-chorus. The coil holds ~1.56, then the target steps
-straight to 2.30 (with a shallow negative `dy`, `kHeroLegworkLiftRef`, that lifts
-the figure just enough to keep the planted feet and the cast shadow in frame) and
-the rig snaps, so the money shot lands as a cut into a register the eye has not
-seen. The rig then dollies back *out* of the hero into the outro. During the
-bridge the lead is silent and the two backups trade the vocal, so the camera
-**cuts** between two committed singer-feature two-shots — onto the silver (left)
-backup for the first half, then onto the brown (right) backup for the second
-(`isBridgeCut`). Each lean is held deep (`0.60` of a full side-cat centring) but
-not total, so the off-singer keeps a thin half-figure on the far edge rather than
-vanishing — the user flagged a cat leaving frame entirely as reading like a glitch.
+**Grounded ceiling, showcase traverse.** Every framing is capped near `1.5` so
+the side cats, feet and shadows stay readable and the golden-hour vista keeps
+breathing. The showcase move is the **bridge traverse**: the lead is silent and
+the backups trade the vocal, so the camera holds a committed silver-side (left)
+feature while she carries the first half, then dollies across the whole trio —
+crossing centre exactly on the mid-bridge hand-off, with the zoom relaxing
+slightly so the move reads as an arc around the cast — into the brown-side
+(right) feature. Every plane slides the full stage width at dolly speed: the
+parallax beat of the piece.
 
-The dolly-first design is tested across three files: the rig math
+The design is tested across four files: the rig math
 (`dance_camera_rig_test.dart` — convergence, no overshoot, frame-rate
-independence, snap-on-cut, momentum-cleared), the director
-(`dance_camera_director_test.dart` — per-section example shots, a **continuity**
-sweep proving no dollied section jumps mid-move, the three cut predicates
-(`isHardCut` agreeing frame-for-frame with the 2.30 hero, `isChorusDrop` firing
-only on chorus downbeats, `isBridgeCut` firing on the two bridge singer hand-offs),
-plus Glados invariants: the ceiling never exceeds the hero zoom, non-hero frames
-stay capped, the pan stays inside its clamp), and the parallax transform
-(`character_painter_test.dart`).
+independence, and a beat-landing test that feeds the rig a real-shaped
+anticipated ramp), the director (`dance_camera_director_test.dart` —
+per-section example shots, continuity sweeps inside every section, boundary
+continuity across **every ordered section pair**, the anticipation park, plus
+Glados invariants: grounded ceiling, pan clamp, dy band), the full-track
+contract (`dance_camera_continuity_test.dart` — steps the REAL demo track at
+60fps and bounds both the target's per-frame deltas and the eased camera's
+velocities to dolly range, so a reintroduced punch or target step fails
+immediately), and the parallax transform (`character_painter_test.dart`).
 
 ### Concert stage lighting and drone show
 

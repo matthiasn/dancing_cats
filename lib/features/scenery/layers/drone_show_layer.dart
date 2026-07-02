@@ -280,7 +280,20 @@ List<DroneShowSample> sampleDroneShow(
         rise,
         timeline.progress,
       ),
-      DroneShowPhase.beam => ui.Offset.lerp(rise, beam, t)!,
+      // The rise→beam transit BOWS upward: a straight lerp strung the drones
+      // across the middle sky exactly where the lead singer's crown sits in
+      // the tight chorus framings (the mid-transit string crossed the ear
+      // line right on the chorus-2 drop). The bow keeps the endpoints (and so
+      // the phase hand-offs) untouched while the travelling string arcs
+      // through open sky above the head band. The transit rides a
+      // constant-cruise profile rather than a smoothstep: the beam stands
+      // further from the launch pads now, and a smoothstep's mid-phase speed
+      // peak would push the drones past the one-second travel budget.
+      DroneShowPhase.beam => () {
+        final cruise = _easedTravel(timeline.progress);
+        return ui.Offset.lerp(rise, beam, cruise)! -
+            ui.Offset(0, 0.06 * math.sin(cruise * math.pi));
+      }(),
       DroneShowPhase.fan => ui.Offset.lerp(beam, fan, t)!,
       DroneShowPhase.formation => _formationPoint(
         i,
@@ -372,11 +385,38 @@ ui.Offset _risePoint(int index, int count) {
   );
 }
 
+/// Position curve 0..1 with smoothstep-eased edges around a constant-velocity
+/// core — same distance as a plain smoothstep but with a ~1.2x mid-phase speed
+/// peak instead of 1.5x, keeping long transits inside the per-second travel
+/// budget that stops drones reading as particles.
+double _easedTravel(double p) {
+  const edge = 0.2;
+  final t = p.clamp(0.0, 1.0);
+  double rampArea(double x) => x * x * x - x * x * x * x / 2;
+  final double travelled;
+  if (t < edge) {
+    travelled = edge * rampArea(t / edge);
+  } else if (t <= 1 - edge) {
+    travelled = edge / 2 + (t - edge);
+  } else {
+    travelled =
+        edge / 2 + (1 - 2 * edge) + edge * (0.5 - rampArea((1 - t) / edge));
+  }
+  return travelled / (1 - edge);
+}
+
 ui.Offset _beamPoint(int index, int count) {
   final u = count <= 1 ? 0.5 : index / (count - 1);
+  // Moved OFF the lead singer's screen axis (was x 0.61 ≈ dead on the lead in
+  // the centred and left-leaning framings) and lifted well into open sky: the
+  // beam's lower half used to cross the lead's ear line through the WHOLE
+  // chorus-2 approach (z 1.38–1.47 sweeps the crown up through the band), a
+  // bright rod through the star's head on the biggest drop of the piece. At
+  // x ~0.70 it stands over the water between the trio and the yacht, reading
+  // as a counterweight instead of a crown hazard.
   return ui.Offset(
-    0.61 + (u - 0.5) * 0.04,
-    0.335 - u * 0.12,
+    0.70 + (u - 0.5) * 0.04,
+    0.255 - u * 0.10,
   );
 }
 

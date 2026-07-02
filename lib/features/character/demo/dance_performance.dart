@@ -487,11 +487,20 @@ class DancePerformance {
   }
 
   /// The virtual director's CONTEXT for [pos], from which the target framing
-  /// ([cameraShot]) and cut predicates are derived. [energetic] mirrors the
-  /// acoustic dance gate so the camera rests on a wide establish exactly when the
-  /// dancers ease to idle, and performs when they dance.
+  /// ([cameraShot]) is derived. [energetic] mirrors the acoustic dance gate
+  /// (it only steers the unlabelled-section fallback). Besides the current
+  /// section it carries the section's occurrence (keys the per-refrain chorus
+  /// homes) and the NEXT section with the seconds until it starts, which drive
+  /// the director's anticipated dolly into each boundary.
   DanceCameraContext directorContext(double pos, {required bool energetic}) {
     final info = sectionInfoAt(pos);
+    DanceSectionSpan? next;
+    for (final s in sectionSpans) {
+      if (s.start > pos) {
+        next = s;
+        break;
+      }
+    }
     return cameraContext(
       beat: map.beatAt(pos),
       anchorBeat: binding.anchorBeatIndex.toDouble(),
@@ -500,6 +509,13 @@ class DancePerformance {
       energetic: energetic,
       build: trackDurationSec > 0 ? pos / trackDurationSec : 0,
       sectionPhase: info.phase,
+      occurrence: sectionOccurrenceAt(pos, info.section),
+      sectionSeconds: info.seconds,
+      secondsToNext: next == null ? double.infinity : next.start - pos,
+      nextSection: next?.section,
+      nextOccurrence: next == null
+          ? 0
+          : sectionOccurrenceAt(next.start, next.section),
     );
   }
 

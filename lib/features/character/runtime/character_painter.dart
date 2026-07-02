@@ -1112,9 +1112,9 @@ class CharacterPainter extends CustomPainter {
   /// (depth → 1) tracks the cast. depth `1` matches the foreground camera
   /// ([_applySceneCamera]); intermediate depths scale the whole move linearly
   /// (see [_parallaxCameraAtDepth]). The dance-to-track demo drives the camera
-  /// from `dance_camera_director.dart` (per-section framings with fast accent
-  /// punches) and injects this per layer, so the live stage and the offline
-  /// composer lag every plane identically. Mirrors [_applySceneCamera]'s pivot +
+  /// from `dance_camera_director.dart` (per-section framings arrived at by
+  /// anticipated dollies) and injects this per layer, so the live stage and the
+  /// offline composer lag every plane identically. Mirrors [_applySceneCamera]'s pivot +
   /// pan clamp. Returns identity when [active] is false, the stage is empty, or
   /// [depth] <= 0 (a locked plane).
   static Matrix4 danceParallaxMatrixForShotAtDepth({

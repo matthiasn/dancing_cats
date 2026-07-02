@@ -28,9 +28,14 @@ import 'package:dancing_cats/features/scenery/model/scenery_assets.dart';
 /// front to back: lead cat (1.0) › backup cats (0.9) › stage › background › jet.
 const double _depthAircraft = 0.04; // the lone jet — farthest of all, near-locked
 const double _depthBackground = 0.12; // all backdrop art, moving as one plane
-const double _depthStage = 0.35; // the foreground deck + its lantern glow —
-// kept gentle (was 0.5) so the deck reads as a subtle depth pleasure rather than
-// a foreground that jumps at the viewer; it moves nearer the background's rate.
+const double _depthStage = 0.5; // the foreground deck + its lantern glow.
+// Restored from the gentled 0.35: that cut was tuned under the old snap-zoom
+// punches (a fast near plane read as jumping at the viewer). The camera is now
+// all slow anticipated dollies, so the deck can carry real near-plane travel —
+// the review panel measured the nearest plane under-travelling the cast on the
+// showcase truck/traverse, flattening the depth the moves exist to sell. True
+// >1 foreground overtravel (palms sweeping past the lens) needs the de-baked
+// palm plane that is being prepared as separate artwork.
 
 /// An ordered, back-to-front stack of [BackdropLayer]s plus the bitmap assets
 /// the scene needs decoded. [layers] are painted behind the consumer's content;

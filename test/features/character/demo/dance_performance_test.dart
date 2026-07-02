@@ -397,6 +397,46 @@ void main() {
         );
       },
     );
+
+    test('wires the occurrence and the NEXT section for the anticipated '
+        'dolly', () {
+      final perf = _perf(
+        spans: const [
+          (start: 0, end: 2, section: 'chorus'),
+          (start: 2, end: 4, section: 'verse'),
+          (start: 4, end: 6, section: 'chorus'),
+        ],
+      );
+      final ctx = perf.directorContext(3, energetic: true);
+      expect(ctx.section, 'verse');
+      expect(ctx.occurrence, 0);
+      expect(ctx.nextSection, 'chorus');
+      expect(ctx.secondsToNext, closeTo(1, 1e-9));
+      // The upcoming chorus is the SECOND chorus → occurrence 1 (keys the
+      // left two-shot home the camera glides into).
+      expect(ctx.nextOccurrence, 1);
+    });
+
+    test('a gap before the first span still sees the next section coming', () {
+      final perf = _perf(
+        spans: const [(start: 4, end: 6, section: 'chorus')],
+      );
+      final ctx = perf.directorContext(2.5, energetic: false);
+      expect(ctx.section, '');
+      expect(ctx.nextSection, 'chorus');
+      expect(ctx.secondsToNext, closeTo(1.5, 1e-9));
+      expect(ctx.nextOccurrence, 0);
+    });
+
+    test('inside the last span there is no next section (no anticipation)', () {
+      final perf = _perf(
+        spans: const [(start: 0, end: 6, section: 'outro')],
+      );
+      final ctx = perf.directorContext(5, energetic: true);
+      expect(ctx.nextSection, isNull);
+      expect(ctx.secondsToNext, double.infinity);
+      expect(ctx.nextOccurrence, 0);
+    });
   });
 
   group('DancePerformance.choreoTrioForSection — remaining routines', () {

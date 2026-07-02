@@ -19,7 +19,10 @@ const double kDistantJetPassSeconds = 60;
 const double kDistantJetStartDelaySeconds = 0.18;
 
 /// Extra seconds the contrails remain after the aircraft has left the stage.
-const double kDistantJetTrailHoldSeconds = 82;
+/// Shortened from 82: with the steeper climb-out the long-lived streak crossed
+/// the frame at the lead singer's ear height for most of the first minute, and
+/// the review panel flagged the sustained crown tangent.
+const double kDistantJetTrailHoldSeconds = 48;
 
 /// FAA Part 25 anti-collision systems must flash at 40-100 cycles/minute.
 /// Use a centered 60 cpm cadence so the distant jet reads as aviation lighting
@@ -196,7 +199,9 @@ class DistantJetSample {
   /// Contrail length in aircraft-body widths.
   final double trailLengthScale;
 
-  /// Direction of travel. Negative means a shallow climb to the right.
+  /// Sprite pitch trim. Positive rotates the left-facing airliner's nose
+  /// skyward (canvas rotation is clockwise-positive, so a point on the −x nose
+  /// axis moves toward −y).
   final double headingRadians;
 
   /// Red anti-collision beacon intensity.
@@ -229,16 +234,25 @@ DistantJetSample? _sampleDistantJetLocal(double local, double safePass) {
   if (local > safePass + kDistantJetTrailHoldSeconds) return null;
 
   final progress = (local / safePass).clamp(0.0, 1.0);
-  final eased = smoothstep(progress);
   final afterPassSeconds = math.max(0, local - safePass);
   final trailAfterPassFade =
       1 - smoothstep(afterPassSeconds / kDistantJetTrailHoldSeconds);
   // Start at the right edge, but lower in open sky. The earlier high path
   // entered under the foreground palm, making its lights read detached.
   final x = 0.98 - progress * 1.10;
-  // Departing/climbing very gently high above the skyline. Keep it comfortably
-  // in the open sky: too high/right gets hidden by the foreground palm canopy.
-  final y = 0.295 - eased * 0.055 + math.sin(progress * math.pi) * 0.002;
+  // Departing on a FRONT-LOADED climb-out (steep initial climb shallowing at
+  // altitude — how a heavy jet actually departs). The curve is tuned to the
+  // antenna mast on the tall tower at stage (0.209, 0.225): the jet reaches
+  // that column at progress ~0.70 (t ≈ 41-42s into the loop) with its engine
+  // line JUST above the mast tip — a near-miss flyover, not an overlap. The
+  // front-loading also lifts the trail the jet lays across mid-frame early in
+  // the pass (an eased-in climb kept that segment low, parking the bright
+  // streak at the lead singer's ear height in the tight chorus framings — a
+  // sustained crown tangent the review panel flagged twice), while the exit
+  // stays below the 0.17 background-traffic floor asserted by the
+  // drone-show-peak test.
+  final climb = 1 - math.pow(1 - progress, 3).toDouble();
+  final y = 0.25 - climb * 0.0415 + math.sin(progress * math.pi) * 0.002;
   final edge = distantJetEdgeVisibility(x);
   if (edge <= 0) return null;
 
@@ -251,7 +265,10 @@ DistantJetSample? _sampleDistantJetLocal(double local, double safePass) {
         trailAfterPassFade *
         (0.68 + math.sin(progress * math.pi) * 0.16),
     trailLengthScale: math.min(7.2, math.max(0.28, local * 0.36)),
-    headingRadians: -0.01,
+    // Nose-up trim (positive rotates the left-facing sprite's nose skyward) so
+    // the pitch sells the steeper climb-out; kept under the ~4° flight-path
+    // angle so it still reads as a heavy jet, not a fighter.
+    headingRadians: 0.045,
     beacon: aircraftBeaconPulse(local),
     strobe: aircraftWingStrobe(local),
   );
@@ -377,8 +394,8 @@ void _paintTrail(
         points.last.position,
         [
           ctx.palette.cloudLit.withValues(alpha: 0),
-          ctx.palette.cloudLit.withValues(alpha: current.trailOpacity * 0.16),
-          ctx.palette.cloudBase.withValues(alpha: current.trailOpacity * 0.1),
+          ctx.palette.cloudLit.withValues(alpha: current.trailOpacity * 0.11),
+          ctx.palette.cloudBase.withValues(alpha: current.trailOpacity * 0.07),
           ctx.palette.cloudBase.withValues(alpha: 0),
         ],
         [0, 0.08, 0.62, 1],
@@ -398,8 +415,8 @@ void _paintTrail(
         points.last.position,
         [
           ctx.palette.cloudLit.withValues(alpha: 0),
-          ctx.palette.cloudLit.withValues(alpha: current.trailOpacity * 0.62),
-          ctx.palette.cloudBase.withValues(alpha: current.trailOpacity * 0.18),
+          ctx.palette.cloudLit.withValues(alpha: current.trailOpacity * 0.42),
+          ctx.palette.cloudBase.withValues(alpha: current.trailOpacity * 0.12),
           ctx.palette.cloudBase.withValues(alpha: 0),
         ],
         [0, 0.045, 0.34, 1],
