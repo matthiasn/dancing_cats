@@ -1,3 +1,8 @@
+// The smooth-tension suite passes default-valued arguments (rotation: 0,
+// tension: 0) on purpose: the tests assert that EXPLICIT defaults behave
+// identically to omitted ones, so spelling them out is the test's point.
+// ignore_for_file: avoid_redundant_argument_values
+
 import 'package:dancing_cats/features/character/model/clip.dart';
 import 'package:dancing_cats/features/character/model/easing.dart';
 import 'package:flutter_test/flutter_test.dart';
