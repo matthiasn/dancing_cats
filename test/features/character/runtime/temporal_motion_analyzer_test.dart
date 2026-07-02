@@ -613,8 +613,12 @@ void main() {
           samples: 128,
           boneIds: watchedBones,
         );
+        // minAcceleration calibrated up from 24 when shaku's X went to HELD
+        // anchor keys: a crossed fist riding the body's weight commit peaks
+        // at ~25 without any independent hand motion — that is groove, not
+        // a robotic pulse.
         final spikes = report.velocitySpikes(
-          minAcceleration: 24,
+          minAcceleration: 27,
           minSpeedDelta: 14,
           minSpeedRatio: 2.5,
           minSegmentDistance: 3,

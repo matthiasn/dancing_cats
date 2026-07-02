@@ -1087,7 +1087,7 @@ void main() {
       },
     );
 
-    test('shaku crosses wrists, opens elbows, and recovers as shaku', () {
+    test('shaku holds the handcuff X and flashes the open scoop', () {
       final phrase = CatClips.dancePhrase;
       final shaku = CatClips.shaku;
       final handL = _targetFor(shaku, CatBones.handL).channel;
@@ -1100,7 +1100,7 @@ void main() {
         greaterThanOrEqualTo(0.74),
         reason:
             'Shaku support feet need enough world anchor to let the torso '
-            'pocket read without skate during the arm crosses',
+            'pocket read without skate during the held X',
       );
 
       for (final frame in [0, 4, 8, 16, 20, 24, 32]) {
@@ -1116,136 +1116,78 @@ void main() {
         );
       }
 
-      final wristCrossLeft = handL.sample(17 / phrase.frameCount);
-      final wristCrossRight = handR.sample(17 / phrase.frameCount);
-      expect(wristCrossLeft.x, greaterThan(12));
-      expect(wristCrossRight.x, lessThan(-12));
+      // The X is the base posture: crossed on every non-flash frame, wrists
+      // trading past the midline with the fists staggered in height so the
+      // shape reads as an X and not a clasp. Duty cycle ~75%.
+      var crossedFrames = 0;
+      for (var frame = 0; frame < 32; frame++) {
+        final p = frame / phrase.frameCount;
+        final left = handL.sample(p);
+        final right = handR.sample(p);
+        if (left.x > 8 && right.x < -8) crossedFrames++;
+      }
       expect(
-        (wristCrossLeft.x - wristCrossRight.x).abs(),
-        greaterThan(35),
+        crossedFrames,
+        greaterThanOrEqualTo(20),
         reason:
-            'Shaku should cross at the wrists in separated lanes without '
-            'returning to the old impossible folded-forearm reach',
-      );
-      expect(
-        wristCrossLeft.y - wristCrossRight.y,
-        lessThan(-35),
-        reason:
-            'one Shaku wrist should ride higher while the opposite paw stays '
-            'lower, keeping the crossing arms readable as an X',
-      );
-      expect(
-        wristCrossLeft.y,
-        lessThan(-42),
-        reason: 'the wrist-cross should live at chest height',
+            'the handcuffed X must be the HELD base posture (the audit and '
+            'the panel both flagged the inverted duty cycle) — most of the '
+            'loop lives crossed',
       );
 
-      final sweepLeft = handL.sample(21 / phrase.frameCount);
-      final sweepRight = handR.sample(21 / phrase.frameCount);
-      expect(sweepLeft.x, lessThan(-8));
-      expect(sweepRight.x, greaterThan(8));
-      expect(
-        sweepRight.x - sweepLeft.x,
-        greaterThan(25),
-        reason:
-            'every second Shaku beat should roll through separated high/low '
-            'lanes instead of overlapping both paws on the sternum',
-      );
-
-      final sideHitLeft = handL.sample(22 / phrase.frameCount);
-      final sideHitRight = handR.sample(22 / phrase.frameCount);
-      expect(sideHitLeft.x, lessThan(0));
-      expect(sideHitRight.x, greaterThan(0));
-      expect(
-        sideHitRight.x - sideHitLeft.x,
-        greaterThan(16),
-        reason:
-            'the Shaku release beat should hit as a wrist-roll cross rather '
-            'than a physically vague open-elbow pump',
-      );
-
-      for (final frame in [6, 11, 14, 19, 22, 27, 30]) {
-        final left = handL.sample(frame / phrase.frameCount);
-        final right = handR.sample(frame / phrase.frameCount);
+      for (final frame in [0, 4, 8, 16, 20, 24]) {
+        final p = frame / phrase.frameCount;
+        final left = handL.sample(p);
+        final right = handR.sample(p);
         expect(
           left.x,
-          lessThan(-36),
-          reason:
-              'Shaku frame $frame should keep the left fist off the jacket '
-              'centreline so the arm does not merge into the torso shell',
+          greaterThan(12),
+          reason: 'Shaku frame $frame: left fist crosses past the midline',
         );
         expect(
           right.x,
-          greaterThan(36),
-          reason:
-              'Shaku frame $frame should keep the right fist off the jacket '
-              'centreline so the arm does not merge into the torso shell',
+          lessThan(-12),
+          reason: 'Shaku frame $frame: right fist crosses past the midline',
         );
         expect(
-          right.x - left.x,
-          greaterThan(72),
+          left.y - right.y,
+          lessThan(-10),
           reason:
-              'Shaku frame $frame should carve negative space between the '
-              'guard fists and the suit body',
+              'Shaku frame $frame: the fists stagger in height so the X '
+              'reads as crossed forearms, not a stacked clasp',
+        );
+        expect(
+          left.y,
+          lessThan(-46),
+          reason: 'Shaku frame $frame: the X lives at sternum height',
         );
       }
 
-      final recoveryCrossLeft = handL.sample(29 / phrase.frameCount);
-      final recoveryCrossRight = handR.sample(29 / phrase.frameCount);
+      // The open scoop is PUNCTUATION: a two-frame flash on the accented
+      // beat, fully open, re-crossed by the next downbeat.
+      for (final frame in [12, 13, 28, 29]) {
+        final p = frame / phrase.frameCount;
+        final left = handL.sample(p);
+        final right = handR.sample(p);
+        expect(
+          left.x,
+          lessThan(-52),
+          reason: 'Shaku frame $frame: the flash opens the left arm out',
+        );
+        expect(
+          right.x,
+          greaterThan(56),
+          reason: 'Shaku frame $frame: the flash opens the right arm out',
+        );
+      }
+      final reCrossed = handL.sample(14 / phrase.frameCount);
       expect(
-        recoveryCrossLeft.x,
-        lessThan(0),
-        reason:
-            'the final phrase should recover through shaku arm vocabulary, '
-            'not a generic forward punch',
-      );
-      expect(
-        recoveryCrossLeft.y,
-        greaterThan(-24),
-        reason:
-            'the final recovery should stay in an outside guard lane instead '
-            'of dropping into the belly/waist cluster',
-      );
-      expect(
-        recoveryCrossRight.x,
-        greaterThan(0),
-        reason:
-            'the opposite paw should stay in the compact wrist-roll phrase, '
-            'not open into a generic chest pump',
-      );
-      expect(recoveryCrossRight.y, lessThan(-34));
-      expect(
-        recoveryCrossRight.x - recoveryCrossLeft.x,
-        greaterThan(30),
-        reason:
-            'the final recovery should keep the high/low Shaku lanes legible',
-      );
-
-      expect(
-        _targetDistance(handL, 28, 29),
-        lessThan(36),
-        reason:
-            'the final shaku recovery should travel smoothly instead of '
-            'snapping through the loop pickup',
-      );
-
-      final loopLeft = handL.sample(32 / phrase.frameCount);
-      final loopRight = handR.sample(32 / phrase.frameCount);
-      expect(loopLeft.x, lessThan(-25));
-      expect(loopRight.x, greaterThan(25));
-      expect(
-        loopLeft.y,
-        greaterThan(-42),
-        reason: 'the next loop should recover to the low open-ready left hand',
-      );
-      expect(
-        loopRight.y,
-        lessThan(-42),
-        reason:
-            'the opposite hand should recover to the high half of the Shaku '
-            'high/low loop, not collapse into a same-plane guard',
+        reCrossed.x,
+        greaterThan(8),
+        reason: 'the X must be re-crossed by the downbeat after the flash',
       );
     });
+
 
     test('zanku taps, digs low, pops the knee, and lands into a stomp', () {
       final phrase = CatClips.dancePhrase;

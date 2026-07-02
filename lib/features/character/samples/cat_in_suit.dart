@@ -5279,82 +5279,56 @@ class CatClips {
   // the elbow on its own side, crosses only the paw/wrist through the centre,
   // then opens into a low scoop. That preserves the Shaku X without asking the
   // forearm to rotate out through the same-side sleeve.
+  // The Shaku Shaku X is the LANDLORD, not the visitor (research audit
+  // finding 2, panel round 1's unanimous shaku critique): the crossed-wrist
+  // "handcuffed" pose is the HELD base posture — wrists crossing at the
+  // sternum, both fists breaking past the far silhouette line at staggered
+  // heights so the X survives at stage distance — and the open scoop is a
+  // two-frame flash of punctuation landing on the accented beats, re-crossed
+  // by the next downbeat. Duty cycle: ~24 of 32 frames crossed.
   static const _shakuHandLTargetKeys = [
-    DanceIkTargetKey(0, x: -76, y: -36),
-    DanceIkTargetKey(2, x: 48, y: -58, ease: Ease.easeOutBack),
-    DanceIkTargetKey(4, x: -92, y: -28),
-    DanceIkTargetKey(6, x: -72, y: -18),
-    DanceIkTargetKey(8, x: -76, y: -38),
-    DanceIkTargetKey(10, x: 50, y: -60, ease: Ease.easeOutBack),
-    DanceIkTargetKey(11, x: -74, y: -34),
-    DanceIkTargetKey(12, x: -94, y: -26),
-    DanceIkTargetKey(14, x: -72, y: -18),
-    DanceIkTargetKey(16, x: 34, y: -58, ease: Ease.easeOutBack),
-    DanceIkTargetKey(17, x: 42, y: -56),
-    DanceIkTargetKey(18, x: 40, y: -54),
-    DanceIkTargetKey(19, x: -74, y: -34),
-    DanceIkTargetKey(20, x: -94, y: -28, ease: Ease.easeOutBack),
-    DanceIkTargetKey(21, x: -80, y: -22),
-    DanceIkTargetKey(22, x: -72, y: -20),
-    DanceIkTargetKey(23, x: -82, y: -32),
-    // Windup INTO the wrist-cross: a low centre scoop. The old key (-34,-54)
-    // sat ~2 units from the left shoulder itself — a full elbow fold no body
-    // can make (the on-screen 'anatomical crime' X) — flagged by the
-    // jointLimitClipping meter at p0.75.
-    DanceIkTargetKey(24, x: -18, y: -24, ease: Ease.easeOutBack),
-    DanceIkTargetKey(25, x: 42, y: -56),
-    DanceIkTargetKey(26, x: -92, y: -28),
-    DanceIkTargetKey(27, x: -78, y: -36),
-    DanceIkTargetKey(28, x: -94, y: -24, ease: Ease.easeOutBack),
-    DanceIkTargetKey(29, x: -74, y: -18),
-    DanceIkTargetKey(30, x: -72, y: -18),
-    DanceIkTargetKey(31, x: -82, y: -32),
-    DanceIkTargetKey(32, x: -76, y: -36, ease: Ease.easeOutBack),
+    DanceIkTargetKey(0, x: 24, y: -56, tension: 1), // X — high fist
+    DanceIkTargetKey(4, x: 23.5, y: -54.5, tension: 0.7), // gallop ride
+    DanceIkTargetKey(8, x: 24, y: -56, tension: 1),
+    DanceIkTargetKey(11, x: 24, y: -56, tension: 0.8),
+    DanceIkTargetKey(12, x: -70, y: -24, tension: 0.6), // OPEN flash
+    DanceIkTargetKey(13, x: -76, y: -20, tension: 0.7),
+    DanceIkTargetKey(14, x: 24, y: -56, tension: 1), // re-crossed
+    DanceIkTargetKey(18, x: 23.5, y: -54.5, tension: 0.7),
+    DanceIkTargetKey(22, x: 24, y: -56, tension: 1),
+    DanceIkTargetKey(26, x: 24, y: -56, tension: 0.8),
+    DanceIkTargetKey(28, x: -70, y: -24, tension: 0.6), // OPEN flash
+    DanceIkTargetKey(29, x: -76, y: -20, tension: 0.7),
+    DanceIkTargetKey(30, x: 24, y: -56, tension: 1), // re-crossed
+    DanceIkTargetKey(32, x: 24, y: -56, tension: 1),
   ];
   static const _shakuHandRTargetKeys = [
-    DanceIkTargetKey(0, x: 76, y: -56),
-    DanceIkTargetKey(2, x: -42, y: -16, ease: Ease.easeOutBack),
-    DanceIkTargetKey(4, x: 92, y: -34),
-    DanceIkTargetKey(6, x: 72, y: -42),
-    DanceIkTargetKey(8, x: 76, y: -56),
-    DanceIkTargetKey(10, x: 92, y: -34),
-    DanceIkTargetKey(11, x: 74, y: -34),
-    DanceIkTargetKey(12, x: 94, y: -58, ease: Ease.easeOutBack),
-    DanceIkTargetKey(14, x: 72, y: -42),
-    DanceIkTargetKey(16, x: 34, y: -18, ease: Ease.easeOutBack),
-    DanceIkTargetKey(17, x: -56, y: -12),
-    DanceIkTargetKey(18, x: -44, y: -18),
-    DanceIkTargetKey(19, x: 74, y: -30),
-    DanceIkTargetKey(20, x: 94, y: -54, ease: Ease.easeOutBack),
-    DanceIkTargetKey(21, x: 80, y: -42),
-    DanceIkTargetKey(22, x: 72, y: -40),
-    DanceIkTargetKey(23, x: 82, y: -52),
-    DanceIkTargetKey(24, x: 34, y: -18, ease: Ease.easeOutBack),
-    DanceIkTargetKey(25, x: -56, y: -12),
-    DanceIkTargetKey(26, x: 94, y: -56),
-    DanceIkTargetKey(27, x: 74, y: -38),
-    DanceIkTargetKey(28, x: 94, y: -58, ease: Ease.easeOutBack),
-    DanceIkTargetKey(29, x: 76, y: -46),
-    DanceIkTargetKey(30, x: 72, y: -42),
-    DanceIkTargetKey(31, x: 82, y: -52),
-    DanceIkTargetKey(32, x: 76, y: -56, ease: Ease.easeOutBack),
+    DanceIkTargetKey(0, x: -24, y: -40, tension: 1), // X — low fist
+    DanceIkTargetKey(4, x: -23.5, y: -38.5, tension: 0.7), // gallop ride
+    DanceIkTargetKey(8, x: -24, y: -40, tension: 1),
+    DanceIkTargetKey(11, x: -24, y: -40, tension: 0.8),
+    DanceIkTargetKey(12, x: 72, y: -30, tension: 0.6), // OPEN flash
+    DanceIkTargetKey(13, x: 78, y: -26, tension: 0.7),
+    DanceIkTargetKey(14, x: -24, y: -40, tension: 1), // re-crossed
+    DanceIkTargetKey(18, x: -23.5, y: -38.5, tension: 0.7),
+    DanceIkTargetKey(22, x: -24, y: -40, tension: 1),
+    DanceIkTargetKey(26, x: -24, y: -40, tension: 0.8),
+    DanceIkTargetKey(28, x: 72, y: -30, tension: 0.6), // OPEN flash
+    DanceIkTargetKey(29, x: 78, y: -26, tension: 0.7),
+    DanceIkTargetKey(30, x: -24, y: -40, tension: 1), // re-crossed
+    DanceIkTargetKey(32, x: -24, y: -40, tension: 1),
   ];
-  static final IkTargetChannel _shakuHandLTarget = SoftenedIkTargetChannel(
-    _dancePhrase.ikTargetChannel(
-      _shakuHandLTargetKeys,
-      smooth: true,
-      cyclic: true,
-    ),
-    radius: 0.75 / _dancePhrase.frameCount,
+  // Plain smooth channels: per-key tension shapes the held X and the crisp
+  // open flashes; the old Softened blur wrapper would smear exactly those
+  // accents (the same reason the wrappers were retired everywhere else).
+  static final IkTargetChannel _shakuHandLTarget = _dancePhrase.ikTargetChannel(
+    _shakuHandLTargetKeys,
+    smooth: true,
     cyclic: true,
   );
-  static final IkTargetChannel _shakuHandRTarget = SoftenedIkTargetChannel(
-    _dancePhrase.ikTargetChannel(
-      _shakuHandRTargetKeys,
-      smooth: true,
-      cyclic: true,
-    ),
-    radius: 0.75 / _dancePhrase.frameCount,
+  static final IkTargetChannel _shakuHandRTarget = _dancePhrase.ikTargetChannel(
+    _shakuHandRTargetKeys,
+    smooth: true,
     cyclic: true,
   );
   static const _shakuFootLTargetKeys = [
