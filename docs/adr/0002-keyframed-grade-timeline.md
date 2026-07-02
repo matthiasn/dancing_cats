@@ -391,6 +391,34 @@ Deferred, recorded here so they stay visible: `spline` interp for continuous
 ramps; marquee selection; typed numeric entry on readouts; scope-selected-
 target mode; loop-range audition; CDL (.ccc) export as a derived artifact.
 
+### Screenshot review of the shipped UI
+
+After implementation, the same four disciplines re-reviewed the *running
+app* from real captures (compact + expanded, zoomed, menus, auto-key, live
+playback frames driven via XTEST on a headless display):
+
+- **Round 1: 7.5 / 7.5 / 7.5 / 7.5.** Converged fixes landed: scopes gained
+  graticules and moved to the stage pillarbox at measuring size (RESPONSE
+  draws neutral white while channels coincide); additive lanes dim their
+  Lift wheel ('offset ignored'); the deviation sparkline became legible at
+  subtle grades; every row clips to the shared viewport; beat-lane
+  level-of-detail; larger diamonds with a distinct selected state and an
+  at-the-diamond auto-key flash; key-state chip on the console; context
+  menus reordered (destructive last) with copy/paste look; empty-lane
+  hints; M-chip lane mute; true-neutral slider fills; a fixed-height
+  workspace layout; compact-bar fixes.
+- **Round 2: 8.5 / 8 / 8.5 / 7.5 (avg 8.1).** Residuals fixed: the parade
+  histogram now excludes the letterbox matte (bit-exact black) and draws
+  log-scaled distributions — it measures the picture; scopes name the lane
+  they read; truthful before-first/after-last hold chips; the t=0 INTRO
+  chip.
+- **Round 3 (focused re-verify, colorist + UX): both signed off ≥ 8.**
+
+The master-pass budget gate (§7): during the capture sessions the release
+app sustained real-time playback at 1600×900 with the master + per-layer
+passes active (audio-position delta ≈ wall-clock delta across captured
+frames, no visible jank in consecutive stills).
+
 ## Alternatives considered
 
 - **Store raw CDL per keyframe.** Rejected: interpolating power exponents and
