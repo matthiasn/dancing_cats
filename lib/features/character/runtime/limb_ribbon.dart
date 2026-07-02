@@ -26,6 +26,7 @@ Path limbRibbonPath(
   List<Offset> spine,
   List<double> halfWidths, {
   List<double>? backHalfWidths,
+  List<double>? jointTensions,
   int samplesPerSegment = 10,
   bool roundCaps = true,
 }) {
@@ -34,6 +35,10 @@ Path limbRibbonPath(
     backHalfWidths == null || backHalfWidths.length == spine.length,
     'spine/backHalfWidths length mismatch',
   );
+  assert(
+    jointTensions == null || jointTensions.length == spine.length,
+    'spine/jointTensions length mismatch',
+  );
   if (spine.length < 2) return Path();
 
   final samples = _sampleCentreline(
@@ -41,6 +46,7 @@ Path limbRibbonPath(
     halfWidths,
     backHalfWidths ?? halfWidths,
     samplesPerSegment,
+    jointTensions: jointTensions,
   );
 
   // Front (+normal) and back (-normal) edges, offset along the centreline
@@ -115,6 +121,7 @@ Path limbRibbonInkPath(
   List<Offset> spine,
   List<double> halfWidths, {
   List<double>? backHalfWidths,
+  List<double>? jointTensions,
   int samplesPerSegment = 10,
   double startFraction = 0,
 }) {
@@ -126,6 +133,7 @@ Path limbRibbonInkPath(
     halfWidths,
     backHalfWidths ?? halfWidths,
     samplesPerSegment,
+    jointTensions: jointTensions,
   );
   final start = (samples.length * startFraction).round().clamp(
     0,
@@ -135,25 +143,42 @@ Path limbRibbonInkPath(
   Offset frontEdge(_Sample s) => s.centre + s.normal * s.halfWidth;
   Offset backEdge(_Sample s) => s.centre - s.normal * s.backHalfWidth;
 
-  final path = Path()
-    ..moveTo(frontEdge(samples[start]).dx, frontEdge(samples[start]).dy);
-  for (var i = start + 1; i < samples.length; i++) {
-    final p = frontEdge(samples[i]);
-    path.lineTo(p.dx, p.dy);
+  // Inside a tight fold the clamped edge collapses into the crease; a drawn
+  // sleeve would never carry its outline down INTO the crease (it reads as a
+  // floating angular scratch inside the cloth mass), so the ink lifts over
+  // strongly-creased samples and resumes past them.
+  final path = Path();
+  var penDown = false;
+  void walk(Offset p, {required bool crease}) {
+    if (crease) {
+      penDown = false;
+      return;
+    }
+    if (penDown) {
+      path.lineTo(p.dx, p.dy);
+    } else {
+      path.moveTo(p.dx, p.dy);
+      penDown = true;
+    }
+  }
+
+  for (var i = start; i < samples.length; i++) {
+    walk(frontEdge(samples[i]), crease: samples[i].creaseFront);
   }
   final last = samples.last;
   final capCentre = (frontEdge(last) + backEdge(last)) / 2;
   final capRadius = (last.halfWidth + last.backHalfWidth) / 2;
   final endAngle = math.atan2(last.normal.dy, last.normal.dx);
-  path.arcTo(
-    Rect.fromCircle(center: capCentre, radius: capRadius),
-    endAngle,
-    -math.pi,
-    false,
-  );
+  if (penDown) {
+    path.arcTo(
+      Rect.fromCircle(center: capCentre, radius: capRadius),
+      endAngle,
+      -math.pi,
+      false,
+    );
+  }
   for (var i = samples.length - 2; i >= start; i--) {
-    final p = backEdge(samples[i]);
-    path.lineTo(p.dx, p.dy);
+    walk(backEdge(samples[i]), crease: samples[i].creaseBack);
   }
   return path;
 }
@@ -162,18 +187,24 @@ class _Sample {
   _Sample(this.centre, this.normal, this.halfWidth, this.backHalfWidth);
   final Offset centre;
   final Offset normal; // unit, perpendicular to the tangent (points "left")
-  final double halfWidth;
-  final double backHalfWidth;
+  double halfWidth;
+  double backHalfWidth;
+
+  /// Set where the curvature clamp cut this side deep into a fold — the
+  /// sample sits inside a crease, so ink must not trace it.
+  bool creaseFront = false;
+  bool creaseBack = false;
 }
 
 /// How hard the centreline hugs the joint polyline. 0 = classic Catmull-Rom
 /// (bends smear along the whole limb — the "boneless noodle" read on a bent
-/// elbow); 1 = the raw polyline (a cardboard hinge). 0.45 still let a bent
-/// arm render as a constant-curvature crescent (panel round 3: "the limb
-/// loses its elbow entirely"); 0.68 keeps upper arm and forearm near-straight
-/// so all visible flexion resolves at a defined joint vertex, while the
-/// curvature clamp below keeps the crease from self-intersecting.
-const double _kCentrelineTension = 0.68;
+/// elbow); 1 = the raw polyline (a cardboard hinge). 0.45 keeps organic
+/// chains (the tail, the shoulder cap) soft; a flat 0.68 defined the elbow
+/// but scalloped the shoulder into lobes, so limbs now pass a per-joint
+/// tension profile instead: soft where the limb roots into the garment,
+/// firm from the mid-limb joint out so flexion resolves at a visible
+/// elbow/knee vertex.
+const double _kCentrelineTension = 0.45;
 
 /// Resamples [spine] into a tensioned Catmull-Rom curve, carrying the
 /// per-sample tangent normal and the interpolated half-widths for both
@@ -184,8 +215,9 @@ List<_Sample> _sampleCentreline(
   List<Offset> spine,
   List<double> halfWidths,
   List<double> backHalfWidths,
-  int samplesPerSegment,
-) {
+  int samplesPerSegment, {
+  List<double>? jointTensions,
+}) {
   final out = <_Sample>[];
   final n = spine.length;
   for (var i = 0; i < n - 1; i++) {
@@ -198,12 +230,18 @@ List<_Sample> _sampleCentreline(
     final w2 = halfWidths[i + 1];
     final b1 = backHalfWidths[i];
     final b2 = backHalfWidths[i + 1];
+    // A segment's tension is the mean of its endpoint joints', so a profile
+    // like [soft shoulder ... firm elbow ... firm wrist] transitions without
+    // a visible kink at the joint where the values change.
+    final tension = jointTensions == null
+        ? _kCentrelineTension
+        : (jointTensions[i] + jointTensions[i + 1]) / 2;
     final last = i == n - 2;
     final steps = last ? samplesPerSegment : samplesPerSegment - 1;
     for (var s = 0; s <= steps; s++) {
       final t = s / samplesPerSegment;
-      final pt = _catmullRom(p0, p1, p2, p3, t);
-      final tan = _catmullRomTangent(p0, p1, p2, p3, t);
+      final pt = _catmullRom(p0, p1, p2, p3, t, tension);
+      final tan = _catmullRomTangent(p0, p1, p2, p3, t, tension);
       final len = tan.distance;
       final normal = len < 1e-6
           ? Offset.zero
@@ -246,21 +284,17 @@ void _clampInnerEdgeToCurvature(List<_Sample> samples) {
     if (turn > 0) {
       // Curving toward +normal: the +normal (front) side is the inside.
       if (here.halfWidth > maxInnerOffset) {
-        samples[i] = _Sample(
-          here.centre,
-          here.normal,
-          maxInnerOffset,
-          here.backHalfWidth,
-        );
+        // A cut below ~70% of the authored width means this sample sits deep
+        // inside a fold — flag it so the ink line lifts over the crease.
+        here
+          ..creaseFront = maxInnerOffset < here.halfWidth * 0.7
+          ..halfWidth = maxInnerOffset;
       }
     } else {
       if (here.backHalfWidth > maxInnerOffset) {
-        samples[i] = _Sample(
-          here.centre,
-          here.normal,
-          here.halfWidth,
-          maxInnerOffset,
-        );
+        here
+          ..creaseBack = maxInnerOffset < here.backHalfWidth * 0.7
+          ..backHalfWidth = maxInnerOffset;
       }
     }
   }
@@ -269,10 +303,17 @@ void _clampInnerEdgeToCurvature(List<_Sample> samples) {
 // Hermite form of Catmull-Rom with tension: tangents m1/m2 are the classic
 // half-chord tangents scaled by (1 - tension), so tension 0 reproduces the
 // historic spline exactly and tension 1 degenerates to the joint polyline.
-Offset _catmullRom(Offset p0, Offset p1, Offset p2, Offset p3, double t) {
+Offset _catmullRom(
+  Offset p0,
+  Offset p1,
+  Offset p2,
+  Offset p3,
+  double t,
+  double tension,
+) {
   final t2 = t * t;
   final t3 = t2 * t;
-  const scale = (1 - _kCentrelineTension) * 0.5;
+  final scale = (1 - tension) * 0.5;
   final h00 = 2 * t3 - 3 * t2 + 1;
   final h10 = t3 - 2 * t2 + t;
   final h01 = -2 * t3 + 3 * t2;
@@ -291,9 +332,10 @@ Offset _catmullRomTangent(
   Offset p2,
   Offset p3,
   double t,
+  double tension,
 ) {
   final t2 = t * t;
-  const scale = (1 - _kCentrelineTension) * 0.5;
+  final scale = (1 - tension) * 0.5;
   final h00 = 6 * t2 - 6 * t;
   final h10 = 3 * t2 - 4 * t + 1;
   final h01 = -6 * t2 + 6 * t;

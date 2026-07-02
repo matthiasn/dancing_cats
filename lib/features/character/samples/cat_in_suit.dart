@@ -65,10 +65,6 @@ final int _sleeve = kSuitFabric.plane(1); // far sleeve
 final int _sleeveNear = kSuitFabric.plane(1); // near sleeve
 const int _button = 0xFFAE955C; // muted brass placket button — a dark horn
 // button vanished on the navy front; a metal tone reads as a button line.
-final int _lapel = kSuitFabric.plane(1.32); // lapel — one readable step
-// lighter than the suit: a folded jacket edge catching the key. The old
-// near-2x value made the lapels read as big light-blue fabric PATCHES
-// sweeping across the shoulders instead of narrow folds framing the shirt.
 final int _trouser = kSuitFabric.plane(0.83); // darker navy
 // Both trouser legs are the SAME cloth — like the sleeves, the far leg no
 // longer fakes depth with a darker value (that read as a different fabric);
@@ -176,8 +172,6 @@ class CatBones {
   static const shirtV = 'shirt_v';
   static const collarL = 'collar.L';
   static const collarR = 'collar.R';
-  static const lapelL = 'lapel.L';
-  static const lapelR = 'lapel.R';
   static const button0 = 'button_0';
   static const button1 = 'button_1';
   static const tie = 'tie';
@@ -1056,36 +1050,17 @@ RigSpec buildCatInSuitRig({
         celShade: false,
       ),
     ),
-    // Lapels: tapered panels angled down-and-in from each collar point to the
-    // sternum, in a step-lighter navy so the folded edges read as their own
-    // planes. They overlap the shirt wedge's sides, leaving the pale V between.
-    Bone(
-      id: CatBones.lapelL,
-      parent: CatBones.clavicleL,
-      pivotX: 15,
-      pivotY: -14,
-      z: 13,
-      // A narrow fold hugging the shirt V — near-vertical, not a wide wedge
-      // sweeping across the yoke.
-      restRotation: 0.45,
-      drawable: _tapered(11, 4, 36, _lapel, dy: 15),
-    ),
-    Bone(
-      id: CatBones.lapelR,
-      parent: CatBones.clavicleR,
-      pivotX: -15,
-      pivotY: -14,
-      z: 13,
-      // A narrow fold hugging the shirt V — near-vertical, not a wide wedge
-      // sweeping across the yoke.
-      restRotation: -0.45,
-      drawable: _tapered(11, 4, 36, _lapel, dy: 15),
-    ),
-    // Shirt collar: two white points standing at the base of the neck, inside
-    // the navy lapels, with the tie knot dropping between them — so the head
-    // rises OUT of a collar instead of sitting straight on the jacket. Flat-shaded
-    // (celShade:false) like the other small bright shapes so the key can't streak
-    // them; drawn over the lapels (list order) and under the tie knot (z14).
+    // Shirt collar: two white points standing at the base of the neck, framing
+    // the tie knot dropping between them — so the head rises OUT of a collar
+    // instead of sitting straight on the jacket. Flat-shaded (celShade:false)
+    // like the other small bright shapes so the key can't streak them; drawn
+    // under the tie knot (z14). A separate LAPEL bone (a tapered panel from
+    // the collar point to the sternum) lived here through several rounds of
+    // the shoulder-seam investigation: it kept reading as either an
+    // independently-lit ball (a shading bug, fixed) or a stray outline seam
+    // at the collar/shoulder junction (a geometry issue, also fixed) for
+    // marginal payoff — the shirt V + collar + tie already sell "tailored
+    // suit" on their own, so it was removed rather than tuned further.
     Bone(
       id: CatBones.collarL,
       parent: CatBones.clavicleL,
@@ -1586,6 +1561,10 @@ RigSpec buildCatInSuitRig({
       // BACK profile: hamstring eases off the seat, then the CALF bulge —
       // the S-curve that reads athletic where a symmetric tube reads stuffed.
       backHalfWidths: scaledLegWidths(const [15.0, 13.0, 11.2, 8.2, 12.2, 5.3]),
+      // Tension profile: soft through the hip/seat so the trouser root stays
+      // one smooth mass, firm from the knee down so flexion resolves at a
+      // visible knee vertex instead of a crescent shin.
+      jointTensions: const [0.42, 0.45, 0.55, 0.74, 0.74, 0.74],
       z: 3,
       color: _trouserRear,
       outlineColor: _outline,
@@ -1612,6 +1591,10 @@ RigSpec buildCatInSuitRig({
       // BACK profile: hamstring eases off the seat, then the CALF bulge —
       // the S-curve that reads athletic where a symmetric tube reads stuffed.
       backHalfWidths: scaledLegWidths(const [15.0, 13.0, 11.2, 8.2, 12.2, 5.3]),
+      // Tension profile: soft through the hip/seat so the trouser root stays
+      // one smooth mass, firm from the knee down so flexion resolves at a
+      // visible knee vertex instead of a crescent shin.
+      jointTensions: const [0.42, 0.45, 0.55, 0.74, 0.74, 0.74],
       z: 6,
       color: _trouser,
       outlineColor: _outline,
@@ -1651,12 +1634,19 @@ RigSpec buildCatInSuitRig({
       ],
       // FRONT profile [clavicle, deltoid, bicep, elbow, forearm, wrist]:
       // the BICEP carries the upper-arm mass and the forearm swells with the
-      // brachioradialis before tapering into the wrist.
+      // brachioradialis before tapering into the wrist. The clavicle root
+      // stays close to the deltoid width so the round start cap (the armhole
+      // gap-proofing dome) reads as one continuous mass with the shoulder,
+      // not a pinched neck-then-bulge.
       halfWidths: scaledArmWidths(const [10.8, 11.0, 11.2, 7.2, 8.5, 5.2]),
       // BACK profile: fuller triceps up high, a tight bony elbow point, and
       // a lean forearm underside — the same put-the-mass-where-the-muscle-is
       // asymmetry that makes the legs read athletic.
-      backHalfWidths: scaledArmWidths(const [10.8, 10.4, 10.2, 7.4, 7.2, 5.0]),
+      backHalfWidths: scaledArmWidths(const [10.4, 10.4, 10.2, 7.4, 7.2, 5.0]),
+      // Tension profile: soft over the clavicle/deltoid cap (a flat firm
+      // tension scalloped the shoulder into per-joint lobes), firm from the
+      // bicep out so the elbow keeps a defined vertex at any flexion.
+      jointTensions: const [0.42, 0.42, 0.52, 0.74, 0.74, 0.74],
       z: 15,
       color: _sleeve,
       outlineColor: _outline,
@@ -1687,12 +1677,19 @@ RigSpec buildCatInSuitRig({
       ],
       // FRONT profile [clavicle, deltoid, bicep, elbow, forearm, wrist]:
       // the BICEP carries the upper-arm mass and the forearm swells with the
-      // brachioradialis before tapering into the wrist.
+      // brachioradialis before tapering into the wrist. The clavicle root
+      // stays close to the deltoid width so the round start cap (the armhole
+      // gap-proofing dome) reads as one continuous mass with the shoulder,
+      // not a pinched neck-then-bulge.
       halfWidths: scaledArmWidths(const [10.8, 11.0, 11.2, 7.2, 8.5, 5.2]),
       // BACK profile: fuller triceps up high, a tight bony elbow point, and
       // a lean forearm underside — the same put-the-mass-where-the-muscle-is
       // asymmetry that makes the legs read athletic.
-      backHalfWidths: scaledArmWidths(const [10.8, 10.4, 10.2, 7.4, 7.2, 5.0]),
+      backHalfWidths: scaledArmWidths(const [10.4, 10.4, 10.2, 7.4, 7.2, 5.0]),
+      // Tension profile: soft over the clavicle/deltoid cap (a flat firm
+      // tension scalloped the shoulder into per-joint lobes), firm from the
+      // bicep out so the elbow keeps a defined vertex at any flexion.
+      jointTensions: const [0.42, 0.42, 0.52, 0.74, 0.74, 0.74],
       z: 16,
       color: _sleeveNear,
       outlineColor: _outline,
@@ -1827,9 +1824,17 @@ RigSpec buildCatInSuitRig({
     // fake with screen-space gradients; baking it per-shape means it tracks the
     // geometry through every pose instead of sliding over it.
     celShade: const CelShadeSpec(
-      shadowFactor: 0.5,
+      // Round-4-plus: a tall shape (a leg, lit from above) puts a large
+      // fraction of its own length past the shadow terminator by design —
+      // at hero scale on the lead dancer this crushed the trousers toward
+      // near-black ("harsh line... definitely mistuned"). Backed off both
+      // knobs: less of the shape falls into full shadow (coverage), and the
+      // shadow floor itself sits higher (shadowFactor), while keeping the
+      // shade cool/broad enough that limbs still read as dimensional, not
+      // flat stickers.
+      shadowFactor: 0.62,
       coolAmount: 0.26,
-      coverage: 0.52,
+      coverage: 0.4,
       softness: 0.16,
       // A modest lit-side SHEEN so the fabric/fur reads as catching the key,
       // without going so bright that the thin limbs/cuffs chrome out.
@@ -5815,14 +5820,19 @@ class CatClips {
     DanceIkTargetKey(5, x: -34, y: -26),
     DanceIkTargetKey(6, x: -36, y: -46),
     DanceIkTargetKey(7, x: -35, y: -40),
-    DanceIkTargetKey(8, x: -32, y: -4, tension: 0.6), // PUNCH
-    DanceIkTargetKey(9, x: -34, y: -26),
-    DanceIkTargetKey(10, x: -36, y: -46),
-    DanceIkTargetKey(11, x: -35, y: -40),
-    DanceIkTargetKey(12, x: -32, y: -4, tension: 0.6), // PUNCH
-    DanceIkTargetKey(13, x: -34, y: -26),
-    DanceIkTargetKey(14, x: -36, y: -46),
-    DanceIkTargetKey(15, x: -35, y: -40),
+    // Beats 3-4 (stamps 3-4, frames 8-15) get a DOUBLE elbow pump instead of
+    // the single-punch-then-guard of beats 1-2 — the round-3 director flagged
+    // frames 0-7 and 8-15 as a near-literal repeat ("half the loop is a
+    // literal repeat, which reads as a GIF loop"); footwork is untouched
+    // (each stamp still lands on its own beat), only the arm accent varies.
+    DanceIkTargetKey(8, x: -32, y: -4, tension: 0.6), // PUNCH (stamp 3)
+    DanceIkTargetKey(9, x: -33, y: -18), // shallow recover
+    DanceIkTargetKey(10, x: -32, y: -4, tension: 0.7), // second pump
+    DanceIkTargetKey(11, x: -35, y: -40), // load into stamp 4
+    DanceIkTargetKey(12, x: -32, y: -4, tension: 0.6), // PUNCH (stamp 4)
+    DanceIkTargetKey(13, x: -33, y: -18), // shallow recover
+    DanceIkTargetKey(14, x: -32, y: -4, tension: 0.7), // second pump
+    DanceIkTargetKey(15, x: -35, y: -40), // load into bar 2
     DanceIkTargetKey(16, x: -32, y: -4, tension: 0.6), // PUNCH
     DanceIkTargetKey(17, x: -34, y: -26),
     DanceIkTargetKey(18, x: -36, y: -46),
@@ -5849,14 +5859,15 @@ class CatClips {
     DanceIkTargetKey(5, x: 34, y: -26),
     DanceIkTargetKey(6, x: 36, y: -46),
     DanceIkTargetKey(7, x: 35, y: -40),
-    DanceIkTargetKey(8, x: 32, y: -4, tension: 0.6), // PUNCH
-    DanceIkTargetKey(9, x: 34, y: -26),
-    DanceIkTargetKey(10, x: 36, y: -46),
-    DanceIkTargetKey(11, x: 35, y: -40),
-    DanceIkTargetKey(12, x: 32, y: -4, tension: 0.6), // PUNCH
-    DanceIkTargetKey(13, x: 34, y: -26),
-    DanceIkTargetKey(14, x: 36, y: -46),
-    DanceIkTargetKey(15, x: 35, y: -40),
+    // Beats 3-4 double pump — see the L hand's comment.
+    DanceIkTargetKey(8, x: 32, y: -4, tension: 0.6), // PUNCH (stamp 3)
+    DanceIkTargetKey(9, x: 33, y: -18), // shallow recover
+    DanceIkTargetKey(10, x: 32, y: -4, tension: 0.7), // second pump
+    DanceIkTargetKey(11, x: 35, y: -40), // load into stamp 4
+    DanceIkTargetKey(12, x: 32, y: -4, tension: 0.6), // PUNCH (stamp 4)
+    DanceIkTargetKey(13, x: 33, y: -18), // shallow recover
+    DanceIkTargetKey(14, x: 32, y: -4, tension: 0.7), // second pump
+    DanceIkTargetKey(15, x: 35, y: -40), // load into bar 2
     DanceIkTargetKey(16, x: 32, y: -4, tension: 0.6), // PUNCH
     DanceIkTargetKey(17, x: 34, y: -26),
     DanceIkTargetKey(18, x: 36, y: -46),
@@ -7012,77 +7023,91 @@ class CatClips {
     _danceLimbTargets[3].withChannel(_azontoFootRTarget),
   ];
   static const _azontoPocketKeys = [
+    // Bar 1 (frames 0-16, the wheel mime): the rootDx/pelvis/chest fields
+    // used to repeat the SAME value at each pair of keys (0&2, 4&6, ...)
+    // then jump to the opposite extreme in the very next 2-frame gap — a
+    // probe of rendered shoulder-socket world position showed this
+    // concentrated the entire weight transfer into one 2-frame window, a
+    // ~40-unit one-frame position jump (round-4 rigging critique: "sockets
+    // swing 46 units in 3 frames"). Fixed two ways: the intermediate keys
+    // now sit at the true midpoint between their neighboring peaks (so the
+    // swing paces evenly across the whole beat instead of snapping in half
+    // a beat), and the peak rootDx/pelvis/chest values are pulled in ~28%
+    // (a 1-beat left-right transfer is still an inherently fast swing —
+    // smoothing the curve shape alone left the peak-to-peak rate too high).
+    // rootDy keeps its own already-smooth bounce (a real step-touch
+    // pattern, not a hold-then-snap), so it is untouched.
     DanceBodyKey(
       0,
-      rootDx: -10.8,
+      rootDx: -7.776,
       rootDy: 22,
-      pelvisRotation: -0.14,
-      chestRotation: 0.12,
+      pelvisRotation: -0.1008,
+      chestRotation: 0.0864,
       chestScaleY: 0.92,
       chestScaleX: 1.06,
     ),
     DanceBodyKey(
       2,
-      rootDx: -10.8,
+      rootDx: 0,
       rootDy: 12,
-      pelvisRotation: -0.06,
-      chestRotation: 0.05,
-      chestScaleY: 1.02,
-      chestScaleX: 0.99,
+      pelvisRotation: 0.0108,
+      chestRotation: -0.0108,
+      chestScaleY: 0.89,
+      chestScaleX: 1.08,
     ),
     DanceBodyKey(
       4,
-      rootDx: 10.8,
+      rootDx: 7.776,
       rootDy: 30,
-      pelvisRotation: 0.17,
-      chestRotation: -0.15,
+      pelvisRotation: 0.1224,
+      chestRotation: -0.108,
       chestScaleY: 0.86,
       chestScaleX: 1.1,
     ),
     DanceBodyKey(
       6,
-      rootDx: 10.8,
+      rootDx: -0.432,
       rootDy: 14,
-      pelvisRotation: 0.07,
-      chestRotation: -0.06,
-      chestScaleY: 1.02,
-      chestScaleX: 0.99,
+      pelvisRotation: 0.0072,
+      chestRotation: -0.0072,
+      chestScaleY: 0.88,
+      chestScaleX: 1.085,
     ),
     DanceBodyKey(
       8,
-      rootDx: -12,
+      rootDx: -8.64,
       rootDy: 24,
-      pelvisRotation: -0.15,
-      chestRotation: 0.13,
+      pelvisRotation: -0.108,
+      chestRotation: 0.0936,
       chestScaleY: 0.9,
       chestScaleX: 1.07,
     ),
     DanceBodyKey(
       10,
-      rootDx: -12,
+      rootDx: 0,
       rootDy: 12,
-      pelvisRotation: -0.06,
-      chestRotation: 0.05,
-      chestScaleY: 1.02,
-      chestScaleX: 0.99,
+      pelvisRotation: 0.0072,
+      chestRotation: -0.0072,
+      chestScaleY: 0.88,
+      chestScaleX: 1.085,
     ),
     DanceBodyKey(
       12,
-      rootDx: 12,
+      rootDx: 8.64,
       rootDy: 30,
-      pelvisRotation: 0.17,
-      chestRotation: -0.15,
+      pelvisRotation: 0.1224,
+      chestRotation: -0.108,
       chestScaleY: 0.86,
       chestScaleX: 1.1,
     ),
     DanceBodyKey(
       14,
-      rootDx: 12,
+      rootDx: 3.195,
       rootDy: 14,
-      pelvisRotation: 0.07,
-      chestRotation: -0.06,
-      chestScaleY: 1.02,
-      chestScaleX: 0.99,
+      pelvisRotation: 0.1412,
+      chestRotation: -0.124,
+      chestScaleY: 0.905,
+      chestScaleX: 1.07,
     ),
     DanceBodyKey(
       16,
@@ -8403,12 +8428,20 @@ class CatClips {
     ),
   ];
 
+  // pelvis/chest ROTATION gains cut well below the translation gains: a probe
+  // of rendered free-foot world position (the foot IK targets anchor to
+  // hips, ~60 local units out) showed the pelvis swing's lever arm was
+  // popping the free foot ~54 world units airborne despite the target curve
+  // itself staying near the floor — round-3's "airborne at calf height,
+  // near-straight knee... march/cheer step-touch" critique. Translation
+  // (rootDx/rootDy) is untouched: that IS the weight commit onto the support
+  // foot and reads correctly; only the rotation was amplifying into a kick.
   static final List<DanceBodyKey> _sekemBodyKeys = _scaledBodyKeys(
     _sekemBodyKeysRaw,
     rootDxGain: 0.78,
     rootDyGain: 0.9,
-    pelvisRotationGain: 0.8,
-    chestRotationGain: 0.85,
+    pelvisRotationGain: 0.5,
+    chestRotationGain: 0.55,
     chestScaleGain: 0.75,
   );
   static const _sekemPocketBoostKeys = [
