@@ -2198,6 +2198,86 @@ void main() {
       );
     });
   });
+
+  testWidgets('danceViewProjection turns the trio into a three-quarter view', (
+    tester,
+  ) async {
+    await tester.runAsync(() async {
+      // The opt-in dance view projection foreshortens each member (0.68 for
+      // the flanking backups, 0.84 for the lead), shears them toward the
+      // camera, and depth-offsets the solved frame — the trio stops reading
+      // as flat frontal cutouts. The camera is locked so the only difference
+      // between the two renders is the projection itself.
+      const size = Size(1333, 750);
+      Future<Uint8List> render({required bool projected}) async {
+        final recorder = ui.PictureRecorder();
+        final canvas = Canvas(recorder);
+        CharacterPainter(
+          scene: scene,
+          ensembleScenes: [
+            CharacterScene(
+              buildCatInSuitRig(palette: CatInSuitPalette.silverTabby),
+            ),
+            CharacterScene(
+              buildCatInSuitRig(palette: CatInSuitPalette.darkBrown),
+            ),
+          ],
+          ensembleClips: [
+            CatClips.shaku,
+            CatClips.danceBackupLeft,
+            CatClips.danceBackupRight,
+          ],
+          synchronousEnsemble: true,
+          walkingPair: true,
+          clip: CatClips.shaku,
+          timeSeconds: CatClips.shaku.duration * 0.3,
+          enableDanceCamera: false,
+          danceViewProjection: projected,
+          scale: size.height * 0.78 / 300.0,
+          shadowColor: const Color(0x00000000),
+          renderer: renderer,
+        ).paint(canvas, size);
+        final picture = recorder.endRecording();
+        try {
+          final image = await picture.toImage(
+            size.width.toInt(),
+            size.height.toInt(),
+          );
+          try {
+            final data = await image.toByteData();
+            return data!.buffer.asUint8List();
+          } finally {
+            image.dispose();
+          }
+        } finally {
+          picture.dispose();
+        }
+      }
+
+      final flat = await render(projected: false);
+      final turned = await render(projected: true);
+      expect(
+        turned,
+        isNot(equals(flat)),
+        reason: 'the quarter-turn projection must change the staged render',
+      );
+
+      var flatPainted = 0;
+      var turnedPainted = 0;
+      for (var i = 3; i < flat.length; i += 4) {
+        if (flat[i] != 0) flatPainted++;
+        if (turned[i] != 0) turnedPainted++;
+      }
+      expect(
+        turnedPainted,
+        lessThan(flatPainted - 2000),
+        reason:
+            'foreshortening every dancer toward the lead must shrink the '
+            'painted silhouette area (flat=$flatPainted '
+            'turned=$turnedPainted)',
+      );
+    });
+  });
 }
 
 int _opaquePixelsInBox(

@@ -634,6 +634,153 @@ void main() {
       );
     });
 
+    test('stutterTransitions reports the entry travel before a mid-clip '
+        'hold', () {
+      final analyzer = TemporalMotionAnalyzer(
+        _oneBoneScene(),
+      );
+      // The mirror image of the hold-then-snap case: a big move INTO a pose
+      // that then freezes to the end of the clip, so only the entry segment
+      // carries the adjacent travel.
+      const clip = Clip(
+        name: 'synthetic-snap-then-hold',
+        duration: 1,
+        loop: false,
+        root: KeyframeRootChannel([
+          RootKeyframe(p: 0),
+          RootKeyframe(p: 0.25, dx: 120, ease: Ease.linear),
+          RootKeyframe(p: 1, dx: 120, ease: Ease.linear),
+        ]),
+        channels: {},
+      );
+
+      final report = analyzer.analyze(
+        clip: clip,
+        samples: 4,
+        boneIds: const [CatBones.hips],
+      );
+      final stutters = report.stutterTransitions(
+        holdDistance: 0.01,
+        releaseDistance: 40,
+      );
+
+      expect(stutters, hasLength(1));
+      expect(stutters.single.boneId, CatBones.hips);
+      expect(stutters.single.holdSegments, 3);
+      expect(stutters.single.holdFromFrame, 1);
+      expect(stutters.single.holdToFrame, 4);
+      expect(stutters.single.entryDistance, closeTo(120, 0.01));
+      expect(stutters.single.exitDistance, 0);
+      expect(stutters.single.adjacentTravel, closeTo(120, 0.01));
+    });
+
+    test('stutterTransitions rejects invalid thresholds', () {
+      final report = _thresholdProbeReport();
+      expect(
+        () => report.stutterTransitions(holdDistance: -0.1),
+        throwsArgumentError,
+      );
+      expect(
+        () => report.stutterTransitions(releaseDistance: -1),
+        throwsArgumentError,
+      );
+      expect(
+        () => report.stutterTransitions(minHoldSegments: 0),
+        throwsArgumentError,
+      );
+    });
+
+    test('velocitySpikes rejects invalid thresholds', () {
+      final report = _thresholdProbeReport();
+      expect(
+        () => report.velocitySpikes(minAcceleration: -1),
+        throwsArgumentError,
+      );
+      expect(
+        () => report.velocitySpikes(minSpeedDelta: -1),
+        throwsArgumentError,
+      );
+      expect(
+        () => report.velocitySpikes(minSpeedRatio: 0.5),
+        throwsArgumentError,
+      );
+      expect(
+        () => report.velocitySpikes(minSegmentDistance: -1),
+        throwsArgumentError,
+      );
+    });
+
+    test('pathCorners rejects invalid thresholds', () {
+      final report = _thresholdProbeReport();
+      expect(
+        () => report.pathCorners(minTurnDegrees: 181),
+        throwsArgumentError,
+      );
+      expect(
+        () => report.pathCorners(minAcceleration: -1),
+        throwsArgumentError,
+      );
+      expect(
+        () => report.pathCorners(minArcRatio: 0.9),
+        throwsArgumentError,
+      );
+      expect(
+        () => report.pathCorners(minSegmentDistance: -1),
+        throwsArgumentError,
+      );
+    });
+
+    test('loopSeamVelocityJumps rejects invalid thresholds', () {
+      final report = _thresholdProbeReport();
+      expect(
+        () => report.loopSeamVelocityJumps(minVelocityJump: -1),
+        throwsArgumentError,
+      );
+      expect(
+        () => report.loopSeamVelocityJumps(minSegmentDistance: -1),
+        throwsArgumentError,
+      );
+    });
+
+    test('pathCorners ranks by acceleration first, then by turn angle', () {
+      final analyzer = TemporalMotionAnalyzer(
+        _oneBoneScene(),
+      );
+      // A staircase path: three 90-degree corners where the last step is
+      // longer, so its corner carries more acceleration than the two equal
+      // early corners and the sort must break the remaining tie by turn.
+      const clip = Clip(
+        name: 'synthetic-staircase-path',
+        duration: 1,
+        loop: false,
+        root: KeyframeRootChannel([
+          RootKeyframe(p: 0),
+          RootKeyframe(p: 0.25, dx: 40, ease: Ease.linear),
+          RootKeyframe(p: 0.5, dx: 40, dy: 40, ease: Ease.linear),
+          RootKeyframe(p: 0.75, dx: 80, dy: 40, ease: Ease.linear),
+          RootKeyframe(p: 1, dx: 80, dy: 100, ease: Ease.linear),
+        ]),
+        channels: {},
+      );
+
+      final report = analyzer.analyze(
+        clip: clip,
+        samples: 4,
+        boneIds: const [CatBones.hips],
+      );
+      final corners = report.pathCorners(
+        minTurnDegrees: 80,
+        minAcceleration: 40,
+      );
+
+      expect(corners, hasLength(3));
+      expect(corners.first.accelerationMagnitude, closeTo(72.11, 0.01));
+      expect(corners.first.turnDegrees, closeTo(90, 0.01));
+      expect(corners.first.arcRatio, closeTo(1.387, 0.01));
+      expect(corners[1].accelerationMagnitude, closeTo(56.57, 0.01));
+      expect(corners[2].accelerationMagnitude, closeTo(56.57, 0.01));
+    });
+
     test('worstAcceleration throws when no acceleration was recorded', () {
       final analyzer = TemporalMotionAnalyzer(
         CharacterScene(buildCatInSuitRig()),
@@ -665,3 +812,19 @@ CharacterScene _oneBoneScene() => CharacterScene(
   _oneBoneRig(),
   autonomic: AutonomicLayer(breathAmplitude: 0),
 );
+
+/// A resolved report whose query thresholds are the subject under test; the
+/// probe clip itself never moves.
+TemporalMotionReport _thresholdProbeReport() {
+  const clip = Clip(
+    name: 'synthetic-threshold-probe',
+    duration: 1,
+    loop: false,
+    channels: {},
+  );
+  return TemporalMotionAnalyzer(_oneBoneScene()).analyze(
+    clip: clip,
+    samples: 2,
+    boneIds: const [CatBones.hips],
+  );
+}
