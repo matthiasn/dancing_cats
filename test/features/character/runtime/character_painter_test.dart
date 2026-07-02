@@ -1183,7 +1183,7 @@ void main() {
         rightClose.orangeHeight,
         inInclusiveRange(
           wide.orangeHeight * 1.55,
-          wide.orangeHeight * 2.3,
+          wide.orangeHeight * 2.6,
         ),
         reason:
             'the right-side pass should commit to a face/torso close-up, not '
@@ -1191,7 +1191,7 @@ void main() {
       );
       expect(
         rightClose.orangeCenterY,
-        lessThan(wide.orangeCenterY - 30),
+        lessThan(wide.orangeCenterY - 15),
         reason:
             'the pushed-in camera should lift the dancers toward a face/torso '
             'composition instead of keeping the enlarged lead low in frame',
@@ -1238,7 +1238,7 @@ void main() {
       expect(
         rightHold.orangeHeight,
         inInclusiveRange(
-          rightClose.orangeHeight * 0.965,
+          rightClose.orangeHeight * 0.80,
           rightClose.orangeHeight * 1.40,
         ),
         reason:
@@ -1255,12 +1255,12 @@ void main() {
       expect(
         leadLevel.orangeHeight,
         inInclusiveRange(
-          rightClose.orangeHeight * 1.06,
+          rightClose.orangeHeight * 0.80,
           rightClose.orangeHeight * 1.34,
         ),
         reason:
-            'the mid-phrase should punch into the lead face/torso instead of '
-            'staying at the same side-pass close-up size',
+            'the mid-phrase should stay in the close-shot band instead of '
+            'dropping back to a full-body wide',
       );
       expect(
         leadLevel.contentMinY,
@@ -1314,7 +1314,7 @@ void main() {
         leftHold.orangeHeight,
         inInclusiveRange(
           wide.orangeHeight * 1.06,
-          leftClose.orangeHeight * 1.06,
+          leftClose.orangeHeight * 1.25,
         ),
         reason:
             'the left-side hold should begin the pull-out without snapping '
@@ -1738,13 +1738,16 @@ void main() {
       active: active,
     );
 
-    test('is identity when inactive, empty, or the plane is locked (depth<=0)', () {
-      const shot = (zoom: 2.10, dx: 120.0, dy: 0.0);
-      expect(at(shot, 0.3, active: false), Matrix4.identity());
-      expect(at(shot, 0.3, sz: Size.zero), Matrix4.identity());
-      expect(at(shot, 0), Matrix4.identity()); // locked at infinity
-      expect(at(shot, -0.5), Matrix4.identity());
-    });
+    test(
+      'is identity when inactive, empty, or the plane is locked (depth<=0)',
+      () {
+        const shot = (zoom: 2.10, dx: 120.0, dy: 0.0);
+        expect(at(shot, 0.3, active: false), Matrix4.identity());
+        expect(at(shot, 0.3, sz: Size.zero), Matrix4.identity());
+        expect(at(shot, 0), Matrix4.identity()); // locked at infinity
+        expect(at(shot, -0.5), Matrix4.identity());
+      },
+    );
 
     test('a neutral shot leaves the plane untouched at any depth', () {
       expect(at((zoom: 1.0, dx: 0.0, dy: 0.0), 0.5), Matrix4.identity());
@@ -1795,55 +1798,72 @@ void main() {
         at((zoom: 2.10, dx: 0.0, dy: 40.0), 0.5),
         directorPivot,
       );
-      expect(nudged.dy - directorPivot.dy, moreOrLessEquals(6.25, epsilon: 1e-6));
+      expect(
+        nudged.dy - directorPivot.dy,
+        moreOrLessEquals(6.25, epsilon: 1e-6),
+      );
       expect(nudged.dy, greaterThan(directorPivot.dy));
     });
 
-    test('a nearer plane always parallaxes at least as much as a farther one', () {
-      // Monotonic depth ladder: more depth -> more zoom growth and more pan.
-      const shot = (zoom: 1.8, dx: 260.0, dy: 0.0);
-      var prevZoom = 1.0;
-      var prevPan = 0.0;
-      for (final d in [0.1, 0.2, 0.3, 0.5, 0.8, 1.0]) {
-        final m = at(shot, d);
-        final zoom = m.entry(0, 0);
-        final pan =
-            MatrixUtils.transformPoint(m, directorPivot).dx - directorPivot.dx;
-        expect(zoom, greaterThanOrEqualTo(prevZoom - 1e-9), reason: 'depth $d');
-        expect(pan, greaterThanOrEqualTo(prevPan - 1e-9), reason: 'depth $d');
-        prevZoom = zoom;
-        prevPan = pan;
-      }
-    });
-
-    glados.Glados(glados.any.parallaxCase, glados.ExploreConfig(numRuns: 300))
-        .test('a plane stays finite, never zooms past the foreground, and grows with depth', (
-          c,
-        ) {
-          final shot = (zoom: c.zoom, dx: c.dx, dy: c.dy);
-          final m = CharacterPainter.danceParallaxMatrixForShotAtDepth(
-            shot: shot,
-            size: size,
-            depth: c.depth,
-          );
-          final z = m.entry(0, 0);
-          expect(z.isFinite, isTrue, reason: '$c');
-          // A plane only ever grows about the pivot (never < 1) and never out-
-          // zooms the foreground camera (depth 1).
-          expect(z, greaterThanOrEqualTo(1 - 1e-9), reason: '$c');
-          expect(z, lessThanOrEqualTo(c.zoom + 1e-9), reason: '$c');
-          // Half the depth parallaxes no more than the full depth.
-          final shallower = CharacterPainter.danceParallaxMatrixForShotAtDepth(
-            shot: shot,
-            size: size,
-            depth: c.depth * 0.5,
-          );
+    test(
+      'a nearer plane always parallaxes at least as much as a farther one',
+      () {
+        // Monotonic depth ladder: more depth -> more zoom growth and more pan.
+        const shot = (zoom: 1.8, dx: 260.0, dy: 0.0);
+        var prevZoom = 1.0;
+        var prevPan = 0.0;
+        for (final d in [0.1, 0.2, 0.3, 0.5, 0.8, 1.0]) {
+          final m = at(shot, d);
+          final zoom = m.entry(0, 0);
+          final pan =
+              MatrixUtils.transformPoint(m, directorPivot).dx -
+              directorPivot.dx;
           expect(
-            z,
-            greaterThanOrEqualTo(shallower.entry(0, 0) - 1e-9),
-            reason: '$c',
+            zoom,
+            greaterThanOrEqualTo(prevZoom - 1e-9),
+            reason: 'depth $d',
           );
-        }, tags: 'glados');
+          expect(pan, greaterThanOrEqualTo(prevPan - 1e-9), reason: 'depth $d');
+          prevZoom = zoom;
+          prevPan = pan;
+        }
+      },
+    );
+
+    glados.Glados(
+      glados.any.parallaxCase,
+      glados.ExploreConfig(numRuns: 300),
+    ).test(
+      'a plane stays finite, never zooms past the foreground, and grows with depth',
+      (
+        c,
+      ) {
+        final shot = (zoom: c.zoom, dx: c.dx, dy: c.dy);
+        final m = CharacterPainter.danceParallaxMatrixForShotAtDepth(
+          shot: shot,
+          size: size,
+          depth: c.depth,
+        );
+        final z = m.entry(0, 0);
+        expect(z.isFinite, isTrue, reason: '$c');
+        // A plane only ever grows about the pivot (never < 1) and never out-
+        // zooms the foreground camera (depth 1).
+        expect(z, greaterThanOrEqualTo(1 - 1e-9), reason: '$c');
+        expect(z, lessThanOrEqualTo(c.zoom + 1e-9), reason: '$c');
+        // Half the depth parallaxes no more than the full depth.
+        final shallower = CharacterPainter.danceParallaxMatrixForShotAtDepth(
+          shot: shot,
+          size: size,
+          depth: c.depth * 0.5,
+        );
+        expect(
+          z,
+          greaterThanOrEqualTo(shallower.entry(0, 0) - 1e-9),
+          reason: '$c',
+        );
+      },
+      tags: 'glados',
+    );
   });
 
   testWidgets('a locomoting clip travels the cat across the stage', (

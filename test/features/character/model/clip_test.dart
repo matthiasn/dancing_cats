@@ -789,15 +789,23 @@ void main() {
     test('tension 1 means a dead arrival: zero velocity at the key', () {
       const eps = 1e-4;
       final before =
-          (channel.sample(0.25).rotation - channel.sample(0.25 - eps).rotation) /
+          (channel.sample(0.25).rotation -
+              channel.sample(0.25 - eps).rotation) /
           eps;
       final after =
-          (channel.sample(0.25 + eps).rotation - channel.sample(0.25).rotation) /
+          (channel.sample(0.25 + eps).rotation -
+              channel.sample(0.25).rotation) /
           eps;
-      expect(before.abs(), lessThan(0.02),
-          reason: 'the motion arrives dead at a tension-1 key');
-      expect(after.abs(), lessThan(0.02),
-          reason: 'and accelerates away from rest — no velocity jump');
+      expect(
+        before.abs(),
+        lessThan(0.02),
+        reason: 'the motion arrives dead at a tension-1 key',
+      );
+      expect(
+        after.abs(),
+        lessThan(0.02),
+        reason: 'and accelerates away from rest — no velocity jump',
+      );
       // An untensioned PASS-THROUGH key keeps real velocity (0.5 sits
       // between +1 and -1 — its finite-difference tangent is strong).
       final through =
@@ -808,20 +816,28 @@ void main() {
     });
 
     test('tension 0 reproduces the plain smooth spline', () {
-      const plain = KeyframeChannel([
-        Keyframe(p: 0),
-        Keyframe(p: 0.25, rotation: 1),
-        Keyframe(p: 0.5),
-        Keyframe(p: 0.75, rotation: -1),
-        Keyframe(p: 1),
-      ], smooth: true, cyclic: true);
-      const explicit = KeyframeChannel([
-        Keyframe(p: 0),
-        Keyframe(p: 0.25, rotation: 1),
-        Keyframe(p: 0.5),
-        Keyframe(p: 0.75, rotation: -1),
-        Keyframe(p: 1),
-      ], smooth: true, cyclic: true);
+      const plain = KeyframeChannel(
+        [
+          Keyframe(p: 0),
+          Keyframe(p: 0.25, rotation: 1),
+          Keyframe(p: 0.5),
+          Keyframe(p: 0.75, rotation: -1),
+          Keyframe(p: 1),
+        ],
+        smooth: true,
+        cyclic: true,
+      );
+      const explicit = KeyframeChannel(
+        [
+          Keyframe(p: 0),
+          Keyframe(p: 0.25, rotation: 1),
+          Keyframe(p: 0.5),
+          Keyframe(p: 0.75, rotation: -1),
+          Keyframe(p: 1),
+        ],
+        smooth: true,
+        cyclic: true,
+      );
       for (var i = 0; i <= 40; i++) {
         final p = i / 40;
         expect(
@@ -831,5 +847,4 @@ void main() {
       }
     });
   });
-
 }

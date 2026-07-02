@@ -161,9 +161,7 @@ double danceLanePlaneScale(
   bool heroStaging = true,
 }) =>
     CharacterPainter._roleScale(index, memberCount) *
-    (heroStaging
-        ? CharacterPainter._heroStaging(index, memberCount).scale
-        : 1);
+    (heroStaging ? CharacterPainter._heroStaging(index, memberCount).scale : 1);
 
 class CharacterPainter extends CustomPainter {
   CharacterPainter({

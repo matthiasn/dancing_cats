@@ -408,12 +408,12 @@ void main() {
       view,
     );
     renderer.paint(
-        canvas,
-        scene.rig,
-        reviewWorld,
-        frame.face,
-        memberTransform: base,
-      );
+      canvas,
+      scene.rig,
+      reviewWorld,
+      frame.face,
+      memberTransform: base,
+    );
     return _pngOf(recorder.endRecording(), cellW.round(), cellH.round());
   }
 
@@ -705,10 +705,14 @@ void main() {
   test('review contact lookup follows authored support spans', () {
     final buga = CatClips.buga;
 
+    // Buga hands the support foot off ON the hits (f12/f28) so the tall
+    // present is never re-planted against a deep-sink span anchor.
     expect(_activeContactBone(buga, 0.10), CatBones.footR);
-    expect(_activeContactBone(buga, 0.375), CatBones.footL);
+    expect(_activeContactBone(buga, 0.30), CatBones.footL);
+    expect(_activeContactBone(buga, 0.40), CatBones.footR);
     expect(_activeContactBone(buga, 0.625), CatBones.footL);
-    expect(_activeContactBone(buga, 0.875), CatBones.footR);
+    expect(_activeContactBone(buga, 0.80), CatBones.footR);
+    expect(_activeContactBone(buga, 0.90), CatBones.footL);
   });
 
   testWidgets('renders per-frame contact-sheet grids', (tester) async {

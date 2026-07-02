@@ -369,32 +369,38 @@ void main() {
       }
     });
 
-    test('the first chorus LAUNCHES on the drop, then drifts up with an arc', () {
-      final start = cameraShot(_ctx());
-      final launched = cameraShot(_ctx(sectionPhase: 0.12));
-      final mid = cameraShot(_ctx(sectionPhase: 0.5));
-      final end = cameraShot(_ctx(sectionPhase: 1));
-      // The launch clock starts kCameraLaunchLeadSeconds before the boundary,
-      // so the section opens already a touch into its launch-push…
-      expect(start.zoom, inInclusiveRange(1.26, 1.33));
-      // …and the camera has visibly moved a couple of bars in.
-      expect(launched.zoom - start.zoom, greaterThan(0.02));
-      // The slow drift-up carries the rest of the refrain.
-      expect(end.zoom, closeTo(1.37, 1e-9));
-      // The arc drifts out mid-section and returns, riding the launch's small
-      // rightward ease — the depth keeps sliding through the held hook.
-      expect(mid.dx, closeTo(20 - 18, 1e-9));
-      expect(end.dx, closeTo(-18, 1e-9));
-    });
+    test(
+      'the first chorus LAUNCHES on the drop, then drifts up with an arc',
+      () {
+        final start = cameraShot(_ctx());
+        final launched = cameraShot(_ctx(sectionPhase: 0.12));
+        final mid = cameraShot(_ctx(sectionPhase: 0.5));
+        final end = cameraShot(_ctx(sectionPhase: 1));
+        // The launch clock starts kCameraLaunchLeadSeconds before the boundary,
+        // so the section opens already a touch into its launch-push…
+        expect(start.zoom, inInclusiveRange(1.26, 1.33));
+        // …and the camera has visibly moved a couple of bars in.
+        expect(launched.zoom - start.zoom, greaterThan(0.02));
+        // The slow drift-up carries the rest of the refrain.
+        expect(end.zoom, closeTo(1.37, 1e-9));
+        // The arc drifts out mid-section and returns, riding the launch's small
+        // rightward ease — the depth keeps sliding through the held hook.
+        expect(mid.dx, closeTo(20 - 18, 1e-9));
+        expect(end.dx, closeTo(-18, 1e-9));
+      },
+    );
 
-    test('a chorus home holds its lean and pushes gently across the section', () {
-      final start = cameraShot(_ctx(occurrence: 1));
-      final end = cameraShot(_ctx(occurrence: 1, sectionPhase: 1));
-      expect(start.dx, greaterThan(0));
-      expect(end.dx, greaterThan(0)); // same committed side throughout
-      expect(end.zoom, greaterThan(start.zoom)); // slow push, never a snap
-      expect(end.zoom - start.zoom, lessThan(0.1)); // gentle, not a jump
-    });
+    test(
+      'a chorus home holds its lean and pushes gently across the section',
+      () {
+        final start = cameraShot(_ctx(occurrence: 1));
+        final end = cameraShot(_ctx(occurrence: 1, sectionPhase: 1));
+        expect(start.dx, greaterThan(0));
+        expect(end.dx, greaterThan(0)); // same committed side throughout
+        expect(end.zoom, greaterThan(start.zoom)); // slow push, never a snap
+        expect(end.zoom - start.zoom, lessThan(0.1)); // gentle, not a jump
+      },
+    );
 
     test('bridge is ONE continuous cross-stage traverse following the voice', () {
       // DEEP committed silver-side feature held while she carries the first
@@ -418,7 +424,10 @@ void main() {
       final lateB = cameraShot(_ctx(section: 'bridge', sectionPhase: 0.9));
       expect(lateA.dx, lessThan(-100));
       expect(lateA.dx, closeTo(lateB.dx, 1e-9));
-      expect(lateA.dx.abs(), lessThan(earlyA.dx.abs())); // asymmetric on purpose
+      expect(
+        lateA.dx.abs(),
+        lessThan(earlyA.dx.abs()),
+      ); // asymmetric on purpose
       final chorus3Home = cameraShot(_ctx(occurrence: 2));
       expect(chorus3Home.dx, lessThan(lateA.dx)); // deeper than the tail hold
       // The zoom relaxes slightly through the crossing — an arc, not a slide.

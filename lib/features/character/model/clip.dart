@@ -326,9 +326,19 @@ class KeyframeChannel extends JointChannel {
           (key) => key.rotation,
           (key) => key.tension,
           segment,
-          ),
-        scaleX: _cyclicCatmullRom(cyclicKeys, (key) => key.scaleX, (key) => key.tension, segment),
-        scaleY: _cyclicCatmullRom(cyclicKeys, (key) => key.scaleY, (key) => key.tension, segment),
+        ),
+        scaleX: _cyclicCatmullRom(
+          cyclicKeys,
+          (key) => key.scaleX,
+          (key) => key.tension,
+          segment,
+        ),
+        scaleY: _cyclicCatmullRom(
+          cyclicKeys,
+          (key) => key.scaleY,
+          (key) => key.tension,
+          segment,
+        ),
       );
     }
     final t = k1.easeFn?.call(segment.local) ?? k1.ease.apply(segment.local);
@@ -587,14 +597,24 @@ class KeyframeIkTargetChannel extends IkTargetChannel {
     final k1 = segment.end.key;
     if (smooth) {
       return IkTargetPose(
-        x: _cyclicCatmullRom(cyclicKeys, (key) => key.x, (key) => key.tension, segment),
-        y: _cyclicCatmullRom(cyclicKeys, (key) => key.y, (key) => key.tension, segment),
+        x: _cyclicCatmullRom(
+          cyclicKeys,
+          (key) => key.x,
+          (key) => key.tension,
+          segment,
+        ),
+        y: _cyclicCatmullRom(
+          cyclicKeys,
+          (key) => key.y,
+          (key) => key.tension,
+          segment,
+        ),
         weight: _cyclicCatmullRom(
           cyclicKeys,
           (key) => key.weight,
           (key) => key.tension,
           segment,
-          ).clamp(0.0, 1.0),
+        ).clamp(0.0, 1.0),
       );
     }
     final t = k1.ease.apply(segment.local);
@@ -848,14 +868,24 @@ class KeyframeRootChannel extends RootChannel {
     final k1 = segment.end.key;
     if (smooth) {
       return (
-        dx: _cyclicCatmullRom(cyclicKeys, (key) => key.dx, (key) => key.tension, segment),
-        dy: _cyclicCatmullRom(cyclicKeys, (key) => key.dy, (key) => key.tension, segment),
+        dx: _cyclicCatmullRom(
+          cyclicKeys,
+          (key) => key.dx,
+          (key) => key.tension,
+          segment,
+        ),
+        dy: _cyclicCatmullRom(
+          cyclicKeys,
+          (key) => key.dy,
+          (key) => key.tension,
+          segment,
+        ),
         rotation: _cyclicCatmullRom(
           cyclicKeys,
           (key) => key.rotation,
           (key) => key.tension,
           segment,
-          ),
+        ),
       );
     }
     final t = k1.ease.apply(segment.local);
@@ -977,10 +1007,8 @@ double _cyclicCatmullRom<K>(
     return v1 + (v2 - v1) * segment.local;
   }
 
-  final m1 =
-      segment.span * (v2 - v0) / denom1 * (1 - tensionOf(keys[i].key));
-  final m2 =
-      segment.span * (v3 - v1) / denom2 * (1 - tensionOf(keys[j].key));
+  final m1 = segment.span * (v2 - v0) / denom1 * (1 - tensionOf(keys[i].key));
+  final m2 = segment.span * (v3 - v1) / denom2 * (1 - tensionOf(keys[j].key));
   final t = segment.local;
   final t2 = t * t;
   final t3 = t2 * t;

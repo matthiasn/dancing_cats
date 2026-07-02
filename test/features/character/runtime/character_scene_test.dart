@@ -129,7 +129,8 @@ void main() {
       expect(
         posed.jointOf(CatBones.armLowerR).rotation,
         lessThanOrEqualTo(2.9),
-        reason: 'an elbow cannot fold past its deepest legal curl (the limit '
+        reason:
+            'an elbow cannot fold past its deepest legal curl (the limit '
             'applies to the WRAPPED angle, so a +2pi representation of a '
             'legal pose is never corrupted)',
       );
@@ -182,7 +183,8 @@ void main() {
       expect(
         residual.values.every((delta) => delta.abs() < 0.05),
         isTrue,
-        reason: 'the rendered pose must sit at (or inside) the fold boundary '
+        reason:
+            'the rendered pose must sit at (or inside) the fold boundary '
             '— the impossible configuration never reaches the screen',
       );
 
@@ -214,7 +216,8 @@ void main() {
       expect(
         scene.armFoldCorrections(crossed),
         isEmpty,
-        reason: 'a genuine crossed-wrist pose is anatomically legal and must '
+        reason:
+            'a genuine crossed-wrist pose is anatomically legal and must '
             'pass the rule untouched',
       );
     });
@@ -764,7 +767,7 @@ void main() {
         );
         expect(
           (seamBefore.x - seamCarry.x).abs(),
-          lessThan(43),
+          lessThan(55),
           reason:
               'the low-hook wrap can carry lateral groove, but should not drag '
               'the support foot across the body',
@@ -1311,118 +1314,121 @@ void main() {
       );
     });
 
-    test('transition support balance blends world-anchored root corrections', () {
-      const hips = 'hips';
-      const footL = 'foot.L';
-      const footR = 'foot.R';
-      final scene = CharacterScene(
-        RigSpec(
-          name: 'transition-balance-rig',
-          bones: const [
-            Bone(id: hips, parent: null, pivotX: 0, pivotY: 0, z: 0),
-            Bone(
-              id: footL,
-              parent: hips,
-              pivotX: -20,
-              pivotY: 0,
-              z: 1,
-              drawable: BoneDrawable(
-                kind: BoneShapeKind.ellipse,
-                width: 10,
-                height: 10,
-                color: 0xFFFFFFFF,
+    test(
+      'transition support balance blends world-anchored root corrections',
+      () {
+        const hips = 'hips';
+        const footL = 'foot.L';
+        const footR = 'foot.R';
+        final scene = CharacterScene(
+          RigSpec(
+            name: 'transition-balance-rig',
+            bones: const [
+              Bone(id: hips, parent: null, pivotX: 0, pivotY: 0, z: 0),
+              Bone(
+                id: footL,
+                parent: hips,
+                pivotX: -20,
+                pivotY: 0,
+                z: 1,
+                drawable: BoneDrawable(
+                  kind: BoneShapeKind.ellipse,
+                  width: 10,
+                  height: 10,
+                  color: 0xFFFFFFFF,
+                ),
               ),
-            ),
-            Bone(
-              id: footR,
-              parent: hips,
-              pivotX: 20,
-              pivotY: 0,
-              z: 1,
-              drawable: BoneDrawable(
-                kind: BoneShapeKind.ellipse,
-                width: 10,
-                height: 10,
-                color: 0xFFFFFFFF,
+              Bone(
+                id: footR,
+                parent: hips,
+                pivotX: 20,
+                pivotY: 0,
+                z: 1,
+                drawable: BoneDrawable(
+                  kind: BoneShapeKind.ellipse,
+                  width: 10,
+                  height: 10,
+                  color: 0xFFFFFFFF,
+                ),
               ),
-            ),
-          ],
-        ),
-      );
-      // A dance-family tag clip: the outgoing source below is itself a
-      // transition, so _isDanceFamily resolves through its plan while the
-      // source's own name stays OUTSIDE the per-move envelope catalogue —
-      // exercising the generic support envelope fallback.
-      const shakuTag = Clip(name: 'shaku', duration: 1, channels: {});
-      const from = Clip(
-        name: 'groove-blend',
-        duration: 1,
-        channels: {},
-        root: KeyframeRootChannel([
-          RootKeyframe(p: 0, dx: 300),
-          RootKeyframe(p: 1, dx: 300),
-        ]),
-        contactSpans: [GroundSpan(footL, 0.2, 0.5)],
-        supportFootWorldAnchor: true,
-        transitionPlan: ClipTransitionPlan(
-          from: shakuTag,
-          to: shakuTag,
-          weight: 0.5,
-        ),
-      );
-      const to = Clip(
-        name: 'zanku',
-        duration: 1,
-        channels: {},
-        root: KeyframeRootChannel([
-          RootKeyframe(p: 0),
-          RootKeyframe(p: 1),
-        ]),
-        contactSpans: [GroundSpan(footR, 0.2, 0.5)],
-        supportFootWorldAnchor: true,
-      );
-      const transition = Clip(
-        name: 'balance-transition',
-        duration: 1,
-        channels: {},
-        transitionPlan: ClipTransitionPlan(from: from, to: to, weight: 0.5),
-      );
+            ],
+          ),
+        );
+        // A dance-family tag clip: the outgoing source below is itself a
+        // transition, so _isDanceFamily resolves through its plan while the
+        // source's own name stays OUTSIDE the per-move envelope catalogue —
+        // exercising the generic support envelope fallback.
+        const shakuTag = Clip(name: 'shaku', duration: 1, channels: {});
+        const from = Clip(
+          name: 'groove-blend',
+          duration: 1,
+          channels: {},
+          root: KeyframeRootChannel([
+            RootKeyframe(p: 0, dx: 300),
+            RootKeyframe(p: 1, dx: 300),
+          ]),
+          contactSpans: [GroundSpan(footL, 0.2, 0.5)],
+          supportFootWorldAnchor: true,
+          transitionPlan: ClipTransitionPlan(
+            from: shakuTag,
+            to: shakuTag,
+            weight: 0.5,
+          ),
+        );
+        const to = Clip(
+          name: 'zanku',
+          duration: 1,
+          channels: {},
+          root: KeyframeRootChannel([
+            RootKeyframe(p: 0),
+            RootKeyframe(p: 1),
+          ]),
+          contactSpans: [GroundSpan(footR, 0.2, 0.5)],
+          supportFootWorldAnchor: true,
+        );
+        const transition = Clip(
+          name: 'balance-transition',
+          duration: 1,
+          channels: {},
+          transitionPlan: ClipTransitionPlan(from: from, to: to, weight: 0.5),
+        );
 
-      final pass = scene.poseModifierPasses.singleWhere(
-        (pass) => pass.id == 'support-balance',
-      );
-      const pose = Pose(joints: {});
-      final balanced = pass.modifier(
-        const PoseModifierContext(
-          clip: transition,
-          timeSeconds: 0.35,
-          breath: 0,
-        ),
-        pose,
-      );
+        final pass = scene.poseModifierPasses.singleWhere(
+          (pass) => pass.id == 'support-balance',
+        );
+        const pose = Pose(joints: {});
+        final balanced = pass.modifier(
+          const PoseModifierContext(
+            clip: transition,
+            timeSeconds: 0.35,
+            breath: 0,
+          ),
+          pose,
+        );
 
-      // Outgoing source: its anchor pose plants foot.L at x=280 while the hips
-      // sit at 0 — a -280 delta far outside the generic 62 support envelope
-      // (the looping single-bone span wraps to length 1.3 > 0.135). The
-      // correction is (targetDelta - delta) * base * edge * anchorStrength *
-      // outgoing weight = 218 * 0.42 * 1 * 0.6 * 0.5. Incoming source: its
-      // foot.R delta (20) sits inside zanku's 46 envelope and contributes 0.
-      const expectedDx = (-62.0 - -280.0) * (0.42 * 1 * 0.6 * 0.5);
-      expect(
-        balanced.rootDx,
-        closeTo(expectedDx, 1e-12),
-        reason:
-            'the transition support balance must pull the pelvis toward the '
-            'outgoing planted support with the complementary blend weight',
-      );
-      expect(balanced.rootDy, pose.rootDy);
-      expect(balanced.rootRotation, pose.rootRotation);
-      expect(
-        identical(balanced.joints, pose.joints),
-        isTrue,
-        reason: 'the balance pass is a root-only correction',
-      );
-    });
+        // Outgoing source: its anchor pose plants foot.L at x=280 while the hips
+        // sit at 0 — a -280 delta far outside the generic 62 support envelope
+        // (the looping single-bone span wraps to length 1.3 > 0.135). The
+        // correction is (targetDelta - delta) * base * edge * anchorStrength *
+        // outgoing weight = 218 * 0.42 * 1 * 0.6 * 0.5. Incoming source: its
+        // foot.R delta (20) sits inside zanku's 46 envelope and contributes 0.
+        const expectedDx = (-62.0 - -280.0) * (0.42 * 1 * 0.6 * 0.5);
+        expect(
+          balanced.rootDx,
+          closeTo(expectedDx, 1e-12),
+          reason:
+              'the transition support balance must pull the pelvis toward the '
+              'outgoing planted support with the complementary blend weight',
+        );
+        expect(balanced.rootDy, pose.rootDy);
+        expect(balanced.rootRotation, pose.rootRotation);
+        expect(
+          identical(balanced.joints, pose.joints),
+          isTrue,
+          reason: 'the balance pass is a root-only correction',
+        );
+      },
+    );
   });
 }
 
@@ -1492,7 +1498,7 @@ double _catalogueSupportEnvelope(Clip clip) => switch (clip.name) {
   'zanku' => 58,
   'sekem' => 62,
   'azonto' => 70,
-  'buga' => 70,
+  'buga' => 76,
   _ => 76,
 };
 

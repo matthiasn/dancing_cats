@@ -241,8 +241,7 @@ class CharacterRenderer {
       ..color = Color(outline)
       ..isAntiAlias = antiAlias;
     for (final seam in mesh.inkSeams) {
-      final path = Path()
-        ..moveTo(points[seam.first].x, points[seam.first].y);
+      final path = Path()..moveTo(points[seam.first].x, points[seam.first].y);
       for (var i = 1; i < seam.length; i++) {
         path.lineTo(points[seam[i]].x, points[seam[i]].y);
       }
@@ -798,10 +797,9 @@ class CharacterRenderer {
       case BoneShapeKind.ellipse:
         return Path()..addOval(rect);
       case BoneShapeKind.roundedRect:
-        return Path()
-          ..addRRect(
-            RRect.fromRectAndRadius(rect, Radius.circular(d.cornerRadius)),
-          );
+        return Path()..addRRect(
+          RRect.fromRectAndRadius(rect, Radius.circular(d.cornerRadius)),
+        );
       case BoneShapeKind.triangle:
         return _trianglePath(rect);
       case BoneShapeKind.taperedCapsule:

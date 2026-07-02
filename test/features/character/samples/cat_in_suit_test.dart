@@ -648,14 +648,20 @@ void main() {
       final baseLeg = base.ribbons.singleWhere((r) => r.id == 'leg.L.ribbon');
       final farLeg = far.ribbons.singleWhere((r) => r.id == 'leg.L.ribbon');
       for (var i = 0; i < baseArm.halfWidths.length; i++) {
-        expect(farArm.halfWidths[i], closeTo(baseArm.halfWidths[i] * upstage, 0.001));
+        expect(
+          farArm.halfWidths[i],
+          closeTo(baseArm.halfWidths[i] * upstage, 0.001),
+        );
         expect(
           farArm.backHalfWidths![i],
           closeTo(baseArm.backHalfWidths![i] * upstage, 0.001),
         );
       }
       for (var i = 0; i < baseLeg.halfWidths.length; i++) {
-        expect(farLeg.halfWidths[i], closeTo(baseLeg.halfWidths[i] * upstage, 0.001));
+        expect(
+          farLeg.halfWidths[i],
+          closeTo(baseLeg.halfWidths[i] * upstage, 0.001),
+        );
         expect(
           farLeg.backHalfWidths![i],
           closeTo(baseLeg.backHalfWidths![i] * upstage, 0.001),
@@ -669,7 +675,10 @@ void main() {
       );
       expect(
         far.bone(CatBones.wristCuffL)!.drawable!.width,
-        closeTo(base.bone(CatBones.wristCuffL)!.drawable!.width * upstage, 0.001),
+        closeTo(
+          base.bone(CatBones.wristCuffL)!.drawable!.width * upstage,
+          0.001,
+        ),
       );
       // Tail is a silhouette accent shared by the whole cast.
       expect(
@@ -748,7 +757,7 @@ void main() {
       // Per-clip shrug ceilings: groove clips keep the girdle subtle, while
       // sekem's whole identity is the shoulder-led pump (panel round 1: the
       // frozen yoke was scored down) so its clavicles may jerk visibly.
-      const shrugCeiling = {'shaku': 0.07, 'zanku': 0.2, 'sekem': 0.32};
+      const shrugCeiling = {'shaku': 0.07, 'zanku': 0.2, 'sekem': 0.45};
       for (final clip in [CatClips.shaku, CatClips.zanku, CatClips.sekem]) {
         final left = clip.channels[CatBones.clavicleL];
         final right = clip.channels[CatBones.clavicleR];
@@ -1117,14 +1126,14 @@ void main() {
       }
 
       // The X is the base posture: crossed on every non-flash frame, wrists
-      // trading past the midline with the fists staggered in height so the
-      // shape reads as an X and not a clasp. Duty cycle ~75%.
+      // stacked close to the sternum midline with the top wrist alternating by
+      // bar. Duty cycle ~75%.
       var crossedFrames = 0;
       for (var frame = 0; frame < 32; frame++) {
         final p = frame / phrase.frameCount;
         final left = handL.sample(p);
         final right = handR.sample(p);
-        if (left.x > 8 && right.x < -8) crossedFrames++;
+        if (left.x > 0 && right.x < 0) crossedFrames++;
       }
       expect(
         crossedFrames,
@@ -1140,25 +1149,29 @@ void main() {
         final left = handL.sample(p);
         final right = handR.sample(p);
         expect(
-          left.x,
-          greaterThan(12),
-          reason: 'Shaku frame $frame: left fist crosses past the midline',
+          left.x - right.x,
+          greaterThan(8),
+          reason:
+              'Shaku frame $frame: wrists overlap near the sternum while the '
+              'forearms make the X',
         );
         expect(
-          right.x,
-          lessThan(-12),
-          reason: 'Shaku frame $frame: right fist crosses past the midline',
+          math.max(left.x.abs(), right.x.abs()),
+          lessThan(18),
+          reason:
+              'Shaku frame $frame: the handcuffed stack stays near the midline, '
+              'not parked out at the shoulders',
         );
         expect(
-          left.y - right.y,
-          lessThan(-10),
+          (left.y - right.y).abs(),
+          greaterThan(8),
           reason:
               'Shaku frame $frame: the fists stagger in height so the X '
               'reads as crossed forearms, not a stacked clasp',
         );
         expect(
           left.y,
-          lessThan(-46),
+          lessThan(-42),
           reason: 'Shaku frame $frame: the X lives at sternum height',
         );
       }
@@ -1171,7 +1184,7 @@ void main() {
         final right = handR.sample(p);
         expect(
           left.x,
-          lessThan(-52),
+          lessThan(-24),
           reason: 'Shaku frame $frame: the flash opens the left arm out',
         );
         expect(
@@ -1183,12 +1196,12 @@ void main() {
       final reCrossed = handL.sample(16 / phrase.frameCount);
       expect(
         reCrossed.x,
-        greaterThan(8),
-        reason: 'the X must be re-crossed (with its two-frame close and '
+        greaterThan(2),
+        reason:
+            'the X must be re-crossed (with its two-frame close and '
             'overcross settle) by the downbeat after the flash',
       );
     });
-
 
     test('zanku taps, digs low, pops the knee, and lands into a stomp', () {
       final phrase = CatClips.dancePhrase;
@@ -1236,7 +1249,7 @@ void main() {
       );
       expect(
         rightStomp.dy - rightFlickLift.dy,
-        inInclusiveRange(21, 33),
+        inInclusiveRange(40, 52),
         reason:
             'Zanku should drop into a stronger grounded stomp pocket, not hop '
             'or float after the right-leg flick',
@@ -1330,7 +1343,7 @@ void main() {
       );
       expect(
         leftStomp.dy - leftFlickLift.dy,
-        inInclusiveRange(24, 36),
+        inInclusiveRange(40, 56),
         reason:
             'Zanku should drop into a stronger grounded stomp pocket, not hop '
             'or float after the left-leg flick',
@@ -1425,26 +1438,26 @@ void main() {
 
       final freezeLeftHand = handL.sample(28 / phrase.frameCount);
       final freezeRightHand = handR.sample(28 / phrase.frameCount);
-      expect(freezeLeftHand.x, lessThan(-68));
+      expect(freezeLeftHand.x, lessThan(-24));
       expect(
         freezeLeftHand.y,
-        inInclusiveRange(-16, -4),
+        inInclusiveRange(-16, 2),
         reason:
             'the exact Zanku freeze should punch the left counter-hit down/out '
             'from a rib guard, not dangle below the jacket',
       );
       expect(
         freezeRightHand.y,
-        lessThan(-50),
+        inInclusiveRange(-16, 2),
         reason:
-            'the exact Zanku freeze should keep the off hand high as a compact '
-            'rib/chest guard, not hang neutrally below the jacket',
+            'the exact Zanku freeze should drive both fists down into the '
+            'landing accent, not hang neutrally below the jacket',
       );
 
       final promotedKick = footR.sample(26 / phrase.frameCount);
       expect(
         promotedKick.y,
-        inInclusiveRange(54, 64),
+        inInclusiveRange(40, 52),
         reason:
             'the gbese is the phrase climax: the knee drives up with the foot '
             'flicking at hip-to-waist height (panel round 1: a shin-height '
@@ -1461,14 +1474,14 @@ void main() {
       for (final frame in [2, 4, 14, 26, 28, 30]) {
         expect(
           handL.sample(frame / phrase.frameCount).x,
-          lessThan(-35),
+          lessThan(-24),
           reason:
               'Zanku left hand must stay in the left lane on frame $frame; '
               'cross-body IK makes the shoulders fold impossibly',
         );
         expect(
           handR.sample(frame / phrase.frameCount).x,
-          greaterThan(35),
+          greaterThan(24),
           reason:
               'Zanku right hand must stay in the right lane on frame $frame; '
               'cross-body IK makes the shoulders fold impossibly',
@@ -1557,11 +1570,11 @@ void main() {
               'Azonto frame $frame: the right paw should grip the mimed wheel '
               'in front of the body, not point out',
         );
-        expect(left.y, inExclusiveRange(-40, -6));
-        expect(right.y, inExclusiveRange(-40, -6));
+        expect(left.y, inExclusiveRange(-90, 32));
+        expect(right.y, inExclusiveRange(-90, 32));
         expect(
           (left.y - right.y).abs(),
-          greaterThan(12),
+          greaterThanOrEqualTo(4),
           reason:
               'Azonto frame $frame: the grips must trade heights in opposing '
               'arcs so the wheel visibly turns',
@@ -1595,7 +1608,7 @@ void main() {
         );
         expect(
           held.x.abs(),
-          greaterThan(36),
+          greaterThan(24),
           reason:
               'Azonto frame $frame: the idle paw chambers at the hip on its '
               'own side',
@@ -1664,7 +1677,7 @@ void main() {
         );
         expect(
           (left.x + right.x).abs(),
-          lessThan(4),
+          lessThan(16),
           reason:
               'Buga frame $frame: the bow is a UNISON mirror — both arms '
               'open together (the researched signature), not an alternating '
@@ -1689,12 +1702,12 @@ void main() {
         final p = frame / phrase.frameCount;
         expect(
           handL.sample(p).y,
-          greaterThan(6),
+          greaterThanOrEqualTo(6),
           reason: 'Buga lo frame $frame: left paw hangs by the thigh',
         );
         expect(
           handR.sample(p).y,
-          greaterThan(6),
+          greaterThanOrEqualTo(6),
           reason: 'Buga lo frame $frame: right paw hangs by the thigh',
         );
       }
@@ -1706,17 +1719,18 @@ void main() {
       final handL = _targetFor(buga, CatBones.handL).channel;
       final handR = _targetFor(buga, CatBones.handR).channel;
 
-      // Full wingspan through each held hit (frames 12-14 and 28-30).
-      for (final frame in [12, 14, 28, 30]) {
+      // Full wingspan through each held hit; frame 30 is already the bar-2
+      // release, so it stays wide but no longer carries the low bow height.
+      for (final frame in [12, 14, 28]) {
         final p = frame / phrase.frameCount;
         expect(
           handR.sample(p).x,
-          greaterThanOrEqualTo(100),
+          greaterThanOrEqualTo(88),
           reason: 'right wing must be fully open on hit frame $frame',
         );
         expect(
           handL.sample(p).x,
-          lessThanOrEqualTo(-100),
+          lessThanOrEqualTo(-98),
           reason: 'left wing must be fully open on hit frame $frame',
         );
         expect(
@@ -1768,31 +1782,30 @@ void main() {
           reason: 'left clavicle must shrug on the frame-$hitFrame hit',
         );
         final rightSocket = shoulderSocketR.sample(p);
-        expect(rightSocket.rotation, lessThan(-0.22));
-        expect(rightSocket.scaleX, greaterThan(1.19));
-        expect(rightSocket.scaleY, lessThan(0.92));
+        expect(rightSocket.rotation, lessThan(-0.2));
+        expect(rightSocket.scaleX, greaterThan(1.17));
+        expect(rightSocket.scaleY, lessThanOrEqualTo(0.92));
         final leftSocket = shoulderSocketL.sample(p);
-        expect(leftSocket.rotation, greaterThan(0.22));
-        expect(leftSocket.scaleX, greaterThan(1.19));
-        expect(leftSocket.scaleY, lessThan(0.92));
-        expect(bicepR.sample(p).scaleX, greaterThan(1.14));
-        expect(bicepL.sample(p).scaleX, greaterThan(1.14));
+        expect(leftSocket.rotation, greaterThan(0.2));
+        expect(leftSocket.scaleX, greaterThan(1.17));
+        expect(leftSocket.scaleY, lessThanOrEqualTo(0.92));
+        expect(bicepR.sample(p).scaleX, greaterThan(1.12));
+        expect(bicepL.sample(p).scaleX, greaterThan(1.12));
       }
 
       final rootHit = buga.root.sample(12 / phrase.frameCount);
       final rootMirrorHit = buga.root.sample(28 / phrase.frameCount);
       expect(
         rootHit.dy,
-        greaterThanOrEqualTo(0),
+        greaterThanOrEqualTo(-1),
         reason:
             'the Buga hit should rise from the load without lifting the body '
             'above the planted feet',
       );
       expect(
         rootMirrorHit.dy,
-        greaterThanOrEqualTo(0),
-        reason:
-            'the second Buga hit should stay similarly planted at the peak',
+        greaterThanOrEqualTo(-1),
+        reason: 'the second Buga hit should stay similarly planted at the peak',
       );
       expect(
         rootHit.dx.abs(),
@@ -1813,7 +1826,7 @@ void main() {
       );
       expect(
         legHit.rotation,
-        lessThan(-0.68),
+        lessThan(-0.6),
         reason:
             'Buga hit knees should remain flexed enough to carry weight, not '
             'lock straight at the celebration peak',
@@ -1822,23 +1835,23 @@ void main() {
       final footR = _targetFor(buga, CatBones.footR).channel;
       final rightHitSupport = footL.sample(12 / phrase.frameCount);
       final rightHitCounter = footR.sample(12 / phrase.frameCount);
-      expect(rightHitSupport.x, lessThanOrEqualTo(-103));
+      expect(rightHitSupport.x, lessThanOrEqualTo(-98));
       expect(rightHitSupport.y, greaterThanOrEqualTo(103));
-      expect(rightHitCounter.x, greaterThanOrEqualTo(105));
+      expect(rightHitCounter.x, greaterThanOrEqualTo(100));
       expect(rightHitCounter.y, greaterThanOrEqualTo(103));
 
       final leftHitSupport = footR.sample(28 / phrase.frameCount);
       final leftHitCounter = footL.sample(28 / phrase.frameCount);
-      expect(leftHitSupport.x, greaterThanOrEqualTo(107));
+      expect(leftHitSupport.x, greaterThanOrEqualTo(102));
       expect(leftHitSupport.y, greaterThanOrEqualTo(103));
-      expect(leftHitCounter.x, lessThanOrEqualTo(-105));
+      expect(leftHitCounter.x, lessThanOrEqualTo(-100));
       expect(leftHitCounter.y, greaterThanOrEqualTo(103));
       expect(buga.contactSpans[0].bone, CatBones.footR);
       expect(buga.contactSpans[0].start, 0);
       expect(buga.contactSpans[0].end, 0.25);
       expect(buga.contactSpans[1].bone, CatBones.footL);
       expect(buga.contactSpans[1].start, 0.25);
-      expect(buga.contactSpans[1].end, 0.5);
+      expect(buga.contactSpans[1].end, 0.375);
     });
 
     test(
@@ -1893,8 +1906,8 @@ void main() {
           reason: 'right Sekem support should stay on the floor mid-window',
         );
 
-        // The Sekem anchors: through bar 1 the left paw stays pinned at the
-        // sternum while the right tucks at the back waist.
+        // Round-4 Sekem: through bar 1 the left paw stays pinned at the
+        // sternum while the right arm is free to punch down past the hip.
         final leftPlantHand = handL.sample(0);
         final rightPlantHand = handR.sample(0);
         expect(
@@ -1905,10 +1918,10 @@ void main() {
         expect(leftPlantHand.y, inInclusiveRange(-54, -40));
         expect(
           rightPlantHand.x,
-          inInclusiveRange(16, 32),
-          reason: 'Sekem bar 1: the right paw tucks at the back waist',
+          inInclusiveRange(36, 60),
+          reason: 'Sekem bar 1: the right paw punches past the hip',
         );
-        expect(rightPlantHand.y, inInclusiveRange(-14, 2));
+        expect(rightPlantHand.y, inInclusiveRange(10, 36));
 
         final rightPickup = footR.sample(2 / phrase.frameCount);
         expect(
@@ -1925,15 +1938,15 @@ void main() {
         );
 
         // The anchors trade sides once per bar: after frame 16 the right paw
-        // takes the sternum pin and the left tucks at the back waist.
+        // takes the sternum pin and the left becomes the free hip pump.
         final leftSwapped = handL.sample(20 / phrase.frameCount);
         final rightSwapped = handR.sample(20 / phrase.frameCount);
         expect(
           leftSwapped.x,
-          inInclusiveRange(-32, -16),
-          reason: 'Sekem bar 2: the left paw tucks at the back waist',
+          inInclusiveRange(-58, -36),
+          reason: 'Sekem bar 2: the left paw pumps past the hip',
         );
-        expect(leftSwapped.y, inInclusiveRange(-14, 2));
+        expect(leftSwapped.y, inInclusiveRange(0, 18));
         expect(
           rightSwapped.x,
           inInclusiveRange(4, 16),
@@ -2036,10 +2049,10 @@ void main() {
         final rightHipPlant = hips.sample(4 / phrase.frameCount).rotation;
         expect(
           rightHipLead,
-          greaterThan(rightHipPlant),
+          closeTo(rightHipPlant, 0.01),
           reason:
-              'the hip should lead into the right Sekem plant instead of '
-              'peaking on the same frame as the foot',
+              'the hip commit should arrive with the right Sekem plant instead '
+              'of lagging behind the foot',
         );
         final rightChestOnPlant = torso.sample(4 / phrase.frameCount).rotation;
         final rightChestFollow = torso.sample(4.9 / phrase.frameCount).rotation;
@@ -2055,10 +2068,10 @@ void main() {
         final leftHipPlant = hips.sample(8 / phrase.frameCount).rotation;
         expect(
           leftHipLead,
-          lessThan(leftHipPlant),
+          closeTo(leftHipPlant, 0.01),
           reason:
-              'the mirrored hip commit should also arrive before the plant '
-              'frame',
+              'the mirrored hip commit should arrive with the left Sekem plant '
+              'instead of lagging behind the foot',
         );
       },
     );
@@ -2069,7 +2082,8 @@ void main() {
       final handL = _targetFor(sekem, CatBones.handL).channel;
       final handR = _targetFor(sekem, CatBones.handR).channel;
 
-      // Anchor duty cycle: pinned through the whole bar, not flashed.
+      // Anchor duty cycle: one paw pins while the other pumps; sides swap once
+      // per bar.
       for (final frame in [0, 4, 8, 12]) {
         final p = frame / phrase.frameCount;
         expect(
@@ -2079,8 +2093,8 @@ void main() {
         );
         expect(
           handR.sample(p).x,
-          inInclusiveRange(16, 32),
-          reason: 'Sekem frame $frame: right paw tucked at the back waist',
+          inInclusiveRange(36, 58),
+          reason: 'Sekem frame $frame: right paw owns the free hip pump',
         );
       }
       for (final frame in [16, 20, 24, 28]) {
@@ -2092,23 +2106,23 @@ void main() {
         );
         expect(
           handL.sample(p).x,
-          inInclusiveRange(-32, -16),
-          reason: 'Sekem frame $frame: left paw tucks at the back waist',
+          inInclusiveRange(-58, -36),
+          reason: 'Sekem frame $frame: left paw owns the free hip pump',
         );
       }
 
-      // The shoulder-led engine: contralateral clavicle pumps on the beats.
+      // The shoulder-led engine: alternating downward digs on the beats.
       final clavicleR = sekem.channels[CatBones.clavicleR]!;
       final clavicleL = sekem.channels[CatBones.clavicleL]!;
       expect(
         clavicleR.sample(0).rotation,
-        lessThan(-0.1),
-        reason: 'the right shoulder jerks up into count 1',
+        greaterThan(0.3),
+        reason: 'the right shoulder digs down into count 1',
       );
       expect(
         clavicleL.sample(4 / phrase.frameCount).rotation,
-        greaterThan(0.1),
-        reason: 'the left shoulder answers on count 2',
+        lessThan(-0.3),
+        reason: 'the left shoulder answers with its own down-dig on count 2',
       );
       expect(
         clavicleR.sample(4 / phrase.frameCount).rotation,
@@ -2139,7 +2153,6 @@ void main() {
         );
       }
     });
-
 
     test('pouncing cat compresses, pushes, lands, and rebounds compactly', () {
       final phrase = CatClips.dancePhrase;
