@@ -116,6 +116,22 @@ void main() {
       expect(GradeLook.neutral.lerpTo(_fullLook, 1), _fullLook);
     });
 
+    test('copyWith replaces exactly the named controls, holding the rest', () {
+      // No arguments → every control falls through to the receiver.
+      expect(_fullLook.copyWith(), _fullLook);
+      const w = GradeWheel(master: 0.4);
+      expect(_fullLook.copyWith(lift: w).lift, w);
+      expect(_fullLook.copyWith(gamma: w).gamma, w);
+      expect(_fullLook.copyWith(gain: w).gain, w);
+      expect(_fullLook.copyWith(saturation: 1.4).saturation, 1.4);
+      expect(_fullLook.copyWith(temperature: -0.2).temperature, -0.2);
+      expect(_fullLook.copyWith(tint: 0.3).tint, 0.3);
+      expect(_fullLook.copyWith(contrast: 0.9).contrast, 0.9);
+      expect(_fullLook.copyWith(pivot: 0.7).pivot, 0.7);
+      // A single replacement leaves every other control untouched.
+      expect(_fullLook.copyWith(tint: 0.3).saturation, _fullLook.saturation);
+    });
+
     test('lerpTo midpoint averages every component', () {
       final mid = GradeLook.neutral.lerpTo(_fullLook, 0.5);
       expect(mid.saturation, closeTo(0.9, 1e-12));

@@ -359,6 +359,23 @@ void main() {
       expect(rec.editEnds, greaterThan(afterTap)); // slider pan end
     });
 
+    testWidgets('a cancelled slider gesture still reports onEditEnd', (
+      tester,
+    ) async {
+      final rec = await _pump(tester);
+      // Down + cancel dispatched in one event batch: the cancel lands before
+      // the single-member gesture arena's microtask accepts the pan, which is
+      // the only route to onPanCancel on a pan-only detector — the OS killing
+      // a touch the instant it lands (palm rejection, window switch).
+      final pointer = TestPointer(91);
+      tester.binding.handlePointerEvent(
+        pointer.down(tester.getCenter(_slider('Temp'))),
+      );
+      tester.binding.handlePointerEvent(pointer.cancel());
+      await tester.pump();
+      expect(rec.editEnds, 1);
+    });
+
     testWidgets('the workspace can rename the header and enlarge wheels', (
       tester,
     ) async {

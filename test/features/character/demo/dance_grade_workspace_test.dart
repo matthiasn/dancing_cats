@@ -124,6 +124,7 @@ void main() {
       WidgetTester tester, {
       double positionSec = 10,
       bool playing = false,
+      double durationSec = _duration,
     }) async {
       tester.view.physicalSize = const Size(1600, 900);
       tester.view.devicePixelRatio = 1.0;
@@ -140,7 +141,7 @@ void main() {
                   child: DanceGradeWorkspace(
                     controller: controller,
                     positionSec: positionSec,
-                    durationSec: _duration,
+                    durationSec: durationSec,
                     playing: playing,
                     amplitudes: const [0.2, 0.9, 0.5, 0.7, 0.3, 0.8],
                     sections: const [
@@ -548,6 +549,332 @@ void main() {
       await tester.sendKeyEvent(LogicalKeyboardKey.escape);
       await tester.pump();
       expect(controller.preview, isNull);
+      await drain(tester);
+    });
+
+    // Zoom the shared axis in by one Ctrl+wheel notch (visible 100 → 80s).
+    Future<TestPointer> zoomIn(WidgetTester tester) async {
+      final wave = tester.getRect(find.byKey(const Key('gradeWaveform')));
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      final pointer = TestPointer(3, PointerDeviceKind.mouse)
+        ..hover(wave.center);
+      await tester.sendEventToBinding(pointer.scroll(const Offset(0, -120)));
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pump();
+      return pointer;
+    }
+
+    // Where the ruler says the viewport starts: seek at its left edge.
+    Future<double> viewStart(WidgetTester tester) async {
+      final ruler = tester.getRect(find.byKey(const Key('gradeRuler')));
+      await tester.tapAt(Offset(ruler.left + 1, ruler.center.dy));
+      await tester.pump();
+      return seeks.last;
+    }
+
+    testWidgets('play page-flips a zoomed view; a new duration refits', (
+      tester,
+    ) async {
+      await pump(tester);
+      await zoomIn(tester); // visible 80s starting at 10s; follow disarmed
+      // Pressing play with the playhead beyond the window re-arms follow and
+      // page-flips so the playhead sits near the left edge (5% margin).
+      await pump(tester, positionSec: 95, playing: true);
+      expect(await viewStart(tester), closeTo(95 - 80 * 0.95, 2));
+      // Loading a longer track refits the viewport to the whole song.
+      await pump(tester, durationSec: 200);
+      expect(await viewStart(tester), closeTo(0, 2));
+    });
+
+    testWidgets('plain scroll pans the zoomed view on either wheel axis', (
+      tester,
+    ) async {
+      await pump(tester);
+      final pointer = await zoomIn(tester); // window [10, 90]
+      final before = await viewStart(tester);
+      // A vertical wheel pans; a trackpad's dominant horizontal axis too.
+      await tester.sendEventToBinding(pointer.scroll(const Offset(0, 120)));
+      await tester.sendEventToBinding(pointer.scroll(const Offset(200, 10)));
+      await tester.pump();
+      expect(await viewStart(tester), greaterThan(before + 1));
+    });
+
+    testWidgets('arrow keys nudge the selected key; Ctrl+Z/Y undo and redo', (
+      tester,
+    ) async {
+      store.update(
+        GradeTimelineDoc(
+          lanes: [
+            GradeLane(
+              target: GradeTargets.master,
+              keyframes: [GradeKeyframe(tSec: 40, look: _sat(0.5))],
+            ),
+          ],
+        ),
+      );
+      await pump(tester);
+      await tester.tapAt(laneOffsetFor(tester, 40));
+      await settleTap(tester);
+      double keyT() =>
+          store.doc.lane(GradeTargets.master)!.keyframes.single.tSec;
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+      await tester.pump();
+      final nudged = keyT();
+      expect(nudged, greaterThan(40)); // snapped one grid step right
+      // Shift+arrow is the fine nudge — 10ms, ignoring the snap grid.
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.pump();
+      expect(keyT(), closeTo(nudged - 0.01, 1e-6));
+      // Ctrl+Z steps back; Ctrl+Shift+Z and Ctrl+Y both step forward.
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyZ);
+      await tester.pump();
+      expect(keyT(), closeTo(nudged, 1e-6));
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyZ);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.pump();
+      expect(keyT(), closeTo(nudged - 0.01, 1e-6));
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyZ); // undo again
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyY); // Ctrl+Y redoes
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pump();
+      expect(keyT(), closeTo(nudged - 0.01, 1e-6));
+      await drain(tester);
+    });
+
+    testWidgets('the context menu copies a look and pastes it as a new key', (
+      tester,
+    ) async {
+      store.update(
+        GradeTimelineDoc(
+          lanes: [
+            GradeLane(
+              target: GradeTargets.master,
+              keyframes: [GradeKeyframe(tSec: 40, look: _sat(0.5))],
+            ),
+          ],
+        ),
+      );
+      await pump(tester);
+      await tester.tapAt(
+        laneOffsetFor(tester, 40),
+        buttons: kSecondaryMouseButton,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Copy look'));
+      await tester.pumpAndSettle();
+      expect(controller.clipboard, isNotNull);
+      await tester.tapAt(
+        laneOffsetFor(tester, 80),
+        buttons: kSecondaryMouseButton,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Paste look as new key here'));
+      await tester.pumpAndSettle();
+      final lane = store.doc.lane(GradeTargets.master)!;
+      expect(lane.keyframes, hasLength(2));
+      expect(lane.keyframes.last.look.saturation, 0.5);
+      await drain(tester);
+    });
+
+    testWidgets('dragging empty lane space pans the axis, never a key', (
+      tester,
+    ) async {
+      store.update(
+        GradeTimelineDoc(
+          lanes: [
+            GradeLane(
+              target: GradeTargets.master,
+              keyframes: [GradeKeyframe(tSec: 40, look: _sat(0.5))],
+            ),
+          ],
+        ),
+      );
+      await pump(tester);
+      await tester.dragFrom(laneOffsetFor(tester, 70), const Offset(-60, 0));
+      await settleTap(tester);
+      expect(store.doc.lane(GradeTargets.master)!.keyframes.single.tSec, 40);
+      await drain(tester);
+    });
+
+    testWidgets('the overview strip jumps and drags the view window', (
+      tester,
+    ) async {
+      await pump(tester);
+      await zoomIn(tester); // window [10, 90]
+      final ov = tester.getRect(find.byKey(const Key('gradeOverview')));
+      // A tap re-centres the window on the tapped song position…
+      await tester.tapAt(Offset(ov.left + ov.width * 0.1, ov.center.dy));
+      await tester.pump();
+      expect(await viewStart(tester), closeTo(0, 2)); // centreOn(10) clamps
+      // …and dragging the brush slides it continuously.
+      await tester.dragFrom(
+        Offset(ov.left + ov.width * 0.5, ov.center.dy),
+        Offset(ov.width * 0.3, 0),
+      );
+      await tester.pump();
+      expect(await viewStart(tester), closeTo(20, 2)); // clamped right edge
+    });
+
+    testWidgets('dragging the ruler and the waveform scrubs continuously', (
+      tester,
+    ) async {
+      await pump(tester);
+      final ruler = tester.getRect(find.byKey(const Key('gradeRuler')));
+      await tester.dragFrom(
+        Offset(ruler.left + ruler.width * 0.2, ruler.center.dy),
+        Offset(ruler.width * 0.2, 0),
+      );
+      await tester.pump();
+      expect(seeks.last, closeTo(40, 3));
+      final wave = tester.getRect(find.byKey(const Key('gradeWaveform')));
+      await tester.dragFrom(
+        Offset(wave.left + wave.width * 0.5, wave.center.dy),
+        Offset(-wave.width * 0.2, 0),
+      );
+      await tester.pump();
+      expect(seeks.last, closeTo(30, 3));
+    });
+
+    testWidgets('a lane header selects its lane; the menu removes it', (
+      tester,
+    ) async {
+      store.update(
+        GradeTimelineDoc(
+          lanes: [
+            GradeLane(
+              target: GradeTargets.master,
+              keyframes: [GradeKeyframe(tSec: 40, look: _sat(0.5))],
+            ),
+            GradeLane(
+              target: GradeTargets.cast,
+              keyframes: [GradeKeyframe(tSec: 10, look: _sat(0.8))],
+            ),
+          ],
+        ),
+      );
+      await pump(tester);
+      await tester.tap(find.byKey(const Key('gradeLaneHeader-cast')));
+      await tester.pump();
+      expect(controller.selectedTarget, GradeTargets.cast);
+      await tester.tap(find.byKey(const Key('gradeLaneMenu-cast')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Remove lane'));
+      await tester.pumpAndSettle();
+      expect(store.doc.lane(GradeTargets.cast), isNull);
+      await drain(tester);
+    });
+
+    testWidgets('the console chip narrates holding after the last key', (
+      tester,
+    ) async {
+      store.update(
+        GradeTimelineDoc(
+          lanes: [
+            GradeLane(
+              target: GradeTargets.master,
+              keyframes: [GradeKeyframe(tSec: 5, look: _sat(0.5))],
+            ),
+          ],
+        ),
+      );
+      await pump(tester, positionSec: 50);
+      expect(find.text('after last key · holding'), findsOneWidget);
+      await drain(tester);
+    });
+
+    testWidgets('every console control writes its field through auto-key', (
+      tester,
+    ) async {
+      await pump(tester, positionSec: 20);
+      Future<void> dial(String key) async {
+        await tester.drag(find.byKey(Key(key)), const Offset(25, 0));
+        await tester.pump();
+      }
+
+      await dial('gradeWheel-Lift');
+      await dial('gradeWheel-Gamma');
+      await dial('gradeWheel-Gain');
+      await dial('gradeSlider-Temp');
+      await dial('gradeSlider-Tint');
+      await dial('gradeSlider-Contrast');
+      await dial('gradeSlider-Pivot');
+      final look = store.doc.lane(GradeTargets.master)!.evaluate(20);
+      expect(look.lift.balance.dx, greaterThan(0));
+      expect(look.gamma.balance.dx, greaterThan(0));
+      expect(look.gain.balance.dx, greaterThan(0));
+      expect(look.temperature, greaterThan(0));
+      expect(look.tint, greaterThan(0));
+      expect(look.contrast, greaterThan(1));
+      expect(look.pivot, greaterThan(kGradePivotDefault));
+      // Reset restores neutral in one stroke — and keys it, like any edit.
+      await tester.tap(find.text('Reset'));
+      await tester.pump();
+      expect(
+        store.doc.lane(GradeTargets.master)!.evaluate(20).isNeutral,
+        isTrue,
+      );
+      await drain(tester);
+    });
+
+    testWidgets('save-time store events surface as toolbar notes', (
+      tester,
+    ) async {
+      await pump(tester);
+      // The first save pins the store's known-content baseline.
+      controller.stampAt(10);
+      await tester.runAsync(store.flush);
+      await tester.pump();
+      // An external writer lands while a local edit is pending — the save
+      // that follows declares last-writer-wins out loud.
+      controller.stampAt(20);
+      File(store.path).writeAsStringSync('{"version":1,"lanes":[]}');
+      await tester.runAsync(store.flush);
+      await tester.pump();
+      expect(
+        find.textContaining('external change overwritten'),
+        findsOneWidget,
+      );
+      await drain(tester);
+    });
+
+    testWidgets('a corrupt write while open lights the chip, not a note', (
+      tester,
+    ) async {
+      await pump(tester);
+      File(store.path).writeAsStringSync('not json');
+      await tester.runAsync(store.pollOnce);
+      await tester.pump();
+      expect(find.byKey(const Key('gradeFileError')), findsOneWidget);
+      expect(find.byKey(const Key('gradeNote')), findsNothing);
+      await drain(tester);
+    });
+
+    testWidgets('a hold segment draws its flat tail to the next key', (
+      tester,
+    ) async {
+      store.update(
+        GradeTimelineDoc(
+          lanes: [
+            GradeLane(
+              target: GradeTargets.master,
+              keyframes: [
+                GradeKeyframe(
+                  tSec: 20,
+                  look: _sat(0.5),
+                  interp: GradeInterp.hold,
+                ),
+                GradeKeyframe(tSec: 60, look: _sat(0.8)),
+              ],
+            ),
+          ],
+        ),
+      );
+      await pump(tester);
+      expect(find.byKey(const Key('gradeLane-master')), findsOneWidget);
       await drain(tester);
     });
   });
