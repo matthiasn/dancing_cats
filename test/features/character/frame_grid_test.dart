@@ -1022,8 +1022,6 @@ const Set<String> _torsoDepthBones = {
   CatBones.shirtV,
   CatBones.collarL,
   CatBones.collarR,
-  CatBones.lapelL,
-  CatBones.lapelR,
   CatBones.button0,
   CatBones.button1,
   CatBones.tie,

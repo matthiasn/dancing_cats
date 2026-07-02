@@ -65,10 +65,6 @@ final int _sleeve = kSuitFabric.plane(1); // far sleeve
 final int _sleeveNear = kSuitFabric.plane(1); // near sleeve
 const int _button = 0xFFAE955C; // muted brass placket button — a dark horn
 // button vanished on the navy front; a metal tone reads as a button line.
-final int _lapel = kSuitFabric.plane(1.32); // lapel — one readable step
-// lighter than the suit: a folded jacket edge catching the key. The old
-// near-2x value made the lapels read as big light-blue fabric PATCHES
-// sweeping across the shoulders instead of narrow folds framing the shirt.
 final int _trouser = kSuitFabric.plane(0.83); // darker navy
 // Both trouser legs are the SAME cloth — like the sleeves, the far leg no
 // longer fakes depth with a darker value (that read as a different fabric);
@@ -176,8 +172,6 @@ class CatBones {
   static const shirtV = 'shirt_v';
   static const collarL = 'collar.L';
   static const collarR = 'collar.R';
-  static const lapelL = 'lapel.L';
-  static const lapelR = 'lapel.R';
   static const button0 = 'button_0';
   static const button1 = 'button_1';
   static const tie = 'tie';
@@ -1056,44 +1050,17 @@ RigSpec buildCatInSuitRig({
         celShade: false,
       ),
     ),
-    // Lapels: tapered panels angled down-and-in from each collar point to the
-    // sternum, in a step-lighter navy so the folded edges read as their own
-    // planes. They overlap the shirt wedge's sides, leaving the pale V between.
-    Bone(
-      id: CatBones.lapelL,
-      parent: CatBones.clavicleL,
-      pivotX: 15,
-      pivotY: -14,
-      z: 13,
-      // A narrow fold hugging the shirt V — near-vertical, not a wide wedge
-      // sweeping across the yoke.
-      restRotation: 0.45,
-      // Flat-shaded like the collar (celShade:false) and for the same reason:
-      // _tapered's defaults (celShade+formRound both on) compute an
-      // INDEPENDENT directional+radial ramp over just this small shape's own
-      // bounding box, unlike the ribbon (which shares one ramp across the
-      // whole jacket group) — on a small panel that reads as its own
-      // separately-lit sphere sitting at the collar/shoulder seam, which the
-      // owner spotted as "a separate clavicle piece."
-      drawable: _tapered(11, 4, 36, _lapel, dy: 15, celShade: false),
-    ),
-    Bone(
-      id: CatBones.lapelR,
-      parent: CatBones.clavicleR,
-      pivotX: -15,
-      pivotY: -14,
-      z: 13,
-      // A narrow fold hugging the shirt V — near-vertical, not a wide wedge
-      // sweeping across the yoke.
-      restRotation: -0.45,
-      // Flat-shaded like the collar — see the L lapel's comment.
-      drawable: _tapered(11, 4, 36, _lapel, dy: 15, celShade: false),
-    ),
-    // Shirt collar: two white points standing at the base of the neck, inside
-    // the navy lapels, with the tie knot dropping between them — so the head
-    // rises OUT of a collar instead of sitting straight on the jacket. Flat-shaded
-    // (celShade:false) like the other small bright shapes so the key can't streak
-    // them; drawn over the lapels (list order) and under the tie knot (z14).
+    // Shirt collar: two white points standing at the base of the neck, framing
+    // the tie knot dropping between them — so the head rises OUT of a collar
+    // instead of sitting straight on the jacket. Flat-shaded (celShade:false)
+    // like the other small bright shapes so the key can't streak them; drawn
+    // under the tie knot (z14). A separate LAPEL bone (a tapered panel from
+    // the collar point to the sternum) lived here through several rounds of
+    // the shoulder-seam investigation: it kept reading as either an
+    // independently-lit ball (a shading bug, fixed) or a stray outline seam
+    // at the collar/shoulder junction (a geometry issue, also fixed) for
+    // marginal payoff — the shirt V + collar + tie already sell "tailored
+    // suit" on their own, so it was removed rather than tuned further.
     Bone(
       id: CatBones.collarL,
       parent: CatBones.clavicleL,

@@ -66,8 +66,6 @@ void main() {
       expect(socketR?.parent, CatBones.clavicleR);
       expect(rig.bone(CatBones.armUpperL)?.parent, CatBones.clavicleL);
       expect(rig.bone(CatBones.armUpperR)?.parent, CatBones.clavicleR);
-      expect(rig.bone(CatBones.lapelL)?.parent, CatBones.clavicleL);
-      expect(rig.bone(CatBones.lapelR)?.parent, CatBones.clavicleR);
 
       final jacket = rig.meshes.singleWhere((mesh) => mesh.id == 'jacket.mesh');
       expect(
@@ -278,7 +276,7 @@ void main() {
     test('every navy surface derives from the one suit fabric', () {
       // The fabric concept: one base cloth, planes separated by VALUE only.
       // Derived surfaces must scale R, G, and B by one factor (same hue), so
-      // no sleeve/trouser/lapel can drift into reading as a different material.
+      // no sleeve/trouser can drift into reading as a different material.
       int chan(int argb, int shift) => (argb >> shift) & 0xFF;
       for (final surface in [
         rig.meshes.singleWhere((m) => m.id == 'jacket.mesh').color,
@@ -286,7 +284,6 @@ void main() {
         rig.ribbons.singleWhere((r) => r.id == 'arm.R.ribbon').color,
         rig.ribbons.singleWhere((r) => r.id == 'leg.L.ribbon').color,
         rig.ribbons.singleWhere((r) => r.id == 'leg.R.ribbon').color,
-        rig.bone(CatBones.lapelL)!.drawable!.color,
       ]) {
         final factor = chan(surface, 16) / chan(kSuitFabric.base, 16);
         expect(
