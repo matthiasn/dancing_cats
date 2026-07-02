@@ -7042,77 +7042,91 @@ class CatClips {
     _danceLimbTargets[3].withChannel(_azontoFootRTarget),
   ];
   static const _azontoPocketKeys = [
+    // Bar 1 (frames 0-16, the wheel mime): the rootDx/pelvis/chest fields
+    // used to repeat the SAME value at each pair of keys (0&2, 4&6, ...)
+    // then jump to the opposite extreme in the very next 2-frame gap — a
+    // probe of rendered shoulder-socket world position showed this
+    // concentrated the entire weight transfer into one 2-frame window, a
+    // ~40-unit one-frame position jump (round-4 rigging critique: "sockets
+    // swing 46 units in 3 frames"). Fixed two ways: the intermediate keys
+    // now sit at the true midpoint between their neighboring peaks (so the
+    // swing paces evenly across the whole beat instead of snapping in half
+    // a beat), and the peak rootDx/pelvis/chest values are pulled in ~28%
+    // (a 1-beat left-right transfer is still an inherently fast swing —
+    // smoothing the curve shape alone left the peak-to-peak rate too high).
+    // rootDy keeps its own already-smooth bounce (a real step-touch
+    // pattern, not a hold-then-snap), so it is untouched.
     DanceBodyKey(
       0,
-      rootDx: -10.8,
+      rootDx: -7.776,
       rootDy: 22,
-      pelvisRotation: -0.14,
-      chestRotation: 0.12,
+      pelvisRotation: -0.1008,
+      chestRotation: 0.0864,
       chestScaleY: 0.92,
       chestScaleX: 1.06,
     ),
     DanceBodyKey(
       2,
-      rootDx: -10.8,
+      rootDx: 0,
       rootDy: 12,
-      pelvisRotation: -0.06,
-      chestRotation: 0.05,
-      chestScaleY: 1.02,
-      chestScaleX: 0.99,
+      pelvisRotation: 0.0108,
+      chestRotation: -0.0108,
+      chestScaleY: 0.89,
+      chestScaleX: 1.08,
     ),
     DanceBodyKey(
       4,
-      rootDx: 10.8,
+      rootDx: 7.776,
       rootDy: 30,
-      pelvisRotation: 0.17,
-      chestRotation: -0.15,
+      pelvisRotation: 0.1224,
+      chestRotation: -0.108,
       chestScaleY: 0.86,
       chestScaleX: 1.1,
     ),
     DanceBodyKey(
       6,
-      rootDx: 10.8,
+      rootDx: -0.432,
       rootDy: 14,
-      pelvisRotation: 0.07,
-      chestRotation: -0.06,
-      chestScaleY: 1.02,
-      chestScaleX: 0.99,
+      pelvisRotation: 0.0072,
+      chestRotation: -0.0072,
+      chestScaleY: 0.88,
+      chestScaleX: 1.085,
     ),
     DanceBodyKey(
       8,
-      rootDx: -12,
+      rootDx: -8.64,
       rootDy: 24,
-      pelvisRotation: -0.15,
-      chestRotation: 0.13,
+      pelvisRotation: -0.108,
+      chestRotation: 0.0936,
       chestScaleY: 0.9,
       chestScaleX: 1.07,
     ),
     DanceBodyKey(
       10,
-      rootDx: -12,
+      rootDx: 0,
       rootDy: 12,
-      pelvisRotation: -0.06,
-      chestRotation: 0.05,
-      chestScaleY: 1.02,
-      chestScaleX: 0.99,
+      pelvisRotation: 0.0072,
+      chestRotation: -0.0072,
+      chestScaleY: 0.88,
+      chestScaleX: 1.085,
     ),
     DanceBodyKey(
       12,
-      rootDx: 12,
+      rootDx: 8.64,
       rootDy: 30,
-      pelvisRotation: 0.17,
-      chestRotation: -0.15,
+      pelvisRotation: 0.1224,
+      chestRotation: -0.108,
       chestScaleY: 0.86,
       chestScaleX: 1.1,
     ),
     DanceBodyKey(
       14,
-      rootDx: 12,
+      rootDx: 3.195,
       rootDy: 14,
-      pelvisRotation: 0.07,
-      chestRotation: -0.06,
-      chestScaleY: 1.02,
-      chestScaleX: 0.99,
+      pelvisRotation: 0.1412,
+      chestRotation: -0.124,
+      chestScaleY: 0.905,
+      chestScaleX: 1.07,
     ),
     DanceBodyKey(
       16,
