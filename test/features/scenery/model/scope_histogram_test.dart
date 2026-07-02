@@ -34,9 +34,20 @@ void main() {
       expect(h.peak, 0);
     });
 
-    test('all-black pixels pile into the darkest bin and read as crushed', () {
+    test('exact-black pixels are matte (letterbox) and skipped entirely', () {
+      // The stage snapshot includes the pillarbox bars; a scope measures the
+      // picture, not the frame around it (bit-exact zero triples only).
       final h = buildScopeHistogram(
         _pixels(List.filled(10, [0, 0, 0])),
+        bins: 8,
+      );
+      expect(h.hasData, isFalse);
+      expect(h.peak, 0);
+    });
+
+    test('near-black pixels pile into the darkest bin and read as crushed', () {
+      final h = buildScopeHistogram(
+        _pixels(List.filled(10, [1, 1, 1])),
         bins: 8,
       );
       expect(h.r.first, 10);
@@ -47,15 +58,18 @@ void main() {
       expect(h.hasData, isTrue);
     });
 
-    test('all-white pixels pile into the brightest bin and read as clipped', () {
-      final h = buildScopeHistogram(
-        _pixels(List.filled(6, [255, 255, 255])),
-        bins: 8,
-      );
-      expect(h.r.last, 6);
-      expect(h.clip.g, 1.0);
-      expect(h.crush.g, 0.0);
-    });
+    test(
+      'all-white pixels pile into the brightest bin and read as clipped',
+      () {
+        final h = buildScopeHistogram(
+          _pixels(List.filled(6, [255, 255, 255])),
+          bins: 8,
+        );
+        expect(h.r.last, 6);
+        expect(h.clip.g, 1.0);
+        expect(h.crush.g, 0.0);
+      },
+    );
 
     test('per-channel binning is independent', () {
       // One bright-red pixel: red clips, green/blue crush.

@@ -1,5 +1,6 @@
 import 'dart:ui' as ui;
 
+import 'package:dancing_cats/features/scenery/model/backdrop_grade.dart';
 import 'package:dancing_cats/features/scenery/model/backdrop_palette.dart';
 import 'package:dancing_cats/features/scenery/model/skyline_manifest.dart';
 import 'package:flutter/rendering.dart';
@@ -21,6 +22,8 @@ class BackdropContext {
     this.images = const {},
     this.manifest,
     this.parallaxForDepth,
+    this.gradeForTarget,
+    this.layerGradeProgram,
   });
 
   /// Pixel size of the backdrop.
@@ -61,6 +64,18 @@ class BackdropContext {
   /// scenery feature stays agnostic to *why* it drifts — the dance stage and the
   /// offline composer inject the same closure so live and export match.
   final Matrix4 Function(double depth, Size size)? parallaxForDepth;
+
+  /// Injected per-target colour grades (ADR 0002): given a `GradedLayer`'s
+  /// stable target id, returns the ASC CDL to apply to that one layer this
+  /// frame, or null/identity for "no pass". Null when nothing drives grading
+  /// (unit tests, non-dance consumers) — layers then paint exactly as before.
+  /// A strategy, like [parallaxForDepth], so the scenery feature never learns
+  /// where grades come from (a grade-timeline document in the dance demo).
+  final BackdropGrade? Function(String target)? gradeForTarget;
+
+  /// Compiled premultiplied-alpha grade shader for per-layer passes
+  /// (`scenery_grade_layer.frag`; null until loaded → layers paint ungraded).
+  final ui.FragmentProgram? layerGradeProgram;
 }
 
 /// One painted layer in the back-to-front `BackdropScene` stack. Stateless

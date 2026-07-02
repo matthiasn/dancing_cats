@@ -67,6 +67,28 @@ void main() {
     });
   });
 
+  group('GradeWheel', () {
+    test('equality and hashCode are value-based (keyframes rely on it)', () {
+      const a = GradeWheel(balance: Offset(0.2, -0.1), master: 0.3);
+      // Runtime-built twin (not const-canonicalised) must still compare equal.
+      double runtime(double v) => v;
+      final b = GradeWheel(
+        balance: const Offset(0.2, -0.1),
+        master: runtime(0.3),
+      );
+      expect(a, b);
+      expect(a.hashCode, b.hashCode);
+      expect(
+        a,
+        isNot(const GradeWheel(balance: Offset(0.2, -0.1), master: 0.4)),
+      );
+      expect(
+        a,
+        isNot(const GradeWheel(balance: Offset(0.2, 0.1), master: 0.3)),
+      );
+    });
+  });
+
   group('BackdropGrade.responseAt', () {
     test('the identity grade is the identity transfer curve', () {
       for (final x in [0.0, 0.25, 0.5, 1.0]) {
@@ -201,30 +223,32 @@ void main() {
       expect(g.slope.b, greaterThan(g.slope.g));
     });
 
-    glados.Glados(glados.any.gradeCase, glados.ExploreConfig(numRuns: 200))
-        .test('any wheel input yields a finite, bounded grade', (c) {
-          final grade = gradeFromWheels(
-            gain: GradeWheel(balance: Offset(c.a, c.b), master: c.a),
-            lift: GradeWheel(balance: Offset(c.b, c.c), master: c.b),
-            gamma: GradeWheel(balance: Offset(c.c, c.a), master: c.c),
-            saturation: c.d,
-            temperature: c.a,
-            tint: c.b,
-            contrast: c.c,
-          );
-          for (final v in [
-            grade.slope.r,
-            grade.slope.g,
-            grade.slope.b,
-            grade.offset.r,
-            grade.power.r,
-            grade.contrast,
-          ]) {
-            expect(v.isFinite, isTrue);
-          }
-          // Power stays positive and bounded so the gamma can never run away.
-          expect(grade.power.r, inInclusiveRange(0.2, 3.0));
-          expect(grade.saturation, greaterThanOrEqualTo(0));
-        }, tags: 'glados');
+    glados.Glados(
+      glados.any.gradeCase,
+      glados.ExploreConfig(numRuns: 200),
+    ).test('any wheel input yields a finite, bounded grade', (c) {
+      final grade = gradeFromWheels(
+        gain: GradeWheel(balance: Offset(c.a, c.b), master: c.a),
+        lift: GradeWheel(balance: Offset(c.b, c.c), master: c.b),
+        gamma: GradeWheel(balance: Offset(c.c, c.a), master: c.c),
+        saturation: c.d,
+        temperature: c.a,
+        tint: c.b,
+        contrast: c.c,
+      );
+      for (final v in [
+        grade.slope.r,
+        grade.slope.g,
+        grade.slope.b,
+        grade.offset.r,
+        grade.power.r,
+        grade.contrast,
+      ]) {
+        expect(v.isFinite, isTrue);
+      }
+      // Power stays positive and bounded so the gamma can never run away.
+      expect(grade.power.r, inInclusiveRange(0.2, 3.0));
+      expect(grade.saturation, greaterThanOrEqualTo(0));
+    }, tags: 'glados');
   });
 }

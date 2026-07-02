@@ -114,6 +114,13 @@ class GradeWheel {
   final double master;
 
   bool get isNeutral => balance == Offset.zero && master == 0;
+
+  @override
+  bool operator ==(Object other) =>
+      other is GradeWheel && other.balance == balance && other.master == master;
+
+  @override
+  int get hashCode => Object.hash(balance, master);
 }
 
 /// Maps a colour-wheel puck to a small, roughly luma-neutral RGB balance. Hue is
@@ -161,8 +168,10 @@ BackdropGrade gradeFromWheels({
   final liftT = wheelTint(lift.balance);
   final gammaT = wheelTint(gamma.balance);
 
-  double slopeAt(double t) => 1 + gain.master * _slopeMasterGain + t * _slopeBalanceGain;
-  double offsetAt(double t) => lift.master * _offsetMasterGain + t * _offsetBalanceGain;
+  double slopeAt(double t) =>
+      1 + gain.master * _slopeMasterGain + t * _slopeBalanceGain;
+  double offsetAt(double t) =>
+      lift.master * _offsetMasterGain + t * _offsetBalanceGain;
   // Positive gamma delta → brighter mids → exponent below 1. Clamp so power stays
   // positive and bounded (a colourist never wants a runaway gamma).
   double powerAt(double t) {

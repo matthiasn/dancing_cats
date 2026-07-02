@@ -701,4 +701,189 @@ void main() {
       });
     },
   );
+
+  testWidgets(
+    'mesh ink seams stroke in z-order and flush above the last bone',
+    (tester) async {
+      await tester.runAsync(() async {
+        const lowFill = 0xFF3A5A2A;
+        const lowSeam = 0xFF102040;
+        const highFill = 0xFFB07A3F;
+        const highSeam = 0xFF601050;
+        RigSpec build({required bool smoothLow}) => RigSpec(
+          name: 'seams',
+          bones: const [
+            Bone(id: 'root', parent: null, pivotX: 0, pivotY: 0, z: 0),
+          ],
+          meshes: [
+            // z (and thus inkSeamZ) below the only bone: the seams are
+            // consumed INSIDE the draw-order loop, right after the fill.
+            SkinnedMeshSpec(
+              id: 'low',
+              z: -1,
+              color: lowFill,
+              outlineColor: lowSeam,
+              smoothBoundary: smoothLow,
+              vertices: const [
+                SkinnedMeshVertex([
+                  MeshInfluence(boneId: 'root', x: -40, y: -30, weight: 1),
+                ]),
+                SkinnedMeshVertex([
+                  MeshInfluence(boneId: 'root', x: 0, y: -30, weight: 1),
+                ]),
+                SkinnedMeshVertex([
+                  MeshInfluence(boneId: 'root', x: -20, y: 20, weight: 1),
+                ]),
+              ],
+              boundary: const [0, 1, 2],
+              inkSeams: const [
+                [0, 1, 2],
+              ],
+              inkSeamWidth: 3,
+            ),
+            // inkSeamZ above every bone: fill AND seams fall through to the
+            // trailing flush loops at the end of _drawFills.
+            SkinnedMeshSpec(
+              id: 'high',
+              z: 60,
+              color: highFill,
+              outlineColor: highSeam,
+              vertices: const [
+                SkinnedMeshVertex([
+                  MeshInfluence(boneId: 'root', x: 10, y: -30, weight: 1),
+                ]),
+                SkinnedMeshVertex([
+                  MeshInfluence(boneId: 'root', x: 50, y: -30, weight: 1),
+                ]),
+                SkinnedMeshVertex([
+                  MeshInfluence(boneId: 'root', x: 30, y: 20, weight: 1),
+                ]),
+              ],
+              boundary: const [0, 1, 2],
+              inkSeams: const [
+                [0, 1],
+              ],
+              inkSeamWidth: 3,
+            ),
+          ],
+        );
+        final world = {'root': Affine2D.translation(60, 80)};
+        final px = await _renderRig(build(smoothLow: false), world);
+
+        expect(
+          _countColor(px, lowSeam),
+          greaterThan(4),
+          reason: 'the low mesh strokes its tailoring seams inside the loop',
+        );
+        expect(
+          _countColor(px, highSeam),
+          greaterThan(4),
+          reason: 'seams above the last bone z are flushed after the loop',
+        );
+        expect(
+          _countColor(px, highFill),
+          greaterThan(50),
+          reason: 'the flushed mesh still paints its fill under the seams',
+        );
+
+        // smoothBoundary:false keeps the authored polygon corners: rounding
+        // them off (the default) cuts fill area at each corner.
+        final hard = _countColor(px, lowFill);
+        final soft = _countColor(
+          await _renderRig(build(smoothLow: true), world),
+          lowFill,
+        );
+        expect(hard, greaterThan(50), reason: 'the unsmoothed fill paints');
+        expect(
+          hard,
+          greaterThan(soft + 10),
+          reason:
+              'the unsmoothed contour keeps its sharp corners, so it covers '
+              'more area than the corner-smoothed one (hard=$hard soft=$soft)',
+        );
+      });
+    },
+  );
+
+  testWidgets('ribbon ink clips its line to a capsule body below it', (
+    tester,
+  ) async {
+    await tester.runAsync(() async {
+      const bodyFill = 0xFF808080;
+      const ribbonFill = 0xFF3F6FB0;
+      const ink = 0xFF14161C;
+      RigSpec build({required bool inkOverFill}) => RigSpec(
+        name: 'ink-capsule',
+        bones: const [
+          // A capsule torso below the ribbon's z drives the capsule arm of
+          // the body-union path the ink line is clipped to.
+          Bone(
+            id: 'body',
+            parent: null,
+            pivotX: 0,
+            pivotY: 0,
+            z: 0,
+            drawable: BoneDrawable(
+              kind: BoneShapeKind.capsule,
+              width: 30,
+              height: 80,
+              color: bodyFill,
+            ),
+          ),
+          Bone(id: 'armA', parent: 'body', pivotX: -40, pivotY: 0, z: 5),
+          Bone(id: 'armB', parent: 'body', pivotX: 50, pivotY: 0, z: 5),
+        ],
+        ribbons: [
+          LimbRibbonSpec(
+            id: 'arm',
+            jointBoneIds: const ['armA', 'armB'],
+            halfWidths: const [8, 8],
+            z: 5,
+            color: ribbonFill,
+            outlineColor: ink,
+            outlineWidth: 3,
+            inkOverFill: inkOverFill,
+          ),
+        ],
+      );
+      final world = {
+        'body': Affine2D.translation(60, 60),
+        'armA': Affine2D.translation(20, 60),
+        'armB': Affine2D.translation(110, 60),
+      };
+      final inked = await _renderRig(build(inkOverFill: true), world);
+      final plain = await _renderRig(build(inkOverFill: false), world);
+
+      // The ONLY difference between the two renders is the ink-over-fill
+      // stroke, and that stroke is clipped to the capsule body behind the
+      // ribbon (x in [45, 75]): the line separates the limb exactly where it
+      // crosses the body and nowhere else.
+      var insideBody = 0;
+      var outsideBody = 0;
+      for (var i = 0; i + 3 < inked.length; i += 4) {
+        if (inked[i] == plain[i] &&
+            inked[i + 1] == plain[i + 1] &&
+            inked[i + 2] == plain[i + 2] &&
+            inked[i + 3] == plain[i + 3]) {
+          continue;
+        }
+        final x = (i ~/ 4) % 120;
+        if (x >= 44 && x <= 76) {
+          insideBody++;
+        } else {
+          outsideBody++;
+        }
+      }
+      expect(
+        insideBody,
+        greaterThan(20),
+        reason: 'the ink line draws where the ribbon crosses the capsule',
+      );
+      expect(
+        outsideBody,
+        0,
+        reason: 'outside the body union the limb keeps no floating outline',
+      );
+    });
+  });
 }

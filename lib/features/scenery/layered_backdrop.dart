@@ -53,6 +53,7 @@ class LayeredBackdrop extends StatefulWidget {
     this.timeOverride,
     this.parallaxForDepth,
     this.grade = BackdropGrade.identity,
+    this.gradeForTarget,
     super.key,
   });
 
@@ -93,6 +94,10 @@ class LayeredBackdrop extends StatefulWidget {
   /// the cheaper direct paint.
   final BackdropGrade grade;
 
+  /// Injected per-target grades for `GradedLayer`-wrapped scene layers
+  /// (ADR 0002). Null → no per-layer passes; layers paint exactly as before.
+  final BackdropGrade? Function(String target)? gradeForTarget;
+
   @override
   State<LayeredBackdrop> createState() => _LayeredBackdropState();
 }
@@ -107,6 +112,7 @@ class _LayeredBackdropState extends State<LayeredBackdrop>
   ui.FragmentProgram? _oceanProgram;
   ui.FragmentProgram? _cityLightsProgram;
   ui.FragmentProgram? _gradeProgram;
+  ui.FragmentProgram? _layerGradeProgram;
   final Map<String, ui.Image> _images = {};
   int _imagesVersion = 0;
   bool _readyNotified = false;
@@ -165,6 +171,15 @@ class _LayeredBackdropState extends State<LayeredBackdrop>
     unawaited(_assignProgram(skyLoader, (p) => _skyProgram = p));
     unawaited(_assignProgram(oceanLoader, (p) => _oceanProgram = p));
     unawaited(_assignProgram(gradeLoader, (p) => _gradeProgram = p));
+    // The premultiplied per-layer grade variant shares the composite loader's
+    // injection point implicitly: tests that stub gradeProgramLoader exercise
+    // the composite pass; the layer pass simply stays off until this loads.
+    unawaited(
+      _assignProgram(
+        SceneryShaderProgramCache.loadGradeLayer,
+        (p) => _layerGradeProgram = p,
+      ),
+    );
     unawaited(
       _assignProgram(
         widget.cityLightsProgramLoader ??
@@ -292,6 +307,8 @@ class _LayeredBackdropState extends State<LayeredBackdrop>
           parallaxForDepth: widget.parallaxForDepth,
           grade: grade,
           gradeProgram: _gradeProgram,
+          gradeForTarget: widget.gradeForTarget,
+          layerGradeProgram: _layerGradeProgram,
         ),
         child: const SizedBox.expand(),
       ),
@@ -314,6 +331,8 @@ class _BackdropPainter extends CustomPainter {
     this.parallaxForDepth,
     this.grade = BackdropGrade.identity,
     this.gradeProgram,
+    this.gradeForTarget,
+    this.layerGradeProgram,
   });
 
   final List<BackdropLayer> layers;
@@ -329,6 +348,8 @@ class _BackdropPainter extends CustomPainter {
   final Matrix4 Function(double depth, Size size)? parallaxForDepth;
   final BackdropGrade grade;
   final ui.FragmentProgram? gradeProgram;
+  final BackdropGrade? Function(String target)? gradeForTarget;
+  final ui.FragmentProgram? layerGradeProgram;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -344,6 +365,8 @@ class _BackdropPainter extends CustomPainter {
       cityLightsProgram: cityLightsProgram,
       images: images,
       parallaxForDepth: parallaxForDepth,
+      gradeForTarget: gradeForTarget,
+      layerGradeProgram: layerGradeProgram,
     );
     paintGradedBackdrop(
       canvas: canvas,
@@ -368,6 +391,8 @@ class _BackdropPainter extends CustomPainter {
         old.imagesVersion != imagesVersion ||
         old.parallaxForDepth != parallaxForDepth ||
         old.grade != grade ||
-        old.gradeProgram != gradeProgram;
+        old.gradeProgram != gradeProgram ||
+        old.gradeForTarget != gradeForTarget ||
+        old.layerGradeProgram != layerGradeProgram;
   }
 }

@@ -76,6 +76,11 @@ class ScopeHistogram {
 /// Builds a [ScopeHistogram] from a packed [rgba] buffer (4 bytes/pixel). Counts
 /// every pixel into [bins] buckets per channel and tracks pure-black / pure-white
 /// pile-ups. Trailing bytes that don't complete a pixel are ignored.
+///
+/// Pixels that are EXACTLY (0,0,0) are treated as matte (the stage's
+/// letterbox/pillarbox bars, which the snapshot inevitably includes) and
+/// skipped — a scope measures the picture, not the frame around it. Real
+/// scene shadows are never a bit-exact zero triple across a whole region.
 ScopeHistogram buildScopeHistogram(Uint8List rgba, {int bins = 64}) {
   final r = List<int>.filled(bins, 0);
   final g = List<int>.filled(bins, 0);
@@ -92,6 +97,9 @@ ScopeHistogram buildScopeHistogram(Uint8List rgba, {int bins = 64}) {
   final pixels = rgba.length ~/ 4;
   for (var p = 0; p < pixels; p++) {
     final i = p * 4;
+    if (rgba[i] == 0 && rgba[i + 1] == 0 && rgba[i + 2] == 0) {
+      continue; // matte black (letterbox), not picture
+    }
     final rv = (rgba[i] * bins) >> 8;
     final gv = (rgba[i + 1] * bins) >> 8;
     final bv = (rgba[i + 2] * bins) >> 8;

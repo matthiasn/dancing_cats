@@ -11,6 +11,7 @@ class _Recorder {
   int captions = 0;
   int backdrop = 0;
   int mute = 0;
+  int grade = 0;
   double? seek;
 }
 
@@ -41,6 +42,10 @@ Future<_Recorder> _pump(
   List<String> moveLabels = const ['shaku', 'zanku', 'buga'],
   List<double>? amplitudes = _amplitudes,
   List<DanceWaveformSection> sections = _sections,
+  bool gradeOpen = false,
+  bool gradeActive = false,
+  bool gradeToggleAvailable = true,
+  bool showTimeline = true,
   Size size = const Size(1280, 800),
 }) async {
   final rec = _Recorder();
@@ -78,6 +83,10 @@ Future<_Recorder> _pump(
               onToggleBackdrop: () => rec.backdrop++,
               onToggleMute: () => rec.mute++,
               onSeekToSeconds: (s) => rec.seek = s,
+              gradeOpen: gradeOpen,
+              gradeActive: gradeActive,
+              onToggleGrade: gradeToggleAvailable ? () => rec.grade++ : null,
+              showTimeline: showTimeline,
             ),
           ],
         ),
@@ -267,6 +276,57 @@ void main() {
       await _pump(tester, amplitudes: null);
       expect(find.byKey(const Key('danceTimeline')), findsNothing);
       expect(find.text('loading…'), findsOneWidget);
+    });
+  });
+
+  group('grade workspace toggle', () {
+    testWidgets('tapping the GRADE toggle reports the intent', (tester) async {
+      final rec = await _pump(tester);
+      await tester.tap(find.byKey(const Key('gradeWorkspaceToggle')));
+      await tester.pump();
+      expect(rec.grade, 1);
+    });
+
+    testWidgets('the toggle is absent without a handler (export chrome)', (
+      tester,
+    ) async {
+      await _pump(tester, gradeToggleAvailable: false);
+      expect(find.byKey(const Key('gradeWorkspaceToggle')), findsNothing);
+    });
+
+    testWidgets('an active document lights the badge while closed', (
+      tester,
+    ) async {
+      await _pump(tester, gradeActive: true);
+      // The grade colours the stage with the workspace closed — the badge is
+      // the visibility hook (ADR 0002 §6).
+      expect(find.byKey(const Key('gradeActiveBadge')), findsOneWidget);
+    });
+
+    testWidgets('no badge when the document is neutral or the panel open', (
+      tester,
+    ) async {
+      await _pump(tester);
+      expect(find.byKey(const Key('gradeActiveBadge')), findsNothing);
+      await _pump(tester, gradeActive: true, gradeOpen: true);
+      expect(find.byKey(const Key('gradeActiveBadge')), findsNothing);
+    });
+
+    testWidgets('the compact timeline is a 56px half-height strip', (
+      tester,
+    ) async {
+      await _pump(tester);
+      final timeline = tester.getSize(find.byKey(const Key('danceTimeline')));
+      expect(timeline.height, 56);
+    });
+
+    testWidgets('the compact timeline yields while the workspace is open', (
+      tester,
+    ) async {
+      await _pump(tester, gradeOpen: true, showTimeline: false);
+      // One seek surface at a time: the workspace's shared timeline replaces
+      // the bar's strip entirely.
+      expect(find.byKey(const Key('danceTimeline')), findsNothing);
     });
   });
 }

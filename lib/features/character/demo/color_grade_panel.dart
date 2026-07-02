@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:dancing_cats/features/scenery/model/backdrop_grade.dart';
 import 'package:dancing_cats/features/scenery/model/scope_histogram.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 /// Which ASC CDL coefficient a wheel drives, so each wheel can show its true
 /// Slope / Offset / Power numbers (a colourist has to be able to read, type and
@@ -39,6 +40,12 @@ class ColorGradePanel extends StatelessWidget {
     required this.onPivot,
     required this.onBypass,
     required this.onReset,
+    this.onEditEnd,
+    this.wheelDiameter = 90,
+    this.title = 'COLOR',
+    this.subtitle = 'grade',
+    this.additiveTarget = false,
+    this.showScopes = true,
     super.key,
   });
 
@@ -67,8 +74,35 @@ class ColorGradePanel extends StatelessWidget {
   final ValueChanged<bool> onBypass;
   final VoidCallback onReset;
 
-  static const _panelTop = Color(0xFF161B21);
-  static const _panelBottom = Color(0xFF0F1317);
+  /// Fired when an edit gesture releases (wheel ride, slider scrub, tap) —
+  /// the grade workspace closes its undo transaction / stamps auto-keys here.
+  final VoidCallback? onEditEnd;
+
+  /// Wheel size: 90 in the compact console era, ~116 in the workspace where
+  /// there is room to actually grab a puck.
+  final double wheelDiameter;
+
+  /// Header label — the workspace shows the selected lane's name here so the
+  /// console always says WHAT it is editing.
+  final String title;
+
+  /// Header sub-line — the workspace shows the playhead's key state here
+  /// ('key @ 00:42.400 · linear' vs 'between keys'), so the on-key state is
+  /// readable at the parameter surface, not only up in the lane.
+  final String subtitle;
+
+  /// True when the selected lane grades an additive light pass: its CDL
+  /// Offset is ignored by design (a lift would wash the frame), so the Lift
+  /// wheel dims and stops accepting input instead of masquerading as live.
+  final bool additiveTarget;
+
+  /// False when the scopes are mirrored elsewhere (the workspace docks
+  /// full-size scopes into the stage's pillarbox) — the console row then
+  /// drops its small copies instead of duplicating them.
+  final bool showScopes;
+
+  static const _panelTop = Color(0xFF17181C);
+  static const _panelBottom = Color(0xFF101114);
   static const _edge = Color(0xFF2A313A);
   static const _textHi = Color(0xFFE7ECF2);
   static const _textLow = Color(0xFF8A94A2);
@@ -96,6 +130,8 @@ class ColorGradePanel extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _PanelHeader(
+                title: title,
+                subtitle: subtitle,
                 bypass: bypass,
                 onBypass: onBypass,
                 onReset: onReset,
@@ -104,9 +140,12 @@ class ColorGradePanel extends StatelessWidget {
               GradeWheelControl(
                 role: GradeRole.lift,
                 label: 'Lift',
-                sublabel: 'shadows',
+                sublabel: additiveTarget ? 'offset ignored' : 'shadows',
                 wheel: lift,
+                diameter: wheelDiameter,
                 onChanged: onLift,
+                onEditEnd: onEditEnd,
+                disabled: additiveTarget,
               ),
               const SizedBox(width: 16),
               GradeWheelControl(
@@ -114,7 +153,9 @@ class ColorGradePanel extends StatelessWidget {
                 label: 'Gamma',
                 sublabel: 'midtones',
                 wheel: gamma,
+                diameter: wheelDiameter,
                 onChanged: onGamma,
+                onEditEnd: onEditEnd,
               ),
               const SizedBox(width: 16),
               GradeWheelControl(
@@ -122,7 +163,9 @@ class ColorGradePanel extends StatelessWidget {
                 label: 'Gain',
                 sublabel: 'highlights',
                 wheel: gain,
+                diameter: wheelDiameter,
                 onChanged: onGain,
+                onEditEnd: onEditEnd,
               ),
               const SizedBox(width: 26),
               _SliderStack(
@@ -136,6 +179,7 @@ class ColorGradePanel extends StatelessWidget {
                     lowColor: _cool,
                     highColor: _warm,
                     onChanged: onTemperature,
+                    onEditEnd: onEditEnd,
                   ),
                   _LabeledSlider(
                     label: 'Tint',
@@ -145,6 +189,7 @@ class ColorGradePanel extends StatelessWidget {
                     lowColor: const Color(0xFF5AC46A),
                     highColor: const Color(0xFFC45AC4),
                     onChanged: onTint,
+                    onEditEnd: onEditEnd,
                   ),
                 ],
               ),
@@ -158,6 +203,8 @@ class ColorGradePanel extends StatelessWidget {
                     min: 0.5,
                     max: 1.8,
                     onChanged: onContrast,
+                    onEditEnd: onEditEnd,
+                    neutral: 1,
                   ),
                   _LabeledSlider(
                     label: 'Pivot',
@@ -165,6 +212,8 @@ class ColorGradePanel extends StatelessWidget {
                     min: 0.2,
                     max: 0.7,
                     onChanged: onPivot,
+                    onEditEnd: onEditEnd,
+                    neutral: 0.435,
                   ),
                   _LabeledSlider(
                     label: 'Saturation',
@@ -172,25 +221,28 @@ class ColorGradePanel extends StatelessWidget {
                     min: 0,
                     max: 2,
                     onChanged: onSaturation,
+                    onEditEnd: onEditEnd,
                   ),
                 ],
               ),
-              const SizedBox(width: 24),
-              _TransferCurveScope(
-                grade: gradeFromWheels(
-                  lift: lift,
-                  gamma: gamma,
-                  gain: gain,
-                  saturation: saturation,
-                  temperature: temperature,
-                  tint: tint,
-                  contrast: contrast,
-                  pivot: pivot,
+              if (showScopes) ...[
+                const SizedBox(width: 24),
+                TransferCurveScope(
+                  grade: gradeFromWheels(
+                    lift: lift,
+                    gamma: gamma,
+                    gain: gain,
+                    saturation: saturation,
+                    temperature: temperature,
+                    tint: tint,
+                    contrast: contrast,
+                    pivot: pivot,
+                  ),
+                  bypass: bypass,
                 ),
-                bypass: bypass,
-              ),
-              const SizedBox(width: 18),
-              _ParadeScope(histogram: parade, bypass: bypass),
+                const SizedBox(width: 18),
+                ParadeScope(histogram: parade, bypass: bypass),
+              ],
             ],
           ),
         ),
@@ -203,11 +255,17 @@ class ColorGradePanel extends StatelessWidget {
 /// plate to judge how far a look has been pushed) and the global Reset.
 class _PanelHeader extends StatelessWidget {
   const _PanelHeader({
+    required this.title,
+    required this.subtitle,
     required this.bypass,
     required this.onBypass,
     required this.onReset,
   });
 
+  /// The workspace passes the selected lane's name so the console always
+  /// says WHAT it is editing; standalone use keeps the classic 'COLOR'.
+  final String title;
+  final String subtitle;
   final bool bypass;
   final ValueChanged<bool> onBypass;
   final VoidCallback onReset;
@@ -217,18 +275,18 @@ class _PanelHeader extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'COLOR',
-          style: TextStyle(
+        Text(
+          title,
+          style: const TextStyle(
             color: ColorGradePanel._textHi,
             fontSize: 12,
             fontWeight: FontWeight.w700,
             letterSpacing: 2,
           ),
         ),
-        const Text(
-          'grade',
-          style: TextStyle(color: ColorGradePanel._textLow, fontSize: 11),
+        Text(
+          subtitle,
+          style: const TextStyle(color: ColorGradePanel._textLow, fontSize: 11),
         ),
         const SizedBox(height: 12),
         _BypassButton(bypass: bypass, onBypass: onBypass),
@@ -250,7 +308,9 @@ class _BypassButton extends StatelessWidget {
     // Bypassed = showing the clean plate (the "before").
     final active = bypass;
     return Tooltip(
-      message: bypass ? 'Showing clean plate' : 'Show clean plate (bypass grade)',
+      message: bypass
+          ? 'Showing clean plate'
+          : 'Show clean plate (bypass grade)',
       child: GestureDetector(
         key: const Key('gradeBypass'),
         behavior: HitTestBehavior.opaque,
@@ -307,7 +367,9 @@ class GradeWheelControl extends StatelessWidget {
     required this.sublabel,
     required this.wheel,
     required this.onChanged,
+    this.onEditEnd,
     this.diameter = 90,
+    this.disabled = false,
     super.key,
   });
 
@@ -316,12 +378,30 @@ class GradeWheelControl extends StatelessWidget {
   final String sublabel;
   final GradeWheel wheel;
   final ValueChanged<GradeWheel> onChanged;
+
+  /// Gesture-release hook (undo transactions / auto-key stamping).
+  final VoidCallback? onEditEnd;
   final double diameter;
 
-  void _dragTo(Offset local) {
+  /// A dead control must LOOK dead: dims and ignores input (the additive
+  /// lanes' Lift wheel, whose Offset the render discards by design).
+  final bool disabled;
+
+  /// Tap: absolute jump (place the puck where you point).
+  void _jumpTo(Offset local) {
     final radius = diameter / 2;
     var v = (local - Offset(radius, radius)) / radius;
     if (v.distance > 1) v = v / v.distance; // clamp to the wheel
+    onChanged(GradeWheel(balance: v, master: wheel.master));
+  }
+
+  /// Drag: RELATIVE trackball move (Shift = fine) — the behaviour every
+  /// grading surface uses; absolute-jump drags make a small puck unusable.
+  void _dragBy(Offset delta) {
+    final radius = diameter / 2;
+    final k = HardwareKeyboard.instance.isShiftPressed ? 0.15 : 0.6;
+    var v = wheel.balance + delta / radius * k;
+    if (v.distance > 1) v = v / v.distance;
     onChanged(GradeWheel(balance: v, master: wheel.master));
   }
 
@@ -348,6 +428,16 @@ class GradeWheelControl extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = _coeff;
     final signed = role == GradeRole.lift;
+    if (disabled) {
+      return Opacity(
+        opacity: 0.35,
+        child: IgnorePointer(child: _column(c, signed: signed)),
+      );
+    }
+    return _column(c, signed: signed);
+  }
+
+  Widget _column(GradeRgb c, {required bool signed}) {
     return Column(
       children: [
         SizedBox(
@@ -380,8 +470,13 @@ class GradeWheelControl extends StatelessWidget {
         GestureDetector(
           key: Key('gradeWheel-$label'),
           behavior: HitTestBehavior.opaque,
-          onPanDown: (d) => _dragTo(d.localPosition),
-          onPanUpdate: (d) => _dragTo(d.localPosition),
+          onTapUp: (d) {
+            _jumpTo(d.localPosition);
+            onEditEnd?.call();
+          },
+          onPanUpdate: (d) => _dragBy(d.delta),
+          onPanEnd: (_) => onEditEnd?.call(),
+          onPanCancel: () => onEditEnd?.call(),
           child: CustomPaint(
             size: Size.square(diameter),
             painter: _WheelPainter(balance: wheel.balance),
@@ -396,6 +491,7 @@ class GradeWheelControl extends StatelessWidget {
           accent: ColorGradePanel._accent,
           onChanged: (v) =>
               onChanged(GradeWheel(balance: wheel.balance, master: v)),
+          onEditEnd: onEditEnd,
         ),
         Text(
           _lumReadout(wheel.master),
@@ -453,9 +549,7 @@ class _WheelReset extends StatelessWidget {
       child: Icon(
         Icons.restart_alt_rounded,
         size: 13,
-        color: enabled
-            ? ColorGradePanel._textLow
-            : ColorGradePanel._edge,
+        color: enabled ? ColorGradePanel._textLow : ColorGradePanel._edge,
       ),
     );
   }
@@ -522,7 +616,10 @@ class _WheelPainter extends CustomPainter {
           ..style = PaintingStyle.stroke
           ..strokeWidth = 2.5
           ..shader = RadialGradient(
-            colors: [const Color(0x00000000), Colors.black.withValues(alpha: 0.5)],
+            colors: [
+              const Color(0x00000000),
+              Colors.black.withValues(alpha: 0.5),
+            ],
             stops: const [0.86, 1.0],
           ).createShader(rect),
       );
@@ -639,8 +736,10 @@ class _LabeledSlider extends StatelessWidget {
     required this.min,
     required this.max,
     required this.onChanged,
+    this.onEditEnd,
     this.lowColor,
     this.highColor,
+    this.neutral,
   });
 
   final String label;
@@ -648,8 +747,15 @@ class _LabeledSlider extends StatelessWidget {
   final double min;
   final double max;
   final ValueChanged<double> onChanged;
+  final VoidCallback? onEditEnd;
   final Color? lowColor;
   final Color? highColor;
+
+  /// The value the fill originates from and the detent snaps to. Defaults to
+  /// the track centre; asymmetric dials (Contrast 0.5..1.8, Pivot) pass their
+  /// true neutral so the fill reads "how far from unchanged", not "how far
+  /// from the middle of an arbitrary range".
+  final double? neutral;
 
   @override
   Widget build(BuildContext context) {
@@ -691,6 +797,8 @@ class _LabeledSlider extends StatelessWidget {
             lowColor: lowColor,
             highColor: highColor,
             onChanged: onChanged,
+            onEditEnd: onEditEnd,
+            neutral: neutral,
           ),
         ],
       ),
@@ -709,8 +817,10 @@ class _BipolarSlider extends StatelessWidget {
     required this.width,
     required this.accent,
     required this.onChanged,
+    this.onEditEnd,
     this.lowColor,
     this.highColor,
+    this.neutral,
     super.key,
   });
 
@@ -722,14 +832,18 @@ class _BipolarSlider extends StatelessWidget {
   final Color? lowColor;
   final Color? highColor;
   final ValueChanged<double> onChanged;
+  final VoidCallback? onEditEnd;
+
+  /// Fill origin + snap detent (defaults to the track centre).
+  final double? neutral;
 
   static const _height = 16.0;
 
   void _emit(double localX) {
     final t = (localX / width).clamp(0.0, 1.0);
     var v = min + t * (max - min);
-    final centre = (min + max) / 2;
-    if ((v - centre).abs() < (max - min) * 0.04) v = centre; // snap to centre
+    final detent = neutral ?? (min + max) / 2;
+    if ((v - detent).abs() < (max - min) * 0.04) v = detent; // snap to neutral
     onChanged(v);
   }
 
@@ -739,6 +853,8 @@ class _BipolarSlider extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onPanDown: (d) => _emit(d.localPosition.dx),
       onPanUpdate: (d) => _emit(d.localPosition.dx),
+      onPanEnd: (_) => onEditEnd?.call(),
+      onPanCancel: () => onEditEnd?.call(),
       child: CustomPaint(
         size: Size(width, _height),
         painter: _BipolarTrackPainter(
@@ -748,6 +864,7 @@ class _BipolarSlider extends StatelessWidget {
           accent: accent,
           lowColor: lowColor,
           highColor: highColor,
+          neutral: neutral,
         ),
       ),
     );
@@ -762,6 +879,7 @@ class _BipolarTrackPainter extends CustomPainter {
     required this.accent,
     this.lowColor,
     this.highColor,
+    this.neutral,
   });
 
   final double value;
@@ -770,13 +888,14 @@ class _BipolarTrackPainter extends CustomPainter {
   final Color accent;
   final Color? lowColor;
   final Color? highColor;
+  final double? neutral;
 
   double _x(double v, double width) => (v - min) / (max - min) * width;
 
   @override
   void paint(Canvas canvas, Size size) {
     final cy = size.height / 2;
-    final centre = (min + max) / 2;
+    final centre = neutral ?? (min + max) / 2;
     final centreX = _x(centre, size.width);
     final valueX = _x(value, size.width);
 
@@ -836,21 +955,35 @@ class _BipolarTrackPainter extends CustomPainter {
       old.max != max ||
       old.accent != accent ||
       old.lowColor != lowColor ||
-      old.highColor != highColor;
+      old.highColor != highColor ||
+      old.neutral != neutral;
 }
 
 /// A "curves" scope: the grade's per-channel transfer response over a 0..1 input
 /// ramp, with an identity diagonal for reference — so the shaping the wheels and
 /// contrast apply is measurable, not eyeballed. Fills what would otherwise be
 /// dead space on a wide panel; dims when the grade is bypassed.
-class _TransferCurveScope extends StatelessWidget {
-  const _TransferCurveScope({required this.grade, required this.bypass});
+class TransferCurveScope extends StatelessWidget {
+  const TransferCurveScope({
+    required this.grade,
+    required this.bypass,
+    this.width = 220,
+    this.height = 118,
+    this.caption = 'transfer',
+    super.key,
+  });
 
   final BackdropGrade grade;
   final bool bypass;
 
-  static const _graphWidth = 220.0;
-  static const _graphHeight = 118.0;
+  /// Graph size — the console row uses the compact default; the pillarbox
+  /// dock renders it at 1.5-2x so levels are actually measurable.
+  final double width;
+  final double height;
+
+  /// Right-side caption: the dock names WHICH lane's transfer this is
+  /// (e.g. 'MASTER · transfer') so the scope can never be misread.
+  final String caption;
 
   @override
   Widget build(BuildContext context) {
@@ -858,7 +991,7 @@ class _TransferCurveScope extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          width: _graphWidth,
+          width: width,
           child: Row(
             children: [
               const Text(
@@ -872,7 +1005,7 @@ class _TransferCurveScope extends StatelessWidget {
               ),
               const Spacer(),
               Text(
-                bypass ? 'bypassed' : 'transfer',
+                bypass ? 'bypassed' : caption,
                 style: const TextStyle(
                   color: ColorGradePanel._textLow,
                   fontSize: 9,
@@ -883,7 +1016,7 @@ class _TransferCurveScope extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         CustomPaint(
-          size: const Size(_graphWidth, _graphHeight),
+          size: Size(width, height),
           painter: _CurvePainter(grade: grade, bypass: bypass),
         ),
       ],
@@ -904,7 +1037,8 @@ class _CurvePainter extends CustomPainter {
     final rect = Offset.zero & size;
     canvas.drawRect(rect, Paint()..color = const Color(0xFF0C1013));
 
-    // Quarter grid + identity diagonal reference.
+    // Quarter grid with LABELLED axis levels (a scope is a measuring
+    // instrument, not a decoration) + a dotted identity reference.
     final grid = Paint()
       ..color = const Color(0x1AFFFFFF)
       ..strokeWidth = 1;
@@ -915,13 +1049,43 @@ class _CurvePainter extends CustomPainter {
         ..drawLine(Offset(gx, 0), Offset(gx, size.height), grid)
         ..drawLine(Offset(0, gy), Offset(size.width, gy), grid);
     }
-    canvas.drawLine(
-      Offset(0, size.height),
-      Offset(size.width, 0),
-      Paint()
-        ..color = const Color(0x33FFFFFF)
-        ..strokeWidth = 1,
+    void level(String text, double y, {bool top = false}) {
+      final tp = TextPainter(
+        text: TextSpan(
+          text: text,
+          style: const TextStyle(
+            fontFamily: 'Inter',
+            color: Color(0x66FFFFFF),
+            fontSize: 7.5,
+            fontFeatures: [FontFeature.tabularFigures()],
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      tp.paint(canvas, Offset(2, top ? y + 1 : y - tp.height - 1));
+    }
+
+    level('1.0', 0, top: true);
+    level('.5', size.height / 2);
+    level('0', size.height);
+    // Dotted identity diagonal: the unmistakable "no change" reference.
+    final identityPaint = Paint()
+      ..color = const Color(0x40FFFFFF)
+      ..strokeWidth = 1;
+    const dash = 4.0;
+    final diagLen = math.sqrt(
+      size.width * size.width + size.height * size.height,
     );
+    final steps = (diagLen / (dash * 2)).ceil();
+    for (var i = 0; i < steps; i++) {
+      final t0 = i * 2 * dash / diagLen;
+      final t1 = math.min(1, (i * 2 + 1) * dash / diagLen);
+      canvas.drawLine(
+        Offset(size.width * t0, size.height * (1 - t0)),
+        Offset(size.width * t1, size.height * (1 - t1)),
+        identityPaint,
+      );
+    }
 
     final alpha = bypass ? 0.28 : 1.0;
     void curve(double Function(GradeRgb) select, Color color) {
@@ -947,9 +1111,23 @@ class _CurvePainter extends CustomPainter {
       );
     }
 
-    curve((c) => c.b, const Color(0xFF4A8FE6));
-    curve((c) => c.g, const Color(0xFF3FBF57));
-    curve((c) => c.r, const Color(0xFFE0483B));
+    // Where the three channels coincide the curve must read NEUTRAL (a lone
+    // red diagonal says "red has been pushed" on every scope ever built);
+    // split into R/G/B strokes only when the grade actually diverges them.
+    final coincident =
+        grade.slope.r == grade.slope.g &&
+        grade.slope.g == grade.slope.b &&
+        grade.offset.r == grade.offset.g &&
+        grade.offset.g == grade.offset.b &&
+        grade.power.r == grade.power.g &&
+        grade.power.g == grade.power.b;
+    if (coincident) {
+      curve((c) => c.r, const Color(0xFFD9E2EA));
+    } else {
+      curve((c) => c.b, const Color(0xFF4A8FE6));
+      curve((c) => c.g, const Color(0xFF3FBF57));
+      curve((c) => c.r, const Color(0xFFE0483B));
+    }
 
     canvas.drawRect(
       rect,
@@ -970,25 +1148,33 @@ class _CurvePainter extends CustomPainter {
 /// crush (pile-up at the dark edge) or clip (pile-up at the bright edge) that the
 /// transfer curve can only warn about. Shows a "sampling…" placeholder until the
 /// first frame is captured.
-class _ParadeScope extends StatelessWidget {
-  const _ParadeScope({required this.histogram, required this.bypass});
+class ParadeScope extends StatelessWidget {
+  const ParadeScope({
+    required this.histogram,
+    required this.bypass,
+    this.width = 176,
+    this.height = 118,
+    super.key,
+  });
 
   final ScopeHistogram histogram;
   final bool bypass;
 
-  static const _graphWidth = 176.0;
-  static const _graphHeight = 118.0;
+  /// Graph size (see [TransferCurveScope.width]).
+  final double width;
+  final double height;
 
   @override
   Widget build(BuildContext context) {
-    final clipped = histogram.clip.r > 0.02 ||
+    final clipped =
+        histogram.clip.r > 0.02 ||
         histogram.clip.g > 0.02 ||
         histogram.clip.b > 0.02;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          width: _graphWidth,
+          width: width,
           child: Row(
             children: [
               const Text(
@@ -1005,8 +1191,8 @@ class _ParadeScope extends StatelessWidget {
                 !histogram.hasData
                     ? 'sampling…'
                     : clipped
-                        ? 'clip'
-                        : 'signal',
+                    ? 'clip'
+                    : 'signal',
                 style: TextStyle(
                   color: clipped
                       ? const Color(0xFFE0483B)
@@ -1019,7 +1205,7 @@ class _ParadeScope extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         CustomPaint(
-          size: const Size(_graphWidth, _graphHeight),
+          size: Size(width, height),
           painter: _ParadePainter(histogram: histogram, bypass: bypass),
         ),
       ],
@@ -1061,6 +1247,10 @@ class _ParadePainter extends CustomPainter {
     final channels = [histogram.r, histogram.g, histogram.b];
     final peak = histogram.peak == 0 ? 1 : histogram.peak;
     final alpha = bypass ? 0.3 : 1.0;
+    // Log scaling: night material piles most pixels into a few dark bins;
+    // linear normalisation pins those to full height and flattens the rest
+    // into an unreadable dust line. Log keeps the whole distribution legible.
+    final logPeak = math.log(1 + peak.toDouble());
 
     for (var c = 0; c < 3; c++) {
       final left = c * (cellW + gap);
@@ -1068,14 +1258,22 @@ class _ParadePainter extends CustomPainter {
       final barW = cellW / bins.length;
       final fill = _channelColors[c].withValues(alpha: alpha);
       for (var i = 0; i < bins.length; i++) {
-        final h = (bins[i] / peak) * size.height;
+        final h = math.log(1 + bins[i].toDouble()) / logPeak * size.height;
         if (h <= 0) continue;
         canvas.drawRect(
           Rect.fromLTWH(left + i * barW, size.height - h, barW + 0.5, h),
           Paint()..color = fill,
         );
       }
-      // Crush / clip edge guides for this channel.
+      // Level graticule: 25/50/75% marks inside the cell, so "where do the
+      // tones sit" is measurable, then crush/clip edge guides.
+      final levelPaint = Paint()
+        ..color = const Color(0x22FFFFFF)
+        ..strokeWidth = 1;
+      for (var q = 1; q < 4; q++) {
+        final lx = left + cellW * q / 4;
+        canvas.drawLine(Offset(lx, 0), Offset(lx, size.height), levelPaint);
+      }
       final warn = Paint()
         ..color = const Color(0x66E0483B)
         ..strokeWidth = 1;

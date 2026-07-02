@@ -29,6 +29,7 @@ flutter:
     - shaders/scenery_ocean.frag
     - shaders/scenery_city_lights.frag
     - shaders/scenery_grade.frag
+    - shaders/scenery_grade_layer.frag
   assets:
     - assets/scenery/
     - assets/images/character/

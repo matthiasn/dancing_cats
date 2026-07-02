@@ -33,6 +33,11 @@ class DanceTransportBar extends StatelessWidget {
     required this.onToggleBackdrop,
     required this.onToggleMute,
     required this.onSeekToSeconds,
+    this.gradeOpen = false,
+    this.gradeActive = false,
+    this.onToggleGrade,
+    this.showTimeline = true,
+    this.barsBeats,
     super.key,
   });
 
@@ -68,6 +73,27 @@ class DanceTransportBar extends StatelessWidget {
   final VoidCallback onToggleMute;
   final ValueChanged<double> onSeekToSeconds;
 
+  /// Whether the colour-grade workspace is expanded below the bar.
+  final bool gradeOpen;
+
+  /// Whether the loaded grade document is non-neutral — lights a badge on the
+  /// GRADE toggle even while the workspace is closed, so an invisible
+  /// document can never silently colour the stage (ADR 0002 §6).
+  final bool gradeActive;
+
+  /// Shows/hides the grade workspace. Null hides the toggle entirely (e.g.
+  /// export chrome).
+  final VoidCallback? onToggleGrade;
+
+  /// False while the grade workspace is open: the workspace's shared zoomable
+  /// timeline replaces this bar's compact one (one seek surface at a time).
+  final bool showTimeline;
+
+  /// Musical position ("bar.beat.sixteenth") computed from the DETECTED beat
+  /// map's downbeats. Null → derive from the nominal BPM (the pre-beat-map
+  /// approximation, kept as the loading/pickup fallback).
+  final String? barsBeats;
+
   @override
   Widget build(BuildContext context) {
     // Pin Inter across the whole console so the widget text and the painter's
@@ -89,8 +115,10 @@ class DanceTransportBar extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               _transportRow(),
-              const SizedBox(height: 12),
-              _timeline(),
+              if (showTimeline) ...[
+                const SizedBox(height: 12),
+                _timeline(),
+              ],
             ],
           ),
         ),
@@ -235,6 +263,25 @@ class DanceTransportBar extends StatelessWidget {
             tooltip: useNewBackdrop ? 'Blue-hour scene' : 'Waterfront plate',
             onTap: onToggleBackdrop,
           ),
+          if (onToggleGrade != null) ...[
+            const _VRule(height: 40),
+            _toggle(
+              key: const Key('gradeWorkspaceToggle'),
+              icon: gradeOpen ? Icons.palette_rounded : Icons.palette_outlined,
+              active: gradeOpen,
+              enabled: true,
+              tooltip: gradeOpen
+                  ? 'Close the grade timeline'
+                  : gradeActive
+                  ? 'Open the grade timeline (a grade is active)'
+                  : 'Open the grade timeline',
+              onTap: onToggleGrade!,
+              // A grade document can colour the stage while this workspace is
+              // closed; the badge keeps that state visible (never a mystery
+              // "why is my scene dim?").
+              badge: gradeActive && !gradeOpen,
+            ),
+          ],
         ],
       ),
     );
@@ -246,6 +293,8 @@ class DanceTransportBar extends StatelessWidget {
     required bool enabled,
     required String tooltip,
     required VoidCallback onTap,
+    bool badge = false,
+    Key? key,
   }) {
     // Unmistakable on/off: an active cell lights up with a strong teal wash +
     // a white glyph + a thick underline; an inactive cell is a dim glyph on the
@@ -259,6 +308,7 @@ class DanceTransportBar extends StatelessWidget {
     return Tooltip(
       message: tooltip,
       child: InkWell(
+        key: key,
         onTap: enabled ? onTap : null,
         child: Container(
           height: 40,
@@ -275,7 +325,29 @@ class DanceTransportBar extends StatelessWidget {
                   ),
                 )
               : null,
-          child: Icon(icon, size: 19, color: color),
+          child: badge
+              ? Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Icon(icon, size: 19, color: color),
+                    // The "a grade is live" dot — same teal as the accent so
+                    // the language stays one-colour.
+                    Positioned(
+                      right: -2,
+                      top: -2,
+                      child: Container(
+                        key: const Key('gradeActiveBadge'),
+                        width: 9,
+                        height: 9,
+                        decoration: const BoxDecoration(
+                          color: _Chrome.accent,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              : Icon(icon, size: 19, color: color),
         ),
       ),
     );
@@ -357,6 +429,7 @@ class DanceTransportBar extends StatelessWidget {
     final bar = (totalBeats ~/ 4) + 1;
     final beat = (totalBeats % 4).floor() + 1;
     final sixteenth = ((totalBeats % 1) * 4).floor() + 1;
+    final text = barsBeats ?? '$bar.$beat.$sixteenth';
     return Text.rich(
       TextSpan(
         children: [
@@ -370,7 +443,7 @@ class DanceTransportBar extends StatelessWidget {
             ),
           ),
           TextSpan(
-            text: '$bar.$beat.$sixteenth',
+            text: text,
             style: const TextStyle(
               color: _Chrome.textMid,
               fontSize: 14,
@@ -452,7 +525,7 @@ class DanceTransportBar extends StatelessWidget {
   /// energy state isn't labelled here — it's visible in the video stage itself.
   Widget _sectionReadout() {
     final label = currentSectionLabel ?? '–';
-    final hue = _sectionHue(label);
+    final hue = danceSectionHue(label);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -478,8 +551,10 @@ class DanceTransportBar extends StatelessWidget {
   }
 
   Widget _timeline() {
+    // Half the pre-grade-timeline height (was 112): the compact bar is a
+    // seek strip, not an editing surface — the workspace owns the tall view.
     return SizedBox(
-      height: 112,
+      height: 56,
       child: LayoutBuilder(
         builder: (context, constraints) {
           final width = constraints.maxWidth;
@@ -613,8 +688,9 @@ abstract final class _Chrome {
 }
 
 /// The structural hue for a section label. Recurring labels share a colour, so
-/// the timeline bands and the "now playing" chip read as the same clip.
-Color _sectionHue(String label) {
+/// the timeline bands, the "now playing" chip and the grade workspace's
+/// section pills read as the same clip.
+Color danceSectionHue(String label) {
   // A sober, low-chroma clip palette — colour-codes structure (recurring
   // sections share a hue) WITHOUT a candy rainbow that fights the teal accent or
   // the cool data waveform. Keyed by musical section name, with the structural
@@ -832,9 +908,13 @@ class _DanceTimelinePainter extends CustomPainter {
     final interval = _rulerInterval(trackDurationSec);
     if (interval <= 0) return;
     final tick = Paint()..color = const Color(0x33FFFFFF);
+    final px = _x(positionSec, size.width);
     for (var t = 0.0; t < trackDurationSec - interval * 0.25; t += interval) {
       final x = _x(t, size.width);
       canvas.drawRect(Rect.fromLTWH(x, 0, 1, 4), tick);
+      // Nudge a label clear of the playhead flag when they'd collide (the
+      // t=0 label sat under the handle at the tool's resting position).
+      final labelX = (x + 4 - px).abs() < 14 ? px + 12 : x + 4;
       (TextPainter(
         text: TextSpan(
           text: _mmss(t),
@@ -847,7 +927,7 @@ class _DanceTimelinePainter extends CustomPainter {
           ),
         ),
         textDirection: TextDirection.ltr,
-      )..layout()).paint(canvas, Offset(x + 4, 3));
+      )..layout()).paint(canvas, Offset(labelX, 3));
     }
   }
 
@@ -860,7 +940,7 @@ class _DanceTimelinePainter extends CustomPainter {
     for (final s in sections) {
       final sx0 = _x(s.start, size.width);
       final active = positionSec >= s.start && positionSec < s.end;
-      final hue = _sectionHue(s.label);
+      final hue = danceSectionHue(s.label);
       final collapsed = s.label == prevLabel;
       prevLabel = s.label;
       if (collapsed) continue;

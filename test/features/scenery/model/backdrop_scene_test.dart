@@ -5,6 +5,7 @@ import 'package:dancing_cats/features/scenery/layers/cloud_parallax_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/deck_glow_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/distant_jet_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/drone_show_layer.dart';
+import 'package:dancing_cats/features/scenery/layers/graded_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/image_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/ocean_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/parallax_layer.dart';
@@ -52,13 +53,17 @@ void main() {
     test(
       'composites plate -> clouds -> jet -> ocean -> city/yacht -> deck -> drones',
       () {
-        final planes = BackdropScene.blueHourWaterfront().layers;
-        // Every background layer is wrapped in a ParallaxLayer; assert ordering
-        // on the wrapped children.
-        for (final l in planes) {
-          expect(l, isA<ParallaxLayer>());
+        final raw = BackdropScene.blueHourWaterfront().layers;
+        // Every background layer is wrapped in a ParallaxLayer; the separable
+        // ones additionally carry a GradedLayer target OUTSIDE the parallax
+        // (ADR 0002). Unwrap both and assert ordering on the inner children.
+        final planes = <ParallaxLayer>[];
+        for (final l in raw) {
+          final inner = l is GradedLayer ? l.child : l;
+          expect(inner, isA<ParallaxLayer>());
+          planes.add(inner as ParallaxLayer);
         }
-        final layers = [for (final p in planes.cast<ParallaxLayer>()) p.child];
+        final layers = [for (final p in planes) p.child];
         final plate = layers.indexWhere(
           (l) => l is ImageLayer && l.assetKey == SceneryAssets.cloudlessPlate,
         );
@@ -90,9 +95,12 @@ void main() {
         // (plate, skyline, yacht, ocean) shares ONE background depth so re-draws
         // never slide off their baked twins. The deck rides a nearer stage plane;
         // the dynamic jet — no baked twin — rides the farthest plane of all.
-        double depthAt(int i) => (planes[i] as ParallaxLayer).depth;
+        double depthAt(int i) => planes[i].depth;
         expect(depthAt(deck), greaterThan(depthAt(plate))); // stage nearer
-        expect(depthAt(city), closeTo(depthAt(plate), 1e-9)); // one backdrop plane
+        expect(
+          depthAt(city),
+          closeTo(depthAt(plate), 1e-9),
+        ); // one backdrop plane
         expect(depthAt(yacht), closeTo(depthAt(plate), 1e-9));
         expect(depthAt(ocean), closeTo(depthAt(plate), 1e-9));
         expect(depthAt(jet), lessThan(depthAt(plate))); // farthest of all
@@ -134,7 +142,44 @@ void main() {
 
     test('darkens the frame edges with a foreground vignette', () {
       final scene = BackdropScene.blueHourWaterfront();
-      expect(scene.foregroundLayers, [isA<VignetteLayer>()]);
+      // The vignette is a grade target (screen-space, no baked twin), so it
+      // arrives wrapped under its GradedLayer id.
+      expect(scene.foregroundLayers, [isA<GradedLayer>()]);
+      final vignette = scene.foregroundLayers.single as GradedLayer;
+      expect(vignette.target, 'vignette');
+      expect(vignette.child, isA<VignetteLayer>());
+    });
+
+    test('grade targets cover only separable layers (no baked twins)', () {
+      final scene = BackdropScene.blueHourWaterfront();
+      final targets = <String>[
+        for (final l in [...scene.layers, ...scene.foregroundLayers])
+          if (l is GradedLayer) l.target,
+      ];
+      expect(targets, [for (final t in kBlueHourGradeTargets) t.id]);
+      // The baked-twin re-draws must never be individually gradable —
+      // grading one copy of a structure that also lives inside the base
+      // plate halos every feathered edge (ADR 0002 §3).
+      expect(targets, isNot(contains('base-plate')));
+      expect(targets, isNot(contains('skyline')));
+      expect(targets, isNot(contains('yacht')));
+      expect(targets, isNot(contains('deck')));
+      // Additive light passes are flagged so their grade drops Offset.
+      final additive = <String>[
+        for (final l in scene.layers)
+          if (l is GradedLayer && l.additive) l.target,
+      ];
+      expect(
+        additive,
+        containsAll(<String>[
+          'ocean',
+          'city-lights',
+          'deck-glow',
+          'police',
+          'drones-sky',
+          'drones-launch',
+        ]),
+      );
     });
   });
 

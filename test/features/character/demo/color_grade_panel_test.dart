@@ -1,9 +1,8 @@
-import 'dart:typed_data';
-
 import 'package:dancing_cats/features/character/demo/color_grade_panel.dart';
 import 'package:dancing_cats/features/scenery/model/backdrop_grade.dart';
 import 'package:dancing_cats/features/scenery/model/scope_histogram.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../widget_test_utils.dart';
@@ -20,6 +19,7 @@ class _Rec {
   double? pivot;
   bool? bypass;
   int resets = 0;
+  int editEnds = 0;
 }
 
 /// A non-empty parade histogram (all-white → clips) for the scope tests.
@@ -38,6 +38,8 @@ Future<_Rec> _pump(
   double pivot = 0.435,
   bool bypass = false,
   ScopeHistogram? parade,
+  double wheelDiameter = 90,
+  String title = 'COLOR',
 }) async {
   final rec = _Rec();
   // The panel is a full-width transport row sized for the 1600px demo window;
@@ -70,6 +72,9 @@ Future<_Rec> _pump(
           onPivot: (v) => rec.pivot = v,
           onBypass: (v) => rec.bypass = v,
           onReset: () => rec.resets++,
+          onEditEnd: () => rec.editEnds++,
+          wheelDiameter: wheelDiameter,
+          title: title,
         ),
       ),
     ),
@@ -206,7 +211,9 @@ void main() {
       expect(rec.gain, isNull);
     });
 
-    testWidgets('the temperature slider reports a warmer value', (tester) async {
+    testWidgets('the temperature slider reports a warmer value', (
+      tester,
+    ) async {
       final rec = await _pump(tester);
       await tester.tapAt(
         tester.getCenter(_slider('Temp')) + const Offset(40, 0),
@@ -306,6 +313,76 @@ void main() {
       expect(find.textContaining('S '), findsOneWidget); // slope, gain
       expect(find.textContaining('O '), findsOneWidget); // offset, lift
       expect(find.textContaining('P '), findsOneWidget); // power, gamma
+    });
+
+    testWidgets('a wheel drag is RELATIVE (trackball), not jump-to-cursor', (
+      tester,
+    ) async {
+      final rec = await _pump(tester);
+      // A small drag from the wheel centre: with the old absolute mapping the
+      // puck would land at the cursor (~0.5 of the radius); relative mapping
+      // scales the delta down (0.6×/radius), so the deflection stays small.
+      await tester.drag(_wheel('Lift'), const Offset(22, 0));
+      await tester.pump();
+      expect(rec.lift!.balance.dx, greaterThan(0));
+      expect(rec.lift!.balance.dx, lessThan(0.4));
+    });
+
+    testWidgets('Shift makes the wheel drag fine', (tester) async {
+      final rec = await _pump(tester);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.drag(_wheel('Lift'), const Offset(22, 0));
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.pump();
+      expect(rec.lift!.balance.dx, greaterThan(0));
+      expect(rec.lift!.balance.dx, lessThan(0.1));
+    });
+
+    testWidgets('edit gestures report onEditEnd (undo/auto-key hook)', (
+      tester,
+    ) async {
+      final rec = await _pump(tester);
+      // Exact counts are gesture-arena dependent (a sub-slop drag can settle
+      // as tap-up + pan-cancel, both of which report; the controller no-ops
+      // on a second end). What matters: every gesture family reports at
+      // least once, monotonically.
+      await tester.drag(_wheel('Gain'), const Offset(30, 0));
+      await tester.pump();
+      final afterWheelDrag = rec.editEnds;
+      expect(afterWheelDrag, greaterThanOrEqualTo(1)); // wheel pan end
+      await tester.tapAt(tester.getCenter(_wheel('Gain')) + const Offset(8, 0));
+      await tester.pump();
+      final afterTap = rec.editEnds;
+      expect(afterTap, greaterThan(afterWheelDrag)); // wheel tap
+      await tester.drag(_slider('Contrast'), const Offset(30, 0));
+      await tester.pump();
+      expect(rec.editEnds, greaterThan(afterTap)); // slider pan end
+    });
+
+    testWidgets('a cancelled slider gesture still reports onEditEnd', (
+      tester,
+    ) async {
+      final rec = await _pump(tester);
+      // Down + cancel dispatched in one event batch: the cancel lands before
+      // the single-member gesture arena's microtask accepts the pan, which is
+      // the only route to onPanCancel on a pan-only detector — the OS killing
+      // a touch the instant it lands (palm rejection, window switch).
+      final pointer = TestPointer(91);
+      tester.binding.handlePointerEvent(
+        pointer.down(tester.getCenter(_slider('Temp'))),
+      );
+      tester.binding.handlePointerEvent(pointer.cancel());
+      await tester.pump();
+      expect(rec.editEnds, 1);
+    });
+
+    testWidgets('the workspace can rename the header and enlarge wheels', (
+      tester,
+    ) async {
+      await _pump(tester, title: 'DECK GLOW', wheelDiameter: 116);
+      expect(find.text('DECK GLOW'), findsOneWidget);
+      final wheel = tester.getSize(_wheel('Lift'));
+      expect(wheel.width, 116);
     });
 
     testWidgets('the panel repaints when state changes', (tester) async {

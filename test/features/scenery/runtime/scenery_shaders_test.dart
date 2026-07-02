@@ -13,6 +13,8 @@ void main() {
       expect(pubspec, contains(SceneryShaderAssets.sky));
       expect(pubspec, contains(SceneryShaderAssets.ocean));
       expect(pubspec, contains(SceneryShaderAssets.cityLights));
+      expect(pubspec, contains(SceneryShaderAssets.grade));
+      expect(pubspec, contains(SceneryShaderAssets.gradeLayer));
       expect(pubspec, contains('shaders:'));
     });
 
@@ -24,9 +26,24 @@ void main() {
       final cityLights = await ui.FragmentProgram.fromAsset(
         SceneryShaderAssets.cityLights,
       );
+      final grade = await ui.FragmentProgram.fromAsset(
+        SceneryShaderAssets.grade,
+      );
+      final gradeLayer = await ui.FragmentProgram.fromAsset(
+        SceneryShaderAssets.gradeLayer,
+      );
       expect(sky, isA<ui.FragmentProgram>());
       expect(ocean, isA<ui.FragmentProgram>());
       expect(cityLights, isA<ui.FragmentProgram>());
+      expect(grade, isA<ui.FragmentProgram>());
+      expect(gradeLayer, isA<ui.FragmentProgram>());
+    });
+
+    testWidgets('memoizes the per-layer grade program', (tester) async {
+      final first = await SceneryShaderProgramCache.loadGradeLayer();
+      final second = await SceneryShaderProgramCache.loadGradeLayer();
+      expect(first, isA<ui.FragmentProgram>());
+      expect(identical(first, second), isTrue);
     });
 
     testWidgets('cache returns the identical program across many calls', (

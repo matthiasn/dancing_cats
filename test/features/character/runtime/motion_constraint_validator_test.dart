@@ -735,5 +735,284 @@ void main() {
             'hand=${report.worstLimbLane?.endX.toStringAsFixed(1)}',
       );
     });
+
+    test('rejects non-positive sampling densities', () {
+      final validator = MotionConstraintValidator(
+        CharacterScene(buildCatInSuitRig()),
+      );
+      expect(
+        () => validator.analyze(clip: CatClips.shaku, contactSamplesPerSpan: 0),
+        throwsArgumentError,
+      );
+      expect(
+        () => validator.analyze(clip: CatClips.shaku, ikSamples: 0),
+        throwsArgumentError,
+      );
+    });
+
+    test('meters coupled arm anti-fold corrections as limiter clipping', () {
+      final validator = MotionConstraintValidator(
+        CharacterScene(_twoArmFoldRig()),
+      );
+      // Adduct the left upper arm 0.9 rad across the chest, then ask the
+      // forearm to break 1.4 rad back outboard — the contralateral
+      // "elbow at the sternum, paw flared out" fold that no single-joint
+      // range can see. The scene's coupled anti-fold rule must undo the
+      // full 1.4 rad, and the validator must meter that correction exactly
+      // like a routine leaning on a hinge stop.
+      const clip = Clip(
+        name: 'synthetic-contralateral-fold',
+        duration: 1,
+        channels: {
+          CatBones.armUpperL: KeyframeChannel([
+            Keyframe(p: 0, rotation: -0.9),
+            Keyframe(p: 1, rotation: -0.9),
+          ]),
+          CatBones.armLowerL: KeyframeChannel([
+            Keyframe(p: 0, rotation: 1.4),
+            Keyframe(p: 1, rotation: 1.4),
+          ]),
+        },
+      );
+
+      final report = validator.analyze(
+        clip: clip,
+        ikSamples: 2,
+        contactSamplesPerSpan: 1,
+      );
+
+      expect(report.limitEngagements, hasLength(2));
+      final worst = report.worstLimitEngagement!;
+      expect(worst.boneId, '${CatBones.armLowerL} anti-fold');
+      expect(worst.askedRotation, closeTo(1.4, 1e-9));
+      expect(worst.clampedRotation, closeTo(0, 1e-9));
+      expect(worst.engagement, closeTo(1.4, 1e-9));
+      expect(
+        report.violations.map((violation) => violation.category),
+        contains(MotionConstraintCategory.jointLimitClipping),
+      );
+    });
+
+    test('measures a raised sleeve mesh with a detached armhole bridge', () {
+      // The production rig replaced the skinned sleeve with a ribbon, so the
+      // shoulderMeshBridge checks are structurally dormant there. This probe
+      // rig re-creates the old failure mode: an `arm.L.mesh` whose armhole
+      // corner vertices sit far from the shoulder-cap vertices, so a raised
+      // hand target measures a wide-open gap and a triangle-fan edge.
+      final validator = MotionConstraintValidator(
+        CharacterScene(_detachedSleeveMeshRig()),
+      );
+      const clip = Clip(
+        name: 'synthetic-detached-sleeve',
+        duration: 1,
+        channels: {},
+        limbTargets: [
+          LimbIkTarget(
+            upperBoneId: CatBones.armUpperL,
+            lowerBoneId: CatBones.armLowerL,
+            endBoneId: CatBones.handL,
+            anchorBoneId: CatBones.hips,
+            channel: FixedIkTargetChannel(x: -40, y: -80),
+          ),
+        ],
+      );
+
+      final report = validator.analyze(
+        clip: clip,
+        ikSamples: 2,
+        contactSamplesPerSpan: 1,
+      );
+
+      expect(report.shoulderMeshBridges, hasLength(2));
+      final worst = report.worstShoulderMeshBridge!;
+      expect(worst.armMeshId, 'arm.L.mesh');
+      expect(worst.endBoneId, CatBones.handL);
+      expect(worst.targetY, -80);
+      expect(worst.gap, greaterThan(report.profile.maxRaisedShoulderMeshGap));
+      expect(worst.shoulderToBicepRatio, greaterThan(0));
+      expect(
+        worst.maxUpperArmEdge,
+        greaterThan(report.profile.maxRaisedUpperArmMeshEdge),
+      );
+      expect(
+        report.violations.map((violation) => violation.category),
+        contains(MotionConstraintCategory.shoulderMeshBridge),
+      );
+    });
+
+    test('reports an over-folded elbow from resolved limb samples', () {
+      const report = MotionConstraintReport(
+        clipName: 'synthetic-folded-elbow',
+        profile: MotionConstraintProfile(),
+        contactDrifts: [],
+        supportBalances: [],
+        ikReaches: [],
+        ikTargetResiduals: [],
+        limbBends: [
+          MotionLimbBend(
+            clipName: 'synthetic-folded-elbow',
+            upperBoneId: CatBones.armUpperL,
+            lowerBoneId: CatBones.armLowerL,
+            endBoneId: CatBones.handL,
+            phase: 0.5,
+            weight: 1,
+            expectedBendDirection: -1,
+            actualBendDirection: -1,
+            signedArea: 400,
+            bendDegrees: 1.2,
+            straightnessDegrees: 178.8,
+          ),
+          MotionLimbBend(
+            clipName: 'synthetic-folded-elbow',
+            upperBoneId: CatBones.armUpperR,
+            lowerBoneId: CatBones.armLowerR,
+            endBoneId: CatBones.handR,
+            phase: 0.5,
+            weight: 1,
+            expectedBendDirection: -1,
+            actualBendDirection: -1,
+            signedArea: 900,
+            bendDegrees: 96,
+            straightnessDegrees: 84,
+          ),
+        ],
+        limbLanes: [],
+        shoulderResponses: [],
+        shoulderMeshBridges: [],
+        jointEnvelopes: [],
+        limitEngagements: [],
+      );
+
+      expect(report.tightestLimbBend!.bendDegrees, 1.2);
+      final foldViolations = report.violations.where(
+        (violation) =>
+            violation.category == MotionConstraintCategory.limbBend &&
+            violation.message.contains('folds to'),
+      );
+      expect(foldViolations, hasLength(1));
+      expect(foldViolations.first.boneId, CatBones.handL);
+      expect(foldViolations.first.severity, closeTo(1.8, 1e-9));
+    });
   });
 }
+
+/// Two mirrored shoulder→elbow→hand chains so the scene's coupled arm
+/// anti-fold rule is discoverable, plus one rotation-limited bone so the
+/// joint-limit engagement sampler runs at all.
+RigSpec _twoArmFoldRig() => RigSpec(
+  name: 'anti-fold-test-arms',
+  bones: const [
+    Bone(id: CatBones.hips, parent: null, pivotX: 0, pivotY: 0, z: 0),
+    Bone(
+      id: CatBones.armUpperL,
+      parent: CatBones.hips,
+      pivotX: -30,
+      pivotY: 0,
+      z: 1,
+    ),
+    Bone(
+      id: CatBones.armLowerL,
+      parent: CatBones.armUpperL,
+      pivotX: 0,
+      pivotY: 40,
+      z: 2,
+    ),
+    Bone(
+      id: CatBones.handL,
+      parent: CatBones.armLowerL,
+      pivotX: 0,
+      pivotY: 30,
+      z: 3,
+    ),
+    Bone(
+      id: CatBones.armUpperR,
+      parent: CatBones.hips,
+      pivotX: 30,
+      pivotY: 0,
+      z: 4,
+    ),
+    Bone(
+      id: CatBones.armLowerR,
+      parent: CatBones.armUpperR,
+      pivotX: 0,
+      pivotY: 40,
+      z: 5,
+    ),
+    Bone(
+      id: CatBones.handR,
+      parent: CatBones.armLowerR,
+      pivotX: 0,
+      pivotY: 30,
+      z: 6,
+      rotationLimit: JointRotationLimit(-3, 3),
+    ),
+  ],
+);
+
+/// One left arm plus an 18-vertex `arm.L.mesh` sleeve. Vertices 0/1/16/17 are
+/// the armhole corners the bridge check measures against; parking them far
+/// from the shoulder-side cluster (vertices 2..15) makes every raised-pose
+/// bridge metric fail at once. All vertices ride the static hips bone so the
+/// measured geometry does not depend on the IK solve.
+RigSpec _detachedSleeveMeshRig() => RigSpec(
+  name: 'detached-sleeve-mesh',
+  bones: const [
+    Bone(id: CatBones.hips, parent: null, pivotX: 0, pivotY: 0, z: 0),
+    Bone(
+      id: CatBones.armUpperL,
+      parent: CatBones.hips,
+      pivotX: -30,
+      pivotY: 0,
+      z: 1,
+    ),
+    Bone(
+      id: CatBones.armLowerL,
+      parent: CatBones.armUpperL,
+      pivotX: 0,
+      pivotY: 40,
+      z: 2,
+    ),
+    Bone(
+      id: CatBones.handL,
+      parent: CatBones.armLowerL,
+      pivotX: 0,
+      pivotY: 30,
+      z: 3,
+    ),
+  ],
+  meshes: [
+    SkinnedMeshSpec(
+      id: 'arm.L.mesh',
+      vertices: [
+        for (final (x, y) in const <(double, double)>[
+          (140, 160), // 0: armhole corner, detached
+          (150, 160), // 1: armhole corner, detached
+          (-40, 6), // 2..15: shoulder/bicep cluster near the joint
+          (-44, 12),
+          (-42, 20),
+          (-38, 28),
+          (-32, 34),
+          (-26, 36),
+          (-20, 34),
+          (-16, 28),
+          (-14, 20),
+          (-16, 12),
+          (-20, 6),
+          (-26, 4),
+          (-31, 5),
+          (-36, 4),
+          (140, 170), // 16: armhole corner, detached
+          (150, 170), // 17: armhole corner, detached
+        ])
+          SkinnedMeshVertex([
+            MeshInfluence(boneId: CatBones.hips, x: x, y: y, weight: 1),
+          ]),
+      ],
+      boundary: const [
+        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, //
+      ],
+      z: 1,
+      color: 0xFF223344,
+    ),
+  ],
+);
