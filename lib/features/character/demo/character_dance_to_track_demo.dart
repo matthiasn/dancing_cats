@@ -780,7 +780,10 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
     var musicalLabel = _sectionSpans.isNotEmpty
         ? danceSectionDisplayName(_perf?.sectionInfoAt(posSec).section ?? '')
         : section?.label;
-    if (musicalLabel == null || musicalLabel.isEmpty || musicalLabel == '–') {
+    if (musicalLabel == null ||
+        musicalLabel.isEmpty ||
+        musicalLabel == '–' ||
+        musicalLabel == '—') {
       musicalLabel = bandLabel ?? section?.label;
     }
     return Scaffold(
@@ -813,6 +816,8 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
                                   child: Center(
                                     child: _SideScopes(
                                       width: dockW,
+                                      laneLabel: controller.selectedTarget
+                                          .toUpperCase(),
                                       grade: controller
                                           .consoleLook(posSec)
                                           .toGrade(),
@@ -918,12 +923,17 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
 class _SideScopes extends StatelessWidget {
   const _SideScopes({
     required this.width,
+    required this.laneLabel,
     required this.grade,
     required this.parade,
     required this.bypass,
   });
 
   final double width;
+
+  /// Which lane the transfer curve reads (the parade always reads the
+  /// program out — the composited stage).
+  final String laneLabel;
   final BackdropGrade grade;
   final ScopeHistogram parade;
   final bool bypass;
@@ -949,6 +959,7 @@ class _SideScopes extends StatelessWidget {
               bypass: bypass,
               width: width,
               height: graphH,
+              caption: '$laneLabel · transfer',
             ),
             const SizedBox(height: 14),
             ParadeScope(

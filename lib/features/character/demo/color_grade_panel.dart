@@ -969,6 +969,7 @@ class TransferCurveScope extends StatelessWidget {
     required this.bypass,
     this.width = 220,
     this.height = 118,
+    this.caption = 'transfer',
     super.key,
   });
 
@@ -979,6 +980,10 @@ class TransferCurveScope extends StatelessWidget {
   /// dock renders it at 1.5-2x so levels are actually measurable.
   final double width;
   final double height;
+
+  /// Right-side caption: the dock names WHICH lane's transfer this is
+  /// (e.g. 'MASTER · transfer') so the scope can never be misread.
+  final String caption;
 
   @override
   Widget build(BuildContext context) {
@@ -1000,7 +1005,7 @@ class TransferCurveScope extends StatelessWidget {
               ),
               const Spacer(),
               Text(
-                bypass ? 'bypassed' : 'transfer',
+                bypass ? 'bypassed' : caption,
                 style: const TextStyle(
                   color: ColorGradePanel._textLow,
                   fontSize: 9,
@@ -1242,6 +1247,10 @@ class _ParadePainter extends CustomPainter {
     final channels = [histogram.r, histogram.g, histogram.b];
     final peak = histogram.peak == 0 ? 1 : histogram.peak;
     final alpha = bypass ? 0.3 : 1.0;
+    // Log scaling: night material piles most pixels into a few dark bins;
+    // linear normalisation pins those to full height and flattens the rest
+    // into an unreadable dust line. Log keeps the whole distribution legible.
+    final logPeak = math.log(1 + peak.toDouble());
 
     for (var c = 0; c < 3; c++) {
       final left = c * (cellW + gap);
@@ -1249,7 +1258,7 @@ class _ParadePainter extends CustomPainter {
       final barW = cellW / bins.length;
       final fill = _channelColors[c].withValues(alpha: alpha);
       for (var i = 0; i < bins.length; i++) {
-        final h = (bins[i] / peak) * size.height;
+        final h = math.log(1 + bins[i].toDouble()) / logPeak * size.height;
         if (h <= 0) continue;
         canvas.drawRect(
           Rect.fromLTWH(left + i * barW, size.height - h, barW + 0.5, h),

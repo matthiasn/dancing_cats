@@ -390,6 +390,19 @@ class _DanceGradeWorkspaceState extends State<DanceGradeWorkspace> {
         if (hit != null) ...[
           const PopupMenuItem(value: 'copy', child: Text('Copy look')),
           const PopupMenuDivider(),
+          const PopupMenuItem<String>(
+            enabled: false,
+            height: 26,
+            child: Text(
+              'CURVE',
+              style: TextStyle(
+                fontSize: 9,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.2,
+                color: _Ws.textLow,
+              ),
+            ),
+          ),
           for (final i in GradeInterp.values)
             PopupMenuItem(
               value: 'interp:${i.name}',
@@ -409,12 +422,16 @@ class _DanceGradeWorkspaceState extends State<DanceGradeWorkspace> {
           const PopupMenuItem(value: 'add', child: Text('Add key here')),
         ],
         // Always present so the copy→paste workflow is discoverable; armed
-        // only once a look has been copied.
+        // only once a look has been copied, with the recovery path named.
         PopupMenuItem(
           value: 'paste',
           enabled: _c.clipboard != null,
           child: Text(
-            hit != null ? 'Paste look onto key' : 'Paste look as new key here',
+            _c.clipboard == null
+                ? 'Paste look (copy a look first)'
+                : hit != null
+                ? 'Paste look onto key'
+                : 'Paste look as new key here',
           ),
         ),
         // Destructive action LAST, never the item under the cursor.
@@ -1094,15 +1111,27 @@ class _DanceGradeWorkspaceState extends State<DanceGradeWorkspace> {
       playing: widget.playing,
     );
     final lane = _c.store.doc.lane(_c.selectedTarget);
+    final keys = lane?.keyframes ?? const <GradeKeyframe>[];
     final onKey = lane?.indexNear(widget.positionSec, tolerance: 0.02);
-    final subtitle = _c.preview != null && !_c.autoKey
-        ? 'UNKEYED preview'
-        : onKey != null
-        ? 'key @ ${formatDancePlaybackTimestamp(widget.positionSec)} · '
-              '${lane!.keyframes[onKey].interp.name}'
-        : (lane?.keyframes.isEmpty ?? true)
-        ? 'no keys yet'
-        : 'between keys';
+    // The chip narrates the playhead's exact relationship to the lane:
+    // 'between keys' is reserved for true two-neighbour interpolation;
+    // outside the keyed range the edge value HOLDS and the chip says so.
+    final String subtitle;
+    if (_c.preview != null && !_c.autoKey) {
+      subtitle = 'UNKEYED preview';
+    } else if (onKey != null) {
+      subtitle =
+          'key @ ${formatDancePlaybackTimestamp(widget.positionSec)} · '
+          '${keys[onKey].interp.name}';
+    } else if (keys.isEmpty) {
+      subtitle = 'no keys yet';
+    } else if (widget.positionSec < keys.first.tSec) {
+      subtitle = 'before first key · holding';
+    } else if (widget.positionSec > keys.last.tSec) {
+      subtitle = 'after last key · holding';
+    } else {
+      subtitle = 'between keys';
+    }
     final additive = kBlueHourGradeTargets.any(
       (t) => t.id == _c.selectedTarget && t.additive,
     );
@@ -1520,18 +1549,18 @@ class _LanePainter extends CustomPainter {
       fill
         ..lineTo(size.width, size.height - 1)
         ..close();
-      const sparkColor = Color(0xFF9FB3C4);
+      const sparkColor = Color(0xFFAFC3D4);
       canvas
         ..drawPath(
           fill,
-          Paint()..color = sparkColor.withValues(alpha: 0.16 * alpha),
+          Paint()..color = sparkColor.withValues(alpha: 0.22 * alpha),
         )
         ..drawPath(
           stroke,
           Paint()
             ..style = PaintingStyle.stroke
-            ..strokeWidth = 1.6
-            ..color = sparkColor.withValues(alpha: 0.75 * alpha),
+            ..strokeWidth = 2
+            ..color = sparkColor.withValues(alpha: 0.9 * alpha),
         );
     }
 
