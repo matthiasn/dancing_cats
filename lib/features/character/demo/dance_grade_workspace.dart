@@ -136,6 +136,7 @@ class DanceGradeWorkspace extends StatefulWidget {
     required this.bypass,
     required this.onBypass,
     required this.onSeek,
+    this.showScopes = true,
     super.key,
   });
 
@@ -169,6 +170,10 @@ class DanceGradeWorkspace extends StatefulWidget {
 
   /// Seek intent (ruler scrub, waveform tap, click-key-moves-playhead).
   final ValueChanged<double> onSeek;
+
+  /// False when the page docks full-size scopes into the stage pillarbox —
+  /// the console then drops its small duplicates.
+  final bool showScopes;
 
   @override
   State<DanceGradeWorkspace> createState() => _DanceGradeWorkspaceState();
@@ -383,7 +388,6 @@ class _DanceGradeWorkspaceState extends State<DanceGradeWorkspace> {
       color: _Ws.menu,
       items: [
         if (hit != null) ...[
-          const PopupMenuItem(value: 'remove', child: Text('Remove key')),
           const PopupMenuItem(value: 'copy', child: Text('Copy look')),
           const PopupMenuDivider(),
           for (final i in GradeInterp.values)
@@ -404,8 +408,20 @@ class _DanceGradeWorkspaceState extends State<DanceGradeWorkspace> {
         ] else ...[
           const PopupMenuItem(value: 'add', child: Text('Add key here')),
         ],
-        if (_c.clipboard != null)
-          const PopupMenuItem(value: 'paste', child: Text('Paste look here')),
+        // Always present so the copy→paste workflow is discoverable; armed
+        // only once a look has been copied.
+        PopupMenuItem(
+          value: 'paste',
+          enabled: _c.clipboard != null,
+          child: Text(
+            hit != null ? 'Paste look onto key' : 'Paste look as new key here',
+          ),
+        ),
+        // Destructive action LAST, never the item under the cursor.
+        if (hit != null) ...[
+          const PopupMenuDivider(),
+          const PopupMenuItem(value: 'remove', child: Text('Remove key')),
+        ],
       ],
     );
     switch (action) {
@@ -495,12 +511,15 @@ class _DanceGradeWorkspaceState extends State<DanceGradeWorkspace> {
                   }
                 },
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
                   children: [
                     _toolbar(),
-                    _timelineBlock(width),
+                    ..._timelineRows(width),
+                    // The lane stack takes whatever height remains and
+                    // scrolls internally — the console can NEVER be pushed
+                    // off the bottom by adding lanes.
+                    Expanded(child: _lanesArea(width)),
                     const Divider(height: 1, color: _Ws.edge),
-                    _console(),
+                    _console(compact: constraints.maxHeight < 470),
                   ],
                 ),
               );
@@ -512,48 +531,27 @@ class _DanceGradeWorkspaceState extends State<DanceGradeWorkspace> {
   }
 
   // The stacked, shared-axis rows. Every row is [header | canvas(width)].
-  Widget _timelineBlock(double width) {
+  List<Widget> _timelineRows(double width) => [
+    _row(height: 14, header: const SizedBox.shrink(), child: _overview(width)),
+    _row(height: 24, header: _headerLabel('TIME'), child: _ruler(width)),
+    _row(height: 36, header: _headerLabel('WAVE'), child: _waveform(width)),
+    _row(height: 16, header: _headerLabel('BEATS'), child: _beats(width)),
+  ];
+
+  Widget _lanesArea(double width) {
     final lanes = _c.displayLanes;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _row(
-          height: 14,
-          header: const SizedBox.shrink(),
-          child: _overview(width),
-        ),
-        _row(
-          height: 24,
-          header: _headerLabel('TIME'),
-          child: _ruler(width),
-        ),
-        _row(
-          height: 40,
-          header: _headerLabel('WAVE'),
-          child: _waveform(width),
-        ),
-        _row(
-          height: 18,
-          header: _headerLabel('BEATS'),
-          child: _beats(width),
-        ),
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxHeight: 3 * _Ws.laneH),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                for (final lane in lanes)
-                  _row(
-                    height: _Ws.laneH,
-                    header: _laneHeader(lane),
-                    child: _laneCanvas(lane, width),
-                  ),
-              ],
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final lane in lanes)
+            _row(
+              height: _Ws.laneH,
+              header: _laneHeader(lane),
+              child: _laneCanvas(lane, width),
             ),
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -567,7 +565,10 @@ class _DanceGradeWorkspaceState extends State<DanceGradeWorkspace> {
       child: Row(
         children: [
           SizedBox(width: _Ws.headerW, child: header),
-          Expanded(child: child),
+          // Every row clips to the shared content viewport — zoomed/panned
+          // ruler labels and beat ticks must never bleed into the header
+          // gutter (the one discipline a shared axis cannot break).
+          Expanded(child: ClipRect(child: child)),
         ],
       ),
     );
@@ -594,7 +595,7 @@ class _DanceGradeWorkspaceState extends State<DanceGradeWorkspace> {
   Widget _toolbar() {
     final hasPreview = _c.preview != null;
     return SizedBox(
-      height: 34,
+      height: 32,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12),
         child: Row(
@@ -823,7 +824,12 @@ class _DanceGradeWorkspaceState extends State<DanceGradeWorkspace> {
     final available = [
       (id: GradeTargets.backdrop, label: 'Backdrop (painted world)'),
       (id: GradeTargets.cast, label: 'Cast (the trio)'),
-      for (final t in kBlueHourGradeTargets) (id: t.id, label: t.label),
+      for (final t in kBlueHourGradeTargets)
+        (
+          id: t.id,
+          // Mirror the format doc's dagger: light passes ignore Offset.
+          label: t.additive ? '${t.label} · no offset' : t.label,
+        ),
     ].where((t) => !existing.contains(t.id)).toList();
     return PopupMenuButton<String>(
       key: const Key('gradeAddTrack'),
@@ -917,7 +923,7 @@ class _DanceGradeWorkspaceState extends State<DanceGradeWorkspace> {
       onHorizontalDragUpdate: (d) =>
           widget.onSeek(_view.tFor(d.localPosition.dx, width)),
       child: CustomPaint(
-        size: Size(width, 40),
+        size: Size(width, 36),
         painter: _WaveformPainter(
           amplitudes: widget.amplitudes,
           durationSec: widget.durationSec,
@@ -931,7 +937,7 @@ class _DanceGradeWorkspaceState extends State<DanceGradeWorkspace> {
   Widget _beats(double width) {
     return CustomPaint(
       key: const Key('gradeBeatsLane'),
-      size: Size(width, 18),
+      size: Size(width, 16),
       painter: _BeatsPainter(
         view: _view,
         beatTimesSec: _c.beatTimesSec,
@@ -976,13 +982,30 @@ class _DanceGradeWorkspaceState extends State<DanceGradeWorkspace> {
               key: Key('gradeLaneMute-${lane.target}'),
               onTap: () => _c.toggleLaneEnabled(lane.target),
               child: Tooltip(
-                message: lane.enabled ? 'Mute lane' : 'Lane muted',
-                child: Icon(
-                  lane.enabled
-                      ? Icons.visibility_rounded
-                      : Icons.visibility_off_rounded,
-                  size: 13,
-                  color: lane.enabled ? _Ws.textLow : _Ws.warn,
+                // The DAW mute convention — an eye reads as "hide the row".
+                message: lane.enabled ? 'Mute lane (bypass)' : 'Lane muted',
+                child: Container(
+                  width: 15,
+                  height: 15,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: lane.enabled
+                        ? Colors.transparent
+                        : _Ws.warn.withValues(alpha: 0.22),
+                    borderRadius: BorderRadius.circular(3),
+                    border: Border.all(
+                      color: lane.enabled ? _Ws.edge : _Ws.warn,
+                    ),
+                  ),
+                  child: Text(
+                    'M',
+                    style: TextStyle(
+                      color: lane.enabled ? _Ws.textLow : _Ws.warn,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w800,
+                      height: 1,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -1053,6 +1076,9 @@ class _DanceGradeWorkspaceState extends State<DanceGradeWorkspace> {
           positionSec: widget.positionSec,
           selected: _c.selectedTarget == lane.target,
           selectedKeyTimes: _c.selectedKeyTimes,
+          flashKeyTSec: _note != null && _c.selectedTarget == lane.target
+              ? _c.lastStampTSec
+              : null,
         ),
       ),
     );
@@ -1060,12 +1086,25 @@ class _DanceGradeWorkspaceState extends State<DanceGradeWorkspace> {
 
   // ── console ──────────────────────────────────────────────────────────────
 
-  Widget _console() {
+  Widget _console({bool compact = false}) {
     final look = _c.consoleLook(widget.positionSec);
     void edit(GradeLook next) => _c.consoleEdited(
       next,
       tSec: widget.positionSec,
       playing: widget.playing,
+    );
+    final lane = _c.store.doc.lane(_c.selectedTarget);
+    final onKey = lane?.indexNear(widget.positionSec, tolerance: 0.02);
+    final subtitle = _c.preview != null && !_c.autoKey
+        ? 'UNKEYED preview'
+        : onKey != null
+        ? 'key @ ${formatDancePlaybackTimestamp(widget.positionSec)} · '
+              '${lane!.keyframes[onKey].interp.name}'
+        : (lane?.keyframes.isEmpty ?? true)
+        ? 'no keys yet'
+        : 'between keys';
+    final additive = kBlueHourGradeTargets.any(
+      (t) => t.id == _c.selectedTarget && t.additive,
     );
     return ColorGradePanel(
       lift: look.lift,
@@ -1078,8 +1117,11 @@ class _DanceGradeWorkspaceState extends State<DanceGradeWorkspace> {
       pivot: look.pivot,
       bypass: widget.bypass,
       parade: widget.parade,
-      wheelDiameter: 116,
+      wheelDiameter: compact ? 104 : 116,
       title: _targetLabel(_c.selectedTarget).toUpperCase(),
+      subtitle: subtitle,
+      additiveTarget: additive,
+      showScopes: widget.showScopes,
       onLift: (w) => edit(look.copyWith(lift: w)),
       onGamma: (w) => edit(look.copyWith(gamma: w)),
       onGain: (w) => edit(look.copyWith(gain: w)),
@@ -1356,8 +1398,20 @@ class _BeatsPainter extends CustomPainter {
     final downbeats = Set.of(downbeatIndices);
     final beat = Paint()..color = const Color(0x40FFFFFF);
     final down = Paint()..color = const Color(0x9AFFFFFF);
-    // Label bars only when they have breathing room.
-    final labelBars = view.visibleSec <= 60;
+    // Level-of-detail: below ~8px/beat a full grid is an undifferentiated
+    // picket fence, so draw downbeats only and label every Nth bar such that
+    // labels keep ~40px of air.
+    final avgBeat =
+        (beatTimesSec.last - beatTimesSec.first) /
+        math.max(1, beatTimesSec.length - 1);
+    final pxPerBeat = avgBeat / view.visibleSec * size.width;
+    final drawBeats = pxPerBeat >= 8;
+    final pxPerBar = pxPerBeat * 4;
+    final labelEveryBars = pxPerBar >= 40
+        ? 1
+        : pxPerBar >= 10
+        ? 4
+        : 8;
     var bar = 0;
     for (var i = 0; i < beatTimesSec.length; i++) {
       final t = beatTimesSec[i];
@@ -1367,7 +1421,7 @@ class _BeatsPainter extends CustomPainter {
       if (x < -20 || x > size.width + 20) continue;
       if (isDown) {
         canvas.drawRect(Rect.fromLTWH(x, 2, 1.5, size.height - 2), down);
-        if (labelBars) {
+        if (bar % labelEveryBars == 0) {
           TextPainter(
               text: TextSpan(
                 text: '$bar',
@@ -1384,7 +1438,7 @@ class _BeatsPainter extends CustomPainter {
             ..layout()
             ..paint(canvas, Offset(x + 3, 1));
         }
-      } else {
+      } else if (drawBeats) {
         canvas.drawRect(
           Rect.fromLTWH(x, size.height * 0.45, 1, size.height * 0.55),
           beat,
@@ -1409,6 +1463,7 @@ class _LanePainter extends CustomPainter {
     required this.positionSec,
     required this.selected,
     required this.selectedKeyTimes,
+    this.flashKeyTSec,
   });
 
   final GradeLane lane;
@@ -1417,16 +1472,15 @@ class _LanePainter extends CustomPainter {
   final bool selected;
   final Set<double> selectedKeyTimes;
 
+  /// A just-stamped key to ring (the toolbar note's in-lane counterpart).
+  final double? flashKeyTSec;
+
   @override
   void paint(Canvas canvas, Size size) {
     canvas
-      ..drawRect(
-        Offset.zero & size,
-        Paint()
-          ..color = selected
-              ? const Color(0xFF12181F)
-              : const Color(0xFF0E1319),
-      )
+      // Lane bodies stay one neutral surface — selection is encoded in the
+      // header edge only, so it can never collide with the deviation band.
+      ..drawRect(Offset.zero & size, Paint()..color = const Color(0xFF101317))
       ..drawRect(
         Rect.fromLTWH(0, size.height - 1, size.width, 1),
         Paint()..color = _Ws.edge,
@@ -1434,22 +1488,51 @@ class _LanePainter extends CustomPainter {
     final muted = !lane.enabled;
     final alpha = muted ? 0.35 : 1.0;
 
-    // Deviation sparkline: a filled band from the bottom, one sample per
-    // ~4px, so "something changes here" reads without selecting the lane.
+    // Deviation sparkline: a filled band + bright top stroke, one sample per
+    // ~4px. Square-root scaling with a minimum visible amplitude — a SUBTLE
+    // document (the whole point of a tasteful grade) must still draw a
+    // legible ramp, or the lane hides the very automation it exists to show.
     if (lane.keyframes.isNotEmpty) {
-      final spark = Path()..moveTo(0, size.height - 1);
+      double yFor(double d) {
+        if (d <= 0) return size.height - 1;
+        final scaled = math.sqrt(d.clamp(0.0, 1.0));
+        final h = (3.0 + scaled * (size.height - 10)).clamp(
+          3.0,
+          size.height - 6.0,
+        );
+        return size.height - 1 - h;
+      }
+
+      final fill = Path()..moveTo(0, size.height - 1);
+      final stroke = Path();
+      var started = false;
       for (var x = 0.0; x <= size.width; x += 4) {
         final t = view.tFor(x, size.width);
-        final d = lane.evaluate(t).deviation;
-        spark.lineTo(x, size.height - 2 - d * (size.height - 8));
+        final y = yFor(lane.evaluate(t).deviation);
+        fill.lineTo(x, y);
+        if (started) {
+          stroke.lineTo(x, y);
+        } else {
+          stroke.moveTo(x, y);
+          started = true;
+        }
       }
-      spark
+      fill
         ..lineTo(size.width, size.height - 1)
         ..close();
-      canvas.drawPath(
-        spark,
-        Paint()..color = _Ws.accent.withValues(alpha: 0.13 * alpha),
-      );
+      const sparkColor = Color(0xFF9FB3C4);
+      canvas
+        ..drawPath(
+          fill,
+          Paint()..color = sparkColor.withValues(alpha: 0.16 * alpha),
+        )
+        ..drawPath(
+          stroke,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.6
+            ..color = sparkColor.withValues(alpha: 0.75 * alpha),
+        );
     }
 
     // Keyframe diamonds; hold segments draw a step hint to the next key.
@@ -1461,7 +1544,10 @@ class _LanePainter extends CustomPainter {
       final isSel = selectedKeyTimes.any(
         (t) => (t - k.tSec).abs() < kGradeKeyEpsilonSec,
       );
-      final r = isSel ? 6.0 : 4.5;
+      final isFlash =
+          flashKeyTSec != null &&
+          (flashKeyTSec! - k.tSec).abs() < kGradeKeyEpsilonSec;
+      final r = isSel ? 7.5 : 6.0;
       final diamond = Path()
         ..moveTo(x, cy - r)
         ..lineTo(x + r, cy)
@@ -1472,17 +1558,31 @@ class _LanePainter extends CustomPainter {
         ..drawPath(
           diamond,
           Paint()
-            ..color = (isSel ? _Ws.accent : const Color(0xFFB9C4D0)).withValues(
-              alpha: alpha,
-            ),
+            // Selected = white core + teal ring, so selection, playhead and
+            // overview brush stop sharing one identical teal.
+            ..color = (isSel ? Colors.white : const Color(0xFFE2E9F0))
+                .withValues(alpha: alpha),
         )
         ..drawPath(
           diamond,
           Paint()
             ..style = PaintingStyle.stroke
-            ..strokeWidth = 1
-            ..color = Colors.black.withValues(alpha: 0.5 * alpha),
+            ..strokeWidth = isSel ? 2 : 1.2
+            ..color = (isSel ? _Ws.accent : Colors.black.withValues(alpha: 0.6))
+                .withValues(alpha: alpha),
         );
+      if (isFlash) {
+        // Auto-stamp receipt anchored AT the artifact, not only in the
+        // toolbar note across the screen.
+        canvas.drawCircle(
+          Offset(x, cy),
+          r + 5,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 2
+            ..color = _Ws.accent.withValues(alpha: 0.9),
+        );
+      }
       if (k.interp == GradeInterp.hold && i + 1 < lane.keyframes.length) {
         final nx = view.xFor(lane.keyframes[i + 1].tSec, size.width);
         canvas.drawRect(
@@ -1490,6 +1590,26 @@ class _LanePainter extends CustomPainter {
           Paint()..color = const Color(0x55FFFFFF),
         );
       }
+    }
+
+    if (lane.keyframes.isEmpty) {
+      // An empty lane advertises its path to the first key instead of
+      // reading as a dead black strip.
+      final hint = TextPainter(
+        text: const TextSpan(
+          text: 'double-click to add a key · console edits write here',
+          style: TextStyle(
+            fontFamily: 'Inter',
+            color: Color(0x4DFFFFFF),
+            fontSize: 9,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      hint.paint(
+        canvas,
+        Offset(12, (size.height - hint.height) / 2),
+      );
     }
 
     if (muted) {
@@ -1518,6 +1638,7 @@ class _LanePainter extends CustomPainter {
       old.positionSec != positionSec ||
       old.selected != selected ||
       old.lane != lane ||
+      old.flashKeyTSec != flashKeyTSec ||
       !setEquals(old.selectedKeyTimes, selectedKeyTimes);
 }
 
@@ -1549,7 +1670,7 @@ void _paintPlayhead(
 /// Self-contained dark palette for the workspace chrome (demo-only values,
 /// matching the transport's console language).
 abstract final class _Ws {
-  static const Color panel = Color(0xFF10141A);
+  static const Color panel = Color(0xFF121417);
   static const Color menu = Color(0xFF1B2127);
   static const Color edge = Color(0x1FFFFFFF);
   static const Color accent = Color(0xFF4DD6C0);

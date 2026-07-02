@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:dancing_cats/features/character/demo/color_grade_panel.dart';
 import 'package:dancing_cats/features/character/demo/dance_app_frame_exporter.dart';
 import 'package:dancing_cats/features/character/demo/dance_ffmpeg_encoder.dart';
 import 'package:dancing_cats/features/character/demo/dance_grade_controller.dart';
@@ -766,17 +767,66 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
     );
     final section = _perf?.sectionAt(posSec);
     // Prefer the musical section name (Verse/Chorus/…) for the now-playing chip
-    // when lyrics are loaded; fall back to the structural label otherwise.
-    final musicalLabel = _sectionSpans.isNotEmpty
+    // when lyrics are loaded; fall back to the structural label otherwise, and
+    // to the timeline's own band (Intro/Outro) where the lyric spans have no
+    // name yet — the chip and the timeline must never disagree.
+    String? bandLabel;
+    for (final b in _waveformSections) {
+      if (posSec >= b.start && posSec < b.end) {
+        bandLabel = b.label;
+        break;
+      }
+    }
+    var musicalLabel = _sectionSpans.isNotEmpty
         ? danceSectionDisplayName(_perf?.sectionInfoAt(posSec).section ?? '')
         : section?.label;
+    if (musicalLabel == null || musicalLabel.isEmpty || musicalLabel == '–') {
+      musicalLabel = bandLabel ?? section?.label;
+    }
     return Scaffold(
       backgroundColor: Colors.black,
       body: kDanceRenderOnly
           ? stageView
           : Column(
               children: [
-                Expanded(child: stageView),
+                // While grading, the stage's pillarbox columns stop being
+                // dead black: full-size scopes dock beside the viewer (the
+                // finishing-suite layout), and the console drops its small
+                // duplicates.
+                Expanded(
+                  child: _gradeOpen && controller != null
+                      ? LayoutBuilder(
+                          builder: (context, box) {
+                            final pillar =
+                                (box.maxWidth -
+                                    box.maxHeight * kDanceDemoAspectRatio) /
+                                2;
+                            if (pillar < 240) return stageView;
+                            final dockW = math.min(pillar - 32, 380).toDouble();
+                            return Stack(
+                              children: [
+                                stageView,
+                                Positioned(
+                                  right: 12,
+                                  top: 0,
+                                  bottom: 0,
+                                  child: Center(
+                                    child: _SideScopes(
+                                      width: dockW,
+                                      grade: controller
+                                          .consoleLook(posSec)
+                                          .toGrade(),
+                                      parade: _scope,
+                                      bypass: _bypass,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        )
+                      : stageView,
+                ),
                 DanceTransportBar(
                   loading: _map == null,
                   playing: _player.state.playing,
@@ -812,26 +862,26 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
                 ),
                 if (_gradeOpen && controller != null)
                   SizedBox(
-                    // The stage keeps its floor (~45% of the window); past
-                    // three lanes the workspace scrolls internally instead of
-                    // starving the picture a colourist grades by.
+                    // The stage keeps its floor (~45% of the window). The
+                    // workspace lays out inside this fixed height — lanes
+                    // scroll internally, the console never clips.
                     height: math.min(
                       470,
                       MediaQuery.sizeOf(context).height * 0.46,
                     ),
-                    child: SingleChildScrollView(
-                      child: DanceGradeWorkspace(
-                        controller: controller,
-                        positionSec: posSec,
-                        durationSec: _trackDurationSec,
-                        playing: _player.state.playing,
-                        amplitudes: _amplitudes ?? const [],
-                        sections: _waveformSections,
-                        parade: _scope,
-                        bypass: _bypass,
-                        onBypass: (v) => setState(() => _bypass = v),
-                        onSeek: _seekToTime,
-                      ),
+                    child: DanceGradeWorkspace(
+                      controller: controller,
+                      positionSec: posSec,
+                      durationSec: _trackDurationSec,
+                      playing: _player.state.playing,
+                      amplitudes: _amplitudes ?? const [],
+                      sections: _waveformSections,
+                      parade: _scope,
+                      bypass: _bypass,
+                      onBypass: (v) => setState(() => _bypass = v),
+                      onSeek: _seekToTime,
+                      // The pillarbox dock mirrors the scopes at full size.
+                      showScopes: false,
                     ),
                   ),
               ],
@@ -859,5 +909,57 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
     final beatInBar = idx - lastDown + 1;
     final sixteenth = (((beat - idx) * 4).floor() + 1).clamp(1, 4);
     return '$bar.$beatInBar.$sixteenth';
+  }
+}
+
+/// The pillarbox scope dock: RESPONSE + PARADE mirrored at measuring size
+/// beside the stage while the grade workspace is open (the classic finishing
+/// layout — viewer centre, scopes flanking — instead of dead black columns).
+class _SideScopes extends StatelessWidget {
+  const _SideScopes({
+    required this.width,
+    required this.grade,
+    required this.parade,
+    required this.bypass,
+  });
+
+  final double width;
+  final BackdropGrade grade;
+  final ScopeHistogram parade;
+  final bool bypass;
+
+  @override
+  Widget build(BuildContext context) {
+    final graphH = width * 0.52;
+    return DefaultTextStyle.merge(
+      style: const TextStyle(fontFamily: 'Inter'),
+      child: Container(
+        width: width + 24,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xEE111316),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: const Color(0x22FFFFFF)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TransferCurveScope(
+              grade: grade,
+              bypass: bypass,
+              width: width,
+              height: graphH,
+            ),
+            const SizedBox(height: 14),
+            ParadeScope(
+              histogram: parade,
+              bypass: bypass,
+              width: width,
+              height: graphH,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

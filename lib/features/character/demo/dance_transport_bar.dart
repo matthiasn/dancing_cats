@@ -337,8 +337,8 @@ class DanceTransportBar extends StatelessWidget {
                       top: -2,
                       child: Container(
                         key: const Key('gradeActiveBadge'),
-                        width: 7,
-                        height: 7,
+                        width: 9,
+                        height: 9,
                         decoration: const BoxDecoration(
                           color: _Chrome.accent,
                           shape: BoxShape.circle,
@@ -908,9 +908,13 @@ class _DanceTimelinePainter extends CustomPainter {
     final interval = _rulerInterval(trackDurationSec);
     if (interval <= 0) return;
     final tick = Paint()..color = const Color(0x33FFFFFF);
+    final px = _x(positionSec, size.width);
     for (var t = 0.0; t < trackDurationSec - interval * 0.25; t += interval) {
       final x = _x(t, size.width);
       canvas.drawRect(Rect.fromLTWH(x, 0, 1, 4), tick);
+      // Nudge a label clear of the playhead flag when they'd collide (the
+      // t=0 label sat under the handle at the tool's resting position).
+      final labelX = (x + 4 - px).abs() < 14 ? px + 12 : x + 4;
       (TextPainter(
         text: TextSpan(
           text: _mmss(t),
@@ -923,7 +927,7 @@ class _DanceTimelinePainter extends CustomPainter {
           ),
         ),
         textDirection: TextDirection.ltr,
-      )..layout()).paint(canvas, Offset(x + 4, 3));
+      )..layout()).paint(canvas, Offset(labelX, 3));
     }
   }
 

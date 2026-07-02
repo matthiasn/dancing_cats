@@ -137,26 +137,24 @@ void main() {
                 const Expanded(child: SizedBox()),
                 SizedBox(
                   height: 470,
-                  child: SingleChildScrollView(
-                    child: DanceGradeWorkspace(
-                      controller: controller,
-                      positionSec: positionSec,
-                      durationSec: _duration,
-                      playing: playing,
-                      amplitudes: const [0.2, 0.9, 0.5, 0.7, 0.3, 0.8],
-                      sections: const [
-                        DanceWaveformSection(start: 0, end: 20, label: 'verse'),
-                        DanceWaveformSection(
-                          start: 20,
-                          end: 100,
-                          label: 'chorus',
-                        ),
-                      ],
-                      parade: ScopeHistogram.empty(),
-                      bypass: false,
-                      onBypass: bypasses.add,
-                      onSeek: seeks.add,
-                    ),
+                  child: DanceGradeWorkspace(
+                    controller: controller,
+                    positionSec: positionSec,
+                    durationSec: _duration,
+                    playing: playing,
+                    amplitudes: const [0.2, 0.9, 0.5, 0.7, 0.3, 0.8],
+                    sections: const [
+                      DanceWaveformSection(start: 0, end: 20, label: 'verse'),
+                      DanceWaveformSection(
+                        start: 20,
+                        end: 100,
+                        label: 'chorus',
+                      ),
+                    ],
+                    parade: ScopeHistogram.empty(),
+                    bypass: false,
+                    onBypass: bypasses.add,
+                    onSeek: seeks.add,
                   ),
                 ),
               ],
@@ -219,7 +217,7 @@ void main() {
       await pump(tester);
       await tester.tap(find.byKey(const Key('gradeAddTrack')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Deck glow'));
+      await tester.tap(find.textContaining('Deck glow')); // '· no offset'
       await tester.pumpAndSettle();
       expect(store.doc.lane('deck-glow'), isNotNull);
       expect(controller.selectedTarget, 'deck-glow');

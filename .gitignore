@@ -52,3 +52,4 @@ tools/**/out/
 
 # FVM
 .fvm/
+assets/sample_track/*.grade.json.bak
