@@ -11,6 +11,8 @@ import 'package:dancing_cats/features/character/model/clip.dart';
 import 'package:dancing_cats/features/character/model/face.dart';
 import 'package:dancing_cats/features/character/model/pose.dart';
 import 'package:dancing_cats/features/character/model/rig_spec.dart';
+import 'package:dancing_cats/features/character/runtime/dance_timing.dart';
+import 'package:dancing_cats/features/character/runtime/pose_modifier_stack.dart';
 
 /// One fully-resolved frame: world transforms for every bone, the face state to
 /// draw, and how far the character has travelled (locomotion). Everything the
@@ -39,13 +41,92 @@ class CharacterFrame {
 class CharacterScene {
   CharacterScene(this.rig, {AutonomicLayer? autonomic})
     : solver = SkeletonSolver(rig),
-      autonomic = autonomic ?? AutonomicLayer();
+      autonomic = autonomic ?? AutonomicLayer() {
+    _poseModifierStack = PoseModifierStack([
+      PoseModifierPass(
+        id: 'breath',
+        description: 'Add subtle autonomic breathing to the root.',
+        modifier: (context, pose) => _breathingPose(context.breath, pose),
+      ),
+      PoseModifierPass(
+        id: 'support-balance',
+        description: 'Bias the pelvis back inside the declared support foot.',
+        modifier: (context, pose) =>
+            _supportBalancedPose(context.clip, context.timeSeconds, pose),
+      ),
+      PoseModifierPass(
+        id: 'secondary-follow',
+        description: 'Lag tail and ears from the body groove.',
+        modifier: (context, pose) =>
+            _secondaryFollowPose(context.clip, context.timeSeconds, pose),
+      ),
+      PoseModifierPass(
+        id: 'ear-life',
+        description:
+            'Flick the ear tips on sparse autonomic twitches — always on, '
+            'dance or idle.',
+        modifier: _earLifePose,
+      ),
+      PoseModifierPass(
+        id: 'spine-distribute',
+        description:
+            'Split the authored torso rotation across the lumbar and '
+            'thoracic joints so the trunk bends instead of tilting.',
+        modifier: (context, pose) =>
+            _spineDistributedPose(context.clip, context.timeSeconds, pose),
+      ),
+      PoseModifierPass(
+        id: 'girdle-follow',
+        description:
+            'Ripple a lagged share of the trunk drive through the clavicles '
+            'so the shoulder line answers the groove.',
+        modifier: (context, pose) =>
+            _girdleFollowPose(context.clip, context.timeSeconds, pose),
+      ),
+      PoseModifierPass(
+        id: 'shoulder-girdle',
+        description: 'Engage clavicle, socket, and bicep volume before IK.',
+        modifier: (context, pose) =>
+            _shoulderCorrectedPose(context.clip, context.timeSeconds, pose),
+      ),
+      PoseModifierPass(
+        id: 'limb-ik',
+        description: 'Solve hand and foot two-bone IK targets.',
+        modifier: (context, pose) =>
+            _limbTargetedPose(context.clip, context.timeSeconds, pose),
+      ),
+      PoseModifierPass(
+        id: 'joint-limits',
+        description:
+            'Clamp every limited joint into its anatomical range of motion, '
+            'including the coupled arm anti-fold rule.',
+        modifier: (context, pose) => _jointLimitedPose(pose),
+      ),
+      PoseModifierPass(
+        id: 'contact-lock',
+        description: 'Apply final support contact root correction.',
+        modifier: (context, pose) =>
+            _contactLockedPose(context.clip, context.timeSeconds, pose),
+      ),
+      PoseModifierPass(
+        id: 'sole-flex',
+        description:
+            'Bend each sneaker at the ball of the foot when the heel lifts '
+            'while the ball still bears on the floor.',
+        modifier: (context, pose) => _soleFlexedPose(pose),
+      ),
+    ]);
+  }
 
   final RigSpec rig;
   final SkeletonSolver solver;
   final ClipEvaluator evaluator = const ClipEvaluator();
   final FaceSolver faceSolver = const FaceSolver();
   final AutonomicLayer autonomic;
+  late final PoseModifierStack _poseModifierStack;
+
+  /// Local-space pose modifier passes in solve order.
+  List<PoseModifierPass> get poseModifierPasses => _poseModifierStack.passes;
 
   /// Memoized foot-lock offset tables, keyed by clip name (built once per clip).
   final Map<String, _LocoTable> _locoTables = {};
@@ -187,18 +268,14 @@ class CharacterScene {
     Affine2D base = Affine2D.identity,
     double eyeOpenScale = 1,
   }) {
-    final pose = evaluator.evaluate(clip, timeSeconds);
     final auto = autonomic.sampleAt(timeSeconds);
-
-    // Breathing nudges the whole body subtly, even mid-walk.
-    final breathed = Pose(
-      joints: pose.joints,
-      rootDx: pose.rootDx,
-      rootDy: pose.rootDy + auto.breath * 1.4,
-      rootRotation: pose.rootRotation,
+    final posed = _resolvedPose(
+      clip,
+      timeSeconds,
+      breath: auto.breath,
+      earTwitchLeft: auto.earTwitchLeft,
+      earTwitchRight: auto.earTwitchRight,
     );
-    final targeted = _limbTargetedPose(clip, timeSeconds, breathed);
-    final posed = _contactLockedPose(clip, timeSeconds, targeted);
 
     final rawWorld = solver.solve(posed, base: base);
     final footStabilizedWorld = _danceSupportFootStabilizedWorld(
@@ -210,7 +287,7 @@ class CharacterScene {
       clip,
       footStabilizedWorld,
       timeSeconds: timeSeconds,
-      baseScale: _uniformScale(base),
+      baseScale: _verticalScale(base),
       rootDx: posed.rootDx,
       rootDy: posed.rootDy,
     );
@@ -223,6 +300,343 @@ class CharacterScene {
     }
     final locomotion = locomotionOffset(clip, timeSeconds);
     return CharacterFrame(world: world, face: face, locomotionX: locomotion);
+  }
+
+  /// Returns the final local-space pose that [frameAt] will solve and draw.
+  ///
+  /// Validators use this instead of raw clip sampling so runtime correctives
+  /// such as shoulder-girdle response are checked against rendered behavior.
+  Pose poseAt({
+    required Clip clip,
+    required double timeSeconds,
+    bool includeAutonomic = true,
+  }) {
+    if (!includeAutonomic) {
+      return _resolvedPose(clip, timeSeconds, breath: 0);
+    }
+    // (see also [preClampPoseAt] for the joint-limit engagement meter)
+    final auto = autonomic.sampleAt(timeSeconds);
+    return _resolvedPose(
+      clip,
+      timeSeconds,
+      breath: auto.breath,
+      earTwitchLeft: auto.earTwitchLeft,
+      earTwitchRight: auto.earTwitchRight,
+    );
+  }
+
+  /// The pose as it stands going INTO the joint-limits clamp — what the clip
+  /// and solvers actually asked for. The motion validator diffs this against
+  /// [poseAt] to measure LIMIT ENGAGEMENT: any difference means the routine
+  /// leaned on the runtime limiter (clipping) instead of being authored
+  /// inside the anatomical range, and should be re-choreographed.
+  Pose preClampPoseAt({required Clip clip, required double timeSeconds}) {
+    final pose = evaluator.evaluate(clip, timeSeconds);
+    final context = PoseModifierContext(
+      clip: clip,
+      timeSeconds: timeSeconds,
+      breath: 0,
+    );
+    return _poseModifierStack.apply(
+      context,
+      pose,
+      stopBefore: 'joint-limits',
+    );
+  }
+
+  Pose _resolvedPose(
+    Clip clip,
+    double timeSeconds, {
+    required double breath,
+    double earTwitchLeft = 0,
+    double earTwitchRight = 0,
+  }) {
+    final pose = evaluator.evaluate(clip, timeSeconds);
+    final context = PoseModifierContext(
+      clip: clip,
+      timeSeconds: timeSeconds,
+      breath: breath,
+      earTwitchLeft: earTwitchLeft,
+      earTwitchRight: earTwitchRight,
+    );
+    return _poseModifierStack.apply(context, pose);
+  }
+
+  Pose _breathingPose(double breath, Pose pose) {
+    if (breath == 0) return pose;
+    return Pose(
+      joints: pose.joints,
+      rootDx: pose.rootDx,
+      rootDy: pose.rootDy + breath * 1.4,
+      rootRotation: pose.rootRotation,
+    );
+  }
+
+  Pose _secondaryFollowPose(Clip clip, double timeSeconds, Pose pose) {
+    if (!_isDanceFamily(clip) || clip.duration <= 0) return pose;
+
+    final tailIds = _tailBoneIds();
+    final earIds = _outerEarBoneIds();
+    if (tailIds.isEmpty && earIds.isEmpty) return pose;
+
+    final dt = clip.duration / 64;
+    final previous = evaluator.evaluate(clip, timeSeconds - dt);
+    final next = evaluator.evaluate(clip, timeSeconds + dt);
+    final lateralVelocity = (next.rootDx - previous.rootDx) * 0.5;
+    final verticalImpulse = previous.rootDy - 2 * pose.rootDy + next.rootDy;
+    final bodyRotation =
+        pose.rootRotation +
+        _jointRotationForAny(pose, const ['hips', 'pelvis']) * 0.4 +
+        _jointRotationForAny(pose, const ['torso', 'chest']) * 0.3;
+    final followDrive =
+        (-lateralVelocity * 0.014) -
+        bodyRotation * 0.28 +
+        verticalImpulse * 0.006;
+    if (followDrive.abs() < 0.0001) return pose;
+
+    final phase = _clipPhase(clip, timeSeconds);
+    final joints = Map<String, JointPose>.of(pose.joints);
+    var changed = false;
+
+    for (var i = 0; i < tailIds.length; i++) {
+      final t = tailIds.length == 1 ? 1.0 : i / (tailIds.length - 1);
+      final lag = _clampMagnitude(followDrive * (0.08 + 0.96 * t), 0.065);
+      final ripple =
+          math.sin(2 * math.pi * (phase * 4 - t * 0.18)) *
+          followDrive.abs() *
+          (0.04 + 0.28 * t);
+      final delta = lag + ripple;
+      if (delta.abs() < 0.0001) continue;
+      joints[tailIds[i]] = _addJointRotation(pose.jointOf(tailIds[i]), delta);
+      changed = true;
+    }
+
+    final earDrive = _clampMagnitude(
+      followDrive * 0.34 + lateralVelocity * 0.0025,
+      0.024,
+    );
+    for (final earId in earIds) {
+      final side = _sideSign(earId);
+      final sidePhase = side >= 0 ? 0.13 : 0.63;
+      final flick =
+          math.sin(2 * math.pi * (phase * 4 + sidePhase)) *
+          followDrive.abs() *
+          0.18;
+      // The TIP lags and whips well past the base — the tail's gradient,
+      // in miniature: bendy cartilage, not a stiff felt triangle.
+      final isTip = earId.toLowerCase().contains('tip');
+      final gain = isTip ? 2.6 : 1.0;
+      final clampAt = isTip ? 0.2 : 0.06;
+      final delta = _clampMagnitude(side * earDrive * gain + flick * gain, clampAt);
+      if (delta.abs() < 0.0001) continue;
+      joints[earId] = _addJointRotation(pose.jointOf(earId), delta);
+      changed = true;
+    }
+
+    if (!changed) return pose;
+    return Pose(
+      joints: joints,
+      rootDx: pose.rootDx,
+      rootDy: pose.rootDy,
+      rootRotation: pose.rootRotation,
+    );
+  }
+
+  /// Distributes the clip's authored `torso` (lumbar) rotation up the spine.
+  ///
+  /// Clips keep authoring one trunk channel; this pass hands [_kThoracicShare]
+  /// of that rotation to the thoracic `chest` joint, sampled with a slight lag
+  /// on looping clips so the ribcage/shoulder mass follows through behind the
+  /// pelvis. The summed world orientation at the shoulders stays what the clip
+  /// authored (exactly so when the lag is zero) — the trunk now *bends* through
+  /// two centres instead of swinging as one rigid plate. Rigs without a chest
+  /// bone are untouched.
+  Pose _spineDistributedPose(Clip clip, double timeSeconds, Pose pose) {
+    final chestId = _chestBoneId;
+    if (chestId == null) return pose;
+    final torsoId = rig.bone(chestId)!.parent!;
+    final authored = pose.jointOf(torsoId);
+
+    final lag = clip.loop && clip.duration > 0
+        ? clip.duration / 32
+        : 0.0;
+    final source = lag > 0
+        ? evaluator.evaluate(clip, timeSeconds - lag).jointOf(torsoId).rotation
+        : authored.rotation;
+    final chestDelta = _kThoracicShare * source;
+    final torsoRotation = authored.rotation * (1 - _kThoracicShare);
+    if (chestDelta.abs() < 0.0001 &&
+        (authored.rotation - torsoRotation).abs() < 0.0001) {
+      return pose;
+    }
+
+    final joints = Map<String, JointPose>.of(pose.joints);
+    joints[torsoId] = JointPose(
+      rotation: torsoRotation,
+      scaleX: authored.scaleX,
+      scaleY: authored.scaleY,
+    );
+    joints[chestId] = _addJointRotation(pose.jointOf(chestId), chestDelta);
+    return Pose(
+      joints: joints,
+      rootDx: pose.rootDx,
+      rootDy: pose.rootDy,
+      rootRotation: pose.rootRotation,
+    );
+  }
+
+  /// Fraction of the authored trunk rotation carried by the thoracic joint.
+  static const double _kThoracicShare = 0.45;
+
+  /// Shoulders answer the trunk a beat late: the clavicles pick up a clamped
+  /// share of how much the trunk has MOVED over the last [_girdleLagFraction]
+  /// of the clip (a lagged difference — pure in time, so film strips stay
+  /// deterministic). When the chest whips into a new direction the shoulder
+  /// line trails and catches up, instead of the whole girdle arriving with the
+  /// trunk like a welded plate. Composes with authored clavicle keys and the
+  /// raised-arm shrug ([_shoulderCorrectedPose]).
+  Pose _girdleFollowPose(Clip clip, double timeSeconds, Pose pose) {
+    if (!_isDanceFamily(clip) || clip.duration <= 0) return pose;
+    final clavicleIds = _clavicleBoneIds;
+    if (clavicleIds.isEmpty) return pose;
+
+    final lag = clip.duration * _girdleLagFraction;
+    final delta = _clampMagnitude(
+      (_trunkDriveEstimate(clip, timeSeconds - lag) -
+              _trunkDriveEstimate(clip, timeSeconds)) *
+          0.35,
+      0.045,
+    );
+    if (delta.abs() < 0.0005) return pose;
+
+    final joints = Map<String, JointPose>.of(pose.joints);
+    for (final clavicleId in clavicleIds) {
+      joints[clavicleId] = _addJointRotation(pose.jointOf(clavicleId), delta);
+    }
+    return Pose(
+      joints: joints,
+      rootDx: pose.rootDx,
+      rootDy: pose.rootDy,
+      rootRotation: pose.rootRotation,
+    );
+  }
+
+  static const double _girdleLagFraction = 1 / 24;
+
+  /// The head trails a touch longer than the shoulders — the follow-through
+  /// travels UP the body (trunk → girdle → skull), each stage a little later.
+  static const double _headLagFraction = 1 / 16;
+
+  late final List<String> _clavicleBoneIds = [
+    for (final bone in rig.bones)
+      if (bone.id.toLowerCase().contains('clavicle')) bone.id,
+  ];
+
+  /// Cheap estimate of the trunk's world bank at [timeSeconds], straight from
+  /// the raw clip pose (no FK solve): the rotation chain that reaches the neck
+  /// root. Used by the lagged-difference follow terms (girdle, head), where
+  /// only the CHANGE of bank over a short lag matters.
+  double _trunkDriveEstimate(Clip clip, double timeSeconds) {
+    final pose = evaluator.evaluate(clip, timeSeconds);
+    return pose.rootRotation +
+        _jointRotationForAny(pose, const ['hips', 'pelvis']) +
+        _jointRotationForAny(pose, const ['torso', 'chest']);
+  }
+
+  /// The thoracic spine bone: a child of the torso whose id names the chest.
+  late final String? _chestBoneId = () {
+    for (final bone in rig.bones) {
+      if (bone.parent != null && bone.id.toLowerCase().contains('chest')) {
+        return bone.id;
+      }
+    }
+    return null;
+  }();
+
+  /// Rotates the clavicle toward a raised/wide hand target before IK solves
+  /// the elbow and wrist — the shoulder girdle shrugging with the reach, which
+  /// carries the deltoid, armhole, and sleeve root along.
+  ///
+  /// This is the ONLY girdle corrective now. The old pass additionally
+  /// inflated socket/bicep scales per pose to patch hand-authored sleeve
+  /// meshes whose profile collapsed outside their tuned range; the ribbon
+  /// sleeve keeps its anatomical width profile in every pose, so no fabric
+  /// inflation exists anymore.
+  /// Autonomic ear twitches: a quick flick-and-settle on the ear TIP (with a
+  /// small echo at the base), each ear on its own sparse schedule. Runs for
+  /// every clip — an idle cat that never flicks an ear reads as a plush toy.
+  Pose _earLifePose(PoseModifierContext context, Pose pose) {
+    if (context.earTwitchLeft <= 0 && context.earTwitchRight <= 0) return pose;
+    final joints = Map<String, JointPose>.of(pose.joints);
+    var changed = false;
+    void twitch(String tipToken, double pulse, double side) {
+      if (pulse <= 0) return;
+      for (final bone in rig.bones) {
+        final id = bone.id.toLowerCase();
+        if (!id.contains('ear')) continue;
+        final isTip = id.contains('tip');
+        final suffixMatch = tipToken == '.l'
+            ? id.endsWith('.l')
+            : id.endsWith('.r');
+        if (!suffixMatch || id.contains('inner')) continue;
+        final delta = side * pulse * (isTip ? 0.24 : 0.07);
+        joints[bone.id] = _addJointRotation(pose.jointOf(bone.id), delta);
+        changed = true;
+      }
+    }
+
+    twitch('.l', context.earTwitchLeft, -1);
+    twitch('.r', context.earTwitchRight, 1);
+    if (!changed) return pose;
+    return Pose(
+      joints: joints,
+      rootDx: pose.rootDx,
+      rootDy: pose.rootDy,
+      rootRotation: pose.rootRotation,
+    );
+  }
+
+  Pose _shoulderCorrectedPose(Clip clip, double timeSeconds, Pose pose) {
+    if (clip.limbTargets.isEmpty) return pose;
+
+    final phase = evaluator.phaseAt(clip, timeSeconds);
+    final joints = Map<String, JointPose>.of(pose.joints);
+    var changed = false;
+
+    for (final target in clip.limbTargets) {
+      if (!_isHandBone(target.endBoneId)) continue;
+      final sample = target.channel.sample(phase);
+      final weight = sample.weight.clamp(0.0, 1.0);
+      if (weight <= 0) continue;
+
+      final engagement = _shoulderCorrectiveEngagement(sample) * weight;
+      if (engagement <= 0) continue;
+
+      final upper = rig.bone(target.upperBoneId);
+      if (upper == null || upper.parent == null) continue;
+      final side = _sideSign(target.endBoneId);
+      if (side == 0) continue;
+
+      // Only a real girdle bone may shrug. In a rig whose arm hangs straight
+      // off the trunk there is nothing anatomical to rotate — and the motion
+      // validator should keep flagging that rig, not have this pass twist the
+      // trunk to fake a response.
+      final clavicleId = upper.parent!;
+      if (!clavicleId.toLowerCase().contains('clavicle')) continue;
+      joints[clavicleId] = _ensureSignedRotation(
+        pose: joints[clavicleId] ?? JointPose.identity,
+        signedRotation: side * 0.13 * engagement,
+      );
+      changed = true;
+    }
+
+    if (!changed) return pose;
+    return Pose(
+      joints: joints,
+      rootDx: pose.rootDx,
+      rootDy: pose.rootDy,
+      rootRotation: pose.rootRotation,
+    );
   }
 
   Pose _limbTargetedPose(Clip clip, double timeSeconds, Pose pose) {
@@ -252,17 +666,189 @@ class CharacterScene {
       );
       if (solved == null) continue;
 
-      joints[target.upperBoneId] = solved.upper;
-      joints[target.lowerBoneId] = solved.lower;
-      currentPose = Pose(
-        joints: joints,
-        rootDx: pose.rootDx,
-        rootDy: pose.rootDy,
-        rootRotation: pose.rootRotation,
-      );
+      void commitSolution(({JointPose upper, JointPose lower}) solution) {
+        joints[target.upperBoneId] = solution.upper;
+        joints[target.lowerBoneId] = solution.lower;
+        currentPose = Pose(
+          joints: joints,
+          rootDx: pose.rootDx,
+          rootDy: pose.rootDy,
+          rootRotation: pose.rootRotation,
+        );
+      }
+
+      commitSolution(solved);
+
+      // Strong targets are choreographic controls, not soft hints. Run a
+      // corrective second solve from the just-updated pose so wrists/feet
+      // land closer to their controls when parent rotations and support
+      // anchors have moved the chain during the first solve. The correction
+      // FADES IN as the authored weight approaches full strength — the old
+      // hard weight>=0.98 gate switched the extra solve on discretely as an
+      // interpolated weight crossed it, stepping the end effector.
+      final refineBlend = _smoothUnit((weight - 0.9) / 0.1);
+      if (refineBlend > 0 && target.anchorBoneId != target.upperBoneId) {
+        final refined = _solveLimbTarget(
+          target,
+          sample,
+          currentPose,
+          weight,
+          worldAnchor: planted ? (x: footAnchor.x, y: footAnchor.y) : null,
+          anchorBlend: planted ? footAnchor.blend : 0,
+        );
+        if (refined != null) {
+          final first = (
+            upper: joints[target.upperBoneId] ?? JointPose.identity,
+            lower: joints[target.lowerBoneId] ?? JointPose.identity,
+          );
+          commitSolution((
+            upper: JointPose(
+              rotation: _lerpAngle(
+                first.upper.rotation,
+                refined.upper.rotation,
+                refineBlend,
+              ),
+              scaleX: refined.upper.scaleX,
+              scaleY: refined.upper.scaleY,
+            ),
+            lower: JointPose(
+              rotation: _lerpAngle(
+                first.lower.rotation,
+                refined.lower.rotation,
+                refineBlend,
+              ),
+              scaleX: refined.lower.scaleX,
+              scaleY: refined.lower.scaleY,
+            ),
+          ));
+        }
+      }
+
     }
 
     return currentPose;
+  }
+
+  /// Pulls the pelvis back inside a plausible support envelope before foot IK.
+  ///
+  /// Translating the final solved world would move the support foot and pelvis
+  /// together, so it would not fix balance. Applying this as a root-bias before
+  /// [LimbIkTarget] support anchoring lets the stance leg bend against the planted
+  /// foot while the upper body comes back over the base of support.
+  Pose _supportBalancedPose(Clip clip, double timeSeconds, Pose pose) {
+    final transition = clip.transitionPlan;
+    if (transition != null) {
+      return _transitionSupportBalancedPose(
+        clip,
+        timeSeconds,
+        pose,
+        transition,
+      );
+    }
+    if (!_isDanceFamily(clip) ||
+        !clip.supportFootWorldAnchor ||
+        clip.contactSpans.isEmpty) {
+      return pose;
+    }
+    final phase = _clipPhase(clip, timeSeconds);
+    final contact = _activeContactAt(clip, phase);
+    if (contact == null) return pose;
+
+    final anchorPose = evaluator.evaluate(
+      clip,
+      contact.anchorPhase * clip.duration,
+    );
+    final anchorWorld = solver.solve(anchorPose);
+    final support = _contactPoint(anchorWorld, contact.span.bone);
+    if (support == null) return pose;
+
+    final rootId = rig.bones.firstWhere((bone) => bone.parent == null).id;
+    final currentWorld = solver.solve(pose);
+    final hip = currentWorld[rootId]?.origin;
+    if (hip == null) return pose;
+
+    final delta = hip.x - support.x;
+    final envelope = _supportComEnvelope(clip, contact.span);
+    if (delta.abs() <= envelope) return pose;
+
+    final targetDelta = delta < 0 ? -envelope : envelope;
+    final blend = _supportComBlend(clip, contact.span, contact.strengthPhase);
+    if (blend <= 0) return pose;
+
+    return Pose(
+      joints: pose.joints,
+      rootDx: pose.rootDx + (targetDelta - delta) * blend,
+      rootDy: pose.rootDy,
+      rootRotation: pose.rootRotation,
+    );
+  }
+
+  Pose _transitionSupportBalancedPose(
+    Clip clip,
+    double timeSeconds,
+    Pose pose,
+    ClipTransitionPlan transition,
+  ) {
+    final p = _clipPhase(clip, timeSeconds);
+    final weight = _smoothUnit(transition.weight);
+    final dx =
+        _supportBalanceRootDelta(
+          source: transition.from,
+          phase: p,
+          pose: pose,
+          scale: 1 - weight,
+        ) +
+        _supportBalanceRootDelta(
+          source: transition.to,
+          phase: p,
+          pose: pose,
+          scale: weight,
+        );
+    if (dx.abs() < 0.001) return pose;
+    return Pose(
+      joints: pose.joints,
+      rootDx: pose.rootDx + dx,
+      rootDy: pose.rootDy,
+      rootRotation: pose.rootRotation,
+    );
+  }
+
+  double _supportBalanceRootDelta({
+    required Clip source,
+    required double phase,
+    required Pose pose,
+    required double scale,
+  }) {
+    if (scale <= 0 ||
+        !_isDanceFamily(source) ||
+        !source.supportFootWorldAnchor ||
+        source.contactSpans.isEmpty) {
+      return 0;
+    }
+    final contact = _activeContactAt(source, phase);
+    if (contact == null) return 0;
+
+    final anchorPose = evaluator.evaluate(
+      source,
+      contact.anchorPhase * source.duration,
+    );
+    final anchorWorld = solver.solve(anchorPose);
+    final support = _contactPoint(anchorWorld, contact.span.bone);
+    if (support == null) return 0;
+
+    final rootId = rig.bones.firstWhere((bone) => bone.parent == null).id;
+    final currentWorld = solver.solve(pose);
+    final hip = currentWorld[rootId]?.origin;
+    if (hip == null) return 0;
+
+    final delta = hip.x - support.x;
+    final envelope = _supportComEnvelope(source, contact.span);
+    if (delta.abs() <= envelope) return 0;
+
+    final targetDelta = delta < 0 ? -envelope : envelope;
+    final blend =
+        _supportComBlend(source, contact.span, contact.strengthPhase) * scale;
+    return (targetDelta - delta) * blend;
   }
 
   ({JointPose upper, JointPose lower})? _solveLimbTarget(
@@ -417,8 +1003,26 @@ class CharacterScene {
     // under a fixated head. Keeping ~26% of the lean lets the head ride WITH the
     // body — still damped well under the "subtle wobble" bound, but no longer a
     // fixed pivot the torso dangles from.
+    //
+    // On top of the damped ride, the head FOLLOWS THROUGH: a lagged-difference
+    // term (trunk bank a moment ago minus now — pure in time, deterministic)
+    // makes the skull trail the trunk into each direction change and catch up
+    // after, the whip a dancer's head actually has, instead of arriving welded
+    // to the chest.
+    final headFollow = _isDanceFamily(clip) && clip.duration > 0
+        ? _clampMagnitude(
+            (_trunkDriveEstimate(
+                      clip,
+                      timeSeconds - clip.duration * _headLagFraction,
+                    ) -
+                    _trunkDriveEstimate(clip, timeSeconds)) *
+                0.45 *
+                clip.danceHeadBobScale,
+            0.06,
+          )
+        : 0.0;
     final rotationCorrection = _isDanceFamily(clip)
-        ? -headRotation * 0.74 + danceAttitude
+        ? -headRotation * 0.74 + danceAttitude + headFollow
         : 0.0;
     final correction = _rigidLinearCorrection(
       headWorld,
@@ -433,9 +1037,27 @@ class CharacterScene {
       anchor.x,
       anchor.y,
     ).multiply(correction).multiply(Affine2D.translation(-anchor.x, -anchor.y));
+    // Lateral follow-through, same lagged-difference model as the rotation:
+    // the skull trails the pelvis groove by a few px and catches up, so fast
+    // side-to-side pockets read as a head riding a spring, not a bolted mass.
+    // Clamped tight — the collar join must never gap.
+    final headDxFollow = _isDanceFamily(clip) && clip.duration > 0
+        ? _clampMagnitude(
+            (evaluator
+                        .evaluate(
+                          clip,
+                          timeSeconds - clip.duration * _headLagFraction,
+                        )
+                        .rootDx -
+                    rootDx) *
+                0.22,
+            5,
+          )
+        : 0.0;
     final headCounterTranslate = _isDanceFamily(clip)
         ? Affine2D.translation(
-            _danceHeadHorizontalCounter(rootDx, clip.danceHeadBobScale) *
+            (_danceHeadHorizontalCounter(rootDx, clip.danceHeadBobScale) +
+                    headDxFollow) *
                 baseScale,
             _danceHeadVerticalCounter(rootDy, clip.danceHeadBobScale) *
                 baseScale,
@@ -506,8 +1128,17 @@ class CharacterScene {
     return math.min(d, 1 - d);
   }
 
-  static double _uniformScale(Affine2D transform) =>
-      math.sqrt(transform.a * transform.a + transform.b * transform.b);
+  /// The base's VERTICAL axis scale — the head-normalization target.
+  ///
+  /// The trio's dance view folds a horizontal quarter-turn foreshorten into
+  /// the base transform (x column scaled by 0.68 for flankers). Normalizing
+  /// the head to the x-column norm shrank upstage heads UNIFORMLY to the
+  /// foreshorten factor — small heads on full-height bodies, the "scales in
+  /// the back are wrong" read. The y column carries the true plane scale
+  /// (camera zoom, member scale) untouched by foreshorten or flip, so heads
+  /// keep their plane's size while the body turns.
+  static double _verticalScale(Affine2D transform) =>
+      math.sqrt(transform.c * transform.c + transform.d * transform.d);
 
   Affine2D? _rigidLinearCorrection(
     Affine2D current, {
@@ -613,12 +1244,52 @@ class CharacterScene {
     return false;
   }
 
+  double _shoulderCorrectiveEngagement(IkTargetPose sample) {
+    // Ramp begins just below shoulder height so a hand AT the shoulder line
+    // (y ≈ -60, where the motion validator starts expecting girdle response)
+    // already carries a slight shrug, reaching the full response overhead.
+    final raised = smoothstep((-sample.y - 34) / 56);
+    final wideReach = smoothstep((sample.x.abs() - 62) / 34) * 0.55;
+    return math.max(raised, wideReach).clamp(0.0, 1.0);
+  }
+
+  /// Nudges [pose]'s rotation to at least [signedRotation] in its direction,
+  /// leaving any stronger same-direction authored rotation alone.
+  JointPose _ensureSignedRotation({
+    required JointPose pose,
+    required double signedRotation,
+  }) {
+    var rotation = pose.rotation;
+    if (signedRotation != 0 &&
+        (rotation * signedRotation < 0 ||
+            rotation.abs() < signedRotation.abs())) {
+      rotation = signedRotation;
+    }
+    return JointPose(
+      rotation: rotation,
+      scaleX: pose.scaleX,
+      scaleY: pose.scaleY,
+    );
+  }
+
+  bool _isHandBone(String boneId) => boneId.toLowerCase().contains('hand');
+
+  int _sideSign(String boneId) {
+    if (boneId.endsWith('.L')) return 1;
+    if (boneId.endsWith('.R')) return -1;
+    return 0;
+  }
+
   /// In-place performance clips do not locomote, but their support foot still
   /// needs to feel planted. [Clip.contactSpans] marks that support foot; this
   /// pass translates the root toward the contact-start anchor. Loops use a
   /// weaker correction than one-shots so dance contacts gain weight without
   /// snapping at support handoffs.
   Pose _contactLockedPose(Clip clip, double timeSeconds, Pose pose) {
+    final transition = clip.transitionPlan;
+    if (transition != null) {
+      return _transitionContactLockedPose(clip, timeSeconds, pose, transition);
+    }
     final p = _clipPhase(clip, timeSeconds);
     final contact = _activeContactAt(clip, p);
     if (contact == null) return pose;
@@ -641,6 +1312,321 @@ class CharacterScene {
       rootDy: pose.rootDy + (anchor.y - current.y) * strength.y,
       rootRotation: pose.rootRotation,
     );
+  }
+
+  Pose _transitionContactLockedPose(
+    Clip clip,
+    double timeSeconds,
+    Pose pose,
+    ClipTransitionPlan transition,
+  ) {
+    final p = _clipPhase(clip, timeSeconds);
+    final weight = _smoothUnit(transition.weight);
+    final outgoing = _contactLockRootDelta(
+      source: transition.from,
+      phase: p,
+      pose: pose,
+      scale: 1 - weight,
+    );
+    final incoming = _contactLockRootDelta(
+      source: transition.to,
+      phase: p,
+      pose: pose,
+      scale: weight,
+    );
+    final dx = outgoing.dx + incoming.dx;
+    final dy = outgoing.dy + incoming.dy;
+    if (dx.abs() < 0.001 && dy.abs() < 0.001) return pose;
+    return Pose(
+      joints: pose.joints,
+      rootDx: pose.rootDx + dx,
+      rootDy: pose.rootDy + dy,
+      rootRotation: pose.rootRotation,
+    );
+  }
+
+  ({double dx, double dy}) _contactLockRootDelta({
+    required Clip source,
+    required double phase,
+    required Pose pose,
+    required double scale,
+  }) {
+    if (scale <= 0 || source.contactSpans.isEmpty) {
+      return (dx: 0.0, dy: 0.0);
+    }
+    final contact = _activeContactAt(source, phase);
+    if (contact == null) return (dx: 0.0, dy: 0.0);
+
+    final span = contact.span;
+    final anchorPose = evaluator.evaluate(
+      source,
+      contact.anchorPhase * source.duration,
+    );
+    final currentWorld = solver.solve(pose);
+    final anchorWorld = solver.solve(anchorPose);
+    final current = _contactPoint(currentWorld, span.bone);
+    final anchor = _contactPoint(anchorWorld, span.bone);
+    if (current == null || anchor == null) return (dx: 0.0, dy: 0.0);
+    final strength = _contactLockStrength(source, span, contact.strengthPhase);
+
+    return (
+      dx: (anchor.x - current.x) * strength.x * scale,
+      dy: (anchor.y - current.y) * strength.y * scale,
+    );
+  }
+
+  /// Bends the shoe at the ball of the foot — real soles flex when dancing.
+  ///
+  /// For each `toe_flex` joint (pivoted at the ball), the solved world pitch
+  /// of its foot is measured. When the foot pitches TOE-DOWN (heel lifting)
+  /// while the ball is still at floor height, the flex joint counter-rotates
+  /// so the toe segment stays flat on the floor — the sole visibly curves
+  /// through toe-offs and heel-toe knocks. The bend is weighted by the
+  /// ball's proximity to the floor, so an airborne pointed toe keeps a
+  /// straight sole, and it is one-sided: soles do not bend backwards on
+  /// heel strikes. Pure in pose+rig (rig-space floor from [restFeetOffset]),
+  /// so film strips stay deterministic.
+  Pose _soleFlexedPose(Pose pose) {
+    final flexIds = _toeFlexBoneIds;
+    if (flexIds.isEmpty) return pose;
+
+    final world = solver.solve(pose);
+    Map<String, JointPose>? joints;
+
+    // The GROUND this frame is wherever the lowest sole point stands — the
+    // dance rides far below the rest-pose floor (root drop + contact locks),
+    // so a fixed rest-floor reference never triggers on real dig frames.
+    var frameFloorY = double.negativeInfinity;
+    final tips = <String, ({double x, double y})>{};
+    final heels = <String, ({double x, double y})>{};
+    for (final flexId in flexIds) {
+      final flexBone = rig.bone(flexId)!;
+      final footWorld = world[flexBone.parent];
+      final flexWorld = world[flexId];
+      if (footWorld == null || flexWorld == null) continue;
+      final tip = flexWorld.transformPoint(-12, 1);
+      final heel = footWorld.transformPoint(8, 10);
+      tips[flexId] = tip;
+      heels[flexId] = heel;
+      frameFloorY = math.max(frameFloorY, math.max(tip.y, heel.y));
+    }
+
+    for (final flexId in flexIds) {
+      final flexBone = rig.bone(flexId)!;
+      final footWorld = world[flexBone.parent];
+      final tip = tips[flexId];
+      final heel = heels[flexId];
+      if (footWorld == null || tip == null || heel == null) continue;
+
+      // Toe-down pitch: the foot's toe points local -x, so a NEGATIVE world
+      // rotation drops the toe / raises the heel.
+      final pitch = _worldRotation(footWorld);
+      if (pitch >= -0.04) continue;
+
+      // The toe must be the WEIGHT-BEARING end: lower than the heel and
+      // near the frame's ground. An airborne pointed toe keeps its sole
+      // straight; a dig or heel-lift bends it.
+      if (tip.y <= heel.y + 2) continue;
+      final gap = frameFloorY - tip.y;
+      final proximity = (1 - gap / 18).clamp(0.0, 1.0);
+      if (proximity <= 0) continue;
+
+      final flex = (-pitch - 0.04) * 1.15 * proximity;
+      final delta = flex.clamp(0.0, 0.8);
+      if (delta < 0.01) continue;
+
+      joints ??= Map<String, JointPose>.of(pose.joints);
+      joints[flexId] = _addJointRotation(pose.jointOf(flexId), delta);
+    }
+
+    if (joints == null) return pose;
+    return Pose(
+      joints: joints,
+      rootDx: pose.rootDx,
+      rootDy: pose.rootDy,
+      rootRotation: pose.rootRotation,
+    );
+  }
+
+  late final List<String> _toeFlexBoneIds = [
+    for (final bone in rig.bones)
+      if (bone.id.toLowerCase().contains('toe_flex')) bone.id,
+  ];
+
+  /// Clamps every joint carrying a [JointRotationLimit] into its anatomical
+  /// range — the last word after clips, IK, and correctives. A pose that
+  /// violates a hinge (a backward knee, a wrap-around elbow) degrades to the
+  /// nearest legal configuration instead of rendering the impossible.
+  ///
+  /// Before the per-joint clamps it applies the coupled arm anti-fold rule
+  /// ([armFoldCorrections]) — the contralateral elbows-pinched-at-the-sternum
+  /// fold that no single-joint range can see.
+  Pose _jointLimitedPose(Pose pose) {
+    Map<String, JointPose>? joints;
+    final folds = armFoldCorrections(pose);
+    for (final fold in folds.entries) {
+      final joint = pose.jointOf(fold.key);
+      joints ??= Map<String, JointPose>.of(pose.joints);
+      joints[fold.key] = JointPose(
+        rotation: joint.rotation + fold.value,
+        scaleX: joint.scaleX,
+        scaleY: joint.scaleY,
+      );
+    }
+    for (final bone in _limitedBones) {
+      final limit = bone.rotationLimit!;
+      final joint = joints?[bone.id] ?? pose.jointOf(bone.id);
+      final clamped = limit.clampAngle(joint.rotation);
+      if (clamped == joint.rotation) continue;
+      joints ??= Map<String, JointPose>.of(pose.joints);
+      joints[bone.id] = JointPose(
+        rotation: clamped,
+        scaleX: joint.scaleX,
+        scaleY: joint.scaleY,
+      );
+    }
+    if (joints == null) return pose;
+    return Pose(
+      joints: joints,
+      rootDx: pose.rootDx,
+      rootDy: pose.rootDy,
+      rootRotation: pose.rootRotation,
+    );
+  }
+
+  late final List<Bone> _limitedBones = [
+    for (final bone in rig.bones)
+      if (bone.rotationLimit != null) bone,
+  ];
+
+  /// Shoulder→elbow→hand chains for the coupled arm anti-fold rule, discovered
+  /// by the same id convention the other passes use (`toe_flex`, `clavicle`).
+  late final List<({Bone upper, Bone lower, Bone end})> _armFoldChains = [
+    for (final upper in rig.bones)
+      if (upper.id.toLowerCase().contains('arm_upper'))
+        for (final lower in rig.bones)
+          if (lower.parent == upper.id &&
+              lower.id.toLowerCase().contains('arm_lower'))
+            for (final end in rig.bones)
+              if (end.parent == lower.id &&
+                  end.id.toLowerCase().contains('hand'))
+                (upper: upper, lower: lower, end: end),
+  ];
+
+  /// Lateral-side elbow flexion available when the upper arm is NOT adducted
+  /// (hanging or abducted): in this 2D rig the bend side stands in for
+  /// humeral rotation, so a free humerus may flex on either side almost to
+  /// the hinge stop (the elbow ROM clamp owns the extremes).
+  static const double _kArmFoldNeutralLateralFlex = 2.6;
+
+  /// How fast the lateral-flexion allowance collapses as the humerus adducts
+  /// across the chest: internal rotation locks the hinge plane, and by
+  /// ~0.65 rad of adduction the forearm can no longer break outboard at all.
+  static const double _kArmFoldAdductionSlope = 4;
+
+  /// Adduction (medial upper-arm tilt from body-down) beyond which the rule
+  /// stops applying: the arm is heading overhead-across, where humeral
+  /// rotation freedom returns and outboard forearms are legal again.
+  static const double _kArmFoldAdductionCutoff = 1.55;
+
+  /// Elbow local-rotation corrections that remove anatomically impossible
+  /// contralateral folds, keyed by forearm bone id.
+  ///
+  /// Per-joint ROM clamps cannot catch this pose: every joint is individually
+  /// inside its range. The impossibility is COUPLED — when the upper arm is
+  /// adducted across the chest (elbow swung toward the body midline, below
+  /// the shoulder) the humerus is internally rotated, so the forearm can only
+  /// continue toward the midline; it cannot break back outboard ("elbows
+  /// pinched at the sternum, paws flared out"). The metered quantity is the
+  /// RELATIVE elbow bend: lateral-side flexion is unrestricted on a free
+  /// humerus and collapses to zero as adduction grows, relaxing again as the
+  /// arm raises overhead where humeral rotation freedom returns.
+  Map<String, double> armFoldCorrections(Pose pose) {
+    if (_armFoldChains.length < 2) return const {};
+    Map<String, double>? corrections;
+    final world = solver.solve(pose);
+    for (final chain in _armFoldChains) {
+      final upperWorld = world[chain.upper.id];
+      final lowerWorld = world[chain.lower.id];
+      final endWorld = world[chain.end.id];
+      if (upperWorld == null || lowerWorld == null || endWorld == null) {
+        continue;
+      }
+      final shoulder = upperWorld.origin;
+      final elbow = lowerWorld.origin;
+      final wrist = endWorld.origin;
+      // Medial = toward the OTHER shoulder, in the girdle's own frame — the
+      // root's lateral weight commits and trunk banks move the body midline
+      // far off world x = 0.
+      final other = _armFoldChains
+          .firstWhere((c) => !identical(c, chain), orElse: () => chain);
+      final otherWorld = world[other.upper.id];
+      if (otherWorld == null || identical(other, chain)) continue;
+      final otherShoulder = otherWorld.origin;
+      final medialX = otherShoulder.x - shoulder.x;
+      final medialY = otherShoulder.y - shoulder.y;
+      final medialLength = math.sqrt(medialX * medialX + medialY * medialY);
+      if (medialLength < 1e-6) continue;
+      final mx = medialX / medialLength;
+      final my = medialY / medialLength;
+      // Body-down = the girdle perpendicular that points toward gravity.
+      var dx = -my;
+      var dy = mx;
+      if (dy < 0) {
+        dx = -dx;
+        dy = -dy;
+      }
+      final upperMedial = (elbow.x - shoulder.x) * mx + (elbow.y - shoulder.y) * my;
+      final upperDown = (elbow.x - shoulder.x) * dx + (elbow.y - shoulder.y) * dy;
+      // Signed tilt of the upper arm from body-down; + = adducted.
+      final adduction = math.atan2(upperMedial, upperDown);
+      if (adduction >= _kArmFoldAdductionCutoff) continue;
+      final foreMedial = (wrist.x - elbow.x) * mx + (wrist.y - elbow.y) * my;
+      final foreDown = (wrist.x - elbow.x) * dx + (wrist.y - elbow.y) * dy;
+      // Signed tilt of the forearm from body-down; - = breaking outboard.
+      final foldTilt = math.atan2(foreMedial, foreDown);
+      // The RELATIVE elbow bend (forearm vs upper arm) is what anatomy
+      // limits: lateral-side flexion is fine on a free humerus (a reach, a
+      // hammer curl) and impossible on one adducted across the chest.
+      final relativeBend = _shortestAngle(foldTilt - adduction);
+      final allowance =
+          math.max(
+            0,
+            _kArmFoldNeutralLateralFlex -
+                _kArmFoldAdductionSlope * math.max(0, adduction),
+          ) +
+          math.max(0, (adduction - 1.15) * 2.2);
+      if (relativeBend >= -allowance) continue;
+      // Illegal arc is (-pi, -allowance); clamp to the nearer boundary that
+      // the elbow's own ROM can actually reach — otherwise the ROM clamp
+      // that runs after would drag the forearm back into the illegal arc.
+      final toCarryBoundary = -allowance - relativeBend;
+      final toOverheadBoundary = relativeBend + math.pi;
+      // foldTilt grows toward medial; whether that is a positive or negative
+      // world rotation depends on which way medial points for this arm.
+      final medialSign = mx >= 0 ? 1.0 : -1.0;
+      final ordered = toCarryBoundary <= toOverheadBoundary
+          ? [toCarryBoundary, -toOverheadBoundary]
+          : [-toOverheadBoundary, toCarryBoundary];
+      final currentLocal = pose.jointOf(chain.lower.id).rotation;
+      final limit = chain.lower.rotationLimit;
+      var localDelta = -medialSign * ordered.first;
+      for (final tiltDelta in ordered) {
+        final candidate = currentLocal + -medialSign * tiltDelta;
+        if (limit == null ||
+            (limit.clampAngle(candidate) - candidate).abs() < 1e-9) {
+          localDelta = -medialSign * tiltDelta;
+          break;
+        }
+      }
+      // Emit the branch-normalized equivalent so a large correction lands on
+      // a sane (-pi, pi] joint value instead of a +-2pi representation.
+      localDelta =
+          _shortestAngle(currentLocal + localDelta) - currentLocal;
+      corrections ??= <String, double>{};
+      corrections[chain.lower.id] = localDelta;
+    }
+    return corrections ?? const {};
   }
 
   double _clipPhase(Clip clip, double timeSeconds) {
@@ -720,22 +1706,60 @@ class CharacterScene {
     return strength * edge;
   }
 
+  double _supportComEnvelope(Clip clip, GroundSpan span) {
+    if (clip.name == 'zanku') return 46;
+    if (clip.name == 'sekem') return 50;
+    if (clip.name == 'buga') return 58;
+    if (clip.name == 'azonto') return 58;
+    if (clip.name == 'shaku' || clip.name.startsWith('danceBackup')) return 64;
+    if (clip.name == 'pouncingCat') return 62;
+    final spanLength = span.end - span.start;
+    return spanLength <= 0.135 ? 50 : 62;
+  }
+
+  double _supportComBlend(Clip clip, GroundSpan span, double p) {
+    final spanLength = span.end - span.start;
+    final fade = (spanLength * 0.28).clamp(0.05, 0.1);
+    final fadeIn = _smoothUnit((p - span.start) / fade);
+    final fadeOut = _smoothUnit((span.end - p) / fade);
+    final edge = fadeIn < fadeOut ? fadeIn : fadeOut;
+    final base = spanLength <= 0.135
+        ? 0.72
+        : spanLength <= 0.26
+        ? 0.58
+        : (clip.name == 'shaku' || clip.name.startsWith('danceBackup'))
+        ? 0.26
+        : 0.42;
+    return base * edge * clip.supportFootWorldAnchorStrength;
+  }
+
   ({double x, double y}) _contactLockStrength(
     Clip clip,
     GroundSpan span,
     double p,
   ) {
     final dance = _isDanceFamily(clip);
-    // A world-anchored support foot already holds itself, so the root only needs
-    // a light horizontal nudge — a strong pull would re-skate the planted foot
-    // and cancel the lateral groove.
+    final spanLength = span.end - span.start;
+    // A world-anchored support foot holds the IK endpoint, but the root still
+    // needs enough horizontal correction for the pelvis to visibly load over
+    // that planted shoe. Keep this below the non-anchored dance lock so stance
+    // width and authored groove survive, but do not leave it at a token nudge:
+    // mid-stance catalogue moves otherwise read as side-view toe skates. Short
+    // per-beat plants can take a stronger hold than long Shaku/Azonto groove
+    // spans, where too much correction whips the head laterally.
+    final anchoredDanceBaseX = spanLength <= 0.135
+        ? 0.38
+        : spanLength <= 0.26
+        ? 0.3
+        : (clip.name == 'shaku' || clip.name.startsWith('danceBackup'))
+        ? 0.16
+        : 0.26;
     final baseX = clip.supportFootWorldAnchor
-        ? 0.1
+        ? (dance ? anchoredDanceBaseX : 0.18)
         : dance
         ? 0.55
         : (clip.loop ? 0.8 : 0.94);
     final baseY = dance ? 0.94 : (clip.loop ? 0.8 : 0.94);
-    final spanLength = span.end - span.start;
     final fade = dance
         ? (spanLength * 0.24).clamp(0.044, 0.058)
         : (clip.loop ? (spanLength * 0.2).clamp(0.018, 0.035) : 0.08);
@@ -750,14 +1774,64 @@ class CharacterScene {
     return x * x * (3 - 2 * x);
   }
 
-  bool _isDanceFamily(Clip clip) =>
-      clip.name == 'shaku' ||
-      clip.name == 'zanku' ||
-      clip.name == 'azonto' ||
-      clip.name == 'buga' ||
-      clip.name == 'pouncingCat' ||
-      clip.name == 'sekem' ||
-      clip.name.startsWith('danceBackup');
+  double _clampMagnitude(double value, double limit) =>
+      value.clamp(-limit, limit);
+
+  JointPose _addJointRotation(JointPose pose, double delta) => JointPose(
+    rotation: pose.rotation + delta,
+    scaleX: pose.scaleX,
+    scaleY: pose.scaleY,
+  );
+
+  double _jointRotationForAny(Pose pose, List<String> boneIds) {
+    for (final boneId in boneIds) {
+      final joint = pose.joints[boneId];
+      if (joint != null) return joint.rotation;
+    }
+    return 0;
+  }
+
+  List<String> _tailBoneIds() {
+    final ids = [
+      for (final bone in rig.bones)
+        if (bone.id.toLowerCase().startsWith('tail')) bone.id,
+    ]..sort((a, b) => _trailingIndex(a).compareTo(_trailingIndex(b)));
+    return ids;
+  }
+
+  List<String> _outerEarBoneIds() => [
+    for (final bone in rig.bones)
+      if (_isOuterEarBone(bone.id)) bone.id,
+  ];
+
+  bool _isOuterEarBone(String boneId) {
+    final id = boneId.toLowerCase();
+    // Outer ear BASE and TIP joints both follow the groove (with different
+    // gains); inner-ear detail shapes ride their parents.
+    return id.contains('ear') && !id.contains('inner');
+  }
+
+  int _trailingIndex(String boneId) {
+    var start = boneId.length;
+    while (start > 0) {
+      final unit = boneId.codeUnitAt(start - 1);
+      if (unit < 0x30 || unit > 0x39) break;
+      start--;
+    }
+    if (start == boneId.length) return 0;
+    return int.tryParse(boneId.substring(start)) ?? 0;
+  }
+
+  bool _isDanceFamily(Clip clip) => clip.transitionPlan != null
+      ? _isDanceFamily(clip.transitionPlan!.from) ||
+            _isDanceFamily(clip.transitionPlan!.to)
+      : clip.name == 'shaku' ||
+            clip.name == 'zanku' ||
+            clip.name == 'azonto' ||
+            clip.name == 'buga' ||
+            clip.name == 'pouncingCat' ||
+            clip.name == 'sekem' ||
+            clip.name.startsWith('danceBackup');
 
   ({double x, double y})? _contactPoint(
     Map<String, Affine2D> world,

@@ -38,6 +38,93 @@ class LayeredJointChannel extends JointChannel {
   }
 }
 
+/// Blends two sampled joint channels.
+///
+/// This is the small runtime mixer primitive used for dance transitions: the
+/// painter and solver still receive a normal [Clip], but its channels can fade
+/// from one move into the next instead of hard-cutting between unrelated poses.
+class BlendedJointChannel extends JointChannel {
+  const BlendedJointChannel({
+    required this.weight,
+    this.from,
+    this.to,
+  }) : assert(weight >= 0 && weight <= 1, 'weight must be in 0..1');
+
+  final JointChannel? from;
+  final JointChannel? to;
+  final double weight;
+
+  @override
+  JointPose sample(double p) {
+    final a = from?.sample(p) ?? JointPose.identity;
+    final b = to?.sample(p) ?? JointPose.identity;
+    return JointPose(
+      rotation: _lerp(a.rotation, b.rotation, weight),
+      scaleX: _lerp(a.scaleX, b.scaleX, weight),
+      scaleY: _lerp(a.scaleY, b.scaleY, weight),
+    );
+  }
+}
+
+/// Maps the global 0..1 transition progress into a local blend window.
+///
+/// A plain per-bone mask that never reaches `1` would pop when a temporary
+/// transition clip is replaced by the incoming clip. Windows solve that by
+/// letting layers start late or finish early while still arriving at the target
+/// by the end of the transition.
+class ClipBlendWindow {
+  const ClipBlendWindow({
+    this.start = 0,
+    this.end = 1,
+  }) : assert(start >= 0 && start <= 1, 'start must be in 0..1'),
+       assert(end >= 0 && end <= 1, 'end must be in 0..1'),
+       assert(start <= end, 'start must not be after end');
+
+  static const full = ClipBlendWindow();
+
+  final double start;
+  final double end;
+
+  double transform(double weight) {
+    assert(weight >= 0 && weight <= 1, 'weight must be in 0..1');
+    if (start == 0 && end == 1) return weight;
+    if (start == end) return weight < start ? 0 : 1;
+    final local = ((weight - start) / (end - start)).clamp(0.0, 1.0);
+    return _smoothUnit(local);
+  }
+}
+
+/// Per-layer blend timing for a temporary [blendedClip].
+///
+/// This is the first small DanceMixer primitive: body/root/support can settle on
+/// one timing, hands can lag, and tail/ears/tie can follow last without creating
+/// a hard jump when the transition clip expires.
+class ClipBlendMask {
+  const ClipBlendMask({
+    this.root = ClipBlendWindow.full,
+    this.defaultJoint = ClipBlendWindow.full,
+    this.joints = const <String, ClipBlendWindow>{},
+    this.defaultLimbTarget = ClipBlendWindow.full,
+    this.limbTargets = const <String, ClipBlendWindow>{},
+  });
+
+  static const full = ClipBlendMask();
+
+  final ClipBlendWindow root;
+  final ClipBlendWindow defaultJoint;
+  final Map<String, ClipBlendWindow> joints;
+  final ClipBlendWindow defaultLimbTarget;
+  final Map<String, ClipBlendWindow> limbTargets;
+
+  double rootWeight(double weight) => root.transform(weight);
+
+  double jointWeight(String boneId, double weight) =>
+      (joints[boneId] ?? defaultJoint).transform(weight);
+
+  double limbTargetWeight(String endBoneId, double weight) =>
+      (limbTargets[endBoneId] ?? defaultLimbTarget).transform(weight);
+}
+
 /// Cyclic joint motion as a phase-shifted sinusoid plus an optional second
 /// harmonic (for the sharper snap of a knee/elbow that a pure sine can't make).
 ///
@@ -116,7 +203,11 @@ class Keyframe {
     this.scaleY = 1,
     this.ease = Ease.easeInOut,
     this.easeFn,
-  });
+    this.tension = 0,
+  }) : assert(
+         tension >= -1 && tension <= 1,
+         'tension must be in -1..1',
+       );
 
   /// Phase position of the key, 0..1.
   final double p;
@@ -132,9 +223,18 @@ class Keyframe {
   /// [ease] it may leave 0..1 to inject anticipation/overshoot — this is how a
   /// `DanceDynamics`-driven accent reshapes its drive-in. Honoured only on the
   /// per-segment (non-`smooth`) interpolation path; the Catmull-Rom `smooth`
-  /// path ignores per-key easing entirely, so dynamics accents must be compiled
-  /// into a non-smooth channel.
+  /// path ignores per-key easing entirely — accents on the smooth path are
+  /// authored with [tension] instead.
   final EaseCurve? easeFn;
+
+  /// Kochanek–Bartels-style tangent tension for the `smooth` path, applied to
+  /// THIS key's tangent in both adjacent segments (so continuity is kept by
+  /// construction). `0` = plain Catmull-Rom flow. `1` = zero tangent: the
+  /// motion ARRIVES DEAD at this key and accelerates away — a stamp, a hit, a
+  /// moving hold. Negative values loosen the tangent for overshoot. This is
+  /// what lets flow and beat-attack compose on one channel: flow between
+  /// keys, attack exactly at the accent keys.
+  final double tension;
 }
 
 /// One-shot joint motion as eased keyframes. Keys must be sorted by [Keyframe.p]
@@ -145,7 +245,12 @@ class Keyframe {
 /// one step cycle, the right at `phase: 0.5`. It is only meaningful for looping
 /// clips whose first and last keys match; one-shots leave it at 0.
 class KeyframeChannel extends JointChannel {
-  const KeyframeChannel(this.keys, {this.phase = 0, this.smooth = false});
+  const KeyframeChannel(
+    this.keys, {
+    this.phase = 0,
+    this.smooth = false,
+    this.cyclic = false,
+  });
 
   final List<Keyframe> keys;
   final double phase;
@@ -161,12 +266,21 @@ class KeyframeChannel extends JointChannel {
   /// ease, incl. `*Back` settles, is intentional).
   final bool smooth;
 
+  /// When true, key phases are treated as a wrapping cycle instead of a clamped
+  /// range. This is for looping dance channels whose authored keys may land a
+  /// fraction before frame 0 or after the last frame because of micro-timing.
+  final bool cyclic;
+
   @override
   JointPose sample(double rawP) {
-    final p = phase == 0
+    final shifted = rawP + phase;
+    final p = cyclic
+        ? _unitPhase(shifted)
+        : phase == 0
         ? rawP
-        : (rawP + phase) - (rawP + phase).floorToDouble();
+        : _unitPhase(shifted);
     if (keys.isEmpty) return JointPose.identity;
+    if (cyclic) return _sampleCyclic(p);
     if (p <= keys.first.p) return _poseOf(keys.first);
     if (p >= keys.last.p) return _poseOf(keys.last);
 
@@ -197,12 +311,40 @@ class KeyframeChannel extends JointChannel {
   JointPose _poseOf(Keyframe k) =>
       JointPose(rotation: k.rotation, scaleX: k.scaleX, scaleY: k.scaleY);
 
+  JointPose _sampleCyclic(double p) {
+    final cyclicKeys = _normalizedCyclicKeys(keys, (key) => key.p);
+    if (cyclicKeys.isEmpty) return JointPose.identity;
+    if (cyclicKeys.length == 1) return _poseOf(cyclicKeys.single.key);
+
+    final segment = _cyclicSegment(cyclicKeys, p);
+    final k0 = segment.start.key;
+    final k1 = segment.end.key;
+    if (smooth) {
+      return JointPose(
+        rotation: _cyclicCatmullRom(
+          cyclicKeys,
+          (key) => key.rotation,
+          (key) => key.tension,
+          segment,
+          ),
+        scaleX: _cyclicCatmullRom(cyclicKeys, (key) => key.scaleX, (key) => key.tension, segment),
+        scaleY: _cyclicCatmullRom(cyclicKeys, (key) => key.scaleY, (key) => key.tension, segment),
+      );
+    }
+    final t = k1.easeFn?.call(segment.local) ?? k1.ease.apply(segment.local);
+    return JointPose(
+      rotation: k0.rotation + (k1.rotation - k0.rotation) * t,
+      scaleX: k0.scaleX + (k1.scaleX - k0.scaleX) * t,
+      scaleY: k0.scaleY + (k1.scaleY - k0.scaleY) * t,
+    );
+  }
+
   /// Cubic Hermite for the segment [i,i+1] at [local] (0..1, span [dp]), with
   /// finite-difference tangents that wrap around the cycle (period = last-first
   /// key p, assuming the endpoints coincide). This is C1-continuous, so the
   /// joint never stops at an intermediate key.
   double _spline(int i, double local, double dp, double Function(Keyframe) f) =>
-      periodicCatmullRom(keys, (k) => k.p, f, i, local, dp);
+      _periodicCatmullRom(keys, (k) => k.p, f, (k) => k.tension, i, local, dp);
 }
 
 /// A sampled inverse-kinematics target for a two-bone limb chain.
@@ -268,6 +410,98 @@ class LayeredIkTargetChannel extends IkTargetChannel {
   }
 }
 
+/// Blends two IK target channels and their solve weights.
+class BlendedIkTargetChannel extends IkTargetChannel {
+  const BlendedIkTargetChannel({
+    required this.weight,
+    this.from,
+    this.to,
+  }) : assert(weight >= 0 && weight <= 1, 'weight must be in 0..1');
+
+  final IkTargetChannel? from;
+  final IkTargetChannel? to;
+  final double weight;
+
+  @override
+  IkTargetPose sample(double p) {
+    final a = from?.sample(p);
+    final b = to?.sample(p);
+    if (a == null && b == null) {
+      return const IkTargetPose(x: 0, y: 0, weight: 0);
+    }
+    if (a == null) {
+      return IkTargetPose(
+        x: b!.x,
+        y: b.y,
+        weight: b.weight * weight,
+      );
+    }
+    if (b == null) {
+      return IkTargetPose(
+        x: a.x,
+        y: a.y,
+        weight: a.weight * (1 - weight),
+      );
+    }
+    return IkTargetPose(
+      x: _lerp(a.x, b.x, weight),
+      y: _lerp(a.y, b.y, weight),
+      weight: _lerp(a.weight, b.weight, weight).clamp(0.0, 1.0),
+    );
+  }
+}
+
+/// Stateless temporal smoothing for IK target paths.
+///
+/// This rounds small target-path corners before the two-bone solve runs. It is
+/// useful for dance hands, where an exact pose hit should still arrive in time
+/// but the wrist path should not read as a hard keyframe step.
+class SoftenedIkTargetChannel extends IkTargetChannel {
+  const SoftenedIkTargetChannel(
+    this.channel, {
+    this.radius = 0.01,
+    this.passes = 1,
+    this.cyclic = false,
+  }) : assert(radius >= 0, 'radius must be non-negative'),
+       assert(passes > 0, 'passes must be positive');
+
+  final IkTargetChannel channel;
+
+  /// Phase radius for the smoothing window. For a 32-frame phrase, `0.015625`
+  /// is half a frame.
+  final double radius;
+
+  /// Number of smoothing passes. `1` preserves the original 3-tap behavior;
+  /// `2` applies the same kernel again, producing a gentler 5-tap-style curve
+  /// for hand paths that should flow through nearby targets without visibly
+  /// snapping from count to count.
+  final int passes;
+
+  /// Wrap smoothing samples across the loop seam instead of clamping them.
+  final bool cyclic;
+
+  @override
+  IkTargetPose sample(double p) {
+    if (radius == 0) return channel.sample(p);
+    return _samplePass(p, passes);
+  }
+
+  IkTargetPose _samplePass(double p, int pass) {
+    if (pass <= 0) return channel.sample(_samplePhase(p));
+    final before = _samplePass(p - radius, pass - 1);
+    final centre = _samplePass(p, pass - 1);
+    final after = _samplePass(p + radius, pass - 1);
+    return IkTargetPose(
+      x: before.x * 0.25 + centre.x * 0.5 + after.x * 0.25,
+      y: before.y * 0.25 + centre.y * 0.5 + after.y * 0.25,
+      weight: (before.weight * 0.25 + centre.weight * 0.5 + after.weight * 0.25)
+          .clamp(0.0, 1.0),
+    );
+  }
+
+  double _samplePhase(double p) => cyclic ? _unitPhase(p) : p.clamp(0.0, 1.0);
+}
+
 class IkTargetKeyframe {
   const IkTargetKeyframe({
     required this.p,
@@ -275,17 +509,28 @@ class IkTargetKeyframe {
     required this.y,
     this.weight = 1,
     this.ease = Ease.easeInOut,
-  });
+    this.tension = 0,
+  }) : assert(
+         tension >= -1 && tension <= 1,
+         'tension must be in -1..1',
+       );
 
   final double p;
   final double x;
   final double y;
   final double weight;
   final Ease ease;
+
+  /// Smooth-path tangent tension at this key — see [Keyframe.tension].
+  final double tension;
 }
 
 class KeyframeIkTargetChannel extends IkTargetChannel {
-  const KeyframeIkTargetChannel(this.keys, {this.smooth = false});
+  const KeyframeIkTargetChannel(
+    this.keys, {
+    this.smooth = false,
+    this.cyclic = false,
+  });
 
   final List<IkTargetKeyframe> keys;
 
@@ -294,9 +539,14 @@ class KeyframeIkTargetChannel extends IkTargetChannel {
   /// with continuous velocity instead of stopping on every beat key.
   final bool smooth;
 
+  /// Treats target key phases as a wrapping cycle. This keeps sub-frame dance
+  /// target offsets continuous across the frame-0 seam.
+  final bool cyclic;
+
   @override
   IkTargetPose sample(double p) {
     if (keys.isEmpty) return const IkTargetPose(x: 0, y: 0, weight: 0);
+    if (cyclic) return _sampleCyclic(_unitPhase(p));
     if (p <= keys.first.p) return _poseOf(keys.first);
     if (p >= keys.last.p) return _poseOf(keys.last);
 
@@ -327,12 +577,40 @@ class KeyframeIkTargetChannel extends IkTargetChannel {
   IkTargetPose _poseOf(IkTargetKeyframe key) =>
       IkTargetPose(x: key.x, y: key.y, weight: key.weight);
 
+  IkTargetPose _sampleCyclic(double p) {
+    final cyclicKeys = _normalizedCyclicKeys(keys, (key) => key.p);
+    if (cyclicKeys.isEmpty) return const IkTargetPose(x: 0, y: 0, weight: 0);
+    if (cyclicKeys.length == 1) return _poseOf(cyclicKeys.single.key);
+
+    final segment = _cyclicSegment(cyclicKeys, p);
+    final k0 = segment.start.key;
+    final k1 = segment.end.key;
+    if (smooth) {
+      return IkTargetPose(
+        x: _cyclicCatmullRom(cyclicKeys, (key) => key.x, (key) => key.tension, segment),
+        y: _cyclicCatmullRom(cyclicKeys, (key) => key.y, (key) => key.tension, segment),
+        weight: _cyclicCatmullRom(
+          cyclicKeys,
+          (key) => key.weight,
+          (key) => key.tension,
+          segment,
+          ).clamp(0.0, 1.0),
+      );
+    }
+    final t = k1.ease.apply(segment.local);
+    return IkTargetPose(
+      x: k0.x + (k1.x - k0.x) * t,
+      y: k0.y + (k1.y - k0.y) * t,
+      weight: k0.weight + (k1.weight - k0.weight) * t,
+    );
+  }
+
   double _spline(
     int i,
     double local,
     double dp,
     double Function(IkTargetKeyframe) f,
-  ) => periodicCatmullRom(keys, (k) => k.p, f, i, local, dp);
+  ) => _periodicCatmullRom(keys, (k) => k.p, f, (k) => k.tension, i, local, dp);
 }
 
 class LimbIkTarget {
@@ -400,6 +678,30 @@ class LayeredRootChannel extends RootChannel {
   }
 }
 
+/// Blends two root channels for short move transitions.
+class BlendedRootChannel extends RootChannel {
+  const BlendedRootChannel({
+    required this.weight,
+    this.from,
+    this.to,
+  }) : assert(weight >= 0 && weight <= 1, 'weight must be in 0..1');
+
+  final RootChannel? from;
+  final RootChannel? to;
+  final double weight;
+
+  @override
+  ({double dx, double dy, double rotation}) sample(double p) {
+    final a = from?.sample(p) ?? (dx: 0.0, dy: 0.0, rotation: 0.0);
+    final b = to?.sample(p) ?? (dx: 0.0, dy: 0.0, rotation: 0.0);
+    return (
+      dx: _lerp(a.dx, b.dx, weight),
+      dy: _lerp(a.dy, b.dy, weight),
+      rotation: _lerp(a.rotation, b.rotation, weight),
+    );
+  }
+}
+
 /// Sinusoidal root motion for cyclic clips (walk/run/idle).
 class SineRootChannel extends RootChannel {
   const SineRootChannel({
@@ -454,18 +756,29 @@ class RootKeyframe {
     this.dy = 0,
     this.rotation = 0,
     this.ease = Ease.easeInOut,
-  });
+    this.tension = 0,
+  }) : assert(
+         tension >= -1 && tension <= 1,
+         'tension must be in -1..1',
+       );
 
   final double p;
   final double dx;
   final double dy;
   final double rotation;
   final Ease ease;
+
+  /// Smooth-path tangent tension at this key — see [Keyframe.tension].
+  final double tension;
 }
 
 /// Eased or smooth keyframed root motion. Keys must be sorted by phase.
 class KeyframeRootChannel extends RootChannel {
-  const KeyframeRootChannel(this.keys, {this.smooth = false});
+  const KeyframeRootChannel(
+    this.keys, {
+    this.smooth = false,
+    this.cyclic = false,
+  });
 
   final List<RootKeyframe> keys;
 
@@ -475,9 +788,14 @@ class KeyframeRootChannel extends RootChannel {
   /// count.
   final bool smooth;
 
+  /// Treats root key phases as a wrapping cycle instead of a clamped one-shot.
+  /// Dance body channels use this so micro-timed keys flow through the seam.
+  final bool cyclic;
+
   @override
   ({double dx, double dy, double rotation}) sample(double p) {
     if (keys.isEmpty) return (dx: 0, dy: 0, rotation: 0);
+    if (cyclic) return _sampleCyclic(_unitPhase(p));
     if (p <= keys.first.p) {
       final k = keys.first;
       return (dx: k.dx, dy: k.dy, rotation: k.rotation);
@@ -515,7 +833,161 @@ class KeyframeRootChannel extends RootChannel {
     double local,
     double dp,
     double Function(RootKeyframe) f,
-  ) => periodicCatmullRom(keys, (k) => k.p, f, i, local, dp);
+  ) => _periodicCatmullRom(keys, (k) => k.p, f, (k) => k.tension, i, local, dp);
+
+  ({double dx, double dy, double rotation}) _sampleCyclic(double p) {
+    final cyclicKeys = _normalizedCyclicKeys(keys, (key) => key.p);
+    if (cyclicKeys.isEmpty) return (dx: 0, dy: 0, rotation: 0);
+    if (cyclicKeys.length == 1) {
+      final k = cyclicKeys.single.key;
+      return (dx: k.dx, dy: k.dy, rotation: k.rotation);
+    }
+
+    final segment = _cyclicSegment(cyclicKeys, p);
+    final k0 = segment.start.key;
+    final k1 = segment.end.key;
+    if (smooth) {
+      return (
+        dx: _cyclicCatmullRom(cyclicKeys, (key) => key.dx, (key) => key.tension, segment),
+        dy: _cyclicCatmullRom(cyclicKeys, (key) => key.dy, (key) => key.tension, segment),
+        rotation: _cyclicCatmullRom(
+          cyclicKeys,
+          (key) => key.rotation,
+          (key) => key.tension,
+          segment,
+          ),
+      );
+    }
+    final t = k1.ease.apply(segment.local);
+    return (
+      dx: k0.dx + (k1.dx - k0.dx) * t,
+      dy: k0.dy + (k1.dy - k0.dy) * t,
+      rotation: k0.rotation + (k1.rotation - k0.rotation) * t,
+    );
+  }
+}
+
+double _unitPhase(double p) => p - p.floorToDouble();
+
+class _CyclicKey<K> {
+  const _CyclicKey({required this.p, required this.key});
+
+  final double p;
+  final K key;
+}
+
+class _CyclicSegment<K> {
+  const _CyclicSegment({
+    required this.startIndex,
+    required this.start,
+    required this.end,
+    required this.local,
+    required this.span,
+  });
+
+  final int startIndex;
+  final _CyclicKey<K> start;
+  final _CyclicKey<K> end;
+  final double local;
+  final double span;
+}
+
+List<_CyclicKey<K>> _normalizedCyclicKeys<K>(
+  List<K> keys,
+  double Function(K key) phaseOf,
+) {
+  const epsilon = 1e-9;
+  final normalized = <_CyclicKey<K>>[];
+  for (final key in keys) {
+    final p = _unitPhase(phaseOf(key));
+    final duplicate = normalized.indexWhere(
+      (entry) => (entry.p - p).abs() <= epsilon,
+    );
+    final cyclicKey = _CyclicKey(p: p, key: key);
+    if (duplicate == -1) {
+      normalized.add(cyclicKey);
+    } else {
+      normalized[duplicate] = cyclicKey;
+    }
+  }
+  normalized.sort((a, b) => a.p.compareTo(b.p));
+  return normalized;
+}
+
+_CyclicSegment<K> _cyclicSegment<K>(List<_CyclicKey<K>> keys, double p) {
+  assert(keys.length >= 2, 'cyclic segments need at least two keys');
+  for (var i = 0; i < keys.length - 1; i++) {
+    final start = keys[i];
+    final end = keys[i + 1];
+    if (p >= start.p && p <= end.p) {
+      final span = end.p - start.p;
+      return _CyclicSegment(
+        startIndex: i,
+        start: start,
+        end: end,
+        local: span == 0 ? 0 : (p - start.p) / span,
+        span: span,
+      );
+    }
+  }
+
+  final start = keys.last;
+  final end = keys.first;
+  final endP = end.p + 1;
+  final sampleP = p < start.p ? p + 1 : p;
+  final span = endP - start.p;
+  return _CyclicSegment(
+    startIndex: keys.length - 1,
+    start: start,
+    end: end,
+    local: span == 0 ? 0 : (sampleP - start.p) / span,
+    span: span,
+  );
+}
+
+double _cyclicCatmullRom<K>(
+  List<_CyclicKey<K>> keys,
+  double Function(K key) valueOf,
+  double Function(K key) tensionOf,
+  _CyclicSegment<K> segment,
+) {
+  final n = keys.length;
+  final i = segment.startIndex;
+  final j = (i + 1) % n;
+  final prev = (i - 1 + n) % n;
+  final next = (j + 1) % n;
+
+  final p1 = keys[i].p;
+  var p2 = keys[j].p;
+  if (p2 <= p1) p2 += 1;
+  var p0 = keys[prev].p;
+  if (p0 >= p1) p0 -= 1;
+  var p3 = keys[next].p;
+  while (p3 <= p2) {
+    p3 += 1;
+  }
+
+  final v0 = valueOf(keys[prev].key);
+  final v1 = valueOf(keys[i].key);
+  final v2 = valueOf(keys[j].key);
+  final v3 = valueOf(keys[next].key);
+  final denom1 = p2 - p0;
+  final denom2 = p3 - p1;
+  if (denom1.abs() < 1e-12 || denom2.abs() < 1e-12) {
+    return v1 + (v2 - v1) * segment.local;
+  }
+
+  final m1 =
+      segment.span * (v2 - v0) / denom1 * (1 - tensionOf(keys[i].key));
+  final m2 =
+      segment.span * (v3 - v1) / denom2 * (1 - tensionOf(keys[j].key));
+  final t = segment.local;
+  final t2 = t * t;
+  final t3 = t2 * t;
+  return (2 * t3 - 3 * t2 + 1) * v1 +
+      (t3 - 2 * t2 + t) * m1 +
+      (-2 * t3 + 3 * t2) * v2 +
+      (t3 - t2) * m2;
 }
 
 /// Periodic Catmull-Rom (Hermite) interpolation of one channel value across the
@@ -527,10 +999,11 @@ class KeyframeRootChannel extends RootChannel {
 /// endpoints coincide (`keys.first` == `keys.last`), so neighbours wrap around
 /// by one period. Shared by the joint / IK-target / root keyframe channels so
 /// the spline math lives in exactly one place.
-double periodicCatmullRom<K>(
+double _periodicCatmullRom<K>(
   List<K> keys,
   double Function(K) phaseOf,
   double Function(K) valueOf,
+  double Function(K) tensionOf,
   int i,
   double local,
   double dp,
@@ -559,8 +1032,13 @@ double periodicCatmullRom<K>(
     p3 = phaseOf(keys[i + 2]);
   }
   // Per-unit-p tangents (scaled by the segment span for the Hermite basis).
-  final m1 = dp * (v2 - v0) / (phaseOf(keys[i + 1]) - p0);
-  final m2 = dp * (v3 - v1) / (p3 - phaseOf(keys[i]));
+  // Each key's Kochanek–Bartels tension scales ITS tangent — used identically
+  // by both segments that share the key, so C1 continuity holds and a
+  // tension-1 key becomes a true zero-velocity arrival (a stamp / hold).
+  final m1 =
+      dp * (v2 - v0) / (phaseOf(keys[i + 1]) - p0) * (1 - tensionOf(keys[i]));
+  final m2 =
+      dp * (v3 - v1) / (p3 - phaseOf(keys[i])) * (1 - tensionOf(keys[i + 1]));
   final t = local;
   final t2 = t * t;
   final t3 = t2 * t;
@@ -583,6 +1061,25 @@ class GroundSpan {
   final String bone;
   final double start;
   final double end;
+}
+
+/// Runtime metadata for a clip-to-clip transition.
+///
+/// The transform channels can blend directly, but contact solving needs to know
+/// which support plan came from the outgoing move and which came from the
+/// incoming move. Keeping that data explicit lets the scene apply both contact
+/// corrections with complementary weights instead of hiding a hard support
+/// switch at the midpoint of [blendedClip].
+class ClipTransitionPlan {
+  const ClipTransitionPlan({
+    required this.from,
+    required this.to,
+    required this.weight,
+  }) : assert(weight >= 0 && weight <= 1, 'weight must be in 0..1');
+
+  final Clip from;
+  final Clip to;
+  final double weight;
 }
 
 /// How an in-place performance clip should be kept on the floor.
@@ -617,6 +1114,7 @@ class Clip {
     this.supportFootWorldAnchor = false,
     this.supportFootWorldAnchorStrength = 0.6,
     this.danceHeadBobScale = 1.0,
+    this.transitionPlan,
   }) : assert(
          supportFootWorldAnchorStrength >= 0 &&
              supportFootWorldAnchorStrength <= 1,
@@ -684,6 +1182,153 @@ class Clip {
   /// without reverse-engineering shoulder/elbow or hip/knee rotations.
   final List<LimbIkTarget> limbTargets;
 
+  /// Source clips and transition weight when this clip is a runtime blend.
+  final ClipTransitionPlan? transitionPlan;
+
   /// Whether this clip travels across the stage at all (either model).
   bool get locomotes => locomotionSpeed != 0 || groundSpans.isNotEmpty;
+}
+
+Clip blendedClip({
+  required Clip from,
+  required Clip to,
+  required double weight,
+  String? name,
+  ClipBlendMask blendMask = ClipBlendMask.full,
+}) {
+  assert(weight >= 0 && weight <= 1, 'weight must be in 0..1');
+  final channelIds = {...from.channels.keys, ...to.channels.keys};
+  final fromTargets = {
+    for (final target in from.limbTargets) target.endBoneId: target,
+  };
+  final toTargets = {
+    for (final target in to.limbTargets) target.endBoneId: target,
+  };
+  final targetIds = {...fromTargets.keys, ...toTargets.keys};
+  final transitionWeight = _smoothUnit(weight);
+  final supportFootAnchorStrength = _transitionSupportAnchorStrength(
+    from,
+    to,
+    transitionWeight,
+  );
+  final rootWeight = blendMask.rootWeight(weight);
+
+  return Clip(
+    name: name ?? '${from.name}->${to.name}',
+    duration: to.duration,
+    loop: from.loop && to.loop,
+    channels: {
+      for (final id in channelIds)
+        id: BlendedJointChannel(
+          from: from.channels[id],
+          to: to.channels[id],
+          weight: blendMask.jointWeight(id, weight),
+        ),
+    },
+    root: BlendedRootChannel(
+      from: from.root,
+      to: to.root,
+      weight: rootWeight,
+    ),
+    locomotionSpeed: _lerp(
+      from.locomotionSpeed,
+      to.locomotionSpeed,
+      rootWeight,
+    ),
+    groundSpans: _transitionSpans(from.groundSpans, to.groundSpans),
+    contactSpans: _transitionSpans(from.contactSpans, to.contactSpans),
+    contactPinning: _transitionContactPinning(from, to),
+    limbTargets: [
+      for (final id in targetIds)
+        _blendLimbTarget(
+          fromTargets[id],
+          toTargets[id],
+          blendMask.limbTargetWeight(id, weight),
+        ),
+    ],
+    supportFootWorldAnchor: supportFootAnchorStrength > 0,
+    supportFootWorldAnchorStrength: supportFootAnchorStrength,
+    danceHeadBobScale: _lerp(
+      from.danceHeadBobScale,
+      to.danceHeadBobScale,
+      rootWeight,
+    ),
+    transitionPlan: ClipTransitionPlan(from: from, to: to, weight: weight),
+  );
+}
+
+List<GroundSpan> _transitionSpans(
+  List<GroundSpan> from,
+  List<GroundSpan> to,
+) {
+  if (from.isEmpty) return to;
+  if (to.isEmpty) return from;
+  final spans = [...from, ...to]
+    ..sort((a, b) {
+      final start = a.start.compareTo(b.start);
+      if (start != 0) return start;
+      final end = a.end.compareTo(b.end);
+      if (end != 0) return end;
+      return a.bone.compareTo(b.bone);
+    });
+  final deduped = <GroundSpan>[];
+  for (final span in spans) {
+    final duplicate = deduped.any(
+      (existing) =>
+          existing.bone == span.bone &&
+          existing.start == span.start &&
+          existing.end == span.end,
+    );
+    if (!duplicate) deduped.add(span);
+  }
+  return List<GroundSpan>.unmodifiable(deduped);
+}
+
+ContactPinning _transitionContactPinning(Clip from, Clip to) {
+  if (from.contactPinning == ContactPinning.lowestContact ||
+      to.contactPinning == ContactPinning.lowestContact) {
+    return ContactPinning.lowestContact;
+  }
+  return ContactPinning.activeSpan;
+}
+
+double _transitionSupportAnchorStrength(
+  Clip from,
+  Clip to,
+  double weight,
+) {
+  final outgoing = from.supportFootWorldAnchor
+      ? from.supportFootWorldAnchorStrength * (1 - weight)
+      : 0.0;
+  final incoming = to.supportFootWorldAnchor
+      ? to.supportFootWorldAnchorStrength * weight
+      : 0.0;
+  return (outgoing + incoming).clamp(0.0, 1.0);
+}
+
+LimbIkTarget _blendLimbTarget(
+  LimbIkTarget? from,
+  LimbIkTarget? to,
+  double weight,
+) {
+  final template = weight < 0.5 ? from ?? to! : to ?? from!;
+  return LimbIkTarget(
+    upperBoneId: template.upperBoneId,
+    lowerBoneId: template.lowerBoneId,
+    endBoneId: template.endBoneId,
+    anchorBoneId: template.anchorBoneId,
+    channel: BlendedIkTargetChannel(
+      from: from?.channel,
+      to: to?.channel,
+      weight: weight,
+    ),
+    bendDirection: template.bendDirection,
+  );
+}
+
+double _lerp(double a, double b, double t) => a + (b - a) * t;
+
+double _smoothUnit(double t) {
+  final x = t.clamp(0.0, 1.0);
+  return x * x * (3 - 2 * x);
 }

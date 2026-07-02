@@ -2,7 +2,10 @@ import 'package:dancing_cats/features/character/demo/dance_performance.dart';
 import 'package:dancing_cats/features/character/demo/dance_stage_view.dart';
 import 'package:dancing_cats/features/character/model/beat_map.dart';
 import 'package:dancing_cats/features/character/model/face.dart';
+import 'package:dancing_cats/features/character/model/rig_spec.dart';
+import 'package:dancing_cats/features/character/runtime/character_painter.dart';
 import 'package:dancing_cats/features/character/runtime/character_renderer.dart';
+import 'package:dancing_cats/features/character/samples/cat_in_suit.dart';
 import 'package:dancing_cats/features/scenery/layered_backdrop.dart';
 import 'package:dancing_cats/features/scenery/runtime/stage_lights.dart';
 import 'package:dancing_cats/features/scenery/scene_texture_overlay.dart';
@@ -186,6 +189,70 @@ void main() {
     });
   });
 
+  group('DanceCast', () {
+    test('builds trio limb thickness from each lane plane scale', () {
+      final base = _leftArmRibbon(buildCatInSuitRig());
+      final cast = DanceCast.build();
+      final flankThickness = limbThicknessForPlaneScale(
+        danceLanePlaneScale(0, 3) / danceLanePlaneScale(1, 3),
+      );
+
+      expect(
+        _leftArmRibbon(cast.lead.rig).halfWidths,
+        base.halfWidths,
+        reason: 'the downstage lead IS the reference plane',
+      );
+      for (final backup in [cast.left.rig, cast.right.rig]) {
+        expect(
+          _leftArmRibbon(backup).halfWidths.first,
+          closeTo(base.halfWidths.first * flankThickness, 0.001),
+          reason:
+              'upstage lanes thin by the plane curve so they keep silhouette '
+              'negative space instead of ballooning',
+        );
+      }
+      expect(flankThickness, lessThan(1));
+      expect(flankThickness, greaterThanOrEqualTo(0.78));
+    });
+
+    test('keeps the lead lower-body silhouette stronger than backups', () {
+      final cast = DanceCast.build();
+      final leadLeg = _leftLegRibbon(cast.lead.rig);
+      final leftLeg = _leftLegRibbon(cast.left.rig);
+      final rightLeg = _leftLegRibbon(cast.right.rig);
+
+      expect(
+        leadLeg.halfWidths.first,
+        greaterThan(leftLeg.halfWidths.first),
+        reason:
+            'the front dancer should not read thinner than the backup dancers',
+      );
+      expect(leadLeg.halfWidths.first, greaterThan(rightLeg.halfWidths.first));
+      expect(leadLeg.halfWidths[3], greaterThan(leftLeg.halfWidths[3]));
+      expect(leadLeg.halfWidths[3], greaterThan(rightLeg.halfWidths[3]));
+    });
+  });
+
+  group('danceCharacterPainter', () {
+    test('front-locks the shipped trio while arm attachment is reviewed', () {
+      final painter = danceCharacterPainter(
+        cast: DanceCast.build(),
+        renderer: CharacterRenderer(antiAlias: false),
+        stage: _perf().stageAt(2),
+        shot: (zoom: 1.0, dx: 0.0, dy: 0.0),
+        leadMouth: 0.4,
+        bgMouth: 0.2,
+        leadShape: MouthShape.smileOpen,
+        bgShape: MouthShape.neutral,
+        scale: 1,
+        backlights: const [],
+      );
+
+      expect(painter.heroStaging, isTrue);
+      expect(painter.danceViewProjection, isFalse);
+    });
+  });
+
   group('DanceStageView widget', () {
     testWidgets('pumps the live stage (new backdrop + captions) cleanly', (
       tester,
@@ -220,3 +287,9 @@ void main() {
     });
   });
 }
+
+LimbRibbonSpec _leftArmRibbon(RigSpec rig) =>
+    rig.ribbons.singleWhere((ribbon) => ribbon.id == 'arm.L.ribbon');
+
+LimbRibbonSpec _leftLegRibbon(RigSpec rig) =>
+    rig.ribbons.singleWhere((ribbon) => ribbon.id == 'leg.L.ribbon');

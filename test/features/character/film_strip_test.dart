@@ -96,7 +96,13 @@ void main() {
         expression: expression,
         base: base,
       );
-      renderer.paint(canvas, scene.rig, frame.world, frame.face);
+      renderer.paint(
+        canvas,
+        scene.rig,
+        frame.world,
+        frame.face,
+        memberTransform: base,
+      );
     }
 
     final picture = recorder.endRecording();
@@ -144,7 +150,13 @@ void main() {
         timeSeconds: 0,
         base: base,
       );
-      renderer.paint(canvas, scene.rig, frameBase.world, faces[i].face);
+      renderer.paint(
+        canvas,
+        scene.rig,
+        frameBase.world,
+        faces[i].face,
+        memberTransform: base,
+      );
     }
 
     final picture = recorder.endRecording();

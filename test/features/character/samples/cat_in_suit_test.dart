@@ -24,9 +24,11 @@ void main() {
 
     test('a white shirt collar frames the neck under the tie', () {
       final shirtColor = rig.bone(CatBones.shirtV)?.drawable?.color;
-      for (final id in [CatBones.collarL, CatBones.collarR]) {
-        final collar = rig.bone(id);
-        expect(collar?.parent, CatBones.torso);
+      final collarL = rig.bone(CatBones.collarL);
+      final collarR = rig.bone(CatBones.collarR);
+      expect(collarL?.parent, CatBones.clavicleL);
+      expect(collarR?.parent, CatBones.clavicleR);
+      for (final collar in [collarL, collarR]) {
         // Same off-white shirt fabric as the chest V, so the head reads as
         // rising out of a collar rather than pasted onto the jacket.
         expect(collar?.drawable?.color, shirtColor);
@@ -35,9 +37,185 @@ void main() {
       }
       // The two points mirror left/right about the centreline.
       expect(
-        rig.bone(CatBones.collarL)!.pivotX,
-        -rig.bone(CatBones.collarR)!.pivotX,
+        collarL!.pivotX,
+        -collarR!.pivotX,
       );
+    });
+
+    test('shoulder controls break up the jacket shell', () {
+      final chest = rig.bone(CatBones.chest);
+      final clavicleL = rig.bone(CatBones.clavicleL);
+      final clavicleR = rig.bone(CatBones.clavicleR);
+      final socketL = rig.bone(CatBones.shoulderSocketL);
+      final socketR = rig.bone(CatBones.shoulderSocketR);
+
+      // The trunk is a two-joint spine: torso (lumbar) → chest (thoracic).
+      // The shoulder girdle hangs off the chest so a thoracic counter-bend
+      // carries the shoulders/arms/head, not the whole jacket shell.
+      expect(chest?.parent, CatBones.torso);
+      expect(chest?.drawable, isNull);
+      expect(clavicleL?.parent, CatBones.chest);
+      expect(clavicleR?.parent, CatBones.chest);
+      expect(clavicleL?.drawable, isNull);
+      expect(clavicleR?.drawable, isNull);
+      expect(clavicleL?.pivotX, -clavicleR!.pivotX);
+      expect(clavicleL?.pivotY, clavicleR.pivotY);
+      expect(rig.bone(CatBones.neck)?.parent, CatBones.chest);
+
+      expect(socketL?.parent, CatBones.clavicleL);
+      expect(socketR?.parent, CatBones.clavicleR);
+      expect(rig.bone(CatBones.armUpperL)?.parent, CatBones.clavicleL);
+      expect(rig.bone(CatBones.armUpperR)?.parent, CatBones.clavicleR);
+      expect(rig.bone(CatBones.lapelL)?.parent, CatBones.clavicleL);
+      expect(rig.bone(CatBones.lapelR)?.parent, CatBones.clavicleR);
+
+      final jacket = rig.meshes.singleWhere((mesh) => mesh.id == 'jacket.mesh');
+      expect(
+        jacket.formRound,
+        isFalse,
+        reason:
+            'the suit front should read as tailored cloth panels, not a '
+            'rounded hard shell',
+      );
+      // The generated trunk surface rides all three spine joints, so trunk
+      // rotation distributes through the fabric instead of tilting a plate.
+      expect(
+        jacket.vertices
+            .expand((vertex) => vertex.influences)
+            .map((influence) => influence.boneId)
+            .toSet(),
+        containsAll([CatBones.hips, CatBones.torso, CatBones.chest]),
+      );
+      // The old hand-authored side panels are gone; the cel shade models the
+      // side planes now.
+      expect(
+        rig.meshes.map((mesh) => mesh.id),
+        isNot(contains('jacket.side.L')),
+      );
+      expect(
+        rig.meshes.map((mesh) => mesh.id),
+        isNot(contains('jacket.side.R')),
+      );
+    });
+
+    test('arms are continuous ribbon sleeves through the joint chain', () {
+      for (final side in const [
+        (
+          ribbonId: 'arm.L.ribbon',
+          clavicle: CatBones.clavicleL,
+          socket: CatBones.shoulderSocketL,
+          upper: CatBones.armUpperL,
+          bicep: CatBones.armBicepL,
+          lower: CatBones.armLowerL,
+          forearm: CatBones.armForearmL,
+          hand: CatBones.handL,
+        ),
+        (
+          ribbonId: 'arm.R.ribbon',
+          clavicle: CatBones.clavicleR,
+          socket: CatBones.shoulderSocketR,
+          upper: CatBones.armUpperR,
+          bicep: CatBones.armBicepR,
+          lower: CatBones.armLowerR,
+          forearm: CatBones.armForearmR,
+          hand: CatBones.handR,
+        ),
+      ]) {
+        final ribbon = rig.ribbons.singleWhere((r) => r.id == side.ribbonId);
+        // One centreline through shoulder→bicep→elbow→forearm→wrist: the arm
+        // bends through a curve at the elbow like the legs already do,
+        // instead of folding as separate weighted patches.
+        // The first TWO joints (clavicle, socket) are both clavicle-anchored:
+        // the ribbon's root section cannot rotate with the arm, so the bend
+        // reads as a fabric crease below the deltoid instead of the shoulder
+        // cap sweeping around a rivet.
+        expect(ribbon.jointBoneIds, [
+          side.clavicle,
+          side.socket,
+          side.bicep,
+          side.lower,
+          side.forearm,
+          side.hand,
+        ]);
+        expect(
+          ribbon.hiddenBoneIds,
+          containsAll([side.socket, side.upper, side.lower]),
+          reason: 'the ribbon replaces the rigid capsule drawables',
+        );
+        expect(ribbon.outlineColor, isNotNull);
+        expect(ribbon.outlineWidth, greaterThanOrEqualTo(2));
+        expect(
+          ribbon.roundCaps,
+          isTrue,
+          reason: 'the start cap is the deltoid dome; the end cap the wrist',
+        );
+
+        // The socket is rigidly clavicle-parented: the root strut cannot
+        // rotate with the arm, and the deltoid dome travels with the armhole
+        // in every pose, so no pose can open a gap.
+        final socket = rig.bone(side.socket)!;
+        expect(socket.parent, side.clavicle);
+      }
+    });
+
+    test('ribbon sleeves stay welded to the girdle in solved poses', () {
+      final scene = CharacterScene(buildCatInSuitRig());
+      for (final ribbonId in const ['arm.L.ribbon', 'arm.R.ribbon']) {
+        final ribbon = scene.rig.ribbons.singleWhere((r) => r.id == ribbonId);
+        final rootId = ribbon.jointBoneIds.first;
+        final socketId = ribbon.jointBoneIds[1];
+        for (final clip in [CatClips.shaku, CatClips.sekem, CatClips.buga]) {
+          for (
+            var frame = 0;
+            frame <= CatClips.dancePhrase.frameCount;
+            frame += 2
+          ) {
+            final phase = frame / CatClips.dancePhrase.frameCount;
+            final solved = scene.frameAt(
+              clip: clip,
+              timeSeconds: phase * clip.duration,
+            );
+            final root = solved.world[rootId]!.origin;
+            final socket = solved.world[socketId]!.origin;
+            final dx = socket.x - root.x;
+            final dy = socket.y - root.y;
+            expect(
+              math.sqrt(dx * dx + dy * dy),
+              inInclusiveRange(7, 13),
+              reason:
+                  '${clip.name} frame $frame: the clavicle→socket root strut '
+                  'must ride the girdle at near rest length so the deltoid '
+                  'reads welded to the jacket in every pose',
+            );
+          }
+        }
+      }
+    });
+
+    test('paired background cats use the same ribbon sleeves', () {
+      final base = buildCatInSuitRig();
+      for (final rig in [
+        buildCatInSuitRig(palette: CatInSuitPalette.silverTabby),
+        buildCatInSuitRig(palette: CatInSuitPalette.darkBrown),
+      ]) {
+        for (final ribbonId in const ['arm.L.ribbon', 'arm.R.ribbon']) {
+          final ribbon = rig.ribbons.singleWhere((r) => r.id == ribbonId);
+          final baseRibbon = base.ribbons.singleWhere((r) => r.id == ribbonId);
+          expect(
+            ribbon.halfWidths,
+            baseRibbon.halfWidths,
+            reason:
+                '$ribbonId must keep the same anatomical profile on backup '
+                'palettes; only fur/face colours vary per cat',
+          );
+          expect(ribbon.jointBoneIds, baseRibbon.jointBoneIds);
+          expect(ribbon.color, baseRibbon.color);
+        }
+        expect(
+          rig.meshes.map((mesh) => mesh.id).toSet(),
+          {'jacket.mesh', 'hips.mesh'},
+        );
+      }
     });
 
     test('hand-parented cuffs expose the wrists during crossed-arm poses', () {
@@ -53,50 +231,303 @@ void main() {
       expect(cuffR?.z, lessThan(rig.bone(CatBones.handR)!.z));
     });
 
-    test('elbow creases expose arm mechanics over the sleeve ribbons', () {
+    test('arm guide bones do not render as hard elbow details', () {
+      final bicepL = rig.bone(CatBones.armBicepL);
+      final bicepR = rig.bone(CatBones.armBicepR);
+      final forearmL = rig.bone(CatBones.armForearmL);
+      final forearmR = rig.bone(CatBones.armForearmR);
       final creaseL = rig.bone(CatBones.armElbowCreaseL);
       final creaseR = rig.bone(CatBones.armElbowCreaseR);
 
+      expect(bicepL?.parent, CatBones.armUpperL);
+      expect(bicepR?.parent, CatBones.armUpperR);
+      expect(forearmL?.parent, CatBones.armLowerL);
+      expect(forearmR?.parent, CatBones.armLowerR);
       expect(creaseL?.parent, CatBones.armLowerL);
       expect(creaseR?.parent, CatBones.armLowerR);
-      expect(creaseL?.drawable?.height, lessThan(creaseL!.drawable!.width));
-      expect(creaseR?.drawable?.height, lessThan(creaseR!.drawable!.width));
-      expect(creaseL.z, greaterThan(rig.bone(CatBones.armUpperL)!.z));
-      expect(creaseR.z, greaterThan(rig.bone(CatBones.armUpperR)!.z));
+      for (final guide in [
+        bicepL,
+        bicepR,
+        forearmL,
+        forearmR,
+        creaseL,
+        creaseR,
+      ]) {
+        expect(
+          guide?.drawable,
+          isNull,
+          reason:
+              '${guide?.id} is a ribbon guide/control only; tiny visible bars '
+              'read as bone artifacts inside the elbow',
+        );
+      }
+      // The drawable-carrying arm capsules are all replaced by the ribbons.
+      expect(
+        rig.hiddenDrawableBoneIds,
+        containsAll([
+          CatBones.shoulderSocketL,
+          CatBones.shoulderSocketR,
+          CatBones.armUpperL,
+          CatBones.armUpperR,
+          CatBones.armLowerL,
+          CatBones.armLowerR,
+        ]),
+      );
     });
 
-    test('sleeve values separate crossed arms from the jacket shell', () {
+    test('every navy surface derives from the one suit fabric', () {
+      // The fabric concept: one base cloth, planes separated by VALUE only.
+      // Derived surfaces must scale R, G, and B by one factor (same hue), so
+      // no sleeve/trouser/lapel can drift into reading as a different material.
+      int chan(int argb, int shift) => (argb >> shift) & 0xFF;
+      for (final surface in [
+        rig.meshes.singleWhere((m) => m.id == 'jacket.mesh').color,
+        rig.ribbons.singleWhere((r) => r.id == 'arm.L.ribbon').color,
+        rig.ribbons.singleWhere((r) => r.id == 'arm.R.ribbon').color,
+        rig.ribbons.singleWhere((r) => r.id == 'leg.L.ribbon').color,
+        rig.ribbons.singleWhere((r) => r.id == 'leg.R.ribbon').color,
+        rig.bone(CatBones.lapelL)!.drawable!.color,
+      ]) {
+        final factor = chan(surface, 16) / chan(kSuitFabric.base, 16);
+        expect(
+          chan(surface, 8) / chan(kSuitFabric.base, 8),
+          closeTo(factor, 0.03),
+          reason: 'green must scale by the same factor as red (same hue)',
+        );
+        expect(
+          chan(surface, 0) / chan(kSuitFabric.base, 0),
+          closeTo(factor, 0.03),
+          reason: 'blue must scale by the same factor as red (same hue)',
+        );
+      }
+    });
+
+    test('sleeves are the jacket cloth, separated by ink lines', () {
       final torso = rig.bone(CatBones.torso)!.drawable!.color;
-      final farSleeve = rig.ribbons
-          .singleWhere((ribbon) => ribbon.id == 'arm.R.ribbon')
-          .color;
-      final nearSleeve = rig.ribbons
-          .singleWhere((ribbon) => ribbon.id == 'arm.L.ribbon')
-          .color;
-
+      for (final id in const ['arm.L.ribbon', 'arm.R.ribbon']) {
+        final sleeve = rig.ribbons.singleWhere((ribbon) => ribbon.id == id);
+        expect(
+          sleeve.color,
+          torso,
+          reason:
+              'a sleeve is the SAME cloth as its jacket — the old near/far '
+              'value steps read as lighter fabric patches where the sleeve '
+              'root sits on the yoke',
+        );
+        expect(
+          sleeve.inkOverFill,
+          isTrue,
+          reason:
+              'crossing limbs separate from same-colour cloth by their drawn '
+              'ink line, like hand-drawn animation',
+        );
+      }
+      final nearLeg = rig.ribbons.singleWhere((r) => r.id == 'leg.L.ribbon');
+      final farLeg = rig.ribbons.singleWhere((r) => r.id == 'leg.R.ribbon');
+      expect(nearLeg.inkOverFill, isTrue);
+      expect(farLeg.inkOverFill, isTrue);
       expect(
-        _luma(farSleeve) - _luma(torso),
-        greaterThan(24),
+        farLeg.color,
+        nearLeg.color,
         reason:
-            'the far sleeve must not melt into the navy jacket during Shaku '
-            'crosses',
+            'both trouser legs are the SAME cloth — the far leg separates by '
+            'its overlap-clipped ink line, not a darker fabric value',
       );
       expect(
-        _luma(nearSleeve) - _luma(farSleeve),
-        greaterThan(14),
-        reason:
-            'near and far sleeves need a value step so crossed forearms read '
-            'as two separate limbs',
+        _luma(nearLeg.color),
+        lessThan(_luma(torso)),
+        reason: 'trousers stay a darker plane of the same suit fabric',
       );
     });
 
-    test('shoes carry a subtle sole edge for footwork readability', () {
-      expect(rig.bone(CatBones.shoeHighlightL)?.parent, CatBones.footL);
-      expect(rig.bone(CatBones.shoeHighlightR)?.parent, CatBones.footR);
-      expect(rig.bone(CatBones.shoeHighlightL)?.drawable?.width, 23);
-      // A subtle sole edge, NOT a bright strip that reads as a skeletal mark in
-      // the stage-lit shoe.
-      expect(rig.bone(CatBones.shoeHighlightR)?.drawable?.color, 0xFF3C4058);
+    test('no auxiliary sleeve patch surfaces remain', () {
+      // The sleeve is ONE ribbon per arm. The old build stacked extra skinned
+      // patches on top (shadow contours, shoulder caps/folds) that were tuned
+      // per pose and broke in between — the celShade pass models the sleeve
+      // volume now, so nothing auxiliary may come back.
+      expect(
+        rig.meshes.map((mesh) => mesh.id).toSet(),
+        {'jacket.mesh', 'hips.mesh'},
+      );
+      expect(
+        rig.ribbons.map((ribbon) => ribbon.id).toSet(),
+        {
+          'tail.ribbon',
+          'leg.L.ribbon',
+          'leg.R.ribbon',
+          'arm.L.ribbon',
+          'arm.R.ribbon',
+        },
+      );
+    });
+
+    test('sleeves keep a heroic taper instead of a sausage tube', () {
+      final ribbon = rig.ribbons.singleWhere((r) => r.id == 'arm.L.ribbon');
+      final cuff = rig.bone(CatBones.wristCuffL)!.drawable!;
+      final hand = rig.bone(CatBones.handL)!.drawable!;
+
+      final deltoid = ribbon.halfWidths[0];
+      final bicep = ribbon.halfWidths[2];
+      final elbow = ribbon.halfWidths[3];
+      final forearm = ribbon.halfWidths[4];
+      final wrist = ribbon.halfWidths[5];
+
+      expect(
+        deltoid,
+        greaterThan(bicep * 0.9),
+        reason:
+            'the shoulder attachment carries mass comparable to the bicep — '
+            'never the thinnest point of the arm (the old dangling-sausage '
+            'tell). The bicep itself may peak slightly past the deltoid on '
+            'this muscular build.',
+      );
+      expect(
+        bicep,
+        greaterThan(elbow),
+        reason: 'the elbow needs a visible pinch so the arm bends as anatomy',
+      );
+      expect(
+        forearm,
+        greaterThan(elbow),
+        reason: 'the forearm should swell back out after the elbow pinch',
+      );
+      expect(
+        wrist,
+        lessThan(forearm * 0.72),
+        reason: 'the wrist should taper before the cuff and paw',
+      );
+      expect(
+        wrist,
+        lessThan(deltoid * 0.55),
+        reason: 'shoulder-to-wrist taper carries the heroic silhouette',
+      );
+      expect(hand.width, greaterThan(22));
+      expect(hand.height, greaterThan(20));
+      expect(cuff.width, lessThan(hand.width));
+      expect(cuff.width, greaterThanOrEqualTo(18));
+    });
+
+    test('arms carry an asymmetric muscle profile', () {
+      for (final id in const ['arm.L.ribbon', 'arm.R.ribbon']) {
+        final arm = rig.ribbons.singleWhere((r) => r.id == id);
+        final front = arm.halfWidths;
+        final back = arm.backHalfWidths!;
+        // [clavicle, deltoid, bicep, elbow, forearm, wrist]
+        expect(
+          front[2],
+          greaterThan(back[2]),
+          reason: 'the BICEP bulges on the front of the upper arm',
+        );
+        expect(
+          front[4],
+          greaterThan(back[4]),
+          reason: 'the forearm swell (brachioradialis) reads on the front',
+        );
+        expect(
+          front[3] + back[3],
+          lessThan(front[2] + back[2]),
+          reason: 'the elbow pinches between bicep and forearm masses',
+        );
+        expect(
+          front[5] + back[5],
+          lessThan(front[4] + back[4]),
+          reason: 'the wrist tapers out of the forearm',
+        );
+      }
+    });
+
+    test('legs carry an asymmetric muscle profile', () {
+      for (final id in const ['leg.L.ribbon', 'leg.R.ribbon']) {
+        final leg = rig.ribbons.singleWhere((r) => r.id == id);
+        final front = leg.halfWidths;
+        final back = leg.backHalfWidths!;
+        // [pelvis root, hip, quad, knee, calf, ankle]
+        expect(
+          front[2],
+          greaterThan(back[2]),
+          reason: 'the QUAD bulges on the front of the thigh',
+        );
+        expect(
+          back[4],
+          greaterThan(front[4]),
+          reason: 'the CALF bulges on the back of the shin',
+        );
+        expect(
+          front[3] + back[3],
+          lessThan(front[2] + back[2]),
+          reason: 'the knee pinches between thigh and calf masses',
+        );
+        expect(
+          front[5] + back[5],
+          lessThan(front[4] + back[4]),
+          reason: 'the ankle tapers hard out of the calf',
+        );
+        // The ribbon roots INSIDE the pelvis: the thigh flows out of the hip
+        // mass instead of hinging off a joint bolted to the pelvis rim.
+        expect(leg.jointBoneIds.first.toLowerCase(), contains('hip_blend'));
+      }
+    });
+
+    test('shoes read as colour-blocked 90s high-tops with flexing soles', () {
+      for (final side in const [
+        (
+          foot: CatBones.footL,
+          toe: CatBones.shoeToeL,
+          flex: CatBones.toeFlexL,
+          sole: CatBones.shoeHighlightL,
+          soleFront: CatBones.shoeSoleFrontL,
+          counter: CatBones.shoeCounterL,
+        ),
+        (
+          foot: CatBones.footR,
+          toe: CatBones.shoeToeR,
+          flex: CatBones.toeFlexR,
+          sole: CatBones.shoeHighlightR,
+          soleFront: CatBones.shoeSoleFrontR,
+          counter: CatBones.shoeCounterR,
+        ),
+      ]) {
+        final last = rig.bone(side.foot)!.drawable!;
+        final toe = rig.bone(side.toe)!;
+        final flex = rig.bone(side.flex)!;
+        final sole = rig.bone(side.sole)!.drawable!;
+        final soleFront = rig.bone(side.soleFront)!.drawable!;
+        final counter = rig.bone(side.counter)!.drawable!;
+
+        // White leather body with the era's colour blocking: toe box and
+        // collar share one accent panel colour (NO brand marks of any kind).
+        expect(_luma(last.color), greaterThan(200));
+        expect(toe.drawable!.color, counter.color);
+        expect(
+          _luma(toe.drawable!.color),
+          lessThan(_luma(last.color) * 0.5),
+          reason: 'the accent panels contrast the white body',
+        );
+        // The upper is ONE union silhouette: flat panels, no interior ink.
+        for (final part in [last, toe.drawable!, counter]) {
+          expect(part.inkOverFill, isFalse);
+          expect(part.celShade, isFalse);
+          expect(part.outlineColor, isNotNull);
+        }
+        // The sole is split at the BALL of the foot and bends there: the
+        // front half rides the toe_flex joint the sole-flex pass drives.
+        expect(flex.parent, side.foot);
+        expect(
+          flex.pivotX,
+          lessThan(-8),
+          reason: 'the flex pivot sits at the ball, forward of the heel',
+        );
+        expect(toe.parent, side.flex);
+        expect(
+          sole.width + soleFront.width,
+          greaterThanOrEqualTo(last.width),
+          reason: 'the two sole halves together run the full last',
+        );
+        for (final half in [sole, soleFront]) {
+          expect(half.inkOverFill, isTrue);
+          expect(_luma(half.color), greaterThan(150));
+        }
+      }
     });
 
     test('the sole edge never lowers the shoe contact point', () {
@@ -106,6 +537,8 @@ void main() {
       for (final pair in const [
         (CatBones.footR, CatBones.shoeHighlightR),
         (CatBones.footL, CatBones.shoeHighlightL),
+        (CatBones.footR, CatBones.shoeToeR),
+        (CatBones.footL, CatBones.shoeToeL),
       ]) {
         final shoe = rig.bone(pair.$1)!.drawable!;
         final welt = rig.bone(pair.$2)!.drawable!;
@@ -136,13 +569,11 @@ void main() {
       );
       expect(
         rig.meshes.map((m) => m.id),
-        containsAll([
-          'jacket.mesh',
-          'hips.mesh',
-        ]),
+        containsAll(['jacket.mesh', 'hips.mesh']),
       );
       expect(rig.ribbonHiddenBoneIds, contains(CatBones.tail3));
       expect(rig.hiddenDrawableBoneIds, contains(CatBones.legLowerL));
+      expect(rig.hiddenDrawableBoneIds, contains(CatBones.armUpperL));
       expect(rig.hiddenDrawableBoneIds, contains(CatBones.torso));
       expect(rig.hiddenDrawableBoneIds, contains(CatBones.hips));
     });
@@ -178,49 +609,73 @@ void main() {
       expect(CatInSuitPalette.darkBrown.brow, 0xFFF1E2C9);
     });
 
-    test('can build a lead variant with stronger limbs', () {
+    test('limb thickness follows the dancer plane scale', () {
+      // Thickness is a pure function of the staged plane, not a hand-cast
+      // constant: the front reference plane carries full anatomical mass and
+      // upstage planes thin on a gentle quarter-power curve, preserving the
+      // negative space a small silhouette needs to read.
+      expect(limbThicknessForPlaneScale(1), 1);
+      final upstage = limbThicknessForPlaneScale(0.49);
+      expect(upstage, lessThan(1));
+      expect(upstage, greaterThan(0.78));
+      expect(
+        limbThicknessForPlaneScale(0.3),
+        lessThan(limbThicknessForPlaneScale(0.6)),
+        reason: 'thickness must be monotone in plane scale',
+      );
+      expect(
+        limbThicknessForPlaneScale(0.01),
+        greaterThanOrEqualTo(0.78),
+        reason: 'a hard floor keeps far dancers from going stringy',
+      );
+
       final base = buildCatInSuitRig();
-      final lead = buildCatInSuitRig(
-        legWidthScale: kDanceLeadLegWidthScale,
-        armWidthScale: kDanceLeadArmWidthScale,
+      final far = buildCatInSuitRig(
+        legWidthScale: upstage,
+        armWidthScale: upstage,
       );
 
-      final baseLeg = base.ribbons.singleWhere((r) => r.id == 'leg.L.ribbon');
-      final leadLeg = lead.ribbons.singleWhere((r) => r.id == 'leg.L.ribbon');
+      expect(
+        base.ribbons.singleWhere((r) => r.id == 'leg.L.ribbon').halfWidths,
+        const [15.0, 14.2, 15.6, 8.6, 9.2, 5.5],
+      );
+      expect(
+        base.ribbons.singleWhere((r) => r.id == 'leg.L.ribbon').backHalfWidths,
+        const [15.0, 13.0, 11.2, 8.2, 12.2, 5.3],
+      );
       final baseArm = base.ribbons.singleWhere((r) => r.id == 'arm.L.ribbon');
-      final leadArm = lead.ribbons.singleWhere((r) => r.id == 'arm.L.ribbon');
-      final baseTail = base.ribbons.singleWhere((r) => r.id == 'tail.ribbon');
-      final leadTail = lead.ribbons.singleWhere((r) => r.id == 'tail.ribbon');
-
-      // Anatomical trouser profile: full thigh (13.5/13), a knee dip (11.5), a
-      // calf bulge (12.5), then a narrow ankle (8) tapering into the shoe so the
-      // trouser breaks over the foot, not past it.
-      expect(baseLeg.halfWidths, const [13.5, 13, 11.5, 12.5, 8]);
+      final farArm = far.ribbons.singleWhere((r) => r.id == 'arm.L.ribbon');
+      final baseLeg = base.ribbons.singleWhere((r) => r.id == 'leg.L.ribbon');
+      final farLeg = far.ribbons.singleWhere((r) => r.id == 'leg.L.ribbon');
+      for (var i = 0; i < baseArm.halfWidths.length; i++) {
+        expect(farArm.halfWidths[i], closeTo(baseArm.halfWidths[i] * upstage, 0.001));
+        expect(
+          farArm.backHalfWidths![i],
+          closeTo(baseArm.backHalfWidths![i] * upstage, 0.001),
+        );
+      }
+      for (var i = 0; i < baseLeg.halfWidths.length; i++) {
+        expect(farLeg.halfWidths[i], closeTo(baseLeg.halfWidths[i] * upstage, 0.001));
+        expect(
+          farLeg.backHalfWidths![i],
+          closeTo(baseLeg.backHalfWidths![i] * upstage, 0.001),
+        );
+      }
+      // The paw follows its limb ("hands too") — the pad, cuff, and toes scale
+      // with the arm so an upstage cat does not wave front-plane mitts.
       expect(
-        leadLeg.halfWidths.first,
-        closeTo(13.5 * kDanceLeadLegWidthScale, 0.001),
-      );
-      // The calf control (index 3) is fuller than the knee (index 2) — the bulge.
-      expect(
-        leadLeg.halfWidths[3],
-        closeTo(12.5 * kDanceLeadLegWidthScale, 0.001),
-      );
-      expect(
-        leadLeg.halfWidths[3],
-        greaterThan(leadLeg.halfWidths[2]),
-        reason: 'the calf must bulge past the knee dip',
-      );
-      expect(baseArm.halfWidths, const [10.6, 11.4, 5.8, 4.4]);
-      expect(
-        leadArm.halfWidths[1],
-        closeTo(11.4 * kDanceLeadArmWidthScale, 0.001),
+        far.bone(CatBones.handL)!.drawable!.width,
+        closeTo(base.bone(CatBones.handL)!.drawable!.width * upstage, 0.001),
       );
       expect(
-        leadArm.halfWidths[2],
-        lessThan(leadArm.halfWidths[1] * 0.6),
-        reason: 'the elbow valley should keep crossed arms readable',
+        far.bone(CatBones.wristCuffL)!.drawable!.width,
+        closeTo(base.bone(CatBones.wristCuffL)!.drawable!.width * upstage, 0.001),
       );
-      expect(leadTail.halfWidths, baseTail.halfWidths);
+      // Tail is a silhouette accent shared by the whole cast.
+      expect(
+        far.ribbons.singleWhere((r) => r.id == 'tail.ribbon').halfWidths,
+        base.ribbons.singleWhere((r) => r.id == 'tail.ribbon').halfWidths,
+      );
     });
   });
 
@@ -258,6 +713,82 @@ void main() {
       expect(channels.containsKey(CatBones.legUpperR), isTrue);
       expect(channels.containsKey(CatBones.armUpperL), isTrue);
       expect(channels.containsKey(CatBones.armUpperR), isTrue);
+    });
+
+    test('catalogue hand paths flow through their keys (C1 smooth)', () {
+      // Hands used to be per-segment eased (a dead stop at every key) with a
+      // SoftenedIkTargetChannel blur stacked on top to hide the corners — a
+      // workaround that also blunted accent hits and shifted key poses. The
+      // channels are smooth splines now: velocity-continuous THROUGH the
+      // authored keys, no blur wrapper.
+      for (final clip in [
+        CatClips.zanku,
+        CatClips.azonto,
+        CatClips.buga,
+        CatClips.sekem,
+      ]) {
+        for (final hand in [CatBones.handL, CatBones.handR]) {
+          final channel = _targetFor(clip, hand).channel;
+          expect(
+            channel,
+            isA<KeyframeIkTargetChannel>().having(
+              (channel) => channel.smooth,
+              'smooth',
+              isTrue,
+            ),
+            reason:
+                '${clip.name} $hand must interpolate smoothly through its '
+                'keys, not stop at each one behind a corner blur',
+          );
+        }
+      }
+    });
+
+    test('dance clips carry alternating shoulder overlap', () {
+      for (final clip in [CatClips.shaku, CatClips.zanku, CatClips.sekem]) {
+        final left = clip.channels[CatBones.clavicleL];
+        final right = clip.channels[CatBones.clavicleR];
+        expect(left, isNotNull, reason: '${clip.name} needs left shoulder');
+        expect(right, isNotNull, reason: '${clip.name} needs right shoulder');
+
+        var minLeft = double.infinity;
+        var maxLeft = double.negativeInfinity;
+        var minRight = double.infinity;
+        var maxRight = double.negativeInfinity;
+        var maxPairDifference = 0.0;
+        for (var i = 0; i <= 32; i++) {
+          final p = i / 32;
+          final l = left!.sample(p).rotation;
+          final r = right!.sample(p).rotation;
+          minLeft = math.min(minLeft, l);
+          maxLeft = math.max(maxLeft, l);
+          minRight = math.min(minRight, r);
+          maxRight = math.max(maxRight, r);
+          maxPairDifference = math.max(maxPairDifference, (l - r).abs());
+        }
+
+        expect(
+          maxLeft - minLeft,
+          greaterThan(0.04),
+          reason: '${clip.name} should have visible left shoulder overlap',
+        );
+        expect(
+          maxRight - minRight,
+          greaterThan(0.04),
+          reason: '${clip.name} should have visible right shoulder overlap',
+        );
+        expect(
+          maxPairDifference,
+          greaterThan(0.035),
+          reason:
+              '${clip.name} shoulders should not move as one rigid torso yoke',
+        );
+        expect(
+          [minLeft.abs(), maxLeft.abs(), minRight.abs(), maxRight.abs()],
+          everyElement(lessThan(0.07)),
+          reason: 'shoulder controls should stay subtle, not shrug wildly',
+        );
+      }
     });
 
     test('kick and shaku drive the expected performance bones', () {
@@ -320,6 +851,157 @@ void main() {
       );
     });
 
+    test('catalogue ears and tails keep bounded secondary follow-through', () {
+      for (final clip in [
+        CatClips.shaku,
+        CatClips.zanku,
+        CatClips.azonto,
+        CatClips.buga,
+        CatClips.pouncingCat,
+        CatClips.sekem,
+      ]) {
+        final earLRange = _rotationRange(clip.channels[CatBones.earL]!);
+        final earRRange = _rotationRange(clip.channels[CatBones.earR]!);
+        expect(
+          earLRange,
+          greaterThan(0.055),
+          reason: '${clip.name} left ear should not look pinned to the skull',
+        );
+        expect(
+          earRRange,
+          greaterThan(0.055),
+          reason: '${clip.name} right ear should not look pinned to the skull',
+        );
+        expect(
+          [earLRange, earRRange],
+          everyElement(lessThan(0.16)),
+          reason: '${clip.name} ears should flop, not dominate the dance',
+        );
+
+        final rootRange = _rotationRange(clip.channels[CatBones.tail0]!);
+        final midRange = _rotationRange(clip.channels[CatBones.tail3]!);
+        final lateRange = _rotationRange(clip.channels[CatBones.tail5]!);
+        final tipRange = _rotationRange(clip.channels[CatBones.tail6]!);
+        expect(
+          midRange,
+          greaterThan(rootRange * 1.4),
+          reason: '${clip.name} tail should build motion away from the hips',
+        );
+        expect(
+          lateRange,
+          greaterThan(midRange * 1.04),
+          reason:
+              '${clip.name} late tail should keep building drag before the tip',
+        );
+        expect(
+          tipRange,
+          greaterThan(lateRange * 1.05),
+          reason: '${clip.name} tail tip should lag as follow-through',
+        );
+        expect(
+          tipRange,
+          lessThan(0.42),
+          reason: '${clip.name} tail should stay secondary, not become the act',
+        );
+      }
+    });
+
+    test('catalogue tail tips carry reactive secondary motion', () {
+      for (final clip in [
+        CatClips.zanku,
+        CatClips.azonto,
+        CatClips.buga,
+        CatClips.pouncingCat,
+        CatClips.sekem,
+      ]) {
+        final mid = clip.channels[CatBones.tail3];
+        final late = clip.channels[CatBones.tail5];
+        final tip = clip.channels[CatBones.tail6];
+
+        expect(mid, isA<SineChannel>());
+        expect(late, isA<SineChannel>());
+        expect(tip, isA<SineChannel>());
+        final midChannel = mid! as SineChannel;
+        final lateChannel = late! as SineChannel;
+        final tipChannel = tip! as SineChannel;
+
+        expect(
+          lateChannel.phase,
+          greaterThan(midChannel.phase + 0.1),
+          reason:
+              '${clip.name} late tail links need phase delay so the tail reads '
+              'as a drag chain, not one rigid curved plank',
+        );
+        expect(
+          tipChannel.phase,
+          greaterThan(lateChannel.phase + 0.12),
+          reason:
+              '${clip.name} tail tip should be visibly delayed behind the hips',
+        );
+        expect(
+          midChannel.harmonicAmplitude.abs(),
+          greaterThan(0.006),
+          reason:
+              '${clip.name} mid-tail should react to the body groove instead '
+              'of moving as a single lazy sine',
+        );
+        expect(
+          tipChannel.harmonicMultiplier,
+          greaterThanOrEqualTo(8),
+          reason:
+              '${clip.name} tail tip should lag and flick behind the torso '
+              'instead of reading stiff',
+        );
+        expect(
+          tipChannel.harmonicAmplitude.abs(),
+          greaterThan(midChannel.harmonicAmplitude.abs() * 1.8),
+          reason:
+              '${clip.name} tail tip should lag and flick behind the torso '
+              'instead of reading stiff',
+        );
+      }
+    });
+
+    test('catalogue arms stay seated in their shoulder sockets', () {
+      final scene = CharacterScene(buildCatInSuitRig());
+      for (final clip in [
+        CatClips.shaku,
+        CatClips.zanku,
+        CatClips.buga,
+        CatClips.sekem,
+      ]) {
+        for (var frame = 0; frame <= 32; frame++) {
+          final sample = scene.frameAt(
+            clip: clip,
+            timeSeconds: clip.duration * frame / 32,
+          );
+          for (final side in const [
+            (
+              socket: CatBones.shoulderSocketL,
+              upper: CatBones.armUpperL,
+            ),
+            (
+              socket: CatBones.shoulderSocketR,
+              upper: CatBones.armUpperR,
+            ),
+          ]) {
+            final socket = sample.world[side.socket]!.origin;
+            final upper = sample.world[side.upper]!.origin;
+            final dx = socket.x - upper.x;
+            final dy = socket.y - upper.y;
+            final distance = math.sqrt(dx * dx + dy * dy);
+            expect(
+              distance,
+              lessThan(7),
+              reason:
+                  '${clip.name} frame $frame ${side.upper} must stay seated '
+                  'inside the clavicle-owned shoulder cap',
+            );
+          }
+        }
+      }
+    });
+
     test(
       'backup dance clips remain public show-role clips',
       () {
@@ -330,59 +1012,76 @@ void main() {
       },
     );
 
-    test('dance holds broad Shaku supports across the phrase', () {
-      final phrase = CatClips.dancePhrase;
-      final spans = CatClips.shaku.contactSpans;
-      expect(phrase.frameCount, 32);
-      expect(spans.map((span) => span.bone), [
-        CatBones.footL,
-        CatBones.footR,
-        CatBones.footL,
-      ]);
-      expect(spans.map((span) => span.start), [0, 1 / 2, 15 / 16]);
-      expect(spans.map((span) => span.end), [1 / 2, 15 / 16, 1]);
-      expect(
-        spans.take(2).map((span) => span.end - span.start),
-        everyElement(greaterThanOrEqualTo(7 / 16)),
-      );
-      expect(phrase.supports.map((support) => support.label), [
-        'left-foot Shaku low pocket',
-        'right-foot answer pocket',
-        'left-foot loop pickup',
-      ]);
-      expect(phrase.supportAtFrame(4).freeFootBoneId, CatBones.footR);
-      expect(phrase.supportAtFrame(20).freeFootBoneId, CatBones.footL);
-      expect(phrase.supportAtFrame(32).footBoneId, CatBones.footL);
-      expect(phrase.supports.map((support) => support.loadFrame), [4, 20, 31]);
-      expect(phrase.supports.map((support) => support.releaseFrame), [
-        8,
-        24,
-        32,
-      ]);
-      expect(phrase.sections.map((section) => section.name), [
-        'Shaku pocket',
-        'Shaku rebound',
-        'answer pocket',
-        'toe-flick release',
-        'loop pickup',
-      ]);
-      expect(phrase.moves.map((move) => move.name), [
-        'lead Shaku pocket hit',
-        'lead rebound shoulder scoop',
-        'right-side camera answer',
-        'right-foot groove pocket',
-        'left-side camera answer',
-        'toe-flick hook reset',
-      ]);
-      expect(phrase.sectionAtFrame(4).name, 'Shaku pocket');
-      expect(phrase.sectionAtFrame(20).name, 'answer pocket');
-      expect(phrase.sectionAtFrame(31).name, 'loop pickup');
-      expect(phrase.moveAtFrame(4).featuredDancer, 'lead');
-      expect(phrase.moveAtFrame(12).name, 'right-side camera answer');
-      expect(phrase.moveAtFrame(20).name, 'right-foot groove pocket');
-      expect(phrase.moveAtFrame(24).featuredDancer, 'left');
-      expect(phrase.moveAtFrame(31).name, 'toe-flick hook reset');
-    });
+    test(
+      'shaku support lock delays handoff until the visible load arrives',
+      () {
+        final phrase = CatClips.dancePhrase;
+        final spans = CatClips.shaku.contactSpans;
+        expect(phrase.frameCount, 32);
+        expect(spans.map((span) => span.bone), [
+          CatBones.footL,
+          CatBones.footL,
+          CatBones.footR,
+          CatBones.footL,
+        ]);
+        expect(spans.map((span) => span.start), [
+          0,
+          10 / 32,
+          22 / 32,
+          30.125 / 32,
+        ]);
+        expect(spans.map((span) => span.end), [
+          10 / 32,
+          22 / 32,
+          30.125 / 32,
+          1,
+        ]);
+        expect(spans[1].end, greaterThan(20 / 32));
+        expect(spans[2].start, greaterThan(20 / 32));
+        expect(spans[2].end, greaterThan(30 / 32));
+        expect(phrase.supports.map((support) => support.label), [
+          'left-foot Shaku low pocket',
+          'right-foot answer pocket',
+          'left-foot loop pickup',
+        ]);
+        expect(phrase.supportAtFrame(4).freeFootBoneId, CatBones.footR);
+        expect(phrase.supportAtFrame(20).freeFootBoneId, CatBones.footL);
+        expect(phrase.supportAtFrame(32).footBoneId, CatBones.footL);
+        expect(phrase.supports.map((support) => support.loadFrame), [
+          4,
+          20,
+          31,
+        ]);
+        expect(phrase.supports.map((support) => support.releaseFrame), [
+          8,
+          24,
+          32,
+        ]);
+        expect(phrase.sections.map((section) => section.name), [
+          'Shaku pocket',
+          'Shaku rebound',
+          'answer pocket',
+          'toe-flick release',
+          'loop pickup',
+        ]);
+        expect(phrase.moves.map((move) => move.name), [
+          'lead Shaku pocket hit',
+          'lead rebound shoulder scoop',
+          'right-side camera answer',
+          'right-foot groove pocket',
+          'left-side camera answer',
+          'toe-flick hook reset',
+        ]);
+        expect(phrase.sectionAtFrame(4).name, 'Shaku pocket');
+        expect(phrase.sectionAtFrame(20).name, 'answer pocket');
+        expect(phrase.sectionAtFrame(31).name, 'loop pickup');
+        expect(phrase.moveAtFrame(4).featuredDancer, 'lead');
+        expect(phrase.moveAtFrame(12).name, 'right-side camera answer');
+        expect(phrase.moveAtFrame(20).name, 'right-foot groove pocket');
+        expect(phrase.moveAtFrame(24).featuredDancer, 'left');
+        expect(phrase.moveAtFrame(31).name, 'toe-flick hook reset');
+      },
+    );
 
     test('shaku crosses wrists, opens elbows, and recovers as shaku', () {
       final phrase = CatClips.dancePhrase;
@@ -496,7 +1195,13 @@ void main() {
             'the final phrase should recover through shaku arm vocabulary, '
             'not a generic forward punch',
       );
-      expect(recoveryCrossLeft.y, greaterThan(0));
+      expect(
+        recoveryCrossLeft.y,
+        greaterThan(-24),
+        reason:
+            'the final recovery should stay in an outside guard lane instead '
+            'of dropping into the belly/waist cluster',
+      );
       expect(
         recoveryCrossRight.x,
         greaterThan(0),
@@ -526,7 +1231,7 @@ void main() {
       expect(loopRight.x, greaterThan(25));
       expect(
         loopLeft.y,
-        greaterThan(-36),
+        greaterThan(-42),
         reason: 'the next loop should recover to the low open-ready left hand',
       );
       expect(
@@ -548,10 +1253,19 @@ void main() {
       final hips = zanku.channels[CatBones.hips]!;
       final torso = zanku.channels[CatBones.torso]!;
 
+      expect(
+        zanku.supportFootWorldAnchorStrength,
+        greaterThanOrEqualTo(0.9),
+        reason:
+            'Zanku support feet need a firmer world anchor so the stomp reads '
+            'as a plant instead of a side-view slide',
+      );
+
       final rightLift = footR.sample(1 / phrase.frameCount);
       final rightFlick = footR.sample(2 / phrase.frameCount);
       final rightRecoil = footR.sample(3 / phrase.frameCount);
       final rightStomp = zanku.root.sample(4 / phrase.frameCount);
+      final rightSettle = zanku.root.sample(5 / phrase.frameCount);
       final rightFlickLift = zanku.root.sample(2 / phrase.frameCount);
       expect(
         rightLift.y,
@@ -562,12 +1276,12 @@ void main() {
       );
       expect(
         rightFlick.x,
-        inInclusiveRange(66, 70),
+        inInclusiveRange(82, 86),
         reason:
-            'Zanku should show a readable heel-toe knock in a widened support '
-            'lane without becoming a side kick',
+            'Zanku should show a readable heel-toe knock outside the trouser '
+            'mass without becoming a side kick',
       );
-      expect(rightFlick.y, inInclusiveRange(121, 125));
+      expect(rightFlick.y, inInclusiveRange(122, 125));
       expect(
         rightRecoil.x,
         lessThan(rightFlick.x - 10),
@@ -575,11 +1289,41 @@ void main() {
       );
       expect(
         rightStomp.dy - rightFlickLift.dy,
-        inInclusiveRange(18, 27),
+        inInclusiveRange(21, 33),
         reason:
             'Zanku should drop into a stronger grounded stomp pocket, not hop '
             'or float after the right-leg flick',
       );
+      expect(
+        rightStomp.dx,
+        inInclusiveRange(20, 25),
+        reason:
+            'the right Zanku stomp should carry the pelvis toward support '
+            'without throwing the whole body into a side-view plank',
+      );
+      expect(
+        rightSettle.dx,
+        inInclusiveRange(14, 21),
+        reason:
+            'Zanku should dwell over the right support for a frame after the '
+            'plant while staying compact enough for profile balance',
+      );
+      expect(
+        rightSettle.dy,
+        greaterThan(rightFlickLift.dy + 5),
+        reason:
+            'the frame after the right stomp should still carry visible body '
+            'weight before the rebound',
+      );
+      final rightSupportHold = footR.sample(5 / phrase.frameCount);
+      expect(
+        rightSupportHold.x,
+        closeTo(62, 0.8),
+        reason:
+            'the right Zanku support foot should stay planted through the '
+            'post-stomp hold instead of spline-sliding toward the next scrape',
+      );
+      expect(rightSupportHold.y, greaterThanOrEqualTo(124.5));
       final rightHipLead = hips.sample(3.75 / phrase.frameCount).rotation;
       final rightHipOnStomp = hips.sample(4 / phrase.frameCount).rotation;
       expect(
@@ -615,6 +1359,7 @@ void main() {
       final leftFlick = footL.sample(22 / phrase.frameCount);
       final leftRecoil = footL.sample(23 / phrase.frameCount);
       final leftStomp = zanku.root.sample(24 / phrase.frameCount);
+      final leftSettle = zanku.root.sample(25 / phrase.frameCount);
       final leftFlickLift = zanku.root.sample(22 / phrase.frameCount);
       expect(
         leftLift.y,
@@ -625,12 +1370,12 @@ void main() {
       );
       expect(
         leftFlick.x,
-        inInclusiveRange(-68, -64),
+        inInclusiveRange(-85, -80),
         reason:
-            'Zanku should show a readable heel-toe knock in a widened support '
-            'lane without becoming a side kick',
+            'Zanku should show a readable heel-toe knock outside the trouser '
+            'mass without becoming a side kick',
       );
-      expect(leftFlick.y, inInclusiveRange(121, 125));
+      expect(leftFlick.y, inInclusiveRange(122, 125));
       expect(
         leftRecoil.x,
         greaterThan(leftFlick.x + 10),
@@ -638,16 +1383,46 @@ void main() {
       );
       expect(
         leftStomp.dy - leftFlickLift.dy,
-        inInclusiveRange(21, 31),
+        inInclusiveRange(24, 36),
         reason:
             'Zanku should drop into a stronger grounded stomp pocket, not hop '
             'or float after the left-leg flick',
       );
+      expect(
+        leftStomp.dx,
+        inInclusiveRange(-27, -20),
+        reason:
+            'the left Zanku stomp should carry the pelvis toward support '
+            'without throwing the whole body into a side-view plank',
+      );
+      expect(
+        leftSettle.dx,
+        inInclusiveRange(-21, -14),
+        reason:
+            'the mirrored Zanku plant should also dwell over support instead '
+            'of rebounding immediately through centre or overbalancing',
+      );
+      expect(
+        leftSettle.dy,
+        greaterThan(leftFlickLift.dy + 5),
+        reason:
+            'the frame after the left stomp should still carry visible body '
+            'weight before the rebound',
+      );
+      final leftSupportHold = footL.sample(25 / phrase.frameCount);
+      expect(
+        leftSupportHold.x,
+        closeTo(-64, 0.8),
+        reason:
+            'the left Zanku support foot should stay planted through the '
+            'post-stomp hold instead of spline-sliding toward the next scrape',
+      );
+      expect(leftSupportHold.y, greaterThanOrEqualTo(124.5));
       final leftHipLead = hips.sample(23.75 / phrase.frameCount).rotation;
       final leftHipOnStomp = hips.sample(24 / phrase.frameCount).rotation;
       expect(
         leftHipLead,
-        lessThan(-0.34),
+        lessThan(-0.28),
         reason:
             'the left Zanku stomp should be led by a mirrored hip commit just '
             'before the foot lands',
@@ -683,21 +1458,21 @@ void main() {
       );
       expect(
         freezeRightFoot.x,
-        greaterThan(52),
+        greaterThan(60),
         reason:
             'the exact Zanku freeze needs a clear right support foot under the '
             'COM, not a tiny hidden contact',
       );
       expect(
         freezeLeftFoot.x,
-        lessThan(-52),
+        lessThan(-72),
         reason:
             'the exact Zanku freeze should show a left heel-toe knock, not '
             'collapse into a neutral/walking stance or a side kick',
       );
       expect(
         freezeLeftFoot.y,
-        inInclusiveRange(119, 123),
+        inInclusiveRange(123, 126),
         reason: 'the scraped freeze foot should skim the floor',
       );
 
@@ -706,7 +1481,7 @@ void main() {
       expect(freezeLeftHand.x, lessThan(-68));
       expect(
         freezeLeftHand.y,
-        inInclusiveRange(-10, -2),
+        inInclusiveRange(-16, -4),
         reason:
             'the exact Zanku freeze should punch the left counter-hit down/out '
             'from a rib guard, not dangle below the jacket',
@@ -763,6 +1538,27 @@ void main() {
       final hips = azonto.channels[CatBones.hips]!;
       final torso = azonto.channels[CatBones.torso]!;
 
+      expect(
+        azonto.supportFootWorldAnchorStrength,
+        greaterThanOrEqualTo(0.86),
+        reason:
+            'Azonto needs a firmer support anchor now that the pelvis visibly '
+            'dwells over alternating step-touch plants',
+      );
+      expect(
+        azonto.contactSpans.map((span) => span.bone),
+        [
+          CatBones.footL,
+          CatBones.footR,
+          CatBones.footL,
+          CatBones.footR,
+          CatBones.footL,
+          CatBones.footR,
+          CatBones.footL,
+          CatBones.footR,
+        ],
+      );
+
       for (final frame in [0, 4, 8, 12, 16, 20, 24, 28]) {
         final p = frame / phrase.frameCount;
         final left = footL.sample(p);
@@ -792,23 +1588,65 @@ void main() {
         expect(right.y, greaterThanOrEqualTo(100));
       }
 
-      for (final frame in [0, 4, 12, 18, 22, 26, 32]) {
+      // Bar 1 is the steering-wheel mime: both paws hold a rim in front of
+      // the chest — close grips on their OWN sides, chest height, never a
+      // straight-arm point-out.
+      for (final frame in [0, 4, 8, 12]) {
         final p = frame / phrase.frameCount;
         final left = handL.sample(p);
         final right = handR.sample(p);
         expect(
           left.x,
-          lessThan(-28),
+          inExclusiveRange(-30, -12),
           reason:
-              'Azonto frame $frame should keep the tucked left wrist off the '
-              'jacket centreline so the arm does not read as a suit blob',
+              'Azonto frame $frame: the left paw should grip the mimed wheel '
+              'in front of the chest, not point out',
         );
         expect(
           right.x,
-          greaterThan(28),
+          inExclusiveRange(12, 30),
           reason:
-              'Azonto frame $frame should keep the tucked right wrist off the '
-              'jacket centreline so the arm does not read as a suit blob',
+              'Azonto frame $frame: the right paw should grip the mimed wheel '
+              'in front of the chest, not point out',
+        );
+        expect(left.y, inExclusiveRange(-54, -30));
+        expect(right.y, inExclusiveRange(-54, -30));
+      }
+
+      // Bar 2 alternates cross-body jabs: the jabbing paw CROSSES the
+      // midline at chest height while the other paw chambers at the hip.
+      for (final (frame, jab, chamber) in [
+        (16, handL, handR),
+        (20, handR, handL),
+        (24, handL, handR),
+        (28, handR, handL),
+      ]) {
+        final p = frame / phrase.frameCount;
+        final hit = jab.sample(p);
+        final held = chamber.sample(p);
+        expect(
+          hit.x.abs(),
+          lessThan(14),
+          reason:
+              'Azonto frame $frame: the jab should land across the midline, '
+              'mime over reach',
+        );
+        expect(
+          hit.y,
+          lessThan(-44),
+          reason: 'Azonto frame $frame: the jab lands at chest height',
+        );
+        expect(
+          held.x.abs(),
+          greaterThan(36),
+          reason:
+              'Azonto frame $frame: the idle paw chambers at the hip on its '
+              'own side',
+        );
+        expect(
+          held.y,
+          greaterThan(-26),
+          reason: 'Azonto frame $frame: the chamber sits at hip height',
         );
       }
 
@@ -832,6 +1670,20 @@ void main() {
         reason:
             'the chest should follow as a delayed counter-rotation, not land '
             'on the same frame as the hips',
+      );
+      expect(
+        footL.sample(2 / phrase.frameCount).x,
+        closeTo(footL.sample(0).x, 0.5),
+        reason:
+            'the left Azonto support foot should hold while the right foot '
+            'does the small redirect',
+      );
+      expect(
+        footR.sample(6 / phrase.frameCount).x,
+        closeTo(footR.sample(4 / phrase.frameCount).x, 0.5),
+        reason:
+            'the right Azonto support foot should hold while the left foot '
+            'does the small redirect',
       );
     });
 
@@ -890,13 +1742,13 @@ void main() {
       },
     );
 
-    test('buga raises the presenting arm before the hit and holds it', () {
+    test('buga raises the presenting arm, overshoots, then releases', () {
       final phrase = CatClips.dancePhrase;
       final buga = CatClips.buga;
       final handL = _targetFor(buga, CatBones.handL).channel;
       final handR = _targetFor(buga, CatBones.handR).channel;
 
-      for (final frame in [10, 12, 15]) {
+      for (final frame in [10, 12, 14]) {
         final right = handR.sample(frame / phrase.frameCount);
         expect(
           right.x,
@@ -906,7 +1758,7 @@ void main() {
         expect(right.y, lessThan(-64));
       }
 
-      for (final frame in [26, 28, 31]) {
+      for (final frame in [26, 28, 30]) {
         final left = handL.sample(frame / phrase.frameCount);
         expect(
           left.x,
@@ -917,25 +1769,114 @@ void main() {
       }
 
       expect(
+        handR.sample(13 / phrase.frameCount).y,
+        lessThan(handR.sample(12 / phrase.frameCount).y),
+        reason: 'right Buga present should overshoot past the hit',
+      );
+      expect(
+        handL.sample(29 / phrase.frameCount).y,
+        lessThan(handL.sample(28 / phrase.frameCount).y),
+        reason: 'left Buga present should overshoot past the hit',
+      );
+      expect(
         _targetDistance(handR, 14, 15),
-        lessThan(10),
-        reason: 'right Buga show-off pose should hold for two readable frames',
+        greaterThan(32),
+        reason:
+            'right Buga show-off should release after the readable peak instead '
+            'of freezing through the next groove count',
       );
       expect(
         _targetDistance(handL, 30, 31),
-        lessThan(10),
-        reason: 'left Buga show-off pose should hold for two readable frames',
+        greaterThan(32),
+        reason:
+            'left Buga show-off should release after the readable peak instead '
+            'of freezing through the next groove count',
       );
 
       expect(
         buga.supportFootWorldAnchorStrength,
-        greaterThanOrEqualTo(0.78),
+        greaterThanOrEqualTo(0.9),
         reason:
             'Buga show-off hits need a strong support plant so the side reach '
             'does not read as a fall',
       );
+      final clavicleR = buga.channels[CatBones.clavicleR]!;
+      final clavicleL = buga.channels[CatBones.clavicleL]!;
+      final shoulderSocketR = buga.channels[CatBones.shoulderSocketR]!;
+      final shoulderSocketL = buga.channels[CatBones.shoulderSocketL]!;
+      final bicepR = buga.channels[CatBones.armBicepR]!;
+      final bicepL = buga.channels[CatBones.armBicepL]!;
+      expect(
+        clavicleR.sample(13 / phrase.frameCount).rotation,
+        lessThan(-0.28),
+        reason:
+            'the right Buga overhead present should lift through the shoulder '
+            'girdle, not hinge from a fixed jacket edge',
+      );
+      expect(
+        clavicleL.sample(29 / phrase.frameCount).rotation,
+        greaterThan(0.28),
+        reason:
+            'the mirrored Buga overhead present should lift through the left '
+            'shoulder girdle as well',
+      );
+      final rightSocketPeak = shoulderSocketR.sample(13 / phrase.frameCount);
+      expect(
+        rightSocketPeak.rotation,
+        lessThan(-0.22),
+        reason:
+            'the right Buga sleeve cap should rotate/deform with the raised '
+            'arm instead of staying as a static shoulder patch',
+      );
+      expect(rightSocketPeak.scaleX, greaterThan(1.19));
+      expect(rightSocketPeak.scaleY, lessThan(0.92));
+      final leftSocketPeak = shoulderSocketL.sample(29 / phrase.frameCount);
+      expect(
+        leftSocketPeak.rotation,
+        greaterThan(0.22),
+        reason:
+            'the mirrored Buga sleeve cap should rotate/deform with the raised '
+            'left arm instead of staying as a static shoulder patch',
+      );
+      expect(leftSocketPeak.scaleX, greaterThan(1.19));
+      expect(leftSocketPeak.scaleY, lessThan(0.92));
+      expect(
+        shoulderSocketR.sample(0).rotation,
+        lessThan(-0.07),
+        reason:
+            'Buga loops into a raised right arm, so frame 0 needs shoulder '
+            'response too; otherwise the loop boundary detaches the sleeve',
+      );
+      expect(
+        shoulderSocketL.sample(16 / phrase.frameCount).rotation,
+        greaterThan(0.07),
+        reason:
+            'the mirrored raised-arm phrase begins at frame 16, so the left '
+            'socket should already be engaged before the big hit',
+      );
+      expect(
+        bicepR.sample(13 / phrase.frameCount).scaleX,
+        greaterThan(1.14),
+        reason:
+            'the upper sleeve should carry bicep mass during the raised-arm '
+            'show-off instead of tapering into a thin rotating strip',
+      );
+      expect(bicepL.sample(29 / phrase.frameCount).scaleX, greaterThan(1.14));
       final rootHit = buga.root.sample(12 / phrase.frameCount);
       final rootMirrorHit = buga.root.sample(28 / phrase.frameCount);
+      expect(
+        rootHit.dy,
+        greaterThanOrEqualTo(0),
+        reason:
+            'the right-arm Buga hit should rise from the load without lifting '
+            'the body above the planted feet',
+      );
+      expect(
+        rootMirrorHit.dy,
+        greaterThanOrEqualTo(0),
+        reason:
+            'the mirrored Buga hit should stay similarly planted at the peak',
+      );
       expect(
         rootHit.dx.abs(),
         lessThanOrEqualTo(27),
@@ -960,6 +1901,21 @@ void main() {
             'Buga hit knees should remain flexed enough to carry weight, not '
             'lock straight at the celebration peak',
       );
+      final footL = _targetFor(buga, CatBones.footL).channel;
+      final footR = _targetFor(buga, CatBones.footR).channel;
+      final rightHitSupport = footL.sample(12 / phrase.frameCount);
+      final rightHitCounter = footR.sample(12 / phrase.frameCount);
+      expect(rightHitSupport.x, lessThanOrEqualTo(-103));
+      expect(rightHitSupport.y, greaterThanOrEqualTo(103));
+      expect(rightHitCounter.x, greaterThanOrEqualTo(105));
+      expect(rightHitCounter.y, greaterThanOrEqualTo(103));
+
+      final leftHitSupport = footR.sample(28 / phrase.frameCount);
+      final leftHitCounter = footL.sample(28 / phrase.frameCount);
+      expect(leftHitSupport.x, greaterThanOrEqualTo(107));
+      expect(leftHitSupport.y, greaterThanOrEqualTo(103));
+      expect(leftHitCounter.x, lessThanOrEqualTo(-105));
+      expect(leftHitCounter.y, greaterThanOrEqualTo(103));
       expect(buga.contactSpans[0].bone, CatBones.footR);
       expect(buga.contactSpans[0].start, 0);
       expect(buga.contactSpans[0].end, 0.25);
@@ -984,42 +1940,81 @@ void main() {
 
         final leftPlant = footL.sample(0);
         final rightPlant = footR.sample(4 / phrase.frameCount);
-        expect(leftPlant.x, lessThan(-42));
-        expect(rightPlant.x, greaterThan(42));
+        expect(leftPlant.x, lessThan(-56));
+        expect(rightPlant.x, greaterThan(56));
         expect(leftPlant.y, greaterThanOrEqualTo(102));
         expect(rightPlant.y, greaterThanOrEqualTo(102));
+        expect(
+          sekem.supportFootWorldAnchorStrength,
+          greaterThanOrEqualTo(0.9),
+          reason:
+              'Sekem needs a firmer support anchor so the wider stomp base '
+              'does not skate under the side-view body lean',
+        );
+        expect(
+          footL.sample(2 / phrase.frameCount).x,
+          closeTo(leftPlant.x, 0.5),
+          reason:
+              'Sekem must not scrape the declared left support foot during its '
+              'own support window',
+        );
+        expect(
+          footL.sample(2 / phrase.frameCount).y,
+          closeTo(leftPlant.y, 0.5),
+          reason: 'left Sekem support should stay on the floor mid-window',
+        );
+        expect(
+          footR.sample(6 / phrase.frameCount).x,
+          closeTo(rightPlant.x, 0.5),
+          reason:
+              'Sekem must not scrape the declared right support foot during '
+              'its own support window',
+        );
+        expect(
+          footR.sample(6 / phrase.frameCount).y,
+          closeTo(rightPlant.y, 0.5),
+          reason: 'right Sekem support should stay on the floor mid-window',
+        );
 
         final leftPlantHand = handL.sample(0);
         final rightPlantHand = handR.sample(0);
         expect(
           leftPlantHand.x,
-          lessThan(-62),
+          lessThanOrEqualTo(-64),
           reason:
               'Sekem left hand should stay in the left anatomical lane; '
               'cross-body targets make the arms fold impossibly',
         );
         expect(
           leftPlantHand.y,
-          greaterThan(32),
-          reason: 'the low Sekem hand should visibly sit on the beltline',
+          greaterThan(-4),
+          reason: 'the low Sekem hand should visibly sit in a compact scoop',
         );
         expect(
           rightPlantHand.x,
-          greaterThan(100),
+          greaterThan(78),
           reason:
               'the opposite hand should paddle outward in its own lane so '
               'the move reads as Sekem without folded forearms',
         );
         expect(rightPlantHand.y, inInclusiveRange(-42, -34));
 
-        final leftPullback = handL.sample(2 / phrase.frameCount);
-        final rightRecover = handR.sample(2 / phrase.frameCount);
+        final leftPullbackApproach = handL.sample(2 / phrase.frameCount);
+        final leftPullback = handL.sample(2.55 / phrase.frameCount);
+        final rightRecover = handR.sample(2.55 / phrase.frameCount);
+        expect(
+          leftPullbackApproach.x,
+          lessThan(-72),
+          reason:
+              'the delayed Sekem pullback may not sweep through the torso '
+              'while the paw is still approaching its late hit',
+        );
         expect(
           leftPullback.x,
-          inInclusiveRange(-100, -92),
+          inInclusiveRange(-96, -86),
           reason:
-              'the left Sekem offbeat should rebound up in the left lane '
-              'instead of sweeping across the torso',
+              'the left Sekem offbeat should rebound up in the left lane on '
+              'its delayed wrist follow-through, not on the integer frame',
         );
         expect(
           leftPullback.x,
@@ -1028,7 +2023,7 @@ void main() {
         );
         expect(
           rightRecover.x,
-          greaterThan(92),
+          greaterThan(74),
           reason:
               'the right Sekem recover must stay outside the right shoulder '
               'line; centerline targets create impossible folded arms',
@@ -1037,10 +2032,10 @@ void main() {
         final rightPickup = footR.sample(2 / phrase.frameCount);
         expect(
           rightPickup.x,
-          inInclusiveRange(48, 52),
+          inInclusiveRange(64, 68),
           reason:
-              'Sekem pickup should scrape in a widened but grounded right lane; '
-              'lifting the foot high would turn it into a side-kick',
+              'Sekem pickup should scrape outside the trouser mass while '
+              'staying low; lifting the foot high would turn it into a side-kick',
         );
         expect(
           rightPickup.y,
@@ -1048,11 +2043,11 @@ void main() {
           reason: 'Sekem should skim the floor, not lift into a side-kick',
         );
 
-        final leftPoint = handL.sample(4 / phrase.frameCount);
-        final rightSweep = handR.sample(4 / phrase.frameCount);
+        final leftPoint = handL.sample(4.55 / phrase.frameCount);
+        final rightSweep = handR.sample(4.55 / phrase.frameCount);
         expect(
           leftPoint.x,
-          lessThan(-100),
+          lessThan(-82),
           reason:
               'the next plant should swap: left hand becomes the outward '
               'paddle',
@@ -1073,22 +2068,22 @@ void main() {
         );
         expect(
           rightSweep.y,
-          greaterThan(32),
-          reason: 'the low Sekem hand should visibly sit on the beltline',
+          greaterThan(-4),
+          reason: 'the low Sekem hand should visibly sit in a compact scoop',
         );
-        final rightSweepInward = handR.sample(6 / phrase.frameCount);
+        final rightSweepInward = handR.sample(6.55 / phrase.frameCount);
         expect(
           rightSweepInward.x,
-          greaterThan(92),
+          greaterThan(74),
           reason: 'right Sekem sweep must never cross the torso centreline',
         );
         final leftPickup = footL.sample(6 / phrase.frameCount);
         expect(
           leftPickup.x,
-          inInclusiveRange(-52, -48),
+          inInclusiveRange(-68, -64),
           reason:
-              'Sekem pickup should scrape in a widened but grounded left lane; '
-              'lifting the foot high would turn it into a side-kick',
+              'Sekem pickup should scrape outside the trouser mass while '
+              'staying low; lifting the foot high would turn it into a side-kick',
         );
         expect(
           leftPickup.y,
@@ -1123,36 +2118,88 @@ void main() {
         );
 
         final leftGroove = sekem.root.sample(0);
+        final leftSettle = sekem.root.sample(1 / phrase.frameCount);
         final leftRecoil = sekem.root.sample(2 / phrase.frameCount);
+        final rightPreload = sekem.root.sample(3 / phrase.frameCount);
         final rightGroove = sekem.root.sample(4 / phrase.frameCount);
         final hips = sekem.channels[CatBones.hips]!;
         final torso = sekem.channels[CatBones.torso]!;
         expect(
           leftGroove.dx,
-          lessThan(-26),
-          reason: 'Sekem should visibly dwell over the left plant',
+          inInclusiveRange(-25, -20),
+          reason:
+              'Sekem should visibly dwell over the left plant without '
+              'overthrowing the body in quarter/profile review',
         );
         expect(
           rightGroove.dx,
-          greaterThan(26),
-          reason: 'Sekem should visibly dwell over the right plant',
+          inInclusiveRange(20, 25),
+          reason:
+              'Sekem should visibly dwell over the right plant without '
+              'overthrowing the body in quarter/profile review',
         );
         expect(
           leftGroove.dy - leftRecoil.dy,
-          greaterThan(28),
-          reason: 'Sekem needs a grounded downbeat squash, not a flat sway',
+          inInclusiveRange(26, 32),
+          reason:
+              'Sekem needs a grounded downbeat squash without the old '
+              'overcompressed side-view shell shape',
         );
         expect(
-          hips.sample(0).rotation,
-          lessThan(-0.38),
-          reason: 'the hip should lead the left Sekem weight commit',
+          leftSettle.dy,
+          greaterThan(leftRecoil.dy + 12),
+          reason:
+              'Sekem should catch weight for a frame after the plant instead of '
+              'rebounding evenly from downbeat to offbeat',
         );
         expect(
-          torso.sample(0.55 / phrase.frameCount).rotation,
-          greaterThan(0.36),
+          leftSettle.dx,
+          lessThan(leftRecoil.dx - 4),
+          reason:
+              'the one-frame settle should remain over the planted side before '
+              'the body travels to the next support',
+        );
+        expect(
+          rightPreload.dx,
+          greaterThan(leftRecoil.dx + 14),
+          reason:
+              'Sekem should pre-load the next support before the foot plants, '
+              'not wait for the plant frame to move the pelvis',
+        );
+        expect(
+          rightGroove.dy,
+          greaterThan(rightPreload.dy + 9.5),
+          reason:
+              'the next plant still needs a visibly deeper squash than the '
+              'pre-load frame',
+        );
+        final rightHipLead = hips.sample(3.75 / phrase.frameCount).rotation;
+        final rightHipPlant = hips.sample(4 / phrase.frameCount).rotation;
+        expect(
+          rightHipLead,
+          greaterThan(rightHipPlant),
+          reason:
+              'the hip should lead into the right Sekem plant instead of '
+              'peaking on the same frame as the foot',
+        );
+        final rightChestOnPlant = torso.sample(4 / phrase.frameCount).rotation;
+        final rightChestFollow = torso.sample(4.9 / phrase.frameCount).rotation;
+        expect(
+          rightChestFollow,
+          lessThan(rightChestOnPlant - 0.06),
           reason:
               'the torso should counter after the hip lead instead of landing '
               'as one rigid suit shape',
+        );
+
+        final leftHipLead = hips.sample(7.75 / phrase.frameCount).rotation;
+        final leftHipPlant = hips.sample(8 / phrase.frameCount).rotation;
+        expect(
+          leftHipLead,
+          lessThan(leftHipPlant),
+          reason:
+              'the mirrored hip commit should also arrive before the plant '
+              'frame',
         );
       },
     );
@@ -1229,7 +2276,10 @@ void main() {
           greaterThanOrEqualTo(0),
           reason:
               'Sekem frame $frame should not reverse the left forearm back '
-              'through its upper arm; that renders as an impossible folded X',
+              'through its upper arm; that renders as an impossible folded X '
+              '(shoulder=${leftShoulder.toStringAsFixed(1)}, '
+              'elbow=${leftElbow.toStringAsFixed(1)}, '
+              'hand=${leftHand.toStringAsFixed(1)})',
         );
         expect(
           horizontalFold(
@@ -1240,7 +2290,10 @@ void main() {
           greaterThanOrEqualTo(0),
           reason:
               'Sekem frame $frame should not reverse the right forearm back '
-              'through its upper arm; that renders as an impossible folded X',
+              'through its upper arm; that renders as an impossible folded X '
+              '(shoulder=${rightShoulder.toStringAsFixed(1)}, '
+              'elbow=${rightElbow.toStringAsFixed(1)}, '
+              'hand=${rightHand.toStringAsFixed(1)})',
         );
         expect(
           leftElbow,
@@ -1476,6 +2529,17 @@ double _luma(int argb) {
   final g = (argb >> 8) & 0xFF;
   final b = argb & 0xFF;
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+double _rotationRange(JointChannel channel) {
+  var min = double.infinity;
+  var max = double.negativeInfinity;
+  for (var i = 0; i <= 64; i++) {
+    final rotation = channel.sample(i / 64).rotation;
+    min = math.min(min, rotation);
+    max = math.max(max, rotation);
+  }
+  return max - min;
 }
 
 double _targetDistance(IkTargetChannel channel, int fromFrame, int toFrame) {

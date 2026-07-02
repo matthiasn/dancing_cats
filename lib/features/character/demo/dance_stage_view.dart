@@ -227,24 +227,38 @@ class DanceStageView extends StatelessWidget {
 class DanceCast {
   DanceCast({required this.lead, required this.left, required this.right});
 
-  /// The standard trio: a lead with slightly stronger limbs plus two backups.
-  factory DanceCast.build() => DanceCast(
-    lead: CharacterScene(
-      buildCatInSuitRig(
-        legWidthScale: kDanceLeadLegWidthScale,
-        armWidthScale: kDanceLeadArmWidthScale,
+  /// The standard trio. Limb thickness is not hand-cast: each lane's rig is
+  /// built from its staged PLANE scale (lead downstage at 1, flankers ~0.49)
+  /// through [limbThicknessForPlaneScale], so upstage dancers thin out enough
+  /// to keep the negative space that makes a small silhouette read.
+  factory DanceCast.build() {
+    final leadPlane = danceLanePlaneScale(1, 3);
+    final flankThickness = limbThicknessForPlaneScale(
+      danceLanePlaneScale(0, 3) / leadPlane,
+    );
+    return DanceCast(
+      lead: CharacterScene(
+        buildCatInSuitRig(),
+        autonomic: danceAutonomic(11),
       ),
-      autonomic: danceAutonomic(11),
-    ),
-    left: CharacterScene(
-      buildCatInSuitRig(palette: CatInSuitPalette.silverTabby),
-      autonomic: danceAutonomic(29),
-    ),
-    right: CharacterScene(
-      buildCatInSuitRig(palette: CatInSuitPalette.darkBrown),
-      autonomic: danceAutonomic(47),
-    ),
-  );
+      left: CharacterScene(
+        buildCatInSuitRig(
+          palette: CatInSuitPalette.silverTabby,
+          legWidthScale: flankThickness,
+          armWidthScale: flankThickness,
+        ),
+        autonomic: danceAutonomic(29),
+      ),
+      right: CharacterScene(
+        buildCatInSuitRig(
+          palette: CatInSuitPalette.darkBrown,
+          legWidthScale: flankThickness,
+          armWidthScale: flankThickness,
+        ),
+        autonomic: danceAutonomic(47),
+      ),
+    );
+  }
 
   final CharacterScene lead;
   final CharacterScene left;
@@ -357,6 +371,10 @@ CharacterPainter danceCharacterPainter({
   memberBacklights: backlights,
   bodyGrade: useNewBackdrop ? kDanceBodyGrade : null,
   heroStaging: useNewBackdrop,
+  // danceViewProjection intentionally stays at the painter default (false):
+  // front-lock the shipped trio while the arm/shoulder mesh is being rebuilt.
+  // The projection review path still exists for explicit strips, but the app
+  // should not add quarter-turn distortion during limb-attachment review.
   renderer: renderer,
 );
 

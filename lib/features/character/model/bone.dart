@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 /// The geometric primitive used to draw a bone in Phase 1.
 ///
 /// Phase 1 deliberately draws bones as simple vector shapes (capsules,
@@ -44,6 +46,7 @@ class BoneDrawable {
     this.outlineWidth = 0,
     this.formRound = true,
     this.celShade = true,
+    this.inkOverFill = false,
   });
 
   final BoneShapeKind kind;
@@ -87,6 +90,40 @@ class BoneDrawable {
   /// flat fill with just the ink outline reads as a clean cartoon paw. Implies
   /// no form-rounding either (the ramp is skipped wholesale).
   final bool celShade;
+
+  /// When true, the drawable's outline is ALSO stroked over its fill — the
+  /// drawn ink line that separates this part from same-colour parts behind
+  /// it (the unified silhouette pass draws no internal outlines). Shoes and
+  /// other overlapping rigid parts use this like the limb ribbons do.
+  final bool inkOverFill;
+}
+
+/// Anatomical range of motion for a joint: bounds on the POSE rotation
+/// (the animated delta on top of the rest pose), in radians. The scene
+/// clamps every solved pose to these after IK - a knee can flex deep but
+/// can never bend backwards, no matter what a clip or solver asks for.
+class JointRotationLimit {
+  const JointRotationLimit(this.min, this.max)
+    : assert(min <= max, 'min must not exceed max');
+
+  final double min;
+  final double max;
+
+  double clamp(double rotation) =>
+      rotation < min ? min : (rotation > max ? max : rotation);
+
+  /// Clamps [rotation] as an ANGLE: the value is wrapped to (-pi, pi] before
+  /// testing the limit, and the correction is applied to the original number
+  /// so its branch (representation) is preserved. IK solutions legitimately
+  /// land on the +/-2pi representation of a continuous pose; clamping the raw
+  /// number would corrupt legal poses and let illegal ones through.
+  double clampAngle(double rotation) {
+    var wrapped = rotation % (2 * math.pi);
+    if (wrapped > math.pi) wrapped -= 2 * math.pi;
+    if (wrapped <= -math.pi) wrapped += 2 * math.pi;
+    final clamped = clamp(wrapped);
+    return rotation + (clamped - wrapped);
+  }
 }
 
 /// A single rigid bone in the skeleton.
@@ -106,6 +143,7 @@ class Bone {
     this.restScaleX = 1,
     this.restScaleY = 1,
     this.drawable,
+    this.rotationLimit,
   });
 
   /// Stable identifier, also the key used by clips and poses.
@@ -128,4 +166,8 @@ class Bone {
   /// What to draw for this bone, or null for a control/transform-only bone
   /// (e.g. a hip or neck that only positions its children).
   final BoneDrawable? drawable;
+
+  /// Optional anatomical range of motion, enforced at runtime by the
+  /// scene's joint-limits pass. Null = unconstrained.
+  final JointRotationLimit? rotationLimit;
 }

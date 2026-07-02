@@ -62,9 +62,17 @@ typedef DanceStage = ({
   bool synchronous,
 });
 
-/// Number of bars the looping dance phrase spans; the loop stays beat-locked for
-/// the whole track once anchored on the first downbeat.
-const int kDancePhraseBars = 3;
+/// Number of bars the looping dance phrase spans; the loop stays beat-locked
+/// for the whole track once anchored on the first downbeat.
+///
+/// TWO bars: the 32-frame phrase then spans 8 beats — exactly 4 frames per
+/// beat — so the routines' authored quarter-note accents (frames 0/4/8/...,
+/// "per-beat stamps on 4/12/20/28") land ON the beats. The old 3-bar binding
+/// stretched the same phrase over 12 beats (2 2/3 frames per beat), which
+/// parked every other authored accent squarely BETWEEN beats — an accidental
+/// 4-against-3 that read as "not locked to the music". Measured BAS improved
+/// on every routine at 8 beats.
+const int kDancePhraseBars = 2;
 
 /// Fraction of the track's energy range below which a section counts as "calm"
 /// (and, if also long enough, eases the trio into idle). See [kMinCalmSeconds].
@@ -307,7 +315,13 @@ class DancePerformance {
     if (!resting) {
       final lyric = sectionInfoAt(pos);
       final occ = sectionOccurrenceAt(pos, lyric.section);
-      final trio = choreoTrioForSection(lyric.section, lyric.phase, level, occ);
+      final trio = choreoTrioForSection(
+        lyric.section,
+        lyric.phase,
+        level,
+        occ,
+        sectionSeconds: lyric.seconds,
+      );
       return (
         lead: trio.lead,
         ensemble: trio.ensemble,
@@ -332,19 +346,21 @@ class DancePerformance {
     return sections.isEmpty ? null : sections.last;
   }
 
-  /// Where [pos] sits inside the current semantic section: its label and progress
-  /// 0..1. Defaults to the empty section when no span covers [pos].
-  ({String section, double phase}) sectionInfoAt(double pos) {
+  /// Where [pos] sits inside the current semantic section: its label, progress
+  /// 0..1, and the section's length in seconds. Defaults to the empty section
+  /// when no span covers [pos].
+  ({String section, double phase, double seconds}) sectionInfoAt(double pos) {
     for (final s in sectionSpans) {
       if (pos >= s.start && pos < s.end) {
         final span = (s.end - s.start) <= 0 ? 1.0 : s.end - s.start;
         return (
           section: s.section,
           phase: ((pos - s.start) / span).clamp(0.0, 1.0),
+          seconds: span,
         );
       }
     }
-    return (section: '', phase: 0);
+    return (section: '', phase: 0, seconds: 0);
   }
 
   /// How many earlier spans share [section]'s label — 0 for its first occurrence.
@@ -359,19 +375,45 @@ class DancePerformance {
     return occ;
   }
 
+  /// How long one choreography SLOT lasts inside a long section: after this
+  /// many seconds the trio rotates to the next entry of the section's
+  /// mini-setlist. Two loops of the 2-bar phrase at 120 BPM — long enough for
+  /// a move to read, short enough that a bridge never parks on one move.
+  static const double kChoreoSlotSeconds = 8;
+
+  /// One entry of [setlist], time-sliced across a section of
+  /// [sectionSeconds] at [kChoreoSlotSeconds] per slot. Short sections stay
+  /// on their opening statement; long ones walk the list (wrapping), so no
+  /// stretch of the song holds one trio for more than ~two phrase loops.
+  DanceTrio _rotateSetlist(
+    List<DanceTrio> setlist,
+    double phase,
+    double sectionSeconds, {
+    int offset = 0,
+  }) {
+    final slots = sectionSeconds <= 0
+        ? 1
+        : (sectionSeconds / kChoreoSlotSeconds).floor().clamp(1, 64);
+    final slot = (phase * slots).floor().clamp(0, slots - 1);
+    return setlist[(slot + offset) % setlist.length];
+  }
+
   /// The lyric-driven routine for a semantic [section]: each section of the song
   /// gets its own trio across the named moves, so the dance reads as a designed set
   /// — verses groove, the chorus punches its hook into a unison Buga hit, the
   /// bridge drops to a grounded Sekem pocket, the outro winds down. [phase] is
   /// 0..1 progress through the section; [variant] is the section occurrence (0 =
-  /// first) so repeats don't read identical. Falls back to the energy-level map
-  /// for untagged sections / no lyrics.
+  /// first) so repeats don't read identical; [sectionSeconds] lets LONG sections
+  /// rotate through a mini-setlist instead of parking one trio for the whole
+  /// stretch (a full bridge of sekem×3 read as a screensaver). Falls back to
+  /// the energy-level map for untagged sections / no lyrics.
   DanceTrio choreoTrioForSection(
     String section,
     double phase,
     double level,
-    int variant,
-  ) {
+    int variant, {
+    double sectionSeconds = 0,
+  }) {
     switch (section) {
       case 'chorus':
       case 'post-chorus':
@@ -387,13 +429,39 @@ class DancePerformance {
       case 'pre-chorus':
         return (lead: _shaku, ensemble: [_shaku, _zanku, _sekem]);
       case 'verse':
-        return variant.isEven
-            ? (lead: _azonto, ensemble: [_azonto, _shaku, _zanku])
-            : (lead: _shaku, ensemble: [_shaku, _azonto, _zanku]);
+        return _rotateSetlist(
+          [
+            (lead: _azonto, ensemble: [_azonto, _shaku, _zanku]),
+            (lead: _shaku, ensemble: [_shaku, _azonto, _zanku]),
+            (lead: _zanku, ensemble: [_zanku, _sekem, _shaku]),
+          ],
+          phase,
+          sectionSeconds,
+          offset: variant,
+        );
       case 'bridge':
-        return (lead: _sekem, ensemble: [_sekem, _sekem, _sekem]);
+        // Grounded pocket, but a WALKED one: unison sekem states the drop,
+        // then the flanks split, then a shaku X-hold before the section turns.
+        return _rotateSetlist(
+          [
+            (lead: _sekem, ensemble: [_sekem, _sekem, _sekem]),
+            (lead: _sekem, ensemble: [_sekem, _azonto, _shaku]),
+            (lead: _shaku, ensemble: [_shaku, _sekem, _sekem]),
+          ],
+          phase,
+          sectionSeconds,
+          offset: variant,
+        );
       case 'outro':
-        return (lead: _sekem, ensemble: [_sekem, _sekem, _shaku]);
+        return _rotateSetlist(
+          [
+            (lead: _sekem, ensemble: [_sekem, _sekem, _shaku]),
+            (lead: _azonto, ensemble: [_azonto, _sekem, _sekem]),
+          ],
+          phase,
+          sectionSeconds,
+          offset: variant,
+        );
       default:
         return choreoTrioByLevel(level);
     }

@@ -8,13 +8,14 @@ import 'package:flutter_test/flutter_test.dart';
 /// Beat Alignment Score (BAS, after AIST++): does the authored dance land its
 /// motion accents on the beat grid? "Motion beats" are local minima of the
 /// extremities' speed — the instants the body decelerates/reverses on a hit;
-/// "music beats" are the 12 beats of the authored phrase (3 bars of 4/4 at
-/// 120 BPM). The warp (`BeatMap.clipSecondsAt`) then maps this grid onto any
-/// track's detected beats, so on-grid authoring == on-beat playback.
+/// "music beats" are the 8 beats of the authored phrase (2 bars of 4/4 —
+/// exactly 4 frames per beat on the 32-frame grid). The warp
+/// (`BeatMap.clipSecondsAt`) then maps this grid onto any track's detected
+/// beats, so on-grid authoring == on-beat playback.
 void main() {
   test('dance lands its motion hits on the beat grid (BAS)', () {
-    const samples = 192; // 16 per beat across the 12-beat phrase
-    const beats = 12;
+    const samples = 192; // 24 per beat across the 8-beat phrase
+    const beats = 8;
 
     final report = TemporalMotionAnalyzer(CharacterScene(buildCatInSuitRig()))
         .analyze(
@@ -82,7 +83,7 @@ void main() {
     );
     expect(
       bas,
-      greaterThan(0.3),
+      greaterThan(0.75),
       reason: 'motion hits should cluster near the beat grid (BAS=$bas)',
     );
   });

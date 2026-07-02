@@ -382,6 +382,44 @@ void main() {
       expect(chest.sample(7.5 / 32).rotation, greaterThan(-1));
     });
 
+    test('body micro-timing wraps through the loop seam', () {
+      const leadKeys = [
+        DanceBodyKey(0, rootDx: 12, pelvisRotation: 1, microFrames: -1),
+        DanceBodyKey(8, rootDx: -12, pelvisRotation: -1, microFrames: -1),
+        DanceBodyKey(16, rootDx: 12, pelvisRotation: 1, microFrames: -1),
+        DanceBodyKey(24, rootDx: -12, pelvisRotation: -1, microFrames: -1),
+        DanceBodyKey(32, rootDx: 12, pelvisRotation: 1, microFrames: -1),
+      ];
+      const followKeys = [
+        DanceBodyKey(0, chestRotation: 1, microFrames: 1),
+        DanceBodyKey(8, chestRotation: -1, microFrames: 1),
+        DanceBodyKey(16, chestRotation: 1, microFrames: 1),
+        DanceBodyKey(24, chestRotation: -1, microFrames: 1),
+        DanceBodyKey(32, chestRotation: 1, microFrames: 1),
+      ];
+
+      final root = phrase.bodyRootChannel(leadKeys);
+      final pelvis = phrase.bodyPelvisChannel(leadKeys);
+      final chest = phrase.bodyChestChannel(followKeys);
+
+      expect(root.sample(31 / 32).dx, closeTo(12, 1e-9));
+      expect(pelvis.sample(31 / 32).rotation, closeTo(1, 1e-9));
+      expect(chest.sample(1 / 32).rotation, closeTo(1, 1e-9));
+
+      expect(
+        root.sample(0.99).dx,
+        lessThan(11.99),
+        reason:
+            'late seam samples should keep travelling, not clamp at frame 31',
+      );
+      expect(
+        chest.sample(0).rotation,
+        lessThan(0.99),
+        reason:
+            'early seam samples should approach the delayed key, not hold it',
+      );
+    });
+
     test('builds neutralized body accent pulses', () {
       final keys = phrase.bodyAccentKeys(
         const [
@@ -469,6 +507,21 @@ void main() {
       expect(channel.sample(1).x, closeTo(-12, 1e-9));
     });
 
+    test('IK target channels can land on fractional frames', () {
+      final channel = phrase.ikTargetChannel(
+        const [
+          DanceIkTargetKey(0, x: -12, y: 24, weight: 0.4),
+          DanceIkTargetKey(8, x: 18, y: 12, microFrames: 0.25),
+          DanceIkTargetKey(32, x: -12, y: 24, weight: 0.4),
+        ],
+        microFrames: 0.5,
+      );
+
+      expect(channel.sample(8.75 / 32).x, closeTo(18, 1e-9));
+      expect(channel.sample(8.75 / 32).y, closeTo(12, 1e-9));
+      expect(channel.sample(8 / 32).x, lessThan(18));
+    });
+
     test('builds named IK target arcs from start peak and settle points', () {
       final keys = phrase.ikTargetArcKeys(
         const [
@@ -506,6 +559,68 @@ void main() {
       expect(keys[3].weight, 0.6);
       expect(keys[4].x, 52);
       expect(keys[4].y, 28);
+    });
+
+    test('generates curved IK target arc in-betweens', () {
+      final keys = phrase.ikTargetArcKeys(
+        const [
+          DanceIkTargetArc(
+            name: 'curved hand lift',
+            startFrame: 0,
+            peakFrame: 4,
+            endFrame: 8,
+            startX: 0,
+            startY: 0,
+            peakX: 40,
+            peakY: -40,
+            endX: 80,
+            endY: 0,
+            generatedFrames: [2, 6],
+          ),
+        ],
+      );
+
+      expect(keys.map((key) => key.frame), [0, 2, 4, 6, 8]);
+      expect(keys[1].x, closeTo(17.5, 1e-9));
+      expect(
+        keys[1].y,
+        closeTo(-22.5, 1e-9),
+        reason:
+            'generated keys should travel on a curve, not the straight '
+            'start-to-peak chord at y=-20',
+      );
+      expect(keys[3].x, closeTo(62.5, 1e-9));
+      expect(keys[3].y, closeTo(-22.5, 1e-9));
+    });
+
+    test('explicit IK arc controls override generated frames', () {
+      final keys = phrase.ikTargetArcKeys(
+        const [
+          DanceIkTargetArc(
+            name: 'controlled hand lift',
+            startFrame: 0,
+            peakFrame: 4,
+            endFrame: 8,
+            startX: 0,
+            startY: 0,
+            peakX: 40,
+            peakY: -40,
+            endX: 80,
+            endY: 0,
+            generatedFrames: [2, 4, 6],
+            controlPoints: [
+              DanceIkTargetArcPoint(2, x: 22, y: -12, weight: 0.5),
+            ],
+          ),
+        ],
+      );
+
+      expect(keys.map((key) => key.frame), [0, 2, 4, 6, 8]);
+      expect(keys[1].x, 22);
+      expect(keys[1].y, -12);
+      expect(keys[1].weight, 0.5);
+      expect(keys[2].x, 40);
+      expect(keys[2].y, -40);
     });
 
     test('builds neutralized IK target accent pulses', () {

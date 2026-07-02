@@ -15,6 +15,8 @@ class AutonomicSample {
     required this.eyeDartX,
     required this.eyeDartY,
     required this.breath,
+    this.earTwitchLeft = 0,
+    this.earTwitchRight = 0,
   });
 
   /// Eyelid openness multiplier 0..1 (1 = fully open, 0 = mid-blink).
@@ -26,6 +28,12 @@ class AutonomicSample {
 
   /// Breathing signal, roughly -1..1, for a subtle torso scale / body drift.
   final double breath;
+
+  /// Ear twitch pulses 0..1, sparse and independent per ear — the quick
+  /// flick-and-settle every cat does even when otherwise still. Nothing says
+  /// "stiff felt ears" like ears that never twitch.
+  final double earTwitchLeft;
+  final double earTwitchRight;
 }
 
 class AutonomicLayer {
@@ -39,6 +47,7 @@ class AutonomicLayer {
     this.breathAmplitude = 1.0,
     this.eyeDartInterval = 1.7,
     this.eyeDartAmplitude = 0.5,
+    this.earTwitchInterval = 4.3,
   });
 
   final int seed;
@@ -58,12 +67,32 @@ class AutonomicLayer {
   final double eyeDartInterval;
   final double eyeDartAmplitude;
 
+  /// Mean slot length between possible ear twitches, seconds.
+  final double earTwitchInterval;
+
   AutonomicSample sampleAt(double t) => AutonomicSample(
     eyeOpen: _eyeOpenAt(t),
     eyeDartX: _eyeDart(t, 0x9e37),
     eyeDartY: _eyeDart(t, 0x6b3f) * 0.5,
     breath: math.sin(2 * math.pi * t / breathPeriod) * breathAmplitude,
+    earTwitchLeft: _earTwitch(t, 0x51f3),
+    earTwitchRight: _earTwitch(t, 0x2c9d),
   );
+
+  /// A sparse flick-and-settle pulse: most slots stay quiet; a firing slot
+  /// snaps out fast (~70ms) and eases back (~170ms), like a real ear twitch.
+  double _earTwitch(double t, int stream) {
+    if (t < 0) return 0;
+    final idx = (t / earTwitchInterval).floor();
+    if (_rand(stream, idx) > 0.55) return 0;
+    final start =
+        idx * earTwitchInterval +
+        _rand(stream + 7, idx) * (earTwitchInterval - 0.3);
+    final dt = t - start;
+    if (dt < 0 || dt > 0.24) return 0;
+    if (dt < 0.07) return Ease.easeOut.apply(dt / 0.07);
+    return 1 - Ease.easeOut.apply((dt - 0.07) / 0.17);
+  }
 
   /// Deterministic [0,1) value for the [index]-th draw of a stream keyed by
   /// [stream]. A small splittable-style hash — no global RNG state.

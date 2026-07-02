@@ -12,84 +12,168 @@ import 'dart:ui';
 /// canvas-space joint positions from the solved world transforms), so the ribbon
 /// is drawn with no per-bone canvas transform.
 ///
-/// [spine] are the joint centres (≥2). [halfWidths] is the half-thickness at each
-/// joint (same length as [spine]). [samplesPerSegment] controls smoothness.
+/// [spine] are the joint centres (≥2). [halfWidths] is the half-thickness at
+/// each joint on the +normal side (same length as [spine]); the normal is the
+/// centreline tangent rotated a quarter turn, so for a limb authored top-down
+/// it points toward the character's facing side. [backHalfWidths], when given,
+/// sets the -normal side independently — an ASYMMETRIC muscle profile (a quad
+/// bulging on the front of the thigh, a calf on the back of the shin) instead
+/// of a symmetric tube. Omitted, the ribbon is symmetric about the centreline.
+/// [samplesPerSegment] controls smoothness. [roundCaps] keeps anatomical limb
+/// tips soft; tailored surfaces such as suit sleeves can disable it for flatter
+/// fabric ends at shoulder and cuff.
 Path limbRibbonPath(
   List<Offset> spine,
   List<double> halfWidths, {
+  List<double>? backHalfWidths,
   int samplesPerSegment = 10,
+  bool roundCaps = true,
 }) {
   assert(spine.length == halfWidths.length, 'spine/halfWidths length mismatch');
+  assert(
+    backHalfWidths == null || backHalfWidths.length == spine.length,
+    'spine/backHalfWidths length mismatch',
+  );
   if (spine.length < 2) return Path();
 
-  final samples = _sampleCentreline(spine, halfWidths, samplesPerSegment);
+  final samples = _sampleCentreline(
+    spine,
+    halfWidths,
+    backHalfWidths ?? halfWidths,
+    samplesPerSegment,
+  );
 
-  // Left and right edges, offset along the centreline normal by the local
-  // half-width. The ends get round caps (semicircles) so joints read as the
-  // soft rounded limbs the capsules used to give, without the hinge.
+  // Front (+normal) and back (-normal) edges, offset along the centreline
+  // normal by that side's local half-width. Anatomical limbs get round caps
+  // (semicircles); tailored sleeves can use flat caps so the ends read like
+  // fabric breaks rather than sausages. With an asymmetric profile the cap is
+  // centred between the two edge points and spans their average radius, which
+  // degenerates to the historic circle when the sides match.
   final path = Path();
   final first = samples.first;
   final last = samples.last;
 
-  // Start cap: semicircle around the first centre, sweeping from the right edge
-  // up over the start to the left edge (so the forward left-edge walk continues).
-  final startAngle = math.atan2(-first.normal.dy, -first.normal.dx);
-  path
-    ..moveTo(
-      first.centre.dx - first.normal.dx * first.halfWidth,
-      first.centre.dy - first.normal.dy * first.halfWidth,
-    )
-    ..arcTo(
-      Rect.fromCircle(center: first.centre, radius: first.halfWidth),
+  Offset frontEdge(_Sample s) =>
+      s.centre + s.normal * s.halfWidth;
+  Offset backEdge(_Sample s) =>
+      s.centre - s.normal * s.backHalfWidth;
+
+  path.moveTo(backEdge(first).dx, backEdge(first).dy);
+  if (roundCaps) {
+    // Start cap: semicircle from the back edge over the start to the front
+    // edge (so the forward front-edge walk continues).
+    final capCentre = (frontEdge(first) + backEdge(first)) / 2;
+    final capRadius = (first.halfWidth + first.backHalfWidth) / 2;
+    final startAngle = math.atan2(-first.normal.dy, -first.normal.dx);
+    path.arcTo(
+      Rect.fromCircle(center: capCentre, radius: capRadius),
       startAngle,
       -math.pi, // bulge over the BACK of the limb (opposite the tangent)
       false,
     );
-
-  // Forward along the LEFT edge.
-  for (var i = 1; i < samples.length; i++) {
-    final s = samples[i];
-    path.lineTo(
-      s.centre.dx + s.normal.dx * s.halfWidth,
-      s.centre.dy + s.normal.dy * s.halfWidth,
-    );
+  } else {
+    path.lineTo(frontEdge(first).dx, frontEdge(first).dy);
   }
 
-  // End cap: semicircle around the last centre, from the left edge over the tip
-  // to the right edge.
-  final endAngle = math.atan2(last.normal.dy, last.normal.dx);
-  path.arcTo(
-    Rect.fromCircle(center: last.centre, radius: last.halfWidth),
-    endAngle,
-    -math.pi,
-    false,
-  );
+  // Forward along the FRONT edge.
+  for (var i = 1; i < samples.length; i++) {
+    final p = frontEdge(samples[i]);
+    path.lineTo(p.dx, p.dy);
+  }
 
-  // Back along the RIGHT edge.
-  for (var i = samples.length - 2; i >= 0; i--) {
-    final s = samples[i];
-    path.lineTo(
-      s.centre.dx - s.normal.dx * s.halfWidth,
-      s.centre.dy - s.normal.dy * s.halfWidth,
+  if (roundCaps) {
+    // End cap: semicircle from the front edge over the tip to the back edge.
+    final capCentre = (frontEdge(last) + backEdge(last)) / 2;
+    final capRadius = (last.halfWidth + last.backHalfWidth) / 2;
+    final endAngle = math.atan2(last.normal.dy, last.normal.dx);
+    path.arcTo(
+      Rect.fromCircle(center: capCentre, radius: capRadius),
+      endAngle,
+      -math.pi,
+      false,
     );
+  } else {
+    path.lineTo(backEdge(last).dx, backEdge(last).dy);
+  }
+
+  // Back along the BACK edge.
+  for (var i = samples.length - 2; i >= 0; i--) {
+    final p = backEdge(samples[i]);
+    path.lineTo(p.dx, p.dy);
   }
 
   path.close();
   return path;
 }
 
+
+/// The hand-drawn INK LINE for a ribbon that overlaps its own body: an OPEN
+/// path tracing the limb's edges from [startFraction] of the centreline down
+/// to and around the tip — deliberately NOT closed over the root, so the
+/// shoulder/hip end of the limb merges into the garment it grows from
+/// instead of being enclosed in its own outline like a pinned-on cut-out.
+/// Stroke this (round caps) over the ribbon fill; the line fades in exactly
+/// where a drawn sleeve's line would leave the armhole.
+Path limbRibbonInkPath(
+  List<Offset> spine,
+  List<double> halfWidths, {
+  List<double>? backHalfWidths,
+  int samplesPerSegment = 10,
+  double startFraction = 0,
+}) {
+  assert(spine.length == halfWidths.length, 'spine/halfWidths length mismatch');
+  if (spine.length < 2) return Path();
+
+  final samples = _sampleCentreline(
+    spine,
+    halfWidths,
+    backHalfWidths ?? halfWidths,
+    samplesPerSegment,
+  );
+  final start = (samples.length * startFraction)
+      .round()
+      .clamp(0, samples.length - 2);
+
+  Offset frontEdge(_Sample s) => s.centre + s.normal * s.halfWidth;
+  Offset backEdge(_Sample s) => s.centre - s.normal * s.backHalfWidth;
+
+  final path = Path()
+    ..moveTo(frontEdge(samples[start]).dx, frontEdge(samples[start]).dy);
+  for (var i = start + 1; i < samples.length; i++) {
+    final p = frontEdge(samples[i]);
+    path.lineTo(p.dx, p.dy);
+  }
+  final last = samples.last;
+  final capCentre = (frontEdge(last) + backEdge(last)) / 2;
+  final capRadius = (last.halfWidth + last.backHalfWidth) / 2;
+  final endAngle = math.atan2(last.normal.dy, last.normal.dx);
+  path.arcTo(
+    Rect.fromCircle(center: capCentre, radius: capRadius),
+    endAngle,
+    -math.pi,
+    false,
+  );
+  for (var i = samples.length - 2; i >= start; i--) {
+    final p = backEdge(samples[i]);
+    path.lineTo(p.dx, p.dy);
+  }
+  return path;
+}
+
 class _Sample {
-  _Sample(this.centre, this.normal, this.halfWidth);
+  _Sample(this.centre, this.normal, this.halfWidth, this.backHalfWidth);
   final Offset centre;
   final Offset normal; // unit, perpendicular to the tangent (points "left")
   final double halfWidth;
+  final double backHalfWidth;
 }
 
 /// Resamples [spine] into a Catmull-Rom curve, carrying the per-sample tangent
-/// normal and the interpolated half-width.
+/// normal and the interpolated half-widths for both sides.
 List<_Sample> _sampleCentreline(
   List<Offset> spine,
   List<double> halfWidths,
+  List<double> backHalfWidths,
   int samplesPerSegment,
 ) {
   final out = <_Sample>[];
@@ -102,6 +186,8 @@ List<_Sample> _sampleCentreline(
     final p3 = spine[i + 2 >= n ? n - 1 : i + 2];
     final w1 = halfWidths[i];
     final w2 = halfWidths[i + 1];
+    final b1 = backHalfWidths[i];
+    final b2 = backHalfWidths[i + 1];
     final last = i == n - 2;
     final steps = last ? samplesPerSegment : samplesPerSegment - 1;
     for (var s = 0; s <= steps; s++) {
@@ -112,7 +198,9 @@ List<_Sample> _sampleCentreline(
       final normal = len < 1e-6
           ? Offset.zero
           : Offset(-tan.dy / len, tan.dx / len);
-      out.add(_Sample(pt, normal, w1 + (w2 - w1) * t));
+      out.add(
+        _Sample(pt, normal, w1 + (w2 - w1) * t, b1 + (b2 - b1) * t),
+      );
     }
   }
   return out;

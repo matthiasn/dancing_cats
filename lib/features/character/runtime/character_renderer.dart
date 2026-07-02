@@ -7,6 +7,7 @@ import 'package:dancing_cats/features/character/model/bone.dart';
 import 'package:dancing_cats/features/character/model/face.dart';
 import 'package:dancing_cats/features/character/model/rig_spec.dart';
 import 'package:dancing_cats/features/character/runtime/limb_ribbon.dart';
+import 'package:dancing_cats/features/character/runtime/skinned_mesh_solver.dart';
 import 'package:flutter/rendering.dart';
 
 /// Draws a posed [RigSpec] onto a [Canvas]. Stateless and Flutter-only at the
@@ -39,12 +40,35 @@ class CharacterRenderer {
   /// 2. **Fill** — the bone fills are painted in z-order on top, covering the
   ///    interior of that blob and leaving only its outer rim showing. The
   ///    result is a clean outer outline with seam-free joints.
+  /// [memberTransform], when given, is the member's base/placement transform
+  /// already composed into [world] (scale, flip, view foreshorten). The
+  /// renderer then paints under `canvas.transform(memberTransform)` with the
+  /// member-local transforms, so RIBBON HALF-WIDTHS and ribbon/mesh OUTLINE
+  /// STROKES scale with the member exactly like bone drawables do. Without
+  /// it (identity placement), those widths are canvas-space — which made a
+  /// scaled-up lead read spindly and scaled-down backups read ballooned.
   void paint(
     Canvas canvas,
     RigSpec rig,
     Map<String, Affine2D> world,
-    FaceState face,
-  ) {
+    FaceState face, {
+    Affine2D? memberTransform,
+  }) {
+    if (memberTransform != null) {
+      final inverse = memberTransform.inverse();
+      if (inverse != null) {
+        final local = <String, Affine2D>{
+          for (final entry in world.entries)
+            entry.key: inverse.multiply(entry.value),
+        };
+        canvas
+          ..save()
+          ..transform(memberTransform.toMatrix4Storage(_matrix));
+        paint(canvas, rig, local, face);
+        canvas.restore();
+        return;
+      }
+    }
     final hiddenBones = rig.hiddenDrawableBoneIds;
 
     // Ribbons are drawn in the same silhouette/fill two-pass style as bones.
@@ -103,22 +127,48 @@ class CharacterRenderer {
     final ribbons = rig.ribbonDrawOrder;
     final meshes = rig.meshDrawOrder;
     final celShade = rig.celShade;
+    final groupBounds = celShade == null
+        ? const <String, Rect>{}
+        : _shadeGroupBounds(rig, world);
+    final seamMeshes = [
+      for (final mesh in rig.meshDrawOrder)
+        if (mesh.inkSeams.isNotEmpty && mesh.inkSeamWidth > 0) mesh,
+    ]..sort((a, b) => a.inkSeamZ.compareTo(b.inkSeamZ));
     var ribbonIndex = 0;
     var meshIndex = 0;
+    var seamIndex = 0;
     for (final bone in rig.drawOrder) {
       while (ribbonIndex < ribbons.length && ribbons[ribbonIndex].z <= bone.z) {
         _drawRibbonFill(canvas, ribbons[ribbonIndex], world);
         if (celShade != null) {
-          _celShadeRibbon(canvas, ribbons[ribbonIndex], world, celShade);
+          _celShadeRibbon(
+            canvas,
+            ribbons[ribbonIndex],
+            world,
+            celShade,
+            shadeBounds: groupBounds[ribbons[ribbonIndex].shadeGroup],
+          );
         }
+        _drawRibbonInk(canvas, rig, ribbons[ribbonIndex], world);
         ribbonIndex++;
       }
       while (meshIndex < meshes.length && meshes[meshIndex].z <= bone.z) {
         _drawMeshFill(canvas, meshes[meshIndex], world);
         if (celShade != null) {
-          _celShadeMesh(canvas, meshes[meshIndex], world, celShade);
+          _celShadeMesh(
+            canvas,
+            meshes[meshIndex],
+            world,
+            celShade,
+            shadeBounds: groupBounds[meshes[meshIndex].shadeGroup],
+          );
         }
         meshIndex++;
+      }
+      while (seamIndex < seamMeshes.length &&
+          seamMeshes[seamIndex].inkSeamZ <= bone.z) {
+        _drawMeshInkSeams(canvas, seamMeshes[seamIndex], world);
+        seamIndex++;
       }
       if (hiddenBones.contains(bone.id)) continue;
       final drawable = bone.drawable;
@@ -132,22 +182,99 @@ class CharacterRenderer {
       if (celShade != null && drawable.celShade) {
         _celShadeKind(canvas, drawable, celShade);
       }
+      _drawKindInk(canvas, drawable);
       canvas.restore();
     }
     while (ribbonIndex < ribbons.length) {
       _drawRibbonFill(canvas, ribbons[ribbonIndex], world);
       if (celShade != null) {
-        _celShadeRibbon(canvas, ribbons[ribbonIndex], world, celShade);
+        _celShadeRibbon(
+          canvas,
+          ribbons[ribbonIndex],
+          world,
+          celShade,
+          shadeBounds: groupBounds[ribbons[ribbonIndex].shadeGroup],
+        );
       }
+      _drawRibbonInk(canvas, rig, ribbons[ribbonIndex], world);
       ribbonIndex++;
     }
     while (meshIndex < meshes.length) {
       _drawMeshFill(canvas, meshes[meshIndex], world);
       if (celShade != null) {
-        _celShadeMesh(canvas, meshes[meshIndex], world, celShade);
+        _celShadeMesh(
+          canvas,
+          meshes[meshIndex],
+          world,
+          celShade,
+          shadeBounds: groupBounds[meshes[meshIndex].shadeGroup],
+        );
       }
       meshIndex++;
     }
+    while (seamIndex < seamMeshes.length) {
+      _drawMeshInkSeams(canvas, seamMeshes[seamIndex], world);
+      seamIndex++;
+    }
+  }
+
+  /// Drawn tailoring seams over a skinned surface (see
+  /// [SkinnedMeshSpec.inkSeams]): polylines through deformed vertices, stroked
+  /// in the outline colour — e.g. the jacket's shoulder seam from armhole to
+  /// collar, continuing a sleeve's ink line up to the neck cutoff.
+  void _drawMeshInkSeams(
+    Canvas canvas,
+    SkinnedMeshSpec mesh,
+    Map<String, Affine2D> world,
+  ) {
+    final outline = mesh.outlineColor;
+    if (mesh.inkSeams.isEmpty || mesh.inkSeamWidth <= 0 || outline == null) {
+      return;
+    }
+    final points = resolveSkinnedMeshVertices(mesh, world);
+    if (points == null) return;
+    _paint
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = mesh.inkSeamWidth
+      ..strokeJoin = StrokeJoin.round
+      ..strokeCap = StrokeCap.round
+      ..color = Color(outline)
+      ..isAntiAlias = antiAlias;
+    for (final seam in mesh.inkSeams) {
+      final path = Path()
+        ..moveTo(points[seam.first].x, points[seam.first].y);
+      for (var i = 1; i < seam.length; i++) {
+        path.lineTo(points[seam[i]].x, points[seam[i]].y);
+      }
+      canvas.drawPath(path, _paint);
+    }
+  }
+
+  /// Union bounds of all surfaces sharing a [LimbRibbonSpec.shadeGroup] /
+  /// [SkinnedMeshSpec.shadeGroup], per group and per frame. A group is lit by
+  /// ONE directional ramp spanning these bounds — one garment under one key —
+  /// so the tone at a junction (a sleeve on the jacket yoke) is identical on
+  /// both sides instead of each panel bringing its own gradient.
+  Map<String, Rect> _shadeGroupBounds(
+    RigSpec rig,
+    Map<String, Affine2D> world,
+  ) {
+    final bounds = <String, Rect>{};
+    void include(String? group, Path? path) {
+      if (group == null || path == null) return;
+      final b = path.getBounds();
+      if (b.isEmpty) return;
+      final existing = bounds[group];
+      bounds[group] = existing == null ? b : existing.expandToInclude(b);
+    }
+
+    for (final ribbon in rig.ribbonDrawOrder) {
+      include(ribbon.shadeGroup, _ribbonPath(ribbon, world));
+    }
+    for (final mesh in rig.meshDrawOrder) {
+      include(mesh.shadeGroup, _meshPath(mesh, world));
+    }
+    return bounds;
   }
 
   // ---- Cel-shading: a per-shape form shadow clipped to each volume ----------
@@ -295,42 +422,79 @@ class CharacterRenderer {
     Canvas canvas,
     LimbRibbonSpec ribbon,
     Map<String, Affine2D> world,
-    CelShadeSpec s,
-  ) {
+    CelShadeSpec s, {
+    Rect? shadeBounds,
+  }) {
     final path = _ribbonPath(ribbon, world);
     if (path == null) return;
-    _celShadePath(canvas, path, ribbon.color, s);
+    _celShadePath(
+      canvas,
+      path,
+      ribbon.color,
+      s,
+      formRound: ribbon.formRound,
+      shadeBounds: shadeBounds,
+    );
   }
 
   void _celShadeMesh(
     Canvas canvas,
     SkinnedMeshSpec mesh,
     Map<String, Affine2D> world,
-    CelShadeSpec s,
-  ) {
+    CelShadeSpec s, {
+    Rect? shadeBounds,
+  }) {
     final path = _meshPath(mesh, world);
     if (path == null) return;
-    _celShadePath(canvas, path, mesh.color, s, formRound: mesh.formRound);
+    _celShadePath(
+      canvas,
+      path,
+      mesh.color,
+      s,
+      formRound: mesh.formRound,
+      shadeBounds: shadeBounds,
+    );
   }
 
   /// Cel-shades an arbitrary world-space [path] (ribbon/mesh): clip to it and
-  /// paint the form-shadow gradient across its bounds.
+  /// paint the form-shadow gradient across its bounds — or across the shared
+  /// [shadeBounds] when the surface belongs to a shade group, so one ramp
+  /// lights the whole garment. The form-rounding radial stays per-shape (it
+  /// models the individual volume, not the garment's key light).
   void _celShadePath(
     Canvas canvas,
     Path path,
     int baseArgb,
     CelShadeSpec s, {
     bool formRound = true,
+    Rect? shadeBounds,
   }) {
     final bounds = path.getBounds();
     if (bounds.isEmpty) return;
+    final ramp = shadeBounds ?? bounds;
     canvas
       ..save()
       ..clipPath(path)
-      ..drawRect(bounds, _celShadePaint(bounds, baseArgb, s));
+      ..drawRect(ramp, _celShadePaint(ramp, baseArgb, s));
     final round = formRound ? _formRoundPaint(bounds, baseArgb, s) : null;
     if (round != null) canvas.drawRect(bounds, round);
     canvas.restore();
+  }
+
+  /// The drawn ink line over a rigid part (see [BoneDrawable.inkOverFill]):
+  /// strokes the drawable's own shape on top of its fill, separating it from
+  /// same-colour parts behind it.
+  void _drawKindInk(Canvas canvas, BoneDrawable d) {
+    final outline = d.outlineColor;
+    if (!d.inkOverFill || outline == null || d.outlineWidth <= 0) return;
+    _paint
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = d.outlineWidth
+      ..strokeJoin = StrokeJoin.round
+      ..strokeCap = StrokeCap.round
+      ..color = Color(outline)
+      ..isAntiAlias = antiAlias;
+    _drawKind(canvas, d, _paint);
   }
 
   /// Paints the fill of [d] in its own colour (no per-bone outline — the
@@ -377,6 +541,88 @@ class CharacterRenderer {
         d.outlineWidth,
         (paint) => _drawKind(canvas, d, paint),
       );
+
+  /// Union path of every visible fill painted BELOW [z]: bone drawables,
+  /// ribbons, and meshes with a lower z. An inked limb clips its line to this
+  /// region, so the line exists only where the limb actually overlaps the
+  /// body — its ends land exactly ON the silhouette, never floating
+  /// mid-cloth and never enclosing the limb's root.
+  Path _bodyBelowZPath(
+    RigSpec rig,
+    Map<String, Affine2D> world,
+    int z,
+  ) {
+    var union = Path();
+    final hiddenBones = rig.hiddenDrawableBoneIds;
+    for (final bone in rig.drawOrder) {
+      if (bone.z >= z) break;
+      if (hiddenBones.contains(bone.id)) continue;
+      final drawable = bone.drawable;
+      if (drawable == null) continue;
+      final transform = world[bone.id];
+      if (transform == null) continue;
+      final path = _kindPath(
+        drawable,
+      ).transform(transform.toMatrix4Storage(_matrix));
+      union = Path.combine(PathOperation.union, union, path);
+    }
+    for (final other in rig.ribbonDrawOrder) {
+      if (other.z >= z) continue;
+      final path = _ribbonPath(other, world);
+      if (path == null) continue;
+      union = Path.combine(PathOperation.union, union, path);
+    }
+    for (final mesh in rig.meshDrawOrder) {
+      if (mesh.z >= z) continue;
+      final path = _meshPath(mesh, world);
+      if (path == null) continue;
+      union = Path.combine(PathOperation.union, union, path);
+    }
+    return union;
+  }
+
+  /// The hand-drawn ink line over an overlapping limb (see
+  /// [LimbRibbonSpec.inkOverFill]): strokes the ribbon's own outline on TOP
+  /// of its fill and cel shade — CLIPPED to the union of body shapes behind
+  /// it, so the limb separates from same-colour cloth exactly where it
+  /// overlaps and nowhere else.
+  void _drawRibbonInk(
+    Canvas canvas,
+    RigSpec rig,
+    LimbRibbonSpec ribbon,
+    Map<String, Affine2D> world,
+  ) {
+    final outline = ribbon.outlineColor;
+    if (!ribbon.inkOverFill || outline == null || ribbon.outlineWidth <= 0) {
+      return;
+    }
+    final spine = <Offset>[];
+    for (final boneId in ribbon.jointBoneIds) {
+      final transform = world[boneId];
+      if (transform == null) return;
+      final origin = transform.origin;
+      spine.add(Offset(origin.x, origin.y));
+    }
+    final path = limbRibbonInkPath(
+      spine,
+      ribbon.halfWidths,
+      backHalfWidths: ribbon.backHalfWidths,
+      samplesPerSegment: ribbon.samplesPerSegment,
+      startFraction: ribbon.inkStartFraction,
+    );
+    _paint
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = ribbon.outlineWidth
+      ..strokeJoin = StrokeJoin.round
+      ..strokeCap = StrokeCap.round
+      ..color = Color(outline)
+      ..isAntiAlias = antiAlias;
+    canvas
+      ..save()
+      ..clipPath(_bodyBelowZPath(rig, world, ribbon.z))
+      ..drawPath(path, _paint)
+      ..restore();
+  }
 
   void _drawRibbonFill(
     Canvas canvas,
@@ -425,7 +671,9 @@ class CharacterRenderer {
     return limbRibbonPath(
       spine,
       ribbon.halfWidths,
+      backHalfWidths: ribbon.backHalfWidths,
       samplesPerSegment: ribbon.samplesPerSegment,
+      roundCaps: ribbon.roundCaps,
     );
   }
 
@@ -466,50 +714,101 @@ class CharacterRenderer {
 
   /// The world-space contour of [mesh], or null if an influence bone is missing.
   Path? _meshPath(SkinnedMeshSpec mesh, Map<String, Affine2D> world) {
-    final points = <Offset>[];
-    for (final vertex in mesh.vertices) {
-      var x = 0.0;
-      var y = 0.0;
-      for (final influence in vertex.influences) {
-        final transform = world[influence.boneId];
-        if (transform == null) return null;
-        final p = transform.transformPoint(influence.x, influence.y);
-        x += p.x * influence.weight;
-        y += p.y * influence.weight;
-      }
-      points.add(Offset(x, y));
+    final resolved = resolveSkinnedMeshVertices(mesh, world);
+    if (resolved == null) return null;
+    final points = [
+      for (final point in resolved) Offset(point.x, point.y),
+    ];
+    return mesh.smoothBoundary
+        ? _smoothClosedPath(
+            points,
+            mesh.boundary,
+            mesh.boundaryCornerSmoothing,
+          )
+        : _closedPath(points, mesh.boundary);
+  }
+
+  /// Builds a closed contour through the authored mesh boundary without
+  /// smoothing. This is useful for tailored cloth planes where midpoint
+  /// smoothing rounds a deliberate elbow/wrist taper into a sausage tube.
+  Path _closedPath(List<Offset> points, List<int> boundary) {
+    final path = Path();
+    final first = points[boundary.first];
+    path.moveTo(first.dx, first.dy);
+    for (final index in boundary.skip(1)) {
+      final p = points[index];
+      path.lineTo(p.dx, p.dy);
     }
-    return _smoothClosedPath(points, mesh.boundary);
+    path.close();
+    return path;
   }
 
   /// Builds a soft closed contour through a mesh boundary.
   ///
   /// The mesh primitive is used for organic character surfaces (jacket, pelvis,
   /// shoulder mass), where hard polygon corners immediately read as cardboard.
-  /// Quadratic midpoint smoothing keeps every authored boundary vertex on the
-  /// curve while rounding the transitions between them.
-  Path _smoothClosedPath(List<Offset> points, List<int> boundary) {
+  /// Quadratic corner smoothing keeps every authored boundary vertex on the
+  /// curve while rounding the transitions between them. A lower [cornerSmoothing]
+  /// keeps more straight edge between corners for tailored cloth such as suit
+  /// sleeves, avoiding both raw triangles and fully rounded tubes.
+  Path _smoothClosedPath(
+    List<Offset> points,
+    List<int> boundary,
+    double cornerSmoothing,
+  ) {
+    final t = cornerSmoothing.clamp(0.0, 0.5);
+    if (t <= 0) return _closedPath(points, boundary);
+
     final path = Path();
     Offset pointAt(int i) => points[boundary[i % boundary.length]];
-    Offset midpoint(Offset a, Offset b) => Offset(
-      (a.dx + b.dx) * 0.5,
-      (a.dy + b.dy) * 0.5,
+    Offset cutToward(Offset from, Offset toward) => Offset(
+      from.dx + (toward.dx - from.dx) * t,
+      from.dy + (toward.dy - from.dy) * t,
     );
 
     final last = pointAt(boundary.length - 1);
     final first = pointAt(0);
-    path.moveTo(midpoint(last, first).dx, midpoint(last, first).dy);
+    final start = cutToward(first, last);
+    path.moveTo(start.dx, start.dy);
     for (var i = 0; i < boundary.length; i++) {
       final current = pointAt(i);
       final next = pointAt(i + 1);
-      final mid = midpoint(current, next);
-      path.quadraticBezierTo(current.dx, current.dy, mid.dx, mid.dy);
+      final exit = cutToward(current, next);
+      path.quadraticBezierTo(current.dx, current.dy, exit.dx, exit.dy);
     }
     path.close();
     return path;
   }
 
   /// Draws the shape geometry of [d] with [paint] (fill or stroke).
+  /// The drawable's shape as a local-space [Path] (same geometry _drawKind
+  /// paints) — used to build the union of body shapes behind an inked limb.
+  Path _kindPath(BoneDrawable d) {
+    final rect = Rect.fromCenter(
+      center: Offset(d.dx, d.dy),
+      width: d.width,
+      height: d.height,
+    );
+    switch (d.kind) {
+      case BoneShapeKind.capsule:
+        final r = Radius.circular(
+          (d.width < d.height ? d.width : d.height) / 2,
+        );
+        return Path()..addRRect(RRect.fromRectAndRadius(rect, r));
+      case BoneShapeKind.ellipse:
+        return Path()..addOval(rect);
+      case BoneShapeKind.roundedRect:
+        return Path()
+          ..addRRect(
+            RRect.fromRectAndRadius(rect, Radius.circular(d.cornerRadius)),
+          );
+      case BoneShapeKind.triangle:
+        return _trianglePath(rect);
+      case BoneShapeKind.taperedCapsule:
+        return _taperedCapsulePath(d);
+    }
+  }
+
   void _drawKind(Canvas canvas, BoneDrawable d, Paint paint) {
     final rect = Rect.fromCenter(
       center: Offset(d.dx, d.dy),

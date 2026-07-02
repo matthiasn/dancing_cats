@@ -177,6 +177,22 @@ class RigSpec {
           'but ${ribbon.halfWidths.length} half-widths',
         );
       }
+      final back = ribbon.backHalfWidths;
+      if (back != null) {
+        if (back.length != ribbon.jointBoneIds.length) {
+          throw ArgumentError(
+            'Ribbon "${ribbon.id}" has ${ribbon.jointBoneIds.length} joints '
+            'but ${back.length} back half-widths',
+          );
+        }
+        for (final width in back) {
+          if (width <= 0) {
+            throw ArgumentError(
+              'Ribbon "${ribbon.id}" back half-widths must be positive',
+            );
+          }
+        }
+      }
       if (ribbon.samplesPerSegment <= 0) {
         throw ArgumentError(
           'Ribbon "${ribbon.id}" samplesPerSegment must be positive',
@@ -222,6 +238,20 @@ class RigSpec {
           throw ArgumentError(
             'Mesh "${mesh.id}" boundary index $index is out of range',
           );
+        }
+      }
+      for (final seam in mesh.inkSeams) {
+        if (seam.length < 2) {
+          throw ArgumentError(
+            'Mesh "${mesh.id}" ink seams need at least two points',
+          );
+        }
+        for (final index in seam) {
+          if (index < 0 || index >= mesh.vertices.length) {
+            throw ArgumentError(
+              'Mesh "${mesh.id}" ink seam index $index is out of range',
+            );
+          }
         }
       }
       for (final vertex in mesh.vertices) {
@@ -344,23 +374,75 @@ class LimbRibbonSpec {
     required List<double> halfWidths,
     required this.z,
     required this.color,
+    List<double>? backHalfWidths,
     List<String> hiddenBoneIds = const [],
     this.outlineColor,
     this.outlineWidth = 0,
     this.samplesPerSegment = 10,
+    this.formRound = true,
+    this.roundCaps = true,
+    this.shadeGroup,
+    this.inkOverFill = false,
+    this.inkStartFraction = 0,
   }) : jointBoneIds = List<String>.unmodifiable(jointBoneIds),
        hiddenBoneIds = List<String>.unmodifiable(hiddenBoneIds),
-       halfWidths = List<double>.unmodifiable(halfWidths);
+       halfWidths = List<double>.unmodifiable(halfWidths),
+       backHalfWidths = backHalfWidths == null
+           ? null
+           : List<double>.unmodifiable(backHalfWidths);
 
   final String id;
   final List<String> jointBoneIds;
   final List<String> hiddenBoneIds;
+
+  /// Half-widths at each joint on the ribbon's +normal side (the character's
+  /// facing side for a limb authored top-down). With [backHalfWidths] null the
+  /// profile is symmetric about the joint centreline.
   final List<double> halfWidths;
+
+  /// Optional -normal-side half-widths: an ASYMMETRIC muscle profile. Real
+  /// limbs are not tubes — the quad bulges on the FRONT of the thigh and the
+  /// calf on the BACK of the shin; putting the mass where the muscle lives is
+  /// what makes a leg read athletic instead of inflated.
+  final List<double>? backHalfWidths;
+
   final int z;
   final int color;
   final int? outlineColor;
   final double outlineWidth;
   final int samplesPerSegment;
+
+  /// Whether the cel-shade's broad contour-rounding applies to the whole
+  /// ribbon. Limbs default to true for soft anatomical volume; tailored sleeves
+  /// can opt out so they read as shaped fabric instead of inflated tubes.
+  final bool formRound;
+
+  /// Whether the ribbon ends use capsule-style semicircles. Default true for
+  /// organic limbs; false gives sleeves or cloth bands a flatter cut edge.
+  final bool roundCaps;
+
+  /// Optional shared-lighting group. Surfaces with the same group are shaded
+  /// by ONE directional cel ramp spanning their union bounds — one garment
+  /// under one key — instead of each piece computing its own ramp on its own
+  /// bounds (which tinted a raised sleeve differently from the jacket it
+  /// touches and read as patched-together fabrics).
+  final String? shadeGroup;
+
+  /// When true, the ribbon's outline is ALSO stroked over its fill — the
+  /// hand-drawn ink line that separates an overlapping limb from the body it
+  /// crosses. This replaces value-shifted "near/far fabric" fills: same
+  /// cloth everywhere, separation by line, exactly like drawn animation.
+  /// (The unified silhouette pass deliberately draws no internal outlines,
+  /// so without this an arm in the jacket's own colour would melt into the
+  /// chest whenever it crosses.)
+  final bool inkOverFill;
+
+  /// Where the ink line begins, as a fraction of the ribbon's centreline
+  /// (0 = the full closed boundary). A limb rooted in a garment starts its
+  /// line PAST the root — a sleeve's line leaves the armhole, it does not
+  /// enclose the shoulder — otherwise the limb reads as a pinned-on cut-out
+  /// with its own outline all the way around.
+  final double inkStartFraction;
 }
 
 /// A broad skinned surface made from weighted vertices.
@@ -380,7 +462,21 @@ class SkinnedMeshSpec {
     this.outlineColor,
     this.outlineWidth = 0,
     this.formRound = true,
-  }) : vertices = List<SkinnedMeshVertex>.unmodifiable(vertices),
+    this.smoothBoundary = true,
+    this.boundaryCornerSmoothing = 0.5,
+    this.shadeGroup,
+    List<List<int>> inkSeams = const [],
+    this.inkSeamWidth = 0,
+    int? inkSeamZ,
+  }) : inkSeamZ = inkSeamZ ?? z,
+       inkSeams = List<List<int>>.unmodifiable([
+         for (final seam in inkSeams) List<int>.unmodifiable(seam),
+       ]),
+       assert(
+         boundaryCornerSmoothing >= 0 && boundaryCornerSmoothing <= 0.5,
+         'boundaryCornerSmoothing must be between 0 and 0.5',
+       ),
+       vertices = List<SkinnedMeshVertex>.unmodifiable(vertices),
        boundary = List<int>.unmodifiable(boundary),
        hiddenBoneIds = List<String>.unmodifiable(hiddenBoneIds);
 
@@ -399,6 +495,32 @@ class SkinnedMeshSpec {
   /// between the jacket and the trouser ribbons and should flow into them
   /// seamlessly, not look like a stamped panel.
   final bool formRound;
+
+  /// Whether the boundary should be smoothed. Organic broad forms default to
+  /// true; tailored surfaces can lower [boundaryCornerSmoothing] to keep visible
+  /// planes and tapers without rendering raw polygon facets.
+  final bool smoothBoundary;
+
+  /// How far each smoothed boundary corner is rounded toward the adjacent edges.
+  /// `0.5` is midpoint smoothing (the historic organic mesh look), while lower
+  /// values keep more of the authored edge length between curved corners.
+  final double boundaryCornerSmoothing;
+
+  /// Optional shared-lighting group — see [LimbRibbonSpec.shadeGroup].
+  final String? shadeGroup;
+
+  /// Drawn-seam polylines: chains of vertex indices stroked over the fill in
+  /// deformed space — tailoring lines (a jacket's shoulder seam from armhole
+  /// to collar) that move with the cloth. Stroked at [inkSeamWidth] in the
+  /// outline colour; empty for plain surfaces.
+  final List<List<int>> inkSeams;
+  final double inkSeamWidth;
+
+  /// Paint depth for the ink seams (defaults to the mesh's own [z]). A
+  /// jacket's shoulder seam lies ON TOP of the shoulder, so it must stroke
+  /// above the sleeve ribbons that cover the yoke — not at the jacket's own
+  /// depth where the deltoid would bury it.
+  final int inkSeamZ;
 }
 
 class SkinnedMeshVertex {

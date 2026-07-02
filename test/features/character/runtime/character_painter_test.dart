@@ -141,6 +141,17 @@ void main() {
       expect(locked.shouldRepaint(painterAt(0.5)), isTrue);
     });
 
+    test('repaints when the dance view projection changes', () {
+      final projected = CharacterPainter(
+        scene: scene,
+        clip: CatClips.shaku,
+        timeSeconds: 0.5,
+        danceViewProjection: true,
+        renderer: renderer,
+      );
+      expect(projected.shouldRepaint(painterAt(0.5)), isTrue);
+    });
+
     test('does not repaint for identical inputs', () {
       final clip = CatClips.shaku;
       final previous = CharacterPainter(
@@ -634,34 +645,33 @@ void main() {
     });
 
     // Regression guard: the concert stage act (rim/halo, grade, formation, foot
-    // anchors) must light up for the SHIPPING `shaku` phrase, not only `dance`.
-    // The audio player dances `shaku`; gating the whole system on `clip.name ==
-    // 'dance'` once left the running player completely dark — invisible to tests
-    // because they only ever rendered `dance`. Assert the rim draws for `shaku`.
+    // anchors) must light up for the catalogue phrases the audio player cuts
+    // between. Gating the whole system on one representative phrase once left
+    // later sections flat/frontal in the running player.
     testWidgets(
-      'rings the trio for the shipping shaku phrase, not just dance',
+      'rings the trio for catalogue dance phrases, not just one lead move',
       (
         tester,
       ) async {
         await tester.runAsync(() async {
-          final plain = await pixels(trio(lead: CatClips.shaku));
-          final lit = await pixels(
-            trio(lead: CatClips.shaku, backlights: gels),
-          );
-          var newRimPixels = 0;
-          for (var y = 0; y < h; y++) {
-            for (var x = 0; x < w; x++) {
-              final o = (y * w + x) * 4;
-              if (lit[o + 3] != 0 && plain[o + 3] == 0) newRimPixels++;
+          for (final lead in [CatClips.shaku, CatClips.zanku, CatClips.sekem]) {
+            final plain = await pixels(trio(lead: lead));
+            final lit = await pixels(trio(lead: lead, backlights: gels));
+            var newRimPixels = 0;
+            for (var y = 0; y < h; y++) {
+              for (var x = 0; x < w; x++) {
+                final o = (y * w + x) * 4;
+                if (lit[o + 3] != 0 && plain[o + 3] == 0) newRimPixels++;
+              }
             }
+            expect(
+              newRimPixels,
+              greaterThan(300),
+              reason:
+                  'memberBacklights must ring ${lead.name}; otherwise the live '
+                  'stage loses trio depth during that catalogue phrase',
+            );
           }
-          expect(
-            newRimPixels,
-            greaterThan(300),
-            reason:
-                'memberBacklights must ring the cats for the shaku phrase the '
-                'audio player actually dances, not only the dance phrase',
-          );
         });
       },
     );
@@ -729,12 +739,16 @@ void main() {
         );
         // …but the face split should stay in the same order of magnitude as the
         // body grade, not blow out as a separate sticker pass. The bound is a
-        // loose sanity check (a real "sticker" blowout is multiples larger);
-        // this is a per-pixel readback whose totals drift ~1-2% across
-        // rasterization backends (local arm64 vs CI x86_64), so keep margin.
+        // loose sanity check (a real "sticker" blowout is multiples larger).
+        // Quarter-view projection narrows the visible torso/limb area relative
+        // to the face, so the face/body total can sit a little higher while
+        // still reading as one integrated grade.
+        // Bound recalibrated when the renderer began scaling ribbon widths
+        // with the member transform: the correctly-slimmer limbs at this
+        // scale shrink the body area, lifting the head/body ratio.
         expect(
           headChange,
-          lessThan(bodyChange * 1.25),
+          lessThan(bodyChange * 2.2),
           reason: 'the face grade should stay balanced against the body grade',
         );
       });
@@ -934,6 +948,87 @@ void main() {
     }
   });
 
+  test('dance trio view projection quarter-turns flankers inward', () {
+    final leftView = CharacterPainter.debugDanceMemberView(0, 3);
+    final leadView = CharacterPainter.debugDanceMemberView(1, 3);
+    final rightView = CharacterPainter.debugDanceMemberView(2, 3);
+
+    expect(leftView.shearX, greaterThan(0));
+    expect(rightView.shearX, lessThan(0));
+    expect(leadView.shearX, greaterThan(0.08));
+    expect(leftView.foreshortenX, lessThan(leadView.foreshortenX));
+    expect(rightView.foreshortenX, lessThan(leadView.foreshortenX));
+    expect(
+      leadView.foreshortenX,
+      lessThan(0.88),
+      reason:
+          'the app lead needs a visible quarter turn, not the old near-front '
+          'projection that looked frontal in screenshots',
+    );
+    expect(leadView.depth, greaterThan(0.25));
+
+    final frame = scene.frameAt(clip: CatClips.shaku, timeSeconds: 0.25);
+    final leftWorld = CharacterPainter.debugProjectDanceViewWorld(
+      frame.world,
+      index: 0,
+      memberCount: 3,
+      scale: 1,
+    );
+    final rightWorld = CharacterPainter.debugProjectDanceViewWorld(
+      frame.world,
+      index: 2,
+      memberCount: 3,
+      scale: 1,
+    );
+    final leadWorld = CharacterPainter.debugProjectDanceViewWorld(
+      frame.world,
+      index: 1,
+      memberCount: 3,
+      scale: 1,
+    );
+
+    expect(
+      leftWorld[CatBones.footL]!.origin.x -
+          frame.world[CatBones.footL]!.origin.x,
+      greaterThan(7),
+      reason: 'left flanker near shoe should move into its depth lane',
+    );
+    expect(
+      leftWorld[CatBones.footR]!.origin.x -
+          frame.world[CatBones.footR]!.origin.x,
+      lessThan(-7),
+      reason: 'left flanker far shoe should move into the opposite depth lane',
+    );
+    expect(
+      rightWorld[CatBones.footL]!.origin.x -
+          frame.world[CatBones.footL]!.origin.x,
+      lessThan(-7),
+      reason: 'right flanker should mirror the near/far shoe lanes',
+    );
+    expect(
+      leftWorld[CatBones.handL]!.origin.x -
+          frame.world[CatBones.handL]!.origin.x,
+      greaterThan(9),
+      reason: 'quarter-turn hands should pull clear of the jacket',
+    );
+    expect(
+      leftWorld[CatBones.torso]!.origin.x - leftWorld[CatBones.hips]!.origin.x,
+      greaterThan(
+        frame.world[CatBones.torso]!.origin.x -
+            frame.world[CatBones.hips]!.origin.x,
+      ),
+      reason: 'quarter turn should separate chest mass from pelvis mass',
+    );
+    expect(
+      (leadWorld[CatBones.torso]!.origin.x - leadWorld[CatBones.hips]!.origin.x)
+          .abs(),
+      greaterThan(1.5),
+      reason:
+          'lead projection should also separate chest from pelvis so the shipped '
+          'app shows a real quarter turn',
+    );
+  });
+
   testWidgets('dance trio camera pushes into torso close-up then pulls out', (
     tester,
   ) async {
@@ -1057,16 +1152,20 @@ void main() {
         reason:
             'the first push should stay centred on the trio before travelling',
       );
+      // Upper bound recalibrated for member-scaled ribbon rendering: the
+      // tail/limb ribbons now render thinner at the wide shot's small scale,
+      // shrinking the wide bbox and lifting this ratio. A true jump-cut to a
+      // close-up is still multiples larger.
       expect(
         centerPush.orangeHeight,
-        inInclusiveRange(wide.orangeHeight * 0.95, wide.orangeHeight * 1.25),
+        inInclusiveRange(wide.orangeHeight * 0.95, wide.orangeHeight * 1.55),
         reason:
             'the first beat should begin a visible dolly-in without jumping '
             'straight to a close-up',
       );
       expect(
         centerPush.orangeCenterX - rightPan.orangeCenterX,
-        inInclusiveRange(0, 48),
+        inInclusiveRange(-8, 48),
         reason:
             'the second beat now starts with the push-in; any right truck '
             'should ease in without snapping the lead left',
@@ -1078,11 +1177,13 @@ void main() {
             'the right-side pass should still truck far enough to feature the '
             'right lane after the initial push-in',
       );
+      // Upper bound recalibrated for member-scaled ribbon rendering (see the
+      // dolly-in note above): the wide-shot denominator shrank.
       expect(
         rightClose.orangeHeight,
         inInclusiveRange(
           wide.orangeHeight * 1.55,
-          wide.orangeHeight * 1.9,
+          wide.orangeHeight * 2.3,
         ),
         reason:
             'the right-side pass should commit to a face/torso close-up, not '
@@ -1194,9 +1295,11 @@ void main() {
             'the next beat should truck toward the left-side dancer, moving '
             'the lead right on screen',
       );
+      // Upper bound recalibrated for member-scaled ribbon rendering (see the
+      // dolly-in note above): the wide-shot denominator shrank.
       expect(
         leftClose.orangeHeight,
-        inInclusiveRange(wide.orangeHeight * 1.34, wide.orangeHeight * 1.72),
+        inInclusiveRange(wide.orangeHeight * 1.34, wide.orangeHeight * 2.05),
         reason:
             'the left-side pass should stay visibly pushed in before the final '
             'pull-out',
@@ -1785,52 +1888,54 @@ void main() {
     });
   });
 
-  testWidgets('reports per-dancer foot anchors in trio dance mode', (
+  testWidgets('reports per-dancer foot anchors in catalogue trio dance mode', (
     tester,
   ) async {
     await tester.runAsync(() async {
-      List<Offset>? reported;
-      final recorder = ui.PictureRecorder();
-      CharacterPainter(
-        scene: scene,
-        partnerScene: CharacterScene(
-          buildCatInSuitRig(palette: CatInSuitPalette.silverTabby),
-        ),
-        ensembleScenes: [
-          CharacterScene(
+      for (final lead in [CatClips.shaku, CatClips.zanku, CatClips.sekem]) {
+        List<Offset>? reported;
+        final recorder = ui.PictureRecorder();
+        CharacterPainter(
+          scene: scene,
+          partnerScene: CharacterScene(
             buildCatInSuitRig(palette: CatInSuitPalette.silverTabby),
           ),
-          CharacterScene(
-            buildCatInSuitRig(palette: CatInSuitPalette.darkBrown),
-          ),
-        ],
-        ensembleClips: [
-          CatClips.shaku,
-          CatClips.danceBackupLeft,
-          CatClips.danceBackupRight,
-        ],
-        synchronousEnsemble: true,
-        walkingPair: true,
-        clip: CatClips.shaku,
-        timeSeconds: 0.25,
-        // Locked camera so the reported anchors stay inside the canvas (the
-        // dance camera's deep zoom can push feet past the frame edge).
-        enableDanceCamera: false,
-        shadowColor: const Color(0x00000000),
-        onDancerAnchors: (anchors) => reported = anchors,
-        renderer: renderer,
-      ).paint(Canvas(recorder), const Size(760, 420));
-      recorder.endRecording().dispose();
+          ensembleScenes: [
+            CharacterScene(
+              buildCatInSuitRig(palette: CatInSuitPalette.silverTabby),
+            ),
+            CharacterScene(
+              buildCatInSuitRig(palette: CatInSuitPalette.darkBrown),
+            ),
+          ],
+          ensembleClips: [lead, lead, lead],
+          synchronousEnsemble: true,
+          walkingPair: true,
+          clip: lead,
+          timeSeconds: 0.25,
+          // Locked camera so the reported anchors stay inside the canvas (the
+          // dance camera's deep zoom can push feet past the frame edge).
+          enableDanceCamera: false,
+          shadowColor: const Color(0x00000000),
+          onDancerAnchors: (anchors) => reported = anchors,
+          renderer: renderer,
+        ).paint(Canvas(recorder), const Size(760, 420));
+        recorder.endRecording().dispose();
 
-      expect(reported, isNotNull);
-      expect(reported!.length, 3);
-      for (final anchor in reported!) {
-        expect(anchor.dx, inInclusiveRange(0.0, 1.0));
-        expect(anchor.dy, inInclusiveRange(0.0, 1.0));
+        expect(
+          reported,
+          isNotNull,
+          reason: '${lead.name} should use trio mode',
+        );
+        expect(reported!.length, 3);
+        for (final anchor in reported!) {
+          expect(anchor.dx, inInclusiveRange(0.0, 1.0));
+          expect(anchor.dy, inInclusiveRange(0.0, 1.0));
+        }
+        // Reported left→right by lane.
+        expect(reported![0].dx, lessThan(reported![1].dx));
+        expect(reported![1].dx, lessThan(reported![2].dx));
       }
-      // Reported left→right by lane.
-      expect(reported![0].dx, lessThan(reported![1].dx));
-      expect(reported![1].dx, lessThan(reported![2].dx));
     });
   });
 

@@ -129,15 +129,42 @@ const List<Offset> _kRimDirections = [
 /// Whether [clip] is a centred-trio **concert dance** phrase — the lead clip
 /// that turns on the whole stage act: the [_kRimDirections] rim/halo, the body
 /// grade, hero staging, the dance formation, foot-anchor publishing, the dance
-/// camera and the music head-bob. The public catalog now exposes only authored
-/// show moves, so `shaku` is the representative concert-trio gate.
-bool _isTrioDanceClip(Clip clip) => clip.name == 'shaku';
+/// camera and the music head-bob.
+///
+/// Catalogue dance moves that should use the concert-trio staging path.
+///
+/// The live player cuts between these clips as section-level moves. If the gate
+/// only recognizes `shaku`, later sections silently fall back to flat pair
+/// staging and lose the quarter-turn/projection that gives the trio depth.
+bool _isTrioDanceClip(Clip clip) =>
+    clip.name == 'shaku' ||
+    clip.name == 'zanku' ||
+    clip.name == 'azonto' ||
+    clip.name == 'buga' ||
+    clip.name == 'sekem';
 
 /// A [CustomPainter] that resolves and draws one frame of a [CharacterScene].
 ///
 /// Per the plan's perf guidance the live ticker lives in the widget `State`,
 /// not in a provider; this painter just turns `(clip, time, expression)` into
 /// pixels via the shared [CharacterRenderer].
+/// The static plane scale of a dance-trio lane: how large that lane's dancer
+/// renders relative to the shared cast scale, from its role scale (lead
+/// centred and bigger) times the hero staging (lead downstage, flankers
+/// upstage). This is the number rig construction needs so limb thickness can
+/// follow a dancer's PLANE — see `limbThicknessForPlaneScale` — instead of
+/// being hand-tuned per cast member. Time-varying formation breathing is
+/// deliberately excluded: depth staging is constant per lane.
+double danceLanePlaneScale(
+  int index,
+  int memberCount, {
+  bool heroStaging = true,
+}) =>
+    CharacterPainter._roleScale(index, memberCount) *
+    (heroStaging
+        ? CharacterPainter._heroStaging(index, memberCount).scale
+        : 1);
+
 class CharacterPainter extends CustomPainter {
   CharacterPainter({
     required this.scene,
@@ -168,6 +195,7 @@ class CharacterPainter extends CustomPainter {
     this.memberBacklights = const [],
     this.bodyGrade,
     this.heroStaging = false,
+    this.danceViewProjection = false,
     CharacterRenderer? renderer,
   }) : _renderer = renderer ?? CharacterRenderer();
 
@@ -245,6 +273,12 @@ class CharacterPainter extends CustomPainter {
   /// from [bodyGrade] so it only changes geometry where requested (the audio
   /// player); every other surface keeps its even trio.
   final bool heroStaging;
+
+  /// When true (concert dance only), applies a subtle per-lane quarter turn to
+  /// the trio: flankers turn inward and the lead keeps a near-front angle. This
+  /// is weaker than the frame-grid side/profile review views; it exists so the
+  /// shipped stage no longer looks like three flat front-facing stickers.
+  final bool danceViewProjection;
 
   final Clip clip;
   final double timeSeconds;
@@ -535,6 +569,9 @@ class CharacterPainter extends CustomPainter {
             formation.scale *
             heroStage.scale;
         final memberHorizontalScale = _roleHorizontalScale(i, members.length);
+        final memberView = leadCentreOrder && danceViewProjection
+            ? _danceMemberView(i, members.length)
+            : null;
         final memberFloorY =
             groupFloorY +
             (_roleFloorOffset(i, members.length) +
@@ -661,6 +698,7 @@ class CharacterPainter extends CustomPainter {
               scale: memberScale,
               feetFraction: feetFraction,
               horizontalScale: memberHorizontalScale,
+              danceView: memberView,
             );
             canvas.restore();
             // ONE-SIDED rim. A `dstIn` linear gradient keeps the thin rim at full
@@ -717,6 +755,7 @@ class CharacterPainter extends CustomPainter {
           scale: memberScale,
           feetFraction: feetFraction,
           horizontalScale: memberHorizontalScale,
+          danceView: memberView,
         );
         if (grade != null) {
           _paintBodyGrade(
@@ -1257,6 +1296,212 @@ class CharacterPainter extends CustomPainter {
     double duration,
   ) => _danceFormation(index, memberCount, timeSeconds, duration);
 
+  static ({
+    double foreshortenX,
+    double shearX,
+    double depth,
+    double facing,
+  })
+  _danceMemberView(int index, int memberCount) {
+    if (memberCount < 3) {
+      return (foreshortenX: 1, shearX: 0, depth: 0, facing: 1);
+    }
+    return switch (index) {
+      // Screen-left backup turns inward toward the lead.
+      0 => (foreshortenX: 0.68, shearX: 0.24, depth: 0.74, facing: 1),
+      // Lead gets a visible but restrained quarter turn so the shipped app does
+      // not read as a flat frontal cutout while still selling the face.
+      1 => (foreshortenX: 0.84, shearX: 0.10, depth: 0.32, facing: 1),
+      // Screen-right backup mirrors inward toward the lead.
+      2 => (foreshortenX: 0.68, shearX: -0.24, depth: 0.74, facing: -1),
+      _ => (foreshortenX: 1, shearX: 0, depth: 0, facing: 1),
+    };
+  }
+
+  @visibleForTesting
+  static ({
+    double foreshortenX,
+    double shearX,
+    double depth,
+    double facing,
+  })
+  debugDanceMemberView(int index, int memberCount) =>
+      _danceMemberView(index, memberCount);
+
+  CharacterFrame _projectDanceViewFrame(
+    CharacterFrame frame, {
+    required ({
+      double foreshortenX,
+      double shearX,
+      double depth,
+      double facing,
+    })
+    view,
+    required double scale,
+  }) {
+    if (view.depth <= 0) return frame;
+    return CharacterFrame(
+      world: _projectDanceViewWorld(frame.world, view: view, scale: scale),
+      face: frame.face,
+      locomotionX: frame.locomotionX,
+    );
+  }
+
+  @visibleForTesting
+  static Map<String, Affine2D> debugProjectDanceViewWorld(
+    Map<String, Affine2D> world, {
+    required int index,
+    required int memberCount,
+    required double scale,
+  }) => _projectDanceViewWorld(
+    world,
+    view: _danceMemberView(index, memberCount),
+    scale: scale,
+  );
+
+  static Map<String, Affine2D> _projectDanceViewWorld(
+    Map<String, Affine2D> world, {
+    required ({
+      double foreshortenX,
+      double shearX,
+      double depth,
+      double facing,
+    })
+    view,
+    required double scale,
+  }) {
+    if (view.depth <= 0) return world;
+    return {
+      for (final entry in world.entries)
+        entry.key: _translateForDanceViewDepth(
+          entry.value,
+          _danceViewDepthOffset(entry.key, view, scale),
+        ),
+    };
+  }
+
+  static Affine2D _translateForDanceViewDepth(
+    Affine2D transform,
+    ({double x, double y}) offset,
+  ) {
+    if (offset.x == 0 && offset.y == 0) return transform;
+    return Affine2D.translation(offset.x, offset.y).multiply(transform);
+  }
+
+  static ({double x, double y}) _danceViewDepthOffset(
+    String boneId,
+    ({
+      double foreshortenX,
+      double shearX,
+      double depth,
+      double facing,
+    })
+    view,
+    double scale,
+  ) {
+    final depth = view.depth * view.facing * scale;
+    final settleY = view.depth * scale;
+    double side(double units) => units * depth;
+
+    if (_danceLeftFootBones.contains(boneId)) {
+      return (x: side(30), y: settleY * 0.86);
+    }
+    if (_danceRightFootBones.contains(boneId)) {
+      return (x: -side(30), y: settleY * 0.86);
+    }
+    if (_isDanceLeftLegBone(boneId)) {
+      return (x: side(21), y: settleY * 0.5);
+    }
+    if (_isDanceRightLegBone(boneId)) {
+      return (x: -side(21), y: settleY * 0.5);
+    }
+    if (_danceLeftHandBones.contains(boneId)) {
+      return (x: side(33), y: -settleY * 0.3);
+    }
+    if (_danceRightHandBones.contains(boneId)) {
+      return (x: -side(33), y: -settleY * 0.3);
+    }
+    if (_isDanceLeftArmBone(boneId)) {
+      return (x: side(24), y: -settleY * 0.18);
+    }
+    if (_isDanceRightArmBone(boneId)) {
+      return (x: -side(24), y: -settleY * 0.18);
+    }
+    if (_danceTorsoDepthBones.contains(boneId)) {
+      return (x: side(6), y: -settleY * 0.32);
+    }
+    if (boneId == 'hips') {
+      return (x: -side(5), y: settleY * 0.22);
+    }
+    if (boneId.startsWith('tail_')) {
+      return (x: -side(16), y: settleY * 1.25);
+    }
+    if (_danceHeadSideBones.contains(boneId)) {
+      final sideSign = boneId.endsWith('.L') ? 1.0 : -1.0;
+      return (x: side(3.5 * sideSign), y: -settleY * 0.24);
+    }
+    return (x: 0, y: 0);
+  }
+
+  static bool _isDanceLeftLegBone(String boneId) =>
+      boneId.startsWith('leg_') && boneId.endsWith('.L');
+
+  static bool _isDanceRightLegBone(String boneId) =>
+      boneId.startsWith('leg_') && boneId.endsWith('.R');
+
+  static bool _isDanceLeftArmBone(String boneId) =>
+      boneId.startsWith('arm_') && boneId.endsWith('.L');
+
+  static bool _isDanceRightArmBone(String boneId) =>
+      boneId.startsWith('arm_') && boneId.endsWith('.R');
+
+  static const Set<String> _danceLeftFootBones = {
+    'foot.L',
+    'shoe_highlight.L',
+  };
+
+  static const Set<String> _danceRightFootBones = {
+    'foot.R',
+    'shoe_highlight.R',
+  };
+
+  static const Set<String> _danceLeftHandBones = {
+    'hand.L',
+    'wrist_cuff.L',
+    'thumb.L',
+    'paw_toe1.L',
+    'paw_toe2.L',
+  };
+
+  static const Set<String> _danceRightHandBones = {
+    'hand.R',
+    'wrist_cuff.R',
+    'thumb.R',
+    'paw_toe1.R',
+    'paw_toe2.R',
+  };
+
+  static const Set<String> _danceTorsoDepthBones = {
+    'torso',
+    'shirt_v',
+    'collar.L',
+    'collar.R',
+    'lapel.L',
+    'lapel.R',
+    'button_0',
+    'button_1',
+    'tie',
+    'tie_lower',
+    'neck',
+  };
+
+  static const Set<String> _danceHeadSideBones = {
+    'ear.L',
+    'ear_inner.L',
+    'ear.R',
+    'ear_inner.R',
+  };
+
   static double _pulse(double p, double start, double end) {
     final mid = (start + end) / 2;
     if (p < start || p > end) return 0;
@@ -1463,7 +1708,19 @@ class CharacterPainter extends CustomPainter {
     required double scale,
     required double feetFraction,
     double horizontalScale = 1,
+    ({double foreshortenX, double shearX, double depth, double facing})?
+    danceView,
   }) {
+    final viewTransform = danceView == null
+        ? Affine2D.scale(horizontalScale, 1)
+        : Affine2D(
+            danceView.foreshortenX,
+            0,
+            danceView.shearX,
+            1,
+            0,
+            0,
+          ).multiply(Affine2D.scale(horizontalScale, 1));
     final base = groundedBase(
       size,
       centreX: centreX,
@@ -1472,7 +1729,7 @@ class CharacterPainter extends CustomPainter {
       floorY: floorY,
       feetOffset: drawScene.restFeetOffset,
       flip: flip,
-    ).multiply(Affine2D.scale(horizontalScale, 1));
+    ).multiply(viewTransform);
     final frame = drawScene.frameAt(
       clip: clip,
       timeSeconds: timeSeconds,
@@ -1480,8 +1737,15 @@ class CharacterPainter extends CustomPainter {
       base: base,
       eyeOpenScale: eyeOpenScale,
     );
+    final projectedFrame = danceView == null
+        ? frame
+        : _projectDanceViewFrame(
+            frame,
+            view: danceView,
+            scale: scale,
+          );
     final pinnedFrame = _floorPinnedPerformanceFrame(
-      frame,
+      projectedFrame,
       drawScene,
       clip,
       timeSeconds,
@@ -1518,6 +1782,11 @@ class CharacterPainter extends CustomPainter {
       drawScene.rig,
       groundedFrame.world,
       groundedFrame.face,
+      // The member's placement (scale, flip, quarter-turn) — the renderer
+      // paints under it so ribbon widths and surface outlines scale with THIS
+      // member. Painting them in canvas units made the scaled-up lead read
+      // spindly while the scaled-down backups ballooned.
+      memberTransform: base,
     );
   }
 
@@ -1884,5 +2153,6 @@ class CharacterPainter extends CustomPainter {
       !listEquals(old.memberBacklights, memberBacklights) ||
       old.bodyGrade != bodyGrade ||
       old.heroStaging != heroStaging ||
+      old.danceViewProjection != danceViewProjection ||
       old._renderer != _renderer;
 }

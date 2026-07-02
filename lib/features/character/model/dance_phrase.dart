@@ -29,7 +29,7 @@ enum DanceFeel {
 /// plant" is much easier to reason about than `p: 0.5`. This layer keeps the
 /// authored intent in those terms, then converts it to [GroundSpan],
 /// [KeyframeChannel], [KeyframeRootChannel], [KeyframeIkTargetChannel], and
-/// synchronized body-groove channels so the runtime stays unchanged.
+/// de-synchronized body/limb channels so the runtime stays unchanged.
 class DancePhrase {
   const DancePhrase({
     required this.frameCount,
@@ -128,6 +128,7 @@ class DancePhrase {
     Ease ease = Ease.easeInOut,
     EaseCurve? easeFn,
     double microFrames = 0,
+    double tension = 0,
   }) => Keyframe(
     // [microFrames] nudges the key OFF the integer grid (sub-frame swing): a
     // positive value lands the gesture a fraction of a frame late ("laid-back"
@@ -139,6 +140,7 @@ class DancePhrase {
     scaleY: scaleY,
     ease: ease,
     easeFn: easeFn,
+    tension: tension,
   );
 
   KeyframeChannel jointChannel(
@@ -211,6 +213,7 @@ class DancePhrase {
         if (key.hasRoot) key.toRootKeyframe(this),
     ],
     smooth: smooth,
+    cyclic: true,
   );
 
   List<DanceBodyKey> bodyAccentKeys(List<DanceBodyAccent> accents) {
@@ -299,6 +302,7 @@ class DancePhrase {
         if (key.hasPelvis) key.toPelvisKeyframe(this),
     ],
     smooth: smooth,
+    cyclic: true,
   );
 
   KeyframeChannel bodyChestChannel(
@@ -310,6 +314,7 @@ class DancePhrase {
         if (key.hasChest) key.toChestKeyframe(this),
     ],
     smooth: smooth,
+    cyclic: true,
   );
 
   IkTargetKeyframe ikTargetKey(
@@ -318,20 +323,29 @@ class DancePhrase {
     required double y,
     double weight = 1,
     Ease ease = Ease.easeInOut,
+    double microFrames = 0,
+    double tension = 0,
   }) => IkTargetKeyframe(
-    p: phaseOf(frame),
+    p: phaseOfFrame(frame, microFrames: microFrames),
     x: x,
     y: y,
     weight: weight,
     ease: ease,
+    tension: tension,
   );
 
   KeyframeIkTargetChannel ikTargetChannel(
     List<DanceIkTargetKey> keys, {
     bool smooth = false,
+    double microFrames = 0,
+    bool cyclic = false,
   }) => KeyframeIkTargetChannel(
-    [for (final key in keys) key.toIkTargetKeyframe(this)],
+    [
+      for (final key in keys)
+        key.toIkTargetKeyframe(this, microFrames: microFrames),
+    ],
     smooth: smooth,
+    cyclic: cyclic,
   );
 
   List<DanceIkTargetKey> ikTargetArcKeys(List<DanceIkTargetArc> arcs) {
@@ -593,6 +607,7 @@ class DanceJointKey {
     this.ease = Ease.easeInOut,
     this.easeFn,
     this.microFrames = 0,
+    this.tension = 0,
   });
 
   final int frame;
@@ -609,6 +624,11 @@ class DanceJointKey {
   /// places the key slightly off the integer grid. See [DancePhrase.jointKey].
   final double microFrames;
 
+  /// Smooth-path accent tension at this key — see [Keyframe.tension]. `1`
+  /// makes the motion ARRIVE DEAD on this count (a stamp/hit/hold) while the
+  /// rest of the channel still flows.
+  final double tension;
+
   Keyframe toKeyframe(DancePhrase phrase) => phrase.jointKey(
     frame,
     rotation: rotation,
@@ -617,6 +637,7 @@ class DanceJointKey {
     ease: ease,
     easeFn: easeFn,
     microFrames: microFrames,
+    tension: tension,
   );
 }
 
@@ -964,6 +985,8 @@ class DanceIkTargetKey {
     required this.y,
     this.weight = 1,
     this.ease = Ease.easeInOut,
+    this.microFrames = 0,
+    this.tension = 0,
   });
 
   final int frame;
@@ -971,13 +994,25 @@ class DanceIkTargetKey {
   final double y;
   final double weight;
   final Ease ease;
+  final double microFrames;
 
-  IkTargetKeyframe toIkTargetKeyframe(DancePhrase phrase) => phrase.ikTargetKey(
+  /// Smooth-path accent tension at this key — see [Keyframe.tension]. `1`
+  /// plants the foot/hand DEAD on this count while the path between counts
+  /// still flows (the stamp that per-segment easing bought at the price of
+  /// stop-go everywhere).
+  final double tension;
+
+  IkTargetKeyframe toIkTargetKeyframe(
+    DancePhrase phrase, {
+    double microFrames = 0,
+  }) => phrase.ikTargetKey(
     frame,
     x: x,
     y: y,
     weight: weight,
     ease: ease,
+    microFrames: this.microFrames + microFrames,
+    tension: tension,
   );
 }
 
@@ -994,6 +1029,7 @@ class DanceIkTargetArc {
     required this.endX,
     required this.endY,
     this.controlPoints = const <DanceIkTargetArcPoint>[],
+    this.generatedFrames = const <int>[],
     this.weight = 1,
     this.ease = Ease.easeInOut,
   }) : assert(startFrame < peakFrame, 'arc peak must follow start'),
@@ -1011,11 +1047,20 @@ class DanceIkTargetArc {
   final double endX;
   final double endY;
   final List<DanceIkTargetArcPoint> controlPoints;
+
+  /// Extra integer frames synthesized from the arc curve.
+  ///
+  /// Explicit [controlPoints], [startFrame], [peakFrame], and [endFrame] still
+  /// win on duplicate frames. Generated frames are for travel quality between
+  /// semantic poses: they keep the hand/foot on a continuous curve without
+  /// forcing the choreography table to hand-author every in-between.
+  final List<int> generatedFrames;
+
   final double weight;
   final Ease ease;
 
   List<DanceIkTargetKey> get keys {
-    final keys = [
+    final anchors = [
       DanceIkTargetKey(
         startFrame,
         x: startX,
@@ -1033,7 +1078,56 @@ class DanceIkTargetArc {
       ),
       DanceIkTargetKey(endFrame, x: endX, y: endY, weight: weight, ease: ease),
     ]..sort((a, b) => a.frame.compareTo(b.frame));
+    final keysByFrame = <int, DanceIkTargetKey>{};
+    for (final frame in generatedFrames) {
+      if (frame <= startFrame || frame >= endFrame) continue;
+      keysByFrame[frame] = _sampleGeneratedKey(frame, anchors);
+    }
+    for (final anchor in anchors) {
+      keysByFrame[anchor.frame] = anchor;
+    }
+    final keys = keysByFrame.values.toList()
+      ..sort((a, b) => a.frame.compareTo(b.frame));
     return keys;
+  }
+
+  DanceIkTargetKey _sampleGeneratedKey(
+    int frame,
+    List<DanceIkTargetKey> anchors,
+  ) {
+    for (var i = 0; i < anchors.length - 1; i++) {
+      final a = anchors[i];
+      final b = anchors[i + 1];
+      if (frame < a.frame || frame > b.frame) continue;
+      final span = b.frame - a.frame;
+      final local = span == 0 ? 0.0 : (frame - a.frame) / span;
+      final before = i == 0 ? a : anchors[i - 1];
+      final after = i + 2 >= anchors.length ? b : anchors[i + 2];
+      return DanceIkTargetKey(
+        frame,
+        x: _catmullRom(before.x, a.x, b.x, after.x, local),
+        y: _catmullRom(before.y, a.y, b.y, after.y, local),
+        weight: _catmullRom(
+          before.weight,
+          a.weight,
+          b.weight,
+          after.weight,
+          local,
+        ).clamp(0.0, 1.0),
+        ease: ease,
+      );
+    }
+    return anchors.last;
+  }
+
+  double _catmullRom(double p0, double p1, double p2, double p3, double t) {
+    final t2 = t * t;
+    final t3 = t2 * t;
+    return 0.5 *
+        ((2 * p1) +
+            (-p0 + p2) * t +
+            (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2 +
+            (-p0 + 3 * p1 - 3 * p2 + p3) * t3);
   }
 }
 
