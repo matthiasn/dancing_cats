@@ -3,8 +3,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:glados/glados.dart' as glados;
 
 /// Every section label the director branches on, plus a couple it treats as the
-/// default "verse" pocket — so the generator exercises the whole switch.
+/// default "verse" pocket — so the generator exercises the whole switch. The
+/// empty label is the unlabelled fallback (calm establish / dance pocket).
 const _sections = <String>[
+  '',
   'intro',
   'verse',
   'pre-chorus',
@@ -22,30 +24,48 @@ DanceCameraContext _ctx({
   double build = 0.5,
   double phrasePhase = 0,
   double sectionPhase = 0,
+  int occurrence = 0,
+  double sectionSeconds = 15,
+  double secondsToNext = double.infinity,
+  String? nextSection,
+  int nextOccurrence = 0,
 }) => DanceCameraContext(
   section: section,
   energetic: energetic,
   build: build,
   phrasePhase: phrasePhase,
   sectionPhase: sectionPhase,
+  occurrence: occurrence,
+  sectionSeconds: sectionSeconds,
+  secondsToNext: secondsToNext,
+  nextSection: nextSection,
+  nextOccurrence: nextOccurrence,
 );
 
 extension _AnyDanceCtx on glados.Any {
-  /// A random director context spanning every section, both energy states, and
-  /// the full build/phase ranges — the input space for the invariants.
+  /// A random director context spanning every section, both energy states, the
+  /// full build/phase ranges, chorus occurrences, and anticipation states
+  /// (including no-next and an imminent next) — the input space for the
+  /// invariants.
   glados.Generator<DanceCameraContext> get danceCtx =>
-      glados.CombinableAny(this).combine5(
+      glados.CombinableAny(this).combine7(
         glados.IntAnys(this).intInRange(0, _sections.length - 1),
-        glados.IntAnys(this).intInRange(0, 1),
+        glados.IntAnys(this).intInRange(0, 7),
         glados.DoubleAnys(this).doubleInRange(0, 1),
         glados.DoubleAnys(this).doubleInRange(0, 1),
         glados.DoubleAnys(this).doubleInRange(0, 1),
-        (sIdx, en, build, phrase, secPhase) => _ctx(
+        glados.IntAnys(this).intInRange(0, _sections.length),
+        glados.DoubleAnys(this).doubleInRange(0, 6),
+        (sIdx, flags, build, phrase, secPhase, nIdx, toNext) => _ctx(
           section: _sections[sIdx],
-          energetic: en == 1,
+          energetic: flags.isOdd,
           build: build,
           phrasePhase: phrase,
           sectionPhase: secPhase,
+          occurrence: flags >> 1,
+          nextSection: nIdx == _sections.length ? null : _sections[nIdx],
+          secondsToNext: nIdx == _sections.length ? double.infinity : toNext,
+          nextOccurrence: flags >> 1,
         ),
       );
 }
@@ -75,7 +95,7 @@ void main() {
       expect(half.phrasePhase, closeTo(0.5, 1e-9));
     });
 
-    test('clamps build and sectionPhase into 0..1', () {
+    test('clamps build, sectionPhase and secondsToNext into range', () {
       final c = cameraContext(
         beat: 5,
         anchorBeat: 0,
@@ -84,88 +104,226 @@ void main() {
         energetic: true,
         build: 1.5,
         sectionPhase: -0.3,
+        secondsToNext: -2,
+        nextSection: 'chorus',
       );
       expect(c.build, 1.0);
       expect(c.sectionPhase, 0.0);
+      expect(c.secondsToNext, 0.0);
+      expect(c.nextSection, 'chorus');
+    });
+
+    test('without next-section info the anticipation stays disabled', () {
+      final c = cameraContext(
+        beat: 5,
+        anchorBeat: 0,
+        loopLengthBeats: 12,
+        section: 'outro',
+        energetic: true,
+        build: 0.9,
+      );
+      expect(c.nextSection, isNull);
+      expect(c.secondsToNext, double.infinity);
+      expect(c.occurrence, 0);
+      expect(c.nextOccurrence, 0);
     });
   });
 
-  group('isCameraPunch — the fast accent zooms', () {
-    test('fires on the downbeat of a chorus, then holds', () {
-      // The rig zooms FAST into the chorus home on the opening beats, then glides.
-      expect(isCameraPunch(_ctx()), isTrue); // sectionPhase 0 = the downbeat
-      expect(isCameraPunch(_ctx(sectionPhase: 0.01)), isTrue);
-      expect(isCameraPunch(_ctx(sectionPhase: 0.2)), isFalse);
-      expect(isCameraPunch(_ctx(sectionPhase: 0.9)), isFalse);
+  group('cameraShot — anticipated section arrivals (no punches)', () {
+    test('far from the boundary the next section does not bleed in', () {
+      final away = cameraShot(
+        _ctx(
+          section: 'verse',
+          sectionPhase: 0.5,
+          nextSection: 'bridge',
+          secondsToNext: cameraAnticipationWindow('bridge', 0) + 1,
+        ),
+      );
+      final noNext = cameraShot(_ctx(section: 'verse', sectionPhase: 0.5));
+      expect(away, noNext);
     });
 
-    test('fires at the bridge open and the mid-bridge hand-off', () {
-      // A fast whip onto the silver singer at the open, then onto the brown
-      // singer at the hand-off — the two frames where the feature changes.
-      expect(isCameraPunch(_ctx(section: 'bridge')), isTrue); // open (sp 0)
-      expect(isCameraPunch(_ctx(section: 'bridge', sectionPhase: 0.01)), isTrue);
-      expect(isCameraPunch(_ctx(section: 'bridge', sectionPhase: 0.5)), isTrue);
-      expect(isCameraPunch(_ctx(section: 'bridge', sectionPhase: 0.51)), isTrue);
+    test('big lateral re-stagings get a longer anticipation runway', () {
+      // The committed chorus two-shots and the verse's far-side start are
+      // 300–400 ref px repositions; the window scales so they stay at dolly
+      // speeds instead of compressing into the default runway.
+      expect(
+        cameraAnticipationWindow('chorus', 0),
+        greaterThan(kCameraAnticipationSeconds),
+      );
+      expect(
+        cameraAnticipationWindow('verse', 0),
+        greaterThan(kCameraAnticipationSeconds),
+      );
+      expect(
+        cameraAnticipationWindow('bridge', 0),
+        greaterThan(kCameraAnticipationSeconds),
+      );
+      expect(cameraAnticipationWindow('outro', 0), kCameraAnticipationSeconds);
+      expect(cameraAnticipationWindow('', 0), kCameraAnticipationSeconds);
     });
 
-    test('does not fire mid-feature — the rig glides between the punches', () {
-      for (final sp in [0.2, 0.45, 0.7, 0.99]) {
-        expect(
-          isCameraPunch(_ctx(section: 'bridge', sectionPhase: sp)),
-          isFalse,
-          reason: 'bridge sp=$sp',
+    test('the glide toward the next home is continuous and monotonic', () {
+      // Sweep the last seconds of a verse before a bridge: the target must walk
+      // from the verse shot to the bridge's opening silver-side feature without
+      // a jump, parking on it kCameraArriveLeadSeconds early.
+      final bridgeOpen = cameraShot(
+        _ctx(section: 'bridge', sectionPhase: 0, phrasePhase: 0.3),
+      );
+      final window = cameraAnticipationWindow('bridge', 0);
+      var prev = cameraShot(
+        _ctx(
+          section: 'verse',
+          sectionPhase: 0.8,
+          phrasePhase: 0.3,
+          nextSection: 'bridge',
+          secondsToNext: window,
+        ),
+      );
+      for (var s = window; s >= 0; s -= 0.05) {
+        final shot = cameraShot(
+          _ctx(
+            section: 'verse',
+            sectionPhase: 0.8,
+            phrasePhase: 0.3,
+            nextSection: 'bridge',
+            secondsToNext: s,
+          ),
         );
+        expect((shot.zoom - prev.zoom).abs(), lessThan(0.01), reason: 's=$s');
+        expect((shot.dx - prev.dx).abs(), lessThan(12), reason: 's=$s');
+        prev = shot;
+      }
+      // Parked exactly on the next home before the boundary (the rig's settle
+      // lands the eased camera on the downbeat).
+      final parked = cameraShot(
+        _ctx(
+          section: 'verse',
+          sectionPhase: 0.8,
+          phrasePhase: 0.3,
+          nextSection: 'bridge',
+          secondsToNext: kCameraArriveLeadSeconds,
+        ),
+      );
+      expect(parked.zoom, closeTo(bridgeOpen.zoom, 1e-9));
+      expect(parked.dx, closeTo(bridgeOpen.dx, 1e-9));
+      expect(parked.dy, closeTo(bridgeOpen.dy, 1e-9));
+    });
+
+    test('the target is continuous ACROSS every section boundary', () {
+      // At the boundary itself, [outgoing section fully blended to next(0)]
+      // must equal [next section at phase 0] — for every ordered pair.
+      for (final from in _sections) {
+        for (final to in _sections) {
+          final end = cameraShot(
+            _ctx(
+              section: from,
+              sectionPhase: 1,
+              phrasePhase: 0.7,
+              nextSection: to,
+              secondsToNext: 0,
+            ),
+          );
+          final open = cameraShot(
+            _ctx(section: to, sectionPhase: 0, phrasePhase: 0.7),
+          );
+          expect(end.zoom, closeTo(open.zoom, 1e-9), reason: '$from->$to');
+          expect(end.dx, closeTo(open.dx, 1e-9), reason: '$from->$to');
+          expect(end.dy, closeTo(open.dy, 1e-9), reason: '$from->$to');
+        }
       }
     });
 
-    test('only choruses and the bridge punch, and only while performing', () {
-      for (final section in ['verse', 'pre-chorus', 'outro', 'intro']) {
-        expect(isCameraPunch(_ctx(section: section)), isFalse, reason: section);
-        expect(
-          isCameraPunch(_ctx(section: section, sectionPhase: 0.5)),
-          isFalse,
-          reason: section,
-        );
+    test('the approach PARKS on the exact home, then the launch clock starts '
+        'kCameraLaunchLeadSeconds before the beat', () {
+      // In the park zone (between the arrive lead and the launch lead) the
+      // blended target is EXACTLY the next section's home — independent of the
+      // phrase grid (the breathe fades in later) and of time (parked still).
+      Shot approach(double stn, double pp) => cameraShot(
+        _ctx(
+          section: 'pre-chorus',
+          sectionPhase: 0.9,
+          phrasePhase: pp,
+          nextSection: 'chorus',
+          nextOccurrence: 1,
+          secondsToNext: stn,
+        ),
+      );
+      final parked = approach(kCameraLaunchLeadSeconds, 0.25);
+      for (final pp in [0.0, 0.6, 0.9]) {
+        final again = approach(kCameraLaunchLeadSeconds + 0.2, pp);
+        expect(again.zoom, closeTo(parked.zoom, 1e-9), reason: 'pp=$pp');
+        expect(again.dx, closeTo(parked.dx, 1e-9), reason: 'pp=$pp');
       }
-      // The closing hook (post-chorus) is a continuous coil reached by a glide.
-      expect(isCameraPunch(_ctx(section: 'post-chorus', build: 0.9)), isFalse);
-      // A calm section never punches, even a calm bridge.
-      expect(isCameraPunch(_ctx(energetic: false)), isFalse);
-      expect(isCameraPunch(_ctx(section: 'bridge', energetic: false)), isFalse);
+      // Inside the launch lead the target is ALREADY moving (the launch-push
+      // has begun), so the eased camera's velocity crests on the downbeat.
+      final launching = approach(0.05, 0.25);
+      expect(launching.zoom, greaterThan(parked.zoom + 0.005));
+      // …and the launch clock is CONTINUOUS across the boundary: the shot at
+      // secondsToNext=0 equals the chorus's own opening frame.
+      final atBoundary = approach(0, 0.25);
+      final open = cameraShot(
+        _ctx(occurrence: 1, sectionPhase: 0, phrasePhase: 0.25),
+      );
+      expect(atBoundary.zoom, closeTo(open.zoom, 1e-9));
+      expect(atBoundary.dx, closeTo(open.dx, 1e-9));
     });
 
-    test('the target stays continuous across the drop (only the rig punches)', () {
-      // The punch lives in the rig, not the director: cameraShot for a chorus does
-      // not jump across the downbeat — sweeping sectionPhase through the drop, the
-      // target moves smoothly, so the fast arrival is purely [isCameraPunch]
-      // telling the rig to zoom in fast.
-      var prev = cameraShot(_ctx(build: 0.45));
-      for (var sp = 0.0; sp <= 0.1; sp += 0.005) {
-        final s = cameraShot(_ctx(build: 0.45, sectionPhase: sp));
-        expect((s.zoom - prev.zoom).abs(), lessThan(0.02), reason: 'sp=$sp');
-        expect((s.dx - prev.dx).abs(), lessThan(20), reason: 'sp=$sp');
-        prev = s;
-      }
-    });
-
-    test('the bridge punch aligns with the dx sign-flip in the bridge target', () {
-      // isCameraPunch must fire exactly where the bridge home swaps singer, or the
-      // hand-off punches on the wrong frame.
-      final before = cameraShot(_ctx(section: 'bridge', sectionPhase: 0.49));
-      final after = cameraShot(_ctx(section: 'bridge', sectionPhase: 0.5));
-      expect(before.dx.sign, isNot(after.dx.sign));
-      expect(isCameraPunch(_ctx(section: 'bridge', sectionPhase: 0.5)), isTrue);
+    test('the calm intro glides into the first chorus home before the drop', () {
+      // The pre-song establish ('' section, calm) anticipates the first chorus:
+      // approaching the boundary the zoom rises from the wide toward 1.30.
+      final wide = cameraShot(
+        _ctx(
+          section: '',
+          energetic: false,
+          nextSection: 'chorus',
+          secondsToNext: cameraAnticipationWindow('chorus', 0) + 0.5,
+        ),
+      );
+      final arriving = cameraShot(
+        _ctx(
+          section: '',
+          energetic: false,
+          nextSection: 'chorus',
+          secondsToNext: kCameraArriveLeadSeconds,
+        ),
+      );
+      expect(wide.zoom, closeTo(1.06, 0.03));
+      expect(arriving.zoom, closeTo(1.26, 1e-9));
+      expect(arriving.dx, 0);
+      expect(arriving.dy, 0);
     });
   });
 
   group('cameraShot — section treatments', () {
-    test('calm sections establish wide with a head-clearing dy and no pan', () {
+    test('the calm establish breathes AND drifts (the planes never park)', () {
       final s = cameraShot(
-        _ctx(section: 'intro', energetic: false, phrasePhase: 0.3),
+        _ctx(section: '', energetic: false, phrasePhase: 0.3),
       );
       expect(s.zoom, closeTo(1.06, 0.03)); // establish + a small breathe
-      expect(s.dx, 0);
       expect(s.dy, kHorizonDropPx);
+      // The slow lateral drift keeps the parallax alive on the wide…
+      expect(
+        cameraShot(_ctx(section: '', energetic: false, phrasePhase: 0)).dx,
+        closeTo(kCalmDriftRef, 1e-9),
+      );
+      expect(
+        cameraShot(_ctx(section: '', energetic: false, phrasePhase: 0.5)).dx,
+        closeTo(-kCalmDriftRef, 1e-9),
+      );
+      // …and stays inside the pan margin the establish zoom exposes.
+      expect(kCalmDriftRef, lessThan(1280 * (1.06 - 0.01 - 1)));
+    });
+
+    test('the unlabelled dance fallback is a living centred medium', () {
+      final s = cameraShot(_ctx(section: '', phrasePhase: 0.25));
+      expect(s.zoom, closeTo(1.32, 1e-9)); // 1.30 + breathe peak
+      expect(s.dx, greaterThan(0)); // phrase drift
+      expect(s.dy, 0);
+      expect(
+        cameraShot(_ctx(section: '', phrasePhase: 0.75)).dx,
+        lessThan(0),
+      );
     });
 
     test('pre-chorus is a strictly monotonic crane-push, dead centre', () {
@@ -178,122 +336,207 @@ void main() {
         prev = s.zoom;
       }
       expect(cameraShot(_ctx(section: 'pre-chorus')).zoom, closeTo(1.18, 1e-9));
+      // The crest sits UNDER the chorus homes, so the anticipated dolly keeps
+      // RISING through the drop — the old crest overshot the home and made the
+      // arrival zoom out exactly on the accent.
       expect(
         cameraShot(_ctx(section: 'pre-chorus', sectionPhase: 1)).zoom,
-        closeTo(1.38, 1e-9),
+        closeTo(1.32, 1e-9),
       );
+      expect(1.32, lessThan(1.46)); // under the two-shot chorus register
     });
 
-    test('each chorus owns a distinct home: c1 centred, c2 left, c3 right', () {
-      // chorus 1 (build < 0.30): centred.
-      expect(cameraShot(_ctx(build: 0.15)).dx, 0);
-      // chorus 2 (0.30..0.62): leans LEFT toward the silver backup (+dx).
-      expect(cameraShot(_ctx(build: 0.45)).dx, greaterThan(0));
-      // chorus 3 (build > 0.62): leans RIGHT toward the dark backup (-dx).
-      expect(cameraShot(_ctx(build: 0.70)).dx, lessThan(0));
+    test('each chorus owns a distinct home keyed on its OCCURRENCE', () {
+      // First chorus: centred (up to the launch's small rightward ease).
+      expect(cameraShot(_ctx(occurrence: 0)).dx.abs(), lessThan(15));
+      // Second chorus: leans LEFT toward the silver backup (+dx).
+      expect(cameraShot(_ctx(occurrence: 1)).dx, greaterThan(0));
+      // Third chorus: leans RIGHT toward the dark backup (-dx).
+      expect(cameraShot(_ctx(occurrence: 2)).dx, lessThan(0));
+      // The identity holds for the WHOLE section (the old build thresholds
+      // could re-stage a chorus mid-phrase).
+      for (final sp in [0.0, 0.3, 0.6, 1.0]) {
+        expect(
+          cameraShot(_ctx(occurrence: 1, sectionPhase: sp)).dx,
+          greaterThan(0),
+          reason: 'sp=$sp',
+        );
+        expect(
+          cameraShot(_ctx(occurrence: 2, sectionPhase: sp)).dx,
+          lessThan(0),
+          reason: 'sp=$sp',
+        );
+      }
+    });
+
+    test('the first chorus LAUNCHES on the drop, then drifts up with an arc', () {
+      final start = cameraShot(_ctx(occurrence: 0));
+      final launched = cameraShot(_ctx(occurrence: 0, sectionPhase: 0.12));
+      final mid = cameraShot(_ctx(occurrence: 0, sectionPhase: 0.5));
+      final end = cameraShot(_ctx(occurrence: 0, sectionPhase: 1));
+      // The launch clock starts kCameraLaunchLeadSeconds before the boundary,
+      // so the section opens already a touch into its launch-push…
+      expect(start.zoom, inInclusiveRange(1.26, 1.33));
+      // …and the camera has visibly moved a couple of bars in.
+      expect(launched.zoom - start.zoom, greaterThan(0.02));
+      // The slow drift-up carries the rest of the refrain.
+      expect(end.zoom, closeTo(1.37, 1e-9));
+      // The arc drifts out mid-section and returns, riding the launch's small
+      // rightward ease — the depth keeps sliding through the held hook.
+      expect(mid.dx, closeTo(20 - 18, 1e-9));
+      expect(end.dx, closeTo(-18, 1e-9));
     });
 
     test('a chorus home holds its lean and pushes gently across the section', () {
-      // The home is STABLE (not a per-bar cut cycle): the lean keeps its sign for
-      // the whole section while a slow push tightens it — the rig dollies INTO
-      // the home, then it just breathes.
-      final start = cameraShot(_ctx(build: 0.45));
-      final end = cameraShot(_ctx(build: 0.45, sectionPhase: 1));
+      final start = cameraShot(_ctx(occurrence: 1));
+      final end = cameraShot(_ctx(occurrence: 1, sectionPhase: 1));
       expect(start.dx, greaterThan(0));
       expect(end.dx, greaterThan(0)); // same committed side throughout
       expect(end.zoom, greaterThan(start.zoom)); // slow push, never a snap
       expect(end.zoom - start.zoom, lessThan(0.1)); // gentle, not a jump
     });
 
-    test('bridge is two committed singer-features with a fast punch between', () {
-      // The bridge follows the VOICE: first half spotlights the silver (left)
-      // backup (+dx), second half the brown (right) backup (-dx), while keeping
-      // the full trio readable. Each home is CONSTANT across its half (the rig
-      // holds it after the punch), and dx flips sign at the mid-bridge hand-off —
-      // the punch (see [isCameraPunch]).
+    test('bridge is ONE continuous cross-stage traverse following the voice', () {
+      // DEEP committed silver-side feature held while she carries the first
+      // half — she is the shot's subject, not just the pan direction…
       final earlyA = cameraShot(_ctx(section: 'bridge', sectionPhase: 0.1));
-      final earlyB = cameraShot(_ctx(section: 'bridge', sectionPhase: 0.4));
-      final lateA = cameraShot(_ctx(section: 'bridge', sectionPhase: 0.6));
+      final earlyB = cameraShot(_ctx(section: 'bridge', sectionPhase: 0.25));
+      expect(earlyA.dx, greaterThan(300));
+      expect(earlyA.dx, closeTo(earlyB.dx, 1e-9)); // a committed hold
+      // …the TARGET crosses centre a touch BEFORE sectionPhase 0.5, so the
+      // eased camera (which lags the target) crosses on the vocal hand-off…
+      expect(
+        cameraShot(_ctx(section: 'bridge', sectionPhase: 0.44)).dx,
+        greaterThan(0),
+      );
+      final atHandOff = cameraShot(_ctx(section: 'bridge', sectionPhase: 0.5));
+      expect(atHandOff.dx, lessThan(0));
+      expect(atHandOff.dx.abs(), lessThan(80));
+      // …and a SHALLOWER brown-side hold takes the second half, leaving the
+      // deeper chorus-3 right two-shot somewhere to go on the last drop.
+      final lateA = cameraShot(_ctx(section: 'bridge', sectionPhase: 0.7));
       final lateB = cameraShot(_ctx(section: 'bridge', sectionPhase: 0.9));
-      // Silver feature: leans LEFT (+dx), held flat across the first half.
-      expect(earlyA.dx, greaterThan(0));
-      expect(earlyA.dx, closeTo(earlyB.dx, 1e-9));
-      expect(earlyA.zoom, closeTo(earlyB.zoom, 1e-9));
-      // Brown feature: leans RIGHT (-dx), held flat across the second half.
-      expect(lateA.dx, lessThan(0));
+      expect(lateA.dx, lessThan(-100));
       expect(lateA.dx, closeTo(lateB.dx, 1e-9));
-      // The hand-off is a fast PUNCH: the TARGET dx flips by a jump across 0.5
-      // (the rig whips across it), not a slow sweep through centre.
-      expect(earlyB.dx - lateA.dx, greaterThan(300));
-      // Both features hold the same favoured-trio zoom, under the ceiling.
-      expect(earlyA.zoom, closeTo(1.40, 1e-9));
-      expect(lateA.zoom, closeTo(1.40, 1e-9));
+      expect(lateA.dx.abs(), lessThan(earlyA.dx.abs())); // asymmetric on purpose
+      final chorus3Home = cameraShot(_ctx(occurrence: 2));
+      expect(chorus3Home.dx, lessThan(lateA.dx)); // deeper than the tail hold
+      // The zoom relaxes slightly through the crossing — an arc, not a slide.
+      final mid = cameraShot(_ctx(section: 'bridge', sectionPhase: 0.5));
+      expect(mid.zoom, lessThan(earlyA.zoom));
+      expect(earlyA.zoom, closeTo(1.48, 0.02));
+      // The traverse is a DOLLY: finely swept, the pan never jumps (the old
+      // hand-off flipped the target by ~335 ref px for the rig to whip across).
+      var prev = cameraShot(_ctx(section: 'bridge', sectionPhase: 0.26));
+      for (var sp = 0.26; sp <= 0.66; sp += 0.002) {
+        final s = cameraShot(_ctx(section: 'bridge', sectionPhase: sp));
+        expect((s.dx - prev.dx).abs(), lessThan(6), reason: 'sp=$sp');
+        prev = s;
+      }
     });
 
-    test('verse is a living medium: slow push plus a two-way drift', () {
+    test('verse is ONE long truck with a constant-velocity cruise', () {
       final a = cameraShot(_ctx(section: 'verse'));
+      final mid = cameraShot(_ctx(section: 'verse', sectionPhase: 0.5));
       final b = cameraShot(_ctx(section: 'verse', sectionPhase: 1));
       expect(a.zoom, closeTo(1.28, 1e-9));
       expect(b.zoom, closeTo(1.36, 1e-9));
-      expect(b.zoom, greaterThan(a.zoom)); // pushes across the section
       expect(a.dy, 0);
-      // The drift sways both ways within a phrase, so the verse never parks.
-      expect(
-        cameraShot(_ctx(section: 'verse', phrasePhase: 0.25)).dx,
-        greaterThan(0),
-      );
-      expect(
-        cameraShot(_ctx(section: 'verse', phrasePhase: 0.75)).dx,
-        lessThan(0),
-      );
+      // The truck starts a touch off-centre on the dark side and travels all
+      // the way ACROSS to the silver side (where the bridge feature waits):
+      // a single deliberate move, monotonic throughout.
+      expect(a.dx, closeTo(kVerseTruckStartRef, 1e-9));
+      expect(mid.dx, greaterThan(a.dx));
+      expect(b.dx, closeTo(kVerseTruckEndRef, 1e-9));
+      var prev = a.dx;
+      for (var sp = 0.02; sp <= 1; sp += 0.02) {
+        final dx = cameraShot(_ctx(section: 'verse', sectionPhase: sp)).dx;
+        expect(dx, greaterThanOrEqualTo(prev), reason: 'sp=$sp');
+        prev = dx;
+      }
+      // The middle rides at CRUISE (an eased trapezoid, not a smoothstep whose
+      // velocity never stops changing): equal phase steps across the core move
+      // equal distances.
+      double at(double sp) =>
+          cameraShot(_ctx(section: 'verse', sectionPhase: sp)).dx;
+      final step1 = at(0.4) - at(0.3);
+      final step2 = at(0.6) - at(0.5);
+      expect(step1, closeTo(step2, 1e-9));
+      // …and the cruise is genuinely faster than the eased edges.
+      expect(step1, greaterThan(at(0.09) - at(0.0)));
     });
 
-    test('outro de-escalates toward the establish and eases its dy in', () {
+    test('outro lands EXACTLY on the calm establish well before its end', () {
       final a = cameraShot(_ctx(section: 'outro'));
-      final b = cameraShot(_ctx(section: 'outro', sectionPhase: 1));
       expect(a.zoom, closeTo(1.40, 1e-9));
-      expect(b.zoom, closeTo(1.08, 1e-9));
-      expect(b.zoom, lessThan(a.zoom));
-      expect(a.dy, 0);
-      expect(b.dy, closeTo(kHorizonDropPx, 1e-9));
+      // The zoom-linked trim's ramp starts under the outro's opening zoom, so
+      // a small residual trim rides the first pull-back frames.
+      expect(a.dy, lessThan(5));
+      // From three quarters in, the outro IS the establish — breathe, drift
+      // and trim included — so the energy gate's later hand-off to the idle
+      // wide cannot step, wherever it lands.
+      for (final sp in [0.9, 0.95, 1.0]) {
+        for (final pp in [0.0, 0.3, 0.8]) {
+          final out = cameraShot(
+            _ctx(section: 'outro', sectionPhase: sp, phrasePhase: pp),
+          );
+          final calm = cameraShot(
+            _ctx(section: '', energetic: false, phrasePhase: pp),
+          );
+          expect(out.zoom, closeTo(calm.zoom, 1e-9), reason: 'sp=$sp pp=$pp');
+          expect(out.dx, closeTo(calm.dx, 1e-9), reason: 'sp=$sp pp=$pp');
+          expect(out.dy, closeTo(calm.dy, 1e-9), reason: 'sp=$sp pp=$pp');
+        }
+      }
+      // Before the landing, the establish's breathe/drift stay FEATHERED OUT
+      // so they cannot bounce the still-decelerating pull-back (at the 3/4
+      // landing mark the establish terms are still nearly silent).
+      final landing = cameraShot(
+        _ctx(section: 'outro', sectionPhase: 0.75, phrasePhase: 0.25),
+      );
+      expect(landing.zoom, closeTo(1.06, 0.005));
+      expect(landing.dx.abs(), lessThan(8));
     });
   });
 
-  group('cameraShot — continuous (dolly) within every dollied section', () {
-    // The director's TARGET moves continuously within every DOLLIED section — the
-    // genre punches (chorus drops and the bridge singer hand-off) live in the
-    // rig, not here. So sweeping sectionPhase finely (phrasePhase fixed so the
-    // breathe term is constant), the target never jumps: a real per-bar cut (the
-    // old homes jumped dx by ~300 / zoom by ~0.15) would blow these bounds; the
-    // smooth coil sweep stays well inside them. The bridge is EXCLUDED — its
-    // target steps (a dx sign-flip at the mid-bridge hand-off) for the rig to
-    // whip across, covered by its own singer-feature test above.
-    const cases = <({String section, double build})>[
-      (section: 'chorus', build: 0.15), // chorus 1
-      (section: 'chorus', build: 0.45), // chorus 2 (left)
-      (section: 'chorus', build: 0.70), // chorus 3 (right)
-      (section: 'verse', build: 0.50),
-      (section: 'pre-chorus', build: 0.20),
-      (section: 'outro', build: 0.95),
-      (section: 'post-chorus', build: 0.90),
+  group('cameraShot — continuous (dolly) within every section', () {
+    // The director's TARGET moves continuously within every section — there are
+    // no punches anywhere any more, INCLUDING the bridge (its old dx sign-flip
+    // is now the mid-traverse crossing). Sweeping sectionPhase finely
+    // (phrasePhase fixed so the breathe term is constant), the target never
+    // jumps: a real cut (the old homes jumped dx by ~300 / zoom by ~0.15)
+    // would blow these bounds.
+    const cases = <({String section, int occurrence})>[
+      (section: 'chorus', occurrence: 0),
+      (section: 'chorus', occurrence: 1),
+      (section: 'chorus', occurrence: 2),
+      (section: 'verse', occurrence: 0),
+      (section: 'pre-chorus', occurrence: 0),
+      (section: 'bridge', occurrence: 0),
+      (section: 'outro', occurrence: 0),
+      (section: 'post-chorus', occurrence: 0),
     ];
     for (final cse in cases) {
-      test('${cse.section} (build ${cse.build}) never jumps mid-section', () {
+      test('${cse.section} (occurrence ${cse.occurrence}) never jumps', () {
         var prev = cameraShot(
-          _ctx(section: cse.section, build: cse.build),
+          _ctx(section: cse.section, occurrence: cse.occurrence),
         );
         for (var sp = 0.005; sp <= 1.0 + 1e-9; sp += 0.005) {
           final s = cameraShot(
-            _ctx(section: cse.section, build: cse.build, sectionPhase: sp),
+            _ctx(
+              section: cse.section,
+              occurrence: cse.occurrence,
+              sectionPhase: sp,
+            ),
           );
           expect(
             (s.zoom - prev.zoom).abs(),
-            lessThan(0.03),
+            lessThan(0.01),
             reason: '${cse.section} zoom jumped at sp=$sp',
           );
           expect(
             (s.dx - prev.dx).abs(),
-            lessThan(40),
+            lessThan(16),
             reason: '${cse.section} pan jumped at sp=$sp',
           );
           prev = s;
@@ -303,64 +546,66 @@ void main() {
   });
 
   group('cameraShot — final post-chorus hook', () {
-    test('holds a grounded band, loads off-centre, and resolves continuously', () {
-      // The final hook stays in a ~1.45 band (wider than the old 1.56 so the
-      // depth reads) with ONE motivated mid-coil push and no close-crop jump.
+    test('holds a grounded band and its sway fades in and out', () {
+      // The coil stays in its grounded band with ONE motivated mid-coil push,
+      // capped at 1.45 so headroom clears the drone signage and the deck keeps
+      // toe-room under the legwork.
       for (final sp in [0.5, 0.62, 0.74, 0.86, 0.90, 0.96, 1.0]) {
-        final s = cameraShot(
-          _ctx(section: 'post-chorus', build: 0.9, sectionPhase: sp),
-        );
+        final s = cameraShot(_ctx(section: 'post-chorus', sectionPhase: sp));
+        expect(s.zoom, inInclusiveRange(1.37, 1.42), reason: 'sp=$sp');
+        // Tight frames ride the zoom-linked headroom trim (signage clearance).
         expect(
-          s.zoom,
-          inInclusiveRange(1.44, 1.50),
+          s.dy,
+          inInclusiveRange(0, kTightShotDropRef),
           reason: 'sp=$sp',
         );
-        expect(s.dy, 0, reason: 'sp=$sp');
       }
-      // The lateral sway is beat-phrased (phrasePhase): at a quarter phrase it
-      // loads the frame well off-centre.
+      // The beat-phrased sway loads the frame well off-centre mid-coil…
       expect(
         cameraShot(
-          _ctx(
-            section: 'post-chorus',
-            build: 0.9,
-            sectionPhase: 0.3,
-            phrasePhase: 0.25,
-          ),
+          _ctx(section: 'post-chorus', sectionPhase: 0.3, phrasePhase: 0.25),
         ).dx.abs(),
         greaterThan(40),
       );
+      // …DECAYS across the coil (a pendulum that never loses energy read as
+      // metronomic)…
       expect(
         cameraShot(
-          _ctx(
-            section: 'post-chorus',
-            build: 0.9,
-            sectionPhase: 0.45,
-            phrasePhase: 0.25,
-          ),
+          _ctx(section: 'post-chorus', sectionPhase: 0.85, phrasePhase: 0.25),
         ).dx.abs(),
-        lessThan(150),
+        lessThan(
+          cameraShot(
+            _ctx(section: 'post-chorus', sectionPhase: 0.3, phrasePhase: 0.25),
+          ).dx.abs(),
+        ),
       );
-      // The finish resolves from the same grounded band instead of jumping into
-      // a separate crop register.
-      final preFinish = cameraShot(
-        _ctx(section: 'post-chorus', build: 0.9, sectionPhase: 0.90),
-      );
-      final finish = cameraShot(
-        _ctx(section: 'post-chorus', build: 0.9, sectionPhase: 1),
-      );
-      expect(preFinish.zoom, closeTo(1.45, 0.02));
-      expect((finish.zoom - preFinish.zoom).abs(), lessThan(0.03));
-      expect(finish.dy, 0);
+      // …but ENTERS and RESOLVES at zero, wherever the phrase grid sits, so
+      // the coil cannot start or end with a lateral step.
+      for (final pp in [0.0, 0.25, 0.6]) {
+        expect(
+          cameraShot(
+            _ctx(section: 'post-chorus', sectionPhase: 0, phrasePhase: pp),
+          ).dx,
+          closeTo(0, 1e-9),
+          reason: 'pp=$pp',
+        );
+        expect(
+          cameraShot(
+            _ctx(section: 'post-chorus', sectionPhase: 1, phrasePhase: pp),
+          ).dx,
+          closeTo(0, 1e-9),
+          reason: 'pp=$pp',
+        );
+      }
     });
 
     test('the whole final hook stays continuous and capped', () {
-      var prev = cameraShot(_ctx(section: 'post-chorus', build: 0.9));
+      var prev = cameraShot(_ctx(section: 'post-chorus'));
       for (var i = 0; i <= 400; i++) {
         final s = cameraShot(
-          _ctx(section: 'post-chorus', build: 0.9, sectionPhase: i / 400),
+          _ctx(section: 'post-chorus', sectionPhase: i / 400),
         );
-        expect(s.zoom, lessThanOrEqualTo(1.51), reason: 'sp=${i / 400}');
+        expect(s.zoom, lessThanOrEqualTo(1.42), reason: 'sp=${i / 400}');
         expect(
           (s.zoom - prev.zoom).abs(),
           lessThan(0.01),
@@ -373,12 +618,12 @@ void main() {
     test('no section exceeds the grounded dance ceiling', () {
       var maxShot = 0.0;
       for (final section in _sections) {
-        for (var b = 0; b <= 10; b++) {
+        for (var occ = 0; occ <= 3; occ++) {
           for (var ph = 0; ph <= 4; ph++) {
             for (var sp = 0; sp <= 10; sp++) {
               final c = _ctx(
                 section: section,
-                build: b / 10,
+                occurrence: occ,
                 phrasePhase: ph / 4,
                 sectionPhase: sp / 10,
               );
@@ -388,7 +633,7 @@ void main() {
           }
         }
       }
-      expect(maxShot, lessThanOrEqualTo(1.51));
+      expect(maxShot, lessThanOrEqualTo(1.55));
     });
   });
 
@@ -397,7 +642,7 @@ void main() {
       'no shot ever exceeds the grounded dance ceiling, and all output is finite',
       (c) {
         final s = cameraShot(c);
-        expect(s.zoom, lessThanOrEqualTo(1.51), reason: '$c');
+        expect(s.zoom, lessThanOrEqualTo(1.55), reason: '$c');
         expect(s.zoom, greaterThan(1.0), reason: '$c');
         expect(s.zoom.isFinite, isTrue, reason: '$c');
         expect(s.dx.isFinite, isTrue, reason: '$c');
@@ -420,16 +665,17 @@ void main() {
     );
 
     glados.Glados(glados.any.danceCtx, glados.ExploreConfig(numRuns: 300)).test(
-      'dy contract: calm trims, dance flat, outro eases',
+      'dy stays inside the calm trim + tight-shot drop band (blends included)',
       (c) {
         final dy = cameraShot(c).dy;
-        if (!c.energetic) {
-          expect(dy, kHorizonDropPx, reason: '$c');
-        } else if (c.section == 'outro') {
-          expect(dy, inInclusiveRange(0, kHorizonDropPx), reason: '$c');
-        } else {
-          expect(dy, 0, reason: '$c');
-        }
+        expect(
+          dy,
+          inInclusiveRange(
+            0,
+            kHorizonDropPx + kTightShotDropRef,
+          ),
+          reason: '$c',
+        );
       },
       tags: 'glados',
     );

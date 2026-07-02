@@ -1545,9 +1545,16 @@ void main() {
           }
         }
 
+        // The centred coil keeps BOTH backups clear of the edges; a committed
+        // feature hold (the bridge's singer features, per the review panel)
+        // deliberately lets the OFF-side backup crop partially at the frame
+        // edge — but every backup must always remain clearly VISIBLE (a cat
+        // leaving frame entirely reads as a glitch), and the featured side
+        // must be well inside the frame.
         final cases = [
           (
             label: 'post-chorus sway left',
+            featured: null,
             shot: cameraShot(
               const DanceCameraContext(
                 section: 'post-chorus',
@@ -1560,6 +1567,7 @@ void main() {
           ),
           (
             label: 'post-chorus sway right',
+            featured: null,
             shot: cameraShot(
               const DanceCameraContext(
                 section: 'post-chorus',
@@ -1572,6 +1580,7 @@ void main() {
           ),
           (
             label: 'bridge favours silver',
+            featured: 'silver',
             shot: cameraShot(
               const DanceCameraContext(
                 section: 'bridge',
@@ -1584,6 +1593,7 @@ void main() {
           ),
           (
             label: 'bridge favours dark',
+            featured: 'dark',
             shot: cameraShot(
               const DanceCameraContext(
                 section: 'bridge',
@@ -1609,18 +1619,41 @@ void main() {
               greaterThan(250),
               reason: '${c.label} phase=$phase should find the dark backup',
             );
-            expect(
-              b.silver.minX,
-              greaterThan(edgeMargin),
-              reason:
-                  '${c.label} phase=$phase clipped silver at x=${b.silver.minX}',
-            );
-            expect(
-              b.dark.maxX,
-              lessThan(width - edgeMargin),
-              reason:
-                  '${c.label} phase=$phase clipped dark at x=${b.dark.maxX}',
-            );
+            if (c.featured != 'dark') {
+              expect(
+                b.silver.minX,
+                greaterThan(edgeMargin),
+                reason:
+                    '${c.label} phase=$phase clipped silver at '
+                    'x=${b.silver.minX}',
+              );
+            }
+            if (c.featured != 'silver') {
+              expect(
+                b.dark.maxX,
+                lessThan(width - edgeMargin),
+                reason:
+                    '${c.label} phase=$phase clipped dark at x=${b.dark.maxX}',
+              );
+            }
+            if (c.featured == 'silver') {
+              expect(
+                b.silver.minX,
+                greaterThan(edgeMargin),
+                reason:
+                    '${c.label} phase=$phase: the FEATURED silver backup must '
+                    'sit well inside the frame (x=${b.silver.minX})',
+              );
+            }
+            if (c.featured == 'dark') {
+              expect(
+                b.dark.maxX,
+                lessThan(width - edgeMargin),
+                reason:
+                    '${c.label} phase=$phase: the FEATURED dark backup must '
+                    'sit well inside the frame (x=${b.dark.maxX})',
+              );
+            }
           }
         }
       });

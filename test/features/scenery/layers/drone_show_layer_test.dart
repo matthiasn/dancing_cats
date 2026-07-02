@@ -288,7 +288,12 @@ void main() {
     });
 
     test('limits one-second travel so drones do not read as particles', () {
-      const maxNormalizedStepPerSecond = 0.018;
+      // Widened from 0.018 when the beam formation moved off the lead
+      // singer's screen axis (a deliberately longer rise→beam transit, ridden
+      // on a constant-cruise profile with an upward bow): ~0.02/s normalized
+      // is still a calm glide on screen, and the bound still catches genuine
+      // particle-speed regressions.
+      const maxNormalizedStepPerSecond = 0.021;
 
       for (var t = 0.0; t < kDroneShowCycleSeconds - 1; t += 1) {
         final a = sampleDroneShow(t, count: 80);
