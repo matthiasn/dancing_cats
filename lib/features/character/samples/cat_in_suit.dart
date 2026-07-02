@@ -5845,14 +5845,19 @@ class CatClips {
     DanceIkTargetKey(5, x: -34, y: -26),
     DanceIkTargetKey(6, x: -36, y: -46),
     DanceIkTargetKey(7, x: -35, y: -40),
-    DanceIkTargetKey(8, x: -32, y: -4, tension: 0.6), // PUNCH
-    DanceIkTargetKey(9, x: -34, y: -26),
-    DanceIkTargetKey(10, x: -36, y: -46),
-    DanceIkTargetKey(11, x: -35, y: -40),
-    DanceIkTargetKey(12, x: -32, y: -4, tension: 0.6), // PUNCH
-    DanceIkTargetKey(13, x: -34, y: -26),
-    DanceIkTargetKey(14, x: -36, y: -46),
-    DanceIkTargetKey(15, x: -35, y: -40),
+    // Beats 3-4 (stamps 3-4, frames 8-15) get a DOUBLE elbow pump instead of
+    // the single-punch-then-guard of beats 1-2 — the round-3 director flagged
+    // frames 0-7 and 8-15 as a near-literal repeat ("half the loop is a
+    // literal repeat, which reads as a GIF loop"); footwork is untouched
+    // (each stamp still lands on its own beat), only the arm accent varies.
+    DanceIkTargetKey(8, x: -32, y: -4, tension: 0.6), // PUNCH (stamp 3)
+    DanceIkTargetKey(9, x: -33, y: -18), // shallow recover
+    DanceIkTargetKey(10, x: -32, y: -4, tension: 0.7), // second pump
+    DanceIkTargetKey(11, x: -35, y: -40), // load into stamp 4
+    DanceIkTargetKey(12, x: -32, y: -4, tension: 0.6), // PUNCH (stamp 4)
+    DanceIkTargetKey(13, x: -33, y: -18), // shallow recover
+    DanceIkTargetKey(14, x: -32, y: -4, tension: 0.7), // second pump
+    DanceIkTargetKey(15, x: -35, y: -40), // load into bar 2
     DanceIkTargetKey(16, x: -32, y: -4, tension: 0.6), // PUNCH
     DanceIkTargetKey(17, x: -34, y: -26),
     DanceIkTargetKey(18, x: -36, y: -46),
@@ -5879,14 +5884,15 @@ class CatClips {
     DanceIkTargetKey(5, x: 34, y: -26),
     DanceIkTargetKey(6, x: 36, y: -46),
     DanceIkTargetKey(7, x: 35, y: -40),
-    DanceIkTargetKey(8, x: 32, y: -4, tension: 0.6), // PUNCH
-    DanceIkTargetKey(9, x: 34, y: -26),
-    DanceIkTargetKey(10, x: 36, y: -46),
-    DanceIkTargetKey(11, x: 35, y: -40),
-    DanceIkTargetKey(12, x: 32, y: -4, tension: 0.6), // PUNCH
-    DanceIkTargetKey(13, x: 34, y: -26),
-    DanceIkTargetKey(14, x: 36, y: -46),
-    DanceIkTargetKey(15, x: 35, y: -40),
+    // Beats 3-4 double pump — see the L hand's comment.
+    DanceIkTargetKey(8, x: 32, y: -4, tension: 0.6), // PUNCH (stamp 3)
+    DanceIkTargetKey(9, x: 33, y: -18), // shallow recover
+    DanceIkTargetKey(10, x: 32, y: -4, tension: 0.7), // second pump
+    DanceIkTargetKey(11, x: 35, y: -40), // load into stamp 4
+    DanceIkTargetKey(12, x: 32, y: -4, tension: 0.6), // PUNCH (stamp 4)
+    DanceIkTargetKey(13, x: 33, y: -18), // shallow recover
+    DanceIkTargetKey(14, x: 32, y: -4, tension: 0.7), // second pump
+    DanceIkTargetKey(15, x: 35, y: -40), // load into bar 2
     DanceIkTargetKey(16, x: 32, y: -4, tension: 0.6), // PUNCH
     DanceIkTargetKey(17, x: 34, y: -26),
     DanceIkTargetKey(18, x: 36, y: -46),
