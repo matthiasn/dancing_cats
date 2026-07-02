@@ -98,7 +98,8 @@ class CharacterScene {
       PoseModifierPass(
         id: 'joint-limits',
         description:
-            'Clamp every limited joint into its anatomical range of motion.',
+            'Clamp every limited joint into its anatomical range of motion, '
+            'including the coupled arm anti-fold rule.',
         modifier: (context, pose) => _jointLimitedPose(pose),
       ),
       PoseModifierPass(
@@ -1456,11 +1457,25 @@ class CharacterScene {
   /// range — the last word after clips, IK, and correctives. A pose that
   /// violates a hinge (a backward knee, a wrap-around elbow) degrades to the
   /// nearest legal configuration instead of rendering the impossible.
+  ///
+  /// Before the per-joint clamps it applies the coupled arm anti-fold rule
+  /// ([armFoldCorrections]) — the contralateral elbows-pinched-at-the-sternum
+  /// fold that no single-joint range can see.
   Pose _jointLimitedPose(Pose pose) {
     Map<String, JointPose>? joints;
+    final folds = armFoldCorrections(pose);
+    for (final fold in folds.entries) {
+      final joint = pose.jointOf(fold.key);
+      joints ??= Map<String, JointPose>.of(pose.joints);
+      joints[fold.key] = JointPose(
+        rotation: joint.rotation + fold.value,
+        scaleX: joint.scaleX,
+        scaleY: joint.scaleY,
+      );
+    }
     for (final bone in _limitedBones) {
       final limit = bone.rotationLimit!;
-      final joint = pose.jointOf(bone.id);
+      final joint = joints?[bone.id] ?? pose.jointOf(bone.id);
       final clamped = limit.clampAngle(joint.rotation);
       if (clamped == joint.rotation) continue;
       joints ??= Map<String, JointPose>.of(pose.joints);
@@ -1483,6 +1498,136 @@ class CharacterScene {
     for (final bone in rig.bones)
       if (bone.rotationLimit != null) bone,
   ];
+
+  /// Shoulder→elbow→hand chains for the coupled arm anti-fold rule, discovered
+  /// by the same id convention the other passes use (`toe_flex`, `clavicle`).
+  late final List<({Bone upper, Bone lower, Bone end})> _armFoldChains = [
+    for (final upper in rig.bones)
+      if (upper.id.toLowerCase().contains('arm_upper'))
+        for (final lower in rig.bones)
+          if (lower.parent == upper.id &&
+              lower.id.toLowerCase().contains('arm_lower'))
+            for (final end in rig.bones)
+              if (end.parent == lower.id &&
+                  end.id.toLowerCase().contains('hand'))
+                (upper: upper, lower: lower, end: end),
+  ];
+
+  /// Lateral-side elbow flexion available when the upper arm is NOT adducted
+  /// (hanging or abducted): in this 2D rig the bend side stands in for
+  /// humeral rotation, so a free humerus may flex on either side almost to
+  /// the hinge stop (the elbow ROM clamp owns the extremes).
+  static const double _kArmFoldNeutralLateralFlex = 2.6;
+
+  /// How fast the lateral-flexion allowance collapses as the humerus adducts
+  /// across the chest: internal rotation locks the hinge plane, and by
+  /// ~0.65 rad of adduction the forearm can no longer break outboard at all.
+  static const double _kArmFoldAdductionSlope = 4;
+
+  /// Adduction (medial upper-arm tilt from body-down) beyond which the rule
+  /// stops applying: the arm is heading overhead-across, where humeral
+  /// rotation freedom returns and outboard forearms are legal again.
+  static const double _kArmFoldAdductionCutoff = 1.55;
+
+  /// Elbow local-rotation corrections that remove anatomically impossible
+  /// contralateral folds, keyed by forearm bone id.
+  ///
+  /// Per-joint ROM clamps cannot catch this pose: every joint is individually
+  /// inside its range. The impossibility is COUPLED — when the upper arm is
+  /// adducted across the chest (elbow swung toward the body midline, below
+  /// the shoulder) the humerus is internally rotated, so the forearm can only
+  /// continue toward the midline; it cannot break back outboard ("elbows
+  /// pinched at the sternum, paws flared out"). The metered quantity is the
+  /// RELATIVE elbow bend: lateral-side flexion is unrestricted on a free
+  /// humerus and collapses to zero as adduction grows, relaxing again as the
+  /// arm raises overhead where humeral rotation freedom returns.
+  Map<String, double> armFoldCorrections(Pose pose) {
+    if (_armFoldChains.length < 2) return const {};
+    Map<String, double>? corrections;
+    final world = solver.solve(pose);
+    for (final chain in _armFoldChains) {
+      final upperWorld = world[chain.upper.id];
+      final lowerWorld = world[chain.lower.id];
+      final endWorld = world[chain.end.id];
+      if (upperWorld == null || lowerWorld == null || endWorld == null) {
+        continue;
+      }
+      final shoulder = upperWorld.origin;
+      final elbow = lowerWorld.origin;
+      final wrist = endWorld.origin;
+      // Medial = toward the OTHER shoulder, in the girdle's own frame — the
+      // root's lateral weight commits and trunk banks move the body midline
+      // far off world x = 0.
+      final other = _armFoldChains
+          .firstWhere((c) => !identical(c, chain), orElse: () => chain);
+      final otherWorld = world[other.upper.id];
+      if (otherWorld == null || identical(other, chain)) continue;
+      final otherShoulder = otherWorld.origin;
+      final medialX = otherShoulder.x - shoulder.x;
+      final medialY = otherShoulder.y - shoulder.y;
+      final medialLength = math.sqrt(medialX * medialX + medialY * medialY);
+      if (medialLength < 1e-6) continue;
+      final mx = medialX / medialLength;
+      final my = medialY / medialLength;
+      // Body-down = the girdle perpendicular that points toward gravity.
+      var dx = -my;
+      var dy = mx;
+      if (dy < 0) {
+        dx = -dx;
+        dy = -dy;
+      }
+      final upperMedial = (elbow.x - shoulder.x) * mx + (elbow.y - shoulder.y) * my;
+      final upperDown = (elbow.x - shoulder.x) * dx + (elbow.y - shoulder.y) * dy;
+      // Signed tilt of the upper arm from body-down; + = adducted.
+      final adduction = math.atan2(upperMedial, upperDown);
+      if (adduction >= _kArmFoldAdductionCutoff) continue;
+      final foreMedial = (wrist.x - elbow.x) * mx + (wrist.y - elbow.y) * my;
+      final foreDown = (wrist.x - elbow.x) * dx + (wrist.y - elbow.y) * dy;
+      // Signed tilt of the forearm from body-down; - = breaking outboard.
+      final foldTilt = math.atan2(foreMedial, foreDown);
+      // The RELATIVE elbow bend (forearm vs upper arm) is what anatomy
+      // limits: lateral-side flexion is fine on a free humerus (a reach, a
+      // hammer curl) and impossible on one adducted across the chest.
+      final relativeBend = _shortestAngle(foldTilt - adduction);
+      final allowance =
+          math.max(
+            0,
+            _kArmFoldNeutralLateralFlex -
+                _kArmFoldAdductionSlope * math.max(0, adduction),
+          ) +
+          math.max(0, (adduction - 1.15) * 2.2);
+      if (relativeBend >= -allowance) continue;
+      // Illegal arc is (-pi, -allowance); clamp to the nearer boundary that
+      // the elbow's own ROM can actually reach — otherwise the ROM clamp
+      // that runs after would drag the forearm back into the illegal arc.
+      final toCarryBoundary = -allowance - relativeBend;
+      final toOverheadBoundary = relativeBend + math.pi;
+      // foldTilt grows toward medial; whether that is a positive or negative
+      // world rotation depends on which way medial points for this arm.
+      final medialSign = mx >= 0 ? 1.0 : -1.0;
+      final ordered = toCarryBoundary <= toOverheadBoundary
+          ? [toCarryBoundary, -toOverheadBoundary]
+          : [-toOverheadBoundary, toCarryBoundary];
+      final currentLocal = pose.jointOf(chain.lower.id).rotation;
+      final limit = chain.lower.rotationLimit;
+      var localDelta = -medialSign * ordered.first;
+      for (final tiltDelta in ordered) {
+        final candidate = currentLocal + -medialSign * tiltDelta;
+        if (limit == null ||
+            (limit.clampAngle(candidate) - candidate).abs() < 1e-9) {
+          localDelta = -medialSign * tiltDelta;
+          break;
+        }
+      }
+      // Emit the branch-normalized equivalent so a large correction lands on
+      // a sane (-pi, pi] joint value instead of a +-2pi representation.
+      localDelta =
+          _shortestAngle(currentLocal + localDelta) - currentLocal;
+      corrections ??= <String, double>{};
+      corrections[chain.lower.id] = localDelta;
+    }
+    return corrections ?? const {};
+  }
 
   double _clipPhase(Clip clip, double timeSeconds) {
     if (clip.duration <= 0) return 0;

@@ -6054,9 +6054,26 @@ class CatClips {
     DanceJointKey(32, rotation: -0.36),
   ];
 
+  // Zanku's pumping hands live far OUTBOARD all clip, so the elbows must
+  // break outboard too (like Shaku's fix): the inherited inboard bends folded
+  // the elbow across the ribs on the inward swing while the paw stayed out —
+  // the contralateral fold the anti-fold clamp now forbids.
   static final List<LimbIkTarget> _zankuLimbTargets = [
-    _danceLimbTargets[0].withChannel(_zankuHandLTarget),
-    _danceLimbTargets[1].withChannel(_zankuHandRTarget),
+    LimbIkTarget(
+      upperBoneId: CatBones.armUpperL,
+      lowerBoneId: CatBones.armLowerL,
+      endBoneId: CatBones.handL,
+      anchorBoneId: CatBones.torso,
+      channel: _zankuHandLTarget,
+    ),
+    LimbIkTarget(
+      upperBoneId: CatBones.armUpperR,
+      lowerBoneId: CatBones.armLowerR,
+      endBoneId: CatBones.handR,
+      anchorBoneId: CatBones.torso,
+      channel: _zankuHandRTarget,
+      bendDirection: -1,
+    ),
     _danceLimbTargets[2].withChannel(_zankuFootLTarget),
     _danceLimbTargets[3].withChannel(_zankuFootRTarget),
   ];
@@ -6737,48 +6754,42 @@ class CatClips {
   // The OUT-point keys use Ease.easeOutBack so the arm whips PAST the apex and
   // settles back onto the point (anticipation→overshoot→settle), instead of
   // reaching the extension and freezing — needs the non-smooth channel below.
+  // Azonto is MIME: the arms act out everyday actions over the leg groove
+  // (the research audit's top azonto finding — straight-arm point-outs read
+  // as generic boy-band, not azonto). Bar 1 drives a steering wheel: both
+  // paws hold a rim in front of the chest and rock it every beat. Bar 2
+  // throws alternating cross-body jabs, the idle paw chambered at the hip.
+  // Every pose keeps the elbows OUTBOARD (see [_azontoLimbTargets]); the old
+  // tuck keys at the jacket centreline asked both elbows to pinch at the
+  // sternum with the paws flared back out — the contralateral fold the
+  // anti-fold clamp now forbids.
   static const _azontoHandLTargetKeys = [
-    DanceIkTargetKey(0, x: -88, y: -10), // bar 1: POINT OUT (left)
-    DanceIkTargetKey(2, x: -48, y: -16), // retracting
-    DanceIkTargetKey(4, x: -34, y: -20), // tucked off the jacket centreline
-    DanceIkTargetKey(6, x: -48, y: -16),
-    DanceIkTargetKey(8, x: -88, y: -10, ease: Ease.easeOutBack), // POINT OUT
-    DanceIkTargetKey(10, x: -48, y: -16),
-    DanceIkTargetKey(12, x: -34, y: -20),
-    DanceIkTargetKey(14, x: -48, y: -16),
-    // bar 2: double point-out, but DE-SYMMETRIZED — the two arms alternate a
-    // high/low asymmetric V each beat (left high, right low; then flip) so it
-    // never reads as a flat T-pose.
-    DanceIkTargetKey(16, x: -92, y: -18, ease: Ease.easeOutBack), // high
-    DanceIkTargetKey(18, x: -36, y: -20), // tuck
-    DanceIkTargetKey(20, x: -84, y: -2, ease: Ease.easeOutBack), // low
-    DanceIkTargetKey(22, x: -36, y: -20),
-    DanceIkTargetKey(24, x: -92, y: -18, ease: Ease.easeOutBack), // high
-    DanceIkTargetKey(26, x: -36, y: -20),
-    DanceIkTargetKey(28, x: -84, y: -2, ease: Ease.easeOutBack), // low
-    DanceIkTargetKey(30, x: -48, y: -16),
-    DanceIkTargetKey(32, x: -88, y: -10, ease: Ease.easeOutBack), // == frame 0
+    DanceIkTargetKey(0, x: -18, y: -48, tension: 0.2), // wheel grip high
+    DanceIkTargetKey(4, x: -22, y: -36, tension: 0.2), // wheel grip low
+    DanceIkTargetKey(8, x: -18, y: -48, tension: 0.2),
+    DanceIkTargetKey(12, x: -22, y: -36, tension: 0.2),
+    // bar 2: cross jab (held a frame so the hit reads), then chamber.
+    DanceIkTargetKey(16, x: 8, y: -52, tension: 1), // JAB across
+    DanceIkTargetKey(17, x: 8, y: -52, tension: 1),
+    DanceIkTargetKey(20, x: -44, y: -18, tension: 0.25), // chamber at hip
+    DanceIkTargetKey(24, x: 8, y: -52, tension: 1), // JAB across
+    DanceIkTargetKey(25, x: 8, y: -52, tension: 1),
+    DanceIkTargetKey(28, x: -44, y: -18, tension: 0.25),
+    DanceIkTargetKey(32, x: -18, y: -48, tension: 0.2), // == frame 0
   ];
   static const _azontoHandRTargetKeys = [
-    DanceIkTargetKey(0, x: 34, y: -20), // tucked off the jacket centreline
-    DanceIkTargetKey(2, x: 48, y: -16),
-    DanceIkTargetKey(4, x: 88, y: -10, ease: Ease.easeOutBack), // POINT OUT
-    DanceIkTargetKey(6, x: 48, y: -16),
-    DanceIkTargetKey(8, x: 34, y: -20),
-    DanceIkTargetKey(10, x: 48, y: -16),
-    DanceIkTargetKey(12, x: 88, y: -10, ease: Ease.easeOutBack),
-    DanceIkTargetKey(14, x: 48, y: -16),
-    // bar 2: opposite phase to the left — RIGHT low while left is high, then
-    // flip, so the double point is an alternating asymmetric V, not a T-pose.
-    DanceIkTargetKey(16, x: 84, y: -2, ease: Ease.easeOutBack), // low
-    DanceIkTargetKey(18, x: 36, y: -20), // tuck
-    DanceIkTargetKey(20, x: 92, y: -18, ease: Ease.easeOutBack), // high
-    DanceIkTargetKey(22, x: 36, y: -20),
-    DanceIkTargetKey(24, x: 84, y: -2, ease: Ease.easeOutBack), // low
-    DanceIkTargetKey(26, x: 36, y: -20),
-    DanceIkTargetKey(28, x: 92, y: -18, ease: Ease.easeOutBack), // high
-    DanceIkTargetKey(30, x: 48, y: -16),
-    DanceIkTargetKey(32, x: 34, y: -20),
+    DanceIkTargetKey(0, x: 22, y: -36, tension: 0.2), // wheel grip low
+    DanceIkTargetKey(4, x: 18, y: -48, tension: 0.2), // wheel grip high
+    DanceIkTargetKey(8, x: 22, y: -36, tension: 0.2),
+    DanceIkTargetKey(12, x: 18, y: -48, tension: 0.2),
+    // bar 2: chambered while the left jabs, then answering cross jab.
+    DanceIkTargetKey(16, x: 44, y: -18, tension: 0.25), // chamber at hip
+    DanceIkTargetKey(20, x: -8, y: -52, tension: 1), // JAB across
+    DanceIkTargetKey(21, x: -8, y: -52, tension: 1),
+    DanceIkTargetKey(24, x: 44, y: -18, tension: 0.25),
+    DanceIkTargetKey(28, x: -8, y: -52, tension: 1), // JAB across
+    DanceIkTargetKey(29, x: -8, y: -52, tension: 1),
+    DanceIkTargetKey(32, x: 22, y: -36, tension: 0.2),
   ];
   // Smooth spline hand path: flows through the authored keys with C1
   // continuity, so no corner-rounding blur wrapper is needed (the old
@@ -6838,9 +6849,26 @@ class CatClips {
       .ikTargetChannel(_azontoFootLTargetKeys);
   static final KeyframeIkTargetChannel _azontoFootRTarget = _dancePhrase
       .ikTargetChannel(_azontoFootRTargetKeys);
+  // Outboard elbow bends: the wheel grips sit close in front of the chest
+  // and the jabs cross the midline, both of which need the elbow trailing
+  // outboard (a crossing jab leads with the fist, elbow behind it) — the
+  // inherited inboard bends produced the pinched-elbow fold.
   static final List<LimbIkTarget> _azontoLimbTargets = [
-    _danceLimbTargets[0].withChannel(_azontoHandLTarget),
-    _danceLimbTargets[1].withChannel(_azontoHandRTarget),
+    LimbIkTarget(
+      upperBoneId: CatBones.armUpperL,
+      lowerBoneId: CatBones.armLowerL,
+      endBoneId: CatBones.handL,
+      anchorBoneId: CatBones.torso,
+      channel: _azontoHandLTarget,
+    ),
+    LimbIkTarget(
+      upperBoneId: CatBones.armUpperR,
+      lowerBoneId: CatBones.armLowerR,
+      endBoneId: CatBones.handR,
+      anchorBoneId: CatBones.torso,
+      channel: _azontoHandRTarget,
+      bendDirection: -1,
+    ),
     _danceLimbTargets[2].withChannel(_azontoFootLTarget),
     _danceLimbTargets[3].withChannel(_azontoFootRTarget),
   ];
@@ -7500,9 +7528,25 @@ class CatClips {
     GroundSpan(CatBones.footL, 0.5, 0.75),
     GroundSpan(CatBones.footR, 0.75, 1),
   ];
+  // Buga's show-off reaches and overhead presents all live outboard of the
+  // shoulders, so the elbows break outboard — the inherited inboard bends
+  // folded the elbow across the chest on the low frames-the-present reaches.
   static final List<LimbIkTarget> _bugaLimbTargets = [
-    _danceLimbTargets[0].withChannel(_bugaHandLTarget),
-    _danceLimbTargets[1].withChannel(_bugaHandRTarget),
+    LimbIkTarget(
+      upperBoneId: CatBones.armUpperL,
+      lowerBoneId: CatBones.armLowerL,
+      endBoneId: CatBones.handL,
+      anchorBoneId: CatBones.torso,
+      channel: _bugaHandLTarget,
+    ),
+    LimbIkTarget(
+      upperBoneId: CatBones.armUpperR,
+      lowerBoneId: CatBones.armLowerR,
+      endBoneId: CatBones.handR,
+      anchorBoneId: CatBones.torso,
+      channel: _bugaHandRTarget,
+      bendDirection: -1,
+    ),
     _danceLimbTargets[2].withChannel(_bugaFootLTarget),
     _danceLimbTargets[3].withChannel(_bugaFootRTarget),
   ];
@@ -7911,9 +7955,27 @@ class CatClips {
       .ikTargetChannel(_pounceHandLTargetKeys, smooth: true);
   static final KeyframeIkTargetChannel _pounceHandRTarget = _dancePhrase
       .ikTargetChannel(_pounceHandRTargetKeys, smooth: true);
+  // Outboard elbow bends: the cross-body swipes lead with the PAW while the
+  // elbow trails outboard (a cat swipe, not a chicken wing), and the return
+  // to the own-side guard needs the same sign. The inherited inboard bends
+  // left the elbow folded across the sternum while the paw exited — the
+  // worst contralateral fold in the catalogue (3.0 rad asked).
   static final List<LimbIkTarget> _pounceLimbTargets = [
-    _danceLimbTargets[0].withChannel(_pounceHandLTarget),
-    _danceLimbTargets[1].withChannel(_pounceHandRTarget),
+    LimbIkTarget(
+      upperBoneId: CatBones.armUpperL,
+      lowerBoneId: CatBones.armLowerL,
+      endBoneId: CatBones.handL,
+      anchorBoneId: CatBones.torso,
+      channel: _pounceHandLTarget,
+    ),
+    LimbIkTarget(
+      upperBoneId: CatBones.armUpperR,
+      lowerBoneId: CatBones.armLowerR,
+      endBoneId: CatBones.handR,
+      anchorBoneId: CatBones.torso,
+      channel: _pounceHandRTarget,
+      bendDirection: -1,
+    ),
     _danceLimbTargets[2].withChannel(_pounceFootLTarget),
     _danceLimbTargets[3].withChannel(_pounceFootRTarget),
   ];

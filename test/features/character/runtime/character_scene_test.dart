@@ -133,6 +133,90 @@ void main() {
       );
     });
 
+    test('the arm anti-fold rule forbids the contralateral fold', () {
+      final scene = CharacterScene(buildCatInSuitRig());
+      // The anatomical crime: both hand targets at the hip corners solved
+      // with INBOARD elbow bends — elbows pinch at the sternum while the
+      // paws flare back out. Every joint is inside its own ROM; only the
+      // coupled rule can see it.
+      const foldClip = Clip(
+        name: 'synthetic-contralateral-fold',
+        duration: 1,
+        channels: {},
+        limbTargets: [
+          LimbIkTarget(
+            upperBoneId: CatBones.armUpperL,
+            lowerBoneId: CatBones.armLowerL,
+            endBoneId: CatBones.handL,
+            anchorBoneId: CatBones.torso,
+            bendDirection: -1,
+            channel: FixedIkTargetChannel(x: -34, y: -20),
+          ),
+          LimbIkTarget(
+            upperBoneId: CatBones.armUpperR,
+            lowerBoneId: CatBones.armLowerR,
+            endBoneId: CatBones.handR,
+            anchorBoneId: CatBones.torso,
+            channel: FixedIkTargetChannel(x: 34, y: -20),
+          ),
+        ],
+      );
+      final asked = scene.preClampPoseAt(clip: foldClip, timeSeconds: 0);
+      final corrections = scene.armFoldCorrections(asked);
+      expect(
+        corrections.values.map((delta) => delta.abs()).fold(0, math.max),
+        greaterThan(0.3),
+        reason: 'the fold ask must engage the anti-fold rule on both arms',
+      );
+      expect(corrections, contains(CatBones.armLowerL));
+      expect(corrections, contains(CatBones.armLowerR));
+
+      final rendered = scene.poseAt(
+        clip: foldClip,
+        timeSeconds: 0,
+        includeAutonomic: false,
+      );
+      final residual = scene.armFoldCorrections(rendered);
+      expect(
+        residual.values.map((delta) => delta.abs()).fold(0, math.max),
+        lessThan(0.05),
+        reason: 'the rendered pose must sit at (or inside) the fold boundary '
+            '— the impossible configuration never reaches the screen',
+      );
+
+      // Real crossed arms stay legal: the hand crosses the midline while the
+      // elbow trails outboard, so the forearm continues MEDIALLY.
+      const crossedClip = Clip(
+        name: 'synthetic-crossed-arms',
+        duration: 1,
+        channels: {},
+        limbTargets: [
+          LimbIkTarget(
+            upperBoneId: CatBones.armUpperL,
+            lowerBoneId: CatBones.armLowerL,
+            endBoneId: CatBones.handL,
+            anchorBoneId: CatBones.torso,
+            channel: FixedIkTargetChannel(x: 18, y: -55),
+          ),
+          LimbIkTarget(
+            upperBoneId: CatBones.armUpperR,
+            lowerBoneId: CatBones.armLowerR,
+            endBoneId: CatBones.handR,
+            anchorBoneId: CatBones.torso,
+            bendDirection: -1,
+            channel: FixedIkTargetChannel(x: -18, y: -55),
+          ),
+        ],
+      );
+      final crossed = scene.preClampPoseAt(clip: crossedClip, timeSeconds: 0);
+      expect(
+        scene.armFoldCorrections(crossed),
+        isEmpty,
+        reason: 'a genuine crossed-wrist pose is anatomically legal and must '
+            'pass the rule untouched',
+      );
+    });
+
     test('dance secondary pass adds tail-tip and ear follow-through', () {
       final scene = CharacterScene(buildCatInSuitRig());
       final clip = CatClips.zanku;

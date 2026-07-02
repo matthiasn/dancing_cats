@@ -115,6 +115,25 @@ class MotionConstraintValidator {
           ),
         );
       }
+      // The coupled arm anti-fold rule engages the same clamp pass; a routine
+      // that asks for a contralateral fold is clipping just like one that
+      // asks past a hinge stop.
+      final folds = scene.armFoldCorrections(raw);
+      for (final fold in folds.entries) {
+        final engagement = fold.value.abs();
+        if (engagement < 0.001) continue;
+        final asked = raw.jointOf(fold.key).rotation;
+        checks.add(
+          MotionJointLimitEngagement(
+            clipName: clip.name,
+            boneId: '${fold.key} anti-fold',
+            phase: phase,
+            askedRotation: asked,
+            clampedRotation: asked + fold.value,
+            engagement: engagement,
+          ),
+        );
+      }
     }
     return checks;
   }

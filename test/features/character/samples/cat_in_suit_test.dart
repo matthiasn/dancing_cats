@@ -1588,23 +1588,65 @@ void main() {
         expect(right.y, greaterThanOrEqualTo(100));
       }
 
-      for (final frame in [0, 4, 12, 18, 22, 26, 32]) {
+      // Bar 1 is the steering-wheel mime: both paws hold a rim in front of
+      // the chest — close grips on their OWN sides, chest height, never a
+      // straight-arm point-out.
+      for (final frame in [0, 4, 8, 12]) {
         final p = frame / phrase.frameCount;
         final left = handL.sample(p);
         final right = handR.sample(p);
         expect(
           left.x,
-          lessThan(-28),
+          inExclusiveRange(-30, -12),
           reason:
-              'Azonto frame $frame should keep the tucked left wrist off the '
-              'jacket centreline so the arm does not read as a suit blob',
+              'Azonto frame $frame: the left paw should grip the mimed wheel '
+              'in front of the chest, not point out',
         );
         expect(
           right.x,
-          greaterThan(28),
+          inExclusiveRange(12, 30),
           reason:
-              'Azonto frame $frame should keep the tucked right wrist off the '
-              'jacket centreline so the arm does not read as a suit blob',
+              'Azonto frame $frame: the right paw should grip the mimed wheel '
+              'in front of the chest, not point out',
+        );
+        expect(left.y, inExclusiveRange(-54, -30));
+        expect(right.y, inExclusiveRange(-54, -30));
+      }
+
+      // Bar 2 alternates cross-body jabs: the jabbing paw CROSSES the
+      // midline at chest height while the other paw chambers at the hip.
+      for (final (frame, jab, chamber) in [
+        (16, handL, handR),
+        (20, handR, handL),
+        (24, handL, handR),
+        (28, handR, handL),
+      ]) {
+        final p = frame / phrase.frameCount;
+        final hit = jab.sample(p);
+        final held = chamber.sample(p);
+        expect(
+          hit.x.abs(),
+          lessThan(14),
+          reason:
+              'Azonto frame $frame: the jab should land across the midline, '
+              'mime over reach',
+        );
+        expect(
+          hit.y,
+          lessThan(-44),
+          reason: 'Azonto frame $frame: the jab lands at chest height',
+        );
+        expect(
+          held.x.abs(),
+          greaterThan(36),
+          reason:
+              'Azonto frame $frame: the idle paw chambers at the hip on its '
+              'own side',
+        );
+        expect(
+          held.y,
+          greaterThan(-26),
+          reason: 'Azonto frame $frame: the chamber sits at hip height',
         );
       }
 
