@@ -64,6 +64,17 @@ class DanceGradeController extends ChangeNotifier {
   /// Copied look for paste-across-keys/lanes.
   GradeLook? clipboard;
 
+  /// Auto-stamp affordance feed (panel: accidental writes must be noticed
+  /// while undo is cheap): the time of the last freshly stamped key.
+  double? lastStampTSec;
+
+  /// Keys in the last committed (thinned) touch trail.
+  int? lastTrailCount;
+
+  /// Bumps whenever [lastStampTSec]/[lastTrailCount] change — the UI watches
+  /// this to flash its "keyed @ …" note.
+  int editNoteSerial = 0;
+
   final List<GradeTimelineDoc> _undo = [];
   final List<GradeTimelineDoc> _redo = [];
   bool _gestureActive = false;
@@ -147,6 +158,7 @@ class DanceGradeController extends ChangeNotifier {
           );
         }
       } else {
+        final isNewKey = _lane(_selectedTarget).indexNear(tSec) == null;
         _mutate(
           _withLane(
             _lane(
@@ -154,6 +166,11 @@ class DanceGradeController extends ChangeNotifier {
             ).upsert(GradeKeyframe(tSec: tSec, look: look)),
           ),
         );
+        if (isNewKey) {
+          lastStampTSec = tSec;
+          lastTrailCount = null;
+          editNoteSerial++;
+        }
       }
     }
     notifyListeners();
@@ -188,6 +205,9 @@ class DanceGradeController extends ChangeNotifier {
           ],
         );
         _mutate(_withLane(lane));
+        lastStampTSec = null;
+        lastTrailCount = thinned.length;
+        editNoteSerial++;
       }
       _preview = null;
       _trail.clear();
@@ -206,6 +226,9 @@ class DanceGradeController extends ChangeNotifier {
         _lane(_selectedTarget).upsert(GradeKeyframe(tSec: tSec, look: look)),
       ),
     );
+    lastStampTSec = tSec;
+    lastTrailCount = null;
+    editNoteSerial++;
     _preview = null;
     notifyListeners();
   }

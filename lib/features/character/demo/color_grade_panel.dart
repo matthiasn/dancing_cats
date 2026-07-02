@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:dancing_cats/features/scenery/model/backdrop_grade.dart';
 import 'package:dancing_cats/features/scenery/model/scope_histogram.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 /// Which ASC CDL coefficient a wheel drives, so each wheel can show its true
 /// Slope / Offset / Power numbers (a colourist has to be able to read, type and
@@ -39,6 +40,9 @@ class ColorGradePanel extends StatelessWidget {
     required this.onPivot,
     required this.onBypass,
     required this.onReset,
+    this.onEditEnd,
+    this.wheelDiameter = 90,
+    this.title = 'COLOR',
     super.key,
   });
 
@@ -66,6 +70,18 @@ class ColorGradePanel extends StatelessWidget {
   final ValueChanged<double> onPivot;
   final ValueChanged<bool> onBypass;
   final VoidCallback onReset;
+
+  /// Fired when an edit gesture releases (wheel ride, slider scrub, tap) —
+  /// the grade workspace closes its undo transaction / stamps auto-keys here.
+  final VoidCallback? onEditEnd;
+
+  /// Wheel size: 90 in the compact console era, ~116 in the workspace where
+  /// there is room to actually grab a puck.
+  final double wheelDiameter;
+
+  /// Header label — the workspace shows the selected lane's name here so the
+  /// console always says WHAT it is editing.
+  final String title;
 
   static const _panelTop = Color(0xFF161B21);
   static const _panelBottom = Color(0xFF0F1317);
@@ -96,6 +112,7 @@ class ColorGradePanel extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _PanelHeader(
+                title: title,
                 bypass: bypass,
                 onBypass: onBypass,
                 onReset: onReset,
@@ -106,7 +123,9 @@ class ColorGradePanel extends StatelessWidget {
                 label: 'Lift',
                 sublabel: 'shadows',
                 wheel: lift,
+                diameter: wheelDiameter,
                 onChanged: onLift,
+                onEditEnd: onEditEnd,
               ),
               const SizedBox(width: 16),
               GradeWheelControl(
@@ -114,7 +133,9 @@ class ColorGradePanel extends StatelessWidget {
                 label: 'Gamma',
                 sublabel: 'midtones',
                 wheel: gamma,
+                diameter: wheelDiameter,
                 onChanged: onGamma,
+                onEditEnd: onEditEnd,
               ),
               const SizedBox(width: 16),
               GradeWheelControl(
@@ -122,7 +143,9 @@ class ColorGradePanel extends StatelessWidget {
                 label: 'Gain',
                 sublabel: 'highlights',
                 wheel: gain,
+                diameter: wheelDiameter,
                 onChanged: onGain,
+                onEditEnd: onEditEnd,
               ),
               const SizedBox(width: 26),
               _SliderStack(
@@ -136,6 +159,7 @@ class ColorGradePanel extends StatelessWidget {
                     lowColor: _cool,
                     highColor: _warm,
                     onChanged: onTemperature,
+                    onEditEnd: onEditEnd,
                   ),
                   _LabeledSlider(
                     label: 'Tint',
@@ -145,6 +169,7 @@ class ColorGradePanel extends StatelessWidget {
                     lowColor: const Color(0xFF5AC46A),
                     highColor: const Color(0xFFC45AC4),
                     onChanged: onTint,
+                    onEditEnd: onEditEnd,
                   ),
                 ],
               ),
@@ -158,6 +183,7 @@ class ColorGradePanel extends StatelessWidget {
                     min: 0.5,
                     max: 1.8,
                     onChanged: onContrast,
+                    onEditEnd: onEditEnd,
                   ),
                   _LabeledSlider(
                     label: 'Pivot',
@@ -165,6 +191,7 @@ class ColorGradePanel extends StatelessWidget {
                     min: 0.2,
                     max: 0.7,
                     onChanged: onPivot,
+                    onEditEnd: onEditEnd,
                   ),
                   _LabeledSlider(
                     label: 'Saturation',
@@ -172,6 +199,7 @@ class ColorGradePanel extends StatelessWidget {
                     min: 0,
                     max: 2,
                     onChanged: onSaturation,
+                    onEditEnd: onEditEnd,
                   ),
                 ],
               ),
@@ -203,11 +231,15 @@ class ColorGradePanel extends StatelessWidget {
 /// plate to judge how far a look has been pushed) and the global Reset.
 class _PanelHeader extends StatelessWidget {
   const _PanelHeader({
+    required this.title,
     required this.bypass,
     required this.onBypass,
     required this.onReset,
   });
 
+  /// The workspace passes the selected lane's name so the console always
+  /// says WHAT it is editing; standalone use keeps the classic 'COLOR'.
+  final String title;
   final bool bypass;
   final ValueChanged<bool> onBypass;
   final VoidCallback onReset;
@@ -217,9 +249,9 @@ class _PanelHeader extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'COLOR',
-          style: TextStyle(
+        Text(
+          title,
+          style: const TextStyle(
             color: ColorGradePanel._textHi,
             fontSize: 12,
             fontWeight: FontWeight.w700,
@@ -250,7 +282,9 @@ class _BypassButton extends StatelessWidget {
     // Bypassed = showing the clean plate (the "before").
     final active = bypass;
     return Tooltip(
-      message: bypass ? 'Showing clean plate' : 'Show clean plate (bypass grade)',
+      message: bypass
+          ? 'Showing clean plate'
+          : 'Show clean plate (bypass grade)',
       child: GestureDetector(
         key: const Key('gradeBypass'),
         behavior: HitTestBehavior.opaque,
@@ -307,6 +341,7 @@ class GradeWheelControl extends StatelessWidget {
     required this.sublabel,
     required this.wheel,
     required this.onChanged,
+    this.onEditEnd,
     this.diameter = 90,
     super.key,
   });
@@ -316,12 +351,26 @@ class GradeWheelControl extends StatelessWidget {
   final String sublabel;
   final GradeWheel wheel;
   final ValueChanged<GradeWheel> onChanged;
+
+  /// Gesture-release hook (undo transactions / auto-key stamping).
+  final VoidCallback? onEditEnd;
   final double diameter;
 
-  void _dragTo(Offset local) {
+  /// Tap: absolute jump (place the puck where you point).
+  void _jumpTo(Offset local) {
     final radius = diameter / 2;
     var v = (local - Offset(radius, radius)) / radius;
     if (v.distance > 1) v = v / v.distance; // clamp to the wheel
+    onChanged(GradeWheel(balance: v, master: wheel.master));
+  }
+
+  /// Drag: RELATIVE trackball move (Shift = fine) — the behaviour every
+  /// grading surface uses; absolute-jump drags make a small puck unusable.
+  void _dragBy(Offset delta) {
+    final radius = diameter / 2;
+    final k = HardwareKeyboard.instance.isShiftPressed ? 0.15 : 0.6;
+    var v = wheel.balance + delta / radius * k;
+    if (v.distance > 1) v = v / v.distance;
     onChanged(GradeWheel(balance: v, master: wheel.master));
   }
 
@@ -380,8 +429,13 @@ class GradeWheelControl extends StatelessWidget {
         GestureDetector(
           key: Key('gradeWheel-$label'),
           behavior: HitTestBehavior.opaque,
-          onPanDown: (d) => _dragTo(d.localPosition),
-          onPanUpdate: (d) => _dragTo(d.localPosition),
+          onTapUp: (d) {
+            _jumpTo(d.localPosition);
+            onEditEnd?.call();
+          },
+          onPanUpdate: (d) => _dragBy(d.delta),
+          onPanEnd: (_) => onEditEnd?.call(),
+          onPanCancel: () => onEditEnd?.call(),
           child: CustomPaint(
             size: Size.square(diameter),
             painter: _WheelPainter(balance: wheel.balance),
@@ -396,6 +450,7 @@ class GradeWheelControl extends StatelessWidget {
           accent: ColorGradePanel._accent,
           onChanged: (v) =>
               onChanged(GradeWheel(balance: wheel.balance, master: v)),
+          onEditEnd: onEditEnd,
         ),
         Text(
           _lumReadout(wheel.master),
@@ -453,9 +508,7 @@ class _WheelReset extends StatelessWidget {
       child: Icon(
         Icons.restart_alt_rounded,
         size: 13,
-        color: enabled
-            ? ColorGradePanel._textLow
-            : ColorGradePanel._edge,
+        color: enabled ? ColorGradePanel._textLow : ColorGradePanel._edge,
       ),
     );
   }
@@ -522,7 +575,10 @@ class _WheelPainter extends CustomPainter {
           ..style = PaintingStyle.stroke
           ..strokeWidth = 2.5
           ..shader = RadialGradient(
-            colors: [const Color(0x00000000), Colors.black.withValues(alpha: 0.5)],
+            colors: [
+              const Color(0x00000000),
+              Colors.black.withValues(alpha: 0.5),
+            ],
             stops: const [0.86, 1.0],
           ).createShader(rect),
       );
@@ -639,6 +695,7 @@ class _LabeledSlider extends StatelessWidget {
     required this.min,
     required this.max,
     required this.onChanged,
+    this.onEditEnd,
     this.lowColor,
     this.highColor,
   });
@@ -648,6 +705,7 @@ class _LabeledSlider extends StatelessWidget {
   final double min;
   final double max;
   final ValueChanged<double> onChanged;
+  final VoidCallback? onEditEnd;
   final Color? lowColor;
   final Color? highColor;
 
@@ -691,6 +749,7 @@ class _LabeledSlider extends StatelessWidget {
             lowColor: lowColor,
             highColor: highColor,
             onChanged: onChanged,
+            onEditEnd: onEditEnd,
           ),
         ],
       ),
@@ -709,6 +768,7 @@ class _BipolarSlider extends StatelessWidget {
     required this.width,
     required this.accent,
     required this.onChanged,
+    this.onEditEnd,
     this.lowColor,
     this.highColor,
     super.key,
@@ -722,6 +782,7 @@ class _BipolarSlider extends StatelessWidget {
   final Color? lowColor;
   final Color? highColor;
   final ValueChanged<double> onChanged;
+  final VoidCallback? onEditEnd;
 
   static const _height = 16.0;
 
@@ -739,6 +800,8 @@ class _BipolarSlider extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onPanDown: (d) => _emit(d.localPosition.dx),
       onPanUpdate: (d) => _emit(d.localPosition.dx),
+      onPanEnd: (_) => onEditEnd?.call(),
+      onPanCancel: () => onEditEnd?.call(),
       child: CustomPaint(
         size: Size(width, _height),
         painter: _BipolarTrackPainter(
@@ -981,7 +1044,8 @@ class _ParadeScope extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final clipped = histogram.clip.r > 0.02 ||
+    final clipped =
+        histogram.clip.r > 0.02 ||
         histogram.clip.g > 0.02 ||
         histogram.clip.b > 0.02;
     return Column(
@@ -1005,8 +1069,8 @@ class _ParadeScope extends StatelessWidget {
                 !histogram.hasData
                     ? 'sampling…'
                     : clipped
-                        ? 'clip'
-                        : 'signal',
+                    ? 'clip'
+                    : 'signal',
                 style: TextStyle(
                   color: clipped
                       ? const Color(0xFFE0483B)

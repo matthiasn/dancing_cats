@@ -122,6 +122,28 @@ class GradeLook {
     pivot: pivot,
   );
 
+  /// A copy with individual controls replaced (the console edits one control
+  /// per gesture; everything else holds).
+  GradeLook copyWith({
+    GradeWheel? lift,
+    GradeWheel? gamma,
+    GradeWheel? gain,
+    double? saturation,
+    double? temperature,
+    double? tint,
+    double? contrast,
+    double? pivot,
+  }) => GradeLook(
+    lift: lift ?? this.lift,
+    gamma: gamma ?? this.gamma,
+    gain: gain ?? this.gain,
+    saturation: saturation ?? this.saturation,
+    temperature: temperature ?? this.temperature,
+    tint: tint ?? this.tint,
+    contrast: contrast ?? this.contrast,
+    pivot: pivot ?? this.pivot,
+  );
+
   /// Component-wise interpolation toward [other] at progress [t] (0 → this,
   /// 1 → other). Pucks lerp in x/y — a puck animated through centre crosses
   /// neutral rather than whipping around the hue circle.

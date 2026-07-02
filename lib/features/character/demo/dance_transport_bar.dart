@@ -37,6 +37,7 @@ class DanceTransportBar extends StatelessWidget {
     this.gradeActive = false,
     this.onToggleGrade,
     this.showTimeline = true,
+    this.barsBeats,
     super.key,
   });
 
@@ -87,6 +88,11 @@ class DanceTransportBar extends StatelessWidget {
   /// False while the grade workspace is open: the workspace's shared zoomable
   /// timeline replaces this bar's compact one (one seek surface at a time).
   final bool showTimeline;
+
+  /// Musical position ("bar.beat.sixteenth") computed from the DETECTED beat
+  /// map's downbeats. Null → derive from the nominal BPM (the pre-beat-map
+  /// approximation, kept as the loading/pickup fallback).
+  final String? barsBeats;
 
   @override
   Widget build(BuildContext context) {
@@ -423,6 +429,7 @@ class DanceTransportBar extends StatelessWidget {
     final bar = (totalBeats ~/ 4) + 1;
     final beat = (totalBeats % 4).floor() + 1;
     final sixteenth = ((totalBeats % 1) * 4).floor() + 1;
+    final text = barsBeats ?? '$bar.$beat.$sixteenth';
     return Text.rich(
       TextSpan(
         children: [
@@ -436,7 +443,7 @@ class DanceTransportBar extends StatelessWidget {
             ),
           ),
           TextSpan(
-            text: '$bar.$beat.$sixteenth',
+            text: text,
             style: const TextStyle(
               color: _Chrome.textMid,
               fontSize: 14,
@@ -518,7 +525,7 @@ class DanceTransportBar extends StatelessWidget {
   /// energy state isn't labelled here — it's visible in the video stage itself.
   Widget _sectionReadout() {
     final label = currentSectionLabel ?? '–';
-    final hue = _sectionHue(label);
+    final hue = danceSectionHue(label);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -681,8 +688,9 @@ abstract final class _Chrome {
 }
 
 /// The structural hue for a section label. Recurring labels share a colour, so
-/// the timeline bands and the "now playing" chip read as the same clip.
-Color _sectionHue(String label) {
+/// the timeline bands, the "now playing" chip and the grade workspace's
+/// section pills read as the same clip.
+Color danceSectionHue(String label) {
   // A sober, low-chroma clip palette — colour-codes structure (recurring
   // sections share a hue) WITHOUT a candy rainbow that fights the teal accent or
   // the cool data waveform. Keyed by musical section name, with the structural
@@ -928,7 +936,7 @@ class _DanceTimelinePainter extends CustomPainter {
     for (final s in sections) {
       final sx0 = _x(s.start, size.width);
       final active = positionSec >= s.start && positionSec < s.end;
-      final hue = _sectionHue(s.label);
+      final hue = danceSectionHue(s.label);
       final collapsed = s.label == prevLabel;
       prevLabel = s.label;
       if (collapsed) continue;
