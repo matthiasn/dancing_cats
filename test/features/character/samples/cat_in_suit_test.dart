@@ -1687,208 +1687,168 @@ void main() {
       );
     });
 
-    test(
-      'buga keeps prep hands separated instead of folding arms through belly',
-      () {
-        final phrase = CatClips.dancePhrase;
-        final buga = CatClips.buga;
-        final handL = _targetFor(buga, CatBones.handL).channel;
-        final handR = _targetFor(buga, CatBones.handR).channel;
-
-        for (final frame in [0, 4, 8, 11, 16, 20, 24, 27]) {
-          final p = frame / phrase.frameCount;
-          final left = handL.sample(p);
-          final right = handR.sample(p);
-
-          expect(
-            right.x - left.x,
-            greaterThan(55),
-            reason:
-                'Buga prep frame $frame should keep hands as separated rib '
-                'guards, not a centreline clasp that implies impossible elbows',
-          );
-          expect(
-            left.y,
-            lessThan(-25),
-            reason: 'left hand should stay above the belt on prep frame $frame',
-          );
-          expect(
-            right.y,
-            lessThan(-25),
-            reason:
-                'right hand should stay above the belt on prep frame $frame',
-          );
-        }
-
-        final rightPresentOffHand = handL.sample(12 / phrase.frameCount);
-        expect(
-          rightPresentOffHand.x,
-          lessThan(-40),
-          reason:
-              'when the right arm presents, the left hand must drop outside/back '
-              'instead of clasping at the belly',
-        );
-        expect(rightPresentOffHand.y, lessThan(-24));
-
-        final leftPresentOffHand = handR.sample(28 / phrase.frameCount);
-        expect(
-          leftPresentOffHand.x,
-          greaterThan(40),
-          reason:
-              'when the left arm presents, the right hand must drop outside/back '
-              'instead of clasping at the belly',
-        );
-        expect(leftPresentOffHand.y, lessThan(-24));
-      },
-    );
-
-    test('buga raises the presenting arm, overshoots, then releases', () {
+    test('buga peacock keeps both paws mirrored, wide, and above the belt', () {
       final phrase = CatClips.dancePhrase;
       final buga = CatClips.buga;
       final handL = _targetFor(buga, CatBones.handL).channel;
       final handR = _targetFor(buga, CatBones.handR).channel;
 
-      for (final frame in [10, 12, 14]) {
-        final right = handR.sample(frame / phrase.frameCount);
+      for (final frame in [0, 4, 8, 12, 16, 20, 24, 28]) {
+        final p = frame / phrase.frameCount;
+        final left = handL.sample(p);
+        final right = handR.sample(p);
+
         expect(
-          right.x,
-          greaterThan(68),
-          reason: 'right Buga present should be visible by frame $frame',
+          right.x - left.x,
+          greaterThan(72),
+          reason:
+              'Buga frame $frame: the peacock keeps both paws wide of the '
+              'body — never a centreline clasp',
         );
-        expect(right.y, lessThan(-64));
+        expect(
+          (left.x + right.x).abs(),
+          lessThan(4),
+          reason:
+              'Buga frame $frame: the bow is a UNISON mirror — both arms '
+              'open together (the researched signature), not an alternating '
+              'one-arm present',
+        );
+        for (final hand in [left, right]) {
+          expect(
+            hand.y,
+            inExclusiveRange(-40, 26),
+            reason:
+                'Buga frame $frame: peacock paws live between thigh-hang and '
+                'the wide out-down bow — never overhead (a raised target '
+                'folds the elbow above the shoulder and the sleeve reads as '
+                'a fin)',
+          );
+        }
       }
 
-      for (final frame in [26, 28, 30]) {
-        final left = handL.sample(frame / phrase.frameCount);
+      // The lo counts are a relaxed thigh-hang (high reach, soft elbow) so
+      // the bow READS as an opening; paws must sit below the belt line.
+      for (final frame in [0, 4, 8, 20, 24]) {
+        final p = frame / phrase.frameCount;
         expect(
-          left.x,
-          lessThan(-68),
-          reason: 'left Buga present should be visible by frame $frame',
+          handL.sample(p).y,
+          greaterThan(6),
+          reason: 'Buga lo frame $frame: left paw hangs by the thigh',
         );
-        expect(left.y, lessThan(-64));
+        expect(
+          handR.sample(p).y,
+          greaterThan(6),
+          reason: 'Buga lo frame $frame: right paw hangs by the thigh',
+        );
+      }
+    });
+
+    test('buga peacock snaps open on the hits and releases', () {
+      final phrase = CatClips.dancePhrase;
+      final buga = CatClips.buga;
+      final handL = _targetFor(buga, CatBones.handL).channel;
+      final handR = _targetFor(buga, CatBones.handR).channel;
+
+      // Full wingspan through each held hit (frames 12-14 and 28-30).
+      for (final frame in [12, 14, 28, 30]) {
+        final p = frame / phrase.frameCount;
+        expect(
+          handR.sample(p).x,
+          greaterThanOrEqualTo(100),
+          reason: 'right wing must be fully open on hit frame $frame',
+        );
+        expect(
+          handL.sample(p).x,
+          lessThanOrEqualTo(-100),
+          reason: 'left wing must be fully open on hit frame $frame',
+        );
+        expect(
+          handR.sample(p).y,
+          inExclusiveRange(-40, -28),
+          reason: 'the bow presents out-DOWN on hit frame $frame',
+        );
       }
 
+      // The bow releases after the strut instead of freezing into the next
+      // groove count.
       expect(
-        handR.sample(13 / phrase.frameCount).y,
-        lessThan(handR.sample(12 / phrase.frameCount).y),
-        reason: 'right Buga present should overshoot past the hit',
+        _targetDistance(handR, 14, 16),
+        greaterThan(12),
+        reason: 'the right wing should visibly release after the held hit',
       );
       expect(
-        handL.sample(29 / phrase.frameCount).y,
-        lessThan(handL.sample(28 / phrase.frameCount).y),
-        reason: 'left Buga present should overshoot past the hit',
-      );
-      expect(
-        _targetDistance(handR, 14, 15),
-        greaterThan(32),
-        reason:
-            'right Buga show-off should release after the readable peak instead '
-            'of freezing through the next groove count',
-      );
-      expect(
-        _targetDistance(handL, 30, 31),
-        greaterThan(32),
-        reason:
-            'left Buga show-off should release after the readable peak instead '
-            'of freezing through the next groove count',
+        _targetDistance(handL, 14, 16),
+        greaterThan(12),
+        reason: 'the left wing should visibly release after the held hit',
       );
 
       expect(
         buga.supportFootWorldAnchorStrength,
         greaterThanOrEqualTo(0.9),
         reason:
-            'Buga show-off hits need a strong support plant so the side reach '
+            'Buga show-off hits need a strong support plant so the wide bow '
             'does not read as a fall',
       );
+
+      // DOUBLE shrug: both clavicles lift together on BOTH hits, and the
+      // sleeve caps + biceps carry the girdle response on each side.
       final clavicleR = buga.channels[CatBones.clavicleR]!;
       final clavicleL = buga.channels[CatBones.clavicleL]!;
       final shoulderSocketR = buga.channels[CatBones.shoulderSocketR]!;
       final shoulderSocketL = buga.channels[CatBones.shoulderSocketL]!;
       final bicepR = buga.channels[CatBones.armBicepR]!;
       final bicepL = buga.channels[CatBones.armBicepL]!;
-      expect(
-        clavicleR.sample(13 / phrase.frameCount).rotation,
-        lessThan(-0.28),
-        reason:
-            'the right Buga overhead present should lift through the shoulder '
-            'girdle, not hinge from a fixed jacket edge',
-      );
-      expect(
-        clavicleL.sample(29 / phrase.frameCount).rotation,
-        greaterThan(0.28),
-        reason:
-            'the mirrored Buga overhead present should lift through the left '
-            'shoulder girdle as well',
-      );
-      final rightSocketPeak = shoulderSocketR.sample(13 / phrase.frameCount);
-      expect(
-        rightSocketPeak.rotation,
-        lessThan(-0.22),
-        reason:
-            'the right Buga sleeve cap should rotate/deform with the raised '
-            'arm instead of staying as a static shoulder patch',
-      );
-      expect(rightSocketPeak.scaleX, greaterThan(1.19));
-      expect(rightSocketPeak.scaleY, lessThan(0.92));
-      final leftSocketPeak = shoulderSocketL.sample(29 / phrase.frameCount);
-      expect(
-        leftSocketPeak.rotation,
-        greaterThan(0.22),
-        reason:
-            'the mirrored Buga sleeve cap should rotate/deform with the raised '
-            'left arm instead of staying as a static shoulder patch',
-      );
-      expect(leftSocketPeak.scaleX, greaterThan(1.19));
-      expect(leftSocketPeak.scaleY, lessThan(0.92));
-      expect(
-        shoulderSocketR.sample(0).rotation,
-        lessThan(-0.07),
-        reason:
-            'Buga loops into a raised right arm, so frame 0 needs shoulder '
-            'response too; otherwise the loop boundary detaches the sleeve',
-      );
-      expect(
-        shoulderSocketL.sample(16 / phrase.frameCount).rotation,
-        greaterThan(0.07),
-        reason:
-            'the mirrored raised-arm phrase begins at frame 16, so the left '
-            'socket should already be engaged before the big hit',
-      );
-      expect(
-        bicepR.sample(13 / phrase.frameCount).scaleX,
-        greaterThan(1.14),
-        reason:
-            'the upper sleeve should carry bicep mass during the raised-arm '
-            'show-off instead of tapering into a thin rotating strip',
-      );
-      expect(bicepL.sample(29 / phrase.frameCount).scaleX, greaterThan(1.14));
+      for (final hitFrame in [13, 29]) {
+        final p = hitFrame / phrase.frameCount;
+        expect(
+          clavicleR.sample(p).rotation,
+          lessThan(-0.24),
+          reason: 'right clavicle must shrug on the frame-$hitFrame hit',
+        );
+        expect(
+          clavicleL.sample(p).rotation,
+          greaterThan(0.24),
+          reason: 'left clavicle must shrug on the frame-$hitFrame hit',
+        );
+        final rightSocket = shoulderSocketR.sample(p);
+        expect(rightSocket.rotation, lessThan(-0.22));
+        expect(rightSocket.scaleX, greaterThan(1.19));
+        expect(rightSocket.scaleY, lessThan(0.92));
+        final leftSocket = shoulderSocketL.sample(p);
+        expect(leftSocket.rotation, greaterThan(0.22));
+        expect(leftSocket.scaleX, greaterThan(1.19));
+        expect(leftSocket.scaleY, lessThan(0.92));
+        expect(bicepR.sample(p).scaleX, greaterThan(1.14));
+        expect(bicepL.sample(p).scaleX, greaterThan(1.14));
+      }
+
       final rootHit = buga.root.sample(12 / phrase.frameCount);
       final rootMirrorHit = buga.root.sample(28 / phrase.frameCount);
       expect(
         rootHit.dy,
         greaterThanOrEqualTo(0),
         reason:
-            'the right-arm Buga hit should rise from the load without lifting '
-            'the body above the planted feet',
+            'the Buga hit should rise from the load without lifting the body '
+            'above the planted feet',
       );
       expect(
         rootMirrorHit.dy,
         greaterThanOrEqualTo(0),
         reason:
-            'the mirrored Buga hit should stay similarly planted at the peak',
+            'the second Buga hit should stay similarly planted at the peak',
       );
       expect(
         rootHit.dx.abs(),
         lessThanOrEqualTo(27),
         reason:
             'Buga should celebrate from a planted stance, not throw the root '
-            'far outside the feet on the right-arm hit',
+            'far outside the feet on the hit',
       );
       expect(
         rootMirrorHit.dx.abs(),
         lessThanOrEqualTo(27),
         reason:
-            'the mirrored Buga hit should stay similarly planted instead of '
+            'the second Buga hit should stay similarly planted instead of '
             'becoming a lateral fall',
       );
       final legHit = buga.channels[CatBones.legLowerL]!.sample(

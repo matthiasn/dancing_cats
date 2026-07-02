@@ -7172,38 +7172,41 @@ class CatClips {
     ),
     DanceBodyKey(
       11,
-      rootDx: -16,
+      rootDx: -8,
       rootDy: 38,
-      pelvisRotation: -0.18,
-      chestRotation: 0.14,
+      pelvisRotation: -0.06,
+      chestRotation: 0.05,
       chestScaleY: 0.84,
     ), // hold/re-load (anticip.)
+    // The unison peacock hit pops the chest SQUARE to the audience: the old
+    // heavy pelvis/chest twist belonged to the alternating one-arm present
+    // and banked the girdle ~20 units, winging the high-side elbow.
     DanceBodyKey(
       12,
-      rootDx: -25,
+      rootDx: -6,
       rootDy: 6,
-      rootRotation: 0.012,
-      pelvisRotation: 0.24,
-      chestRotation: -0.42,
+      rootRotation: 0.003,
+      pelvisRotation: 0.06,
+      chestRotation: -0.1,
       chestScaleY: 1.16,
       chestScaleX: 0.97,
     ), // HIT
     DanceBodyKey(
       14,
-      rootDx: -20,
+      rootDx: -5,
       rootDy: 8,
-      rootRotation: 0.007,
-      pelvisRotation: 0.17,
-      chestRotation: -0.32,
+      rootRotation: 0.002,
+      pelvisRotation: 0.05,
+      chestRotation: -0.08,
       chestScaleY: 1.08,
     ), // readable overshoot, already releasing
     DanceBodyKey(
       15,
-      rootDx: -12,
+      rootDx: -4,
       rootDy: 18,
-      rootRotation: 0.003,
-      pelvisRotation: 0.08,
-      chestRotation: -0.18,
+      rootRotation: 0.002,
+      pelvisRotation: 0.03,
+      chestRotation: -0.05,
       chestScaleY: 0.98,
     ),
     DanceBodyKey(
@@ -7260,29 +7263,29 @@ class CatClips {
     ),
     DanceBodyKey(
       27,
-      rootDx: 16,
+      rootDx: 8,
       rootDy: 38,
-      pelvisRotation: 0.18,
-      chestRotation: -0.14,
+      pelvisRotation: 0.06,
+      chestRotation: -0.05,
       chestScaleY: 0.84,
     ),
     DanceBodyKey(
       28,
-      rootDx: 25,
+      rootDx: 6,
       rootDy: 6,
-      rootRotation: -0.012,
-      pelvisRotation: -0.24,
-      chestRotation: 0.42,
+      rootRotation: -0.003,
+      pelvisRotation: -0.06,
+      chestRotation: 0.1,
       chestScaleY: 1.16,
       chestScaleX: 0.97,
     ), // HIT
     DanceBodyKey(
       30,
-      rootDx: 20,
+      rootDx: 5,
       rootDy: 8,
-      rootRotation: -0.007,
-      pelvisRotation: -0.17,
-      chestRotation: 0.32,
+      rootRotation: -0.002,
+      pelvisRotation: -0.05,
+      chestRotation: 0.08,
       chestScaleY: 1.08,
     ),
     DanceBodyKey(
@@ -7321,6 +7324,9 @@ class CatClips {
     DanceJointKey(30, rotation: -0.76),
     DanceJointKey(32, rotation: -0.84),
   ];
+  // The peacock hit lands with a DOUBLE shoulder shrug — both clavicles rise
+  // together on every hit (the audit's mirror fix; the old keys shrugged one
+  // shoulder per alternating present).
   static const _bugaClavicleRKeys = [
     DanceJointKey(0, rotation: -0.04),
     DanceJointKey(4, rotation: -0.05),
@@ -7330,22 +7336,30 @@ class CatClips {
     DanceJointKey(13, rotation: -0.32),
     DanceJointKey(14, rotation: -0.22),
     DanceJointKey(16, rotation: 0.02),
-    DanceJointKey(24, rotation: 0.02),
-    DanceJointKey(28, rotation: -0.02),
+    DanceJointKey(20, rotation: -0.05),
+    DanceJointKey(24, rotation: -0.09),
+    DanceJointKey(26, rotation: -0.13),
+    DanceJointKey(28, rotation: -0.27),
+    DanceJointKey(29, rotation: -0.32),
+    DanceJointKey(30, rotation: -0.22),
     DanceJointKey(32, rotation: -0.04),
   ];
   static const _bugaClavicleLKeys = [
-    DanceJointKey(0, rotation: 0.02),
-    DanceJointKey(8, rotation: 0.02),
-    DanceJointKey(12, rotation: 0.04),
-    DanceJointKey(16, rotation: 0.04),
-    DanceJointKey(20, rotation: 0.06),
-    DanceJointKey(24, rotation: 0.11),
+    DanceJointKey(0, rotation: 0.04),
+    DanceJointKey(4, rotation: 0.05),
+    DanceJointKey(8, rotation: 0.09),
+    DanceJointKey(10, rotation: 0.13),
+    DanceJointKey(12, rotation: 0.27),
+    DanceJointKey(13, rotation: 0.32),
+    DanceJointKey(14, rotation: 0.22),
+    DanceJointKey(16, rotation: -0.02),
+    DanceJointKey(20, rotation: 0.05),
+    DanceJointKey(24, rotation: 0.09),
     DanceJointKey(26, rotation: 0.13),
     DanceJointKey(28, rotation: 0.27),
     DanceJointKey(29, rotation: 0.32),
     DanceJointKey(30, rotation: 0.22),
-    DanceJointKey(32, rotation: 0.02),
+    DanceJointKey(32, rotation: 0.04),
   ];
   static const _bugaShoulderSocketRKeys = [
     DanceJointKey(0, rotation: -0.11, scaleX: 1.1, scaleY: 0.955),
@@ -7356,117 +7370,89 @@ class CatClips {
     DanceJointKey(14, rotation: -0.17, scaleX: 1.14, scaleY: 0.94),
     DanceJointKey(15, rotation: -0.12, scaleX: 1.1, scaleY: 0.955),
     DanceJointKey(16),
-    DanceJointKey(24),
+    DanceJointKey(24, rotation: -0.11, scaleX: 1.1, scaleY: 0.955),
+    DanceJointKey(26, rotation: -0.14, scaleX: 1.12, scaleY: 0.945),
+    DanceJointKey(28, rotation: -0.2, scaleX: 1.17, scaleY: 0.925),
+    DanceJointKey(29, rotation: -0.25, scaleX: 1.22, scaleY: 0.9),
+    DanceJointKey(30, rotation: -0.17, scaleX: 1.14, scaleY: 0.94),
+    DanceJointKey(31, rotation: -0.12, scaleX: 1.1, scaleY: 0.955),
     DanceJointKey(32, rotation: -0.11, scaleX: 1.1, scaleY: 0.955),
   ];
   static const _bugaShoulderSocketLKeys = [
-    DanceJointKey(0),
-    DanceJointKey(12),
-    DanceJointKey(14, rotation: 0.09, scaleX: 1.08, scaleY: 0.965),
-    DanceJointKey(16, rotation: 0.11, scaleX: 1.1, scaleY: 0.955),
+    DanceJointKey(0, rotation: 0.11, scaleX: 1.1, scaleY: 0.955),
+    DanceJointKey(8, rotation: 0.11, scaleX: 1.1, scaleY: 0.955),
+    DanceJointKey(10, rotation: 0.14, scaleX: 1.12, scaleY: 0.945),
+    DanceJointKey(12, rotation: 0.2, scaleX: 1.17, scaleY: 0.925),
+    DanceJointKey(13, rotation: 0.25, scaleX: 1.22, scaleY: 0.9),
+    DanceJointKey(14, rotation: 0.17, scaleX: 1.14, scaleY: 0.94),
+    DanceJointKey(15, rotation: 0.12, scaleX: 1.1, scaleY: 0.955),
+    DanceJointKey(16),
     DanceJointKey(24, rotation: 0.11, scaleX: 1.1, scaleY: 0.955),
     DanceJointKey(26, rotation: 0.14, scaleX: 1.12, scaleY: 0.945),
     DanceJointKey(28, rotation: 0.2, scaleX: 1.17, scaleY: 0.925),
     DanceJointKey(29, rotation: 0.25, scaleX: 1.22, scaleY: 0.9),
     DanceJointKey(30, rotation: 0.17, scaleX: 1.14, scaleY: 0.94),
     DanceJointKey(31, rotation: 0.12, scaleX: 1.1, scaleY: 0.955),
-    DanceJointKey(32),
+    DanceJointKey(32, rotation: 0.11, scaleX: 1.1, scaleY: 0.955),
   ];
-  static const _bugaBicepRKeys = [
+  // Both biceps swell together on each unison hit.
+  static const _bugaBicepKeys = [
     DanceJointKey(0, scaleX: 1.08, scaleY: 0.975),
     DanceJointKey(8, scaleX: 1.08, scaleY: 0.975),
     DanceJointKey(10, scaleX: 1.06, scaleY: 0.985),
     DanceJointKey(12, scaleX: 1.12, scaleY: 0.965),
     DanceJointKey(13, scaleX: 1.17, scaleY: 0.94),
     DanceJointKey(14, scaleX: 1.11, scaleY: 0.97),
-    DanceJointKey(16),
-    DanceJointKey(32, scaleX: 1.08, scaleY: 0.975),
-  ];
-  static const _bugaBicepLKeys = [
-    DanceJointKey(0),
-    DanceJointKey(14, scaleX: 1.06, scaleY: 0.985),
-    DanceJointKey(16, scaleX: 1.08, scaleY: 0.975),
-    DanceJointKey(24, scaleX: 1.08, scaleY: 0.975),
+    DanceJointKey(16, scaleX: 1.04, scaleY: 0.985),
+    DanceJointKey(24, scaleX: 1.06, scaleY: 0.985),
     DanceJointKey(26, scaleX: 1.06, scaleY: 0.985),
     DanceJointKey(28, scaleX: 1.12, scaleY: 0.965),
     DanceJointKey(29, scaleX: 1.17, scaleY: 0.94),
     DanceJointKey(30, scaleX: 1.11, scaleY: 0.97),
-    DanceJointKey(32),
+    DanceJointKey(32, scaleX: 1.08, scaleY: 0.975),
   ];
-  // The present is a HIGH diagonal "show-off" thrust (up AND out, above the
-  // shoulder at y -56), not a horizontal side-poke at chest height. The non-
-  // presenting hand drops low/back on the hit so the silhouette opens into a
-  // wide asymmetric V. Prep hands are separated rib guards, not clasped together
-  // at the belt: paired centreline hands imply impossible forearms folded through
-  // the torso.
-  static final List<DanceIkTargetKey> _bugaHandRTargetKeys = [
-    const DanceIkTargetKey(0, x: 64, y: -82), // show-off starts immediately
-    const DanceIkTargetKey(2, x: 78, y: -92),
-    const DanceIkTargetKey(4, x: 70, y: -90),
-    const DanceIkTargetKey(6, x: 78, y: -96),
-    const DanceIkTargetKey(8, x: 74, y: -100),
-    ..._dancePhrase.ikTargetArcKeys(
-      const [
-        DanceIkTargetArc(
-          name: 'right Buga overhead present',
-          startFrame: 10,
-          peakFrame: 13,
-          endFrame: 16,
-          startX: 72,
-          startY: -88,
-          peakX: 74,
-          peakY: -122,
-          endX: 54,
-          endY: -34,
-          generatedFrames: [11, 12, 14, 15],
-          controlPoints: [
-            DanceIkTargetArcPoint(14, x: 69, y: -106),
-          ],
-        ),
-      ],
-    ),
-    const DanceIkTargetKey(20, x: 44, y: -34),
-    const DanceIkTargetKey(22, x: 50, y: -32),
-    const DanceIkTargetKey(24, x: 48, y: -30),
-    const DanceIkTargetKey(26, x: 50, y: -34),
-    const DanceIkTargetKey(28, x: 58, y: -42), // frames the left present
-    const DanceIkTargetKey(30, x: 48, y: -44),
-    const DanceIkTargetKey(32, x: 64, y: -82),
+  // The Buga show-off is the PEACOCK BOW (the research audit's top finding —
+  // the real 2022 signature is BOTH arms opening out-down like a proud
+  // peacock's wings, never a one-arm overhead present). The paws hang by the
+  // thighs through the three lo-lo-lo counts, swell outward with the load,
+  // and snap into a WIDE extended bow on the BUGA hit, held for a beat's
+  // worth of strut. High-reach targets keep the solve hand-led: a close
+  // target folds the elbow ABOVE the shoulder and the sleeve renders as a
+  // fin beside the head, paw dangling at the chest — elbow-led garbage.
+  static const List<DanceIkTargetKey> _bugaHandRTargetKeys = [
+    // Two-bone reality: the arm is ~48+37 world units, and flexion grows
+    // brutally fast below full reach (83% reach is already a 68-degree
+    // elbow). The lo counts hang the paws by the THIGHS (~96% reach, soft
+    // elbow) and the hit opens a WIDE extended bow (~90% reach) so the
+    // elbow stays slung below the shoulder-hand line through every frame.
+    DanceIkTargetKey(0, x: 40, y: 22, tension: 0.2), // lo — paw by the thigh
+    DanceIkTargetKey(4, x: 48, y: 16, tension: 0.2), // lo (count 2)
+    DanceIkTargetKey(8, x: 60, y: 14, tension: 0.25), // lo (deepest load)
+    DanceIkTargetKey(10, x: 78, y: -16, tension: 0.2), // opening transit
+    DanceIkTargetKey(12, x: 106, y: -34, tension: 1), // BUGA — full peacock
+    DanceIkTargetKey(14, x: 106, y: -34, tension: 1), // held strut
+    DanceIkTargetKey(16, x: 60, y: 10, tension: 0.2), // recoil
+    DanceIkTargetKey(20, x: 44, y: 20, tension: 0.2),
+    DanceIkTargetKey(24, x: 60, y: 14, tension: 0.25),
+    DanceIkTargetKey(26, x: 78, y: -16, tension: 0.2), // opening transit
+    DanceIkTargetKey(28, x: 106, y: -34, tension: 1), // BUGA
+    DanceIkTargetKey(30, x: 106, y: -34, tension: 1), // held strut
+    DanceIkTargetKey(32, x: 40, y: 22, tension: 0.2),
   ];
-  static final List<DanceIkTargetKey> _bugaHandLTargetKeys = [
-    const DanceIkTargetKey(0, x: -52, y: -30),
-    const DanceIkTargetKey(4, x: -56, y: -32),
-    const DanceIkTargetKey(8, x: -58, y: -34),
-    const DanceIkTargetKey(
-      12,
-      x: -54,
-      y: -34,
-    ), // frames the right present
-    const DanceIkTargetKey(16, x: -64, y: -82),
-    const DanceIkTargetKey(18, x: -78, y: -92),
-    const DanceIkTargetKey(20, x: -70, y: -90),
-    const DanceIkTargetKey(22, x: -78, y: -96),
-    const DanceIkTargetKey(24, x: -74, y: -100),
-    ..._dancePhrase.ikTargetArcKeys(
-      const [
-        DanceIkTargetArc(
-          name: 'left Buga overhead present',
-          startFrame: 26,
-          peakFrame: 29,
-          endFrame: 32,
-          startX: -72,
-          startY: -88,
-          peakX: -74,
-          peakY: -122,
-          endX: -52,
-          endY: -30,
-          generatedFrames: [27, 28, 30, 31],
-          controlPoints: [
-            DanceIkTargetArcPoint(30, x: -69, y: -106),
-          ],
-        ),
-      ],
-    ),
+  static const List<DanceIkTargetKey> _bugaHandLTargetKeys = [
+    DanceIkTargetKey(0, x: -40, y: 22, tension: 0.2), // lo — paw by the thigh
+    DanceIkTargetKey(4, x: -48, y: 16, tension: 0.2), // lo (count 2)
+    DanceIkTargetKey(8, x: -60, y: 14, tension: 0.25), // lo (deepest load)
+    DanceIkTargetKey(10, x: -78, y: -16, tension: 0.2), // opening transit
+    DanceIkTargetKey(12, x: -106, y: -34, tension: 1), // BUGA — full peacock
+    DanceIkTargetKey(14, x: -106, y: -34, tension: 1), // held strut
+    DanceIkTargetKey(16, x: -60, y: 10, tension: 0.2), // recoil
+    DanceIkTargetKey(20, x: -44, y: 20, tension: 0.2),
+    DanceIkTargetKey(24, x: -60, y: 14, tension: 0.25),
+    DanceIkTargetKey(26, x: -78, y: -16, tension: 0.2), // opening transit
+    DanceIkTargetKey(28, x: -106, y: -34, tension: 1), // BUGA
+    DanceIkTargetKey(30, x: -106, y: -34, tension: 1), // held strut
+    DanceIkTargetKey(32, x: -40, y: 22, tension: 0.2),
   ];
   // Smooth spline hand path: flows through the authored keys with C1
   // continuity, so no corner-rounding blur wrapper is needed (the old
@@ -7528,9 +7514,12 @@ class CatClips {
     GroundSpan(CatBones.footL, 0.5, 0.75),
     GroundSpan(CatBones.footR, 0.75, 1),
   ];
-  // Buga's show-off reaches and overhead presents all live outboard of the
-  // shoulders, so the elbows break outboard — the inherited inboard bends
-  // folded the elbow across the chest on the low frames-the-present reaches.
+  // Outboard elbow bends, and the targets make them safe: on the vertical
+  // thigh-hang the elbow bows naturally OUTWARD (inboard tucked it against
+  // the belly — a mild contralateral fold the anti-fold clamp caught), and
+  // on the wide extended hit the high reach shrinks the elbow offset enough
+  // that the wing sits right on the shoulder line instead of finning above
+  // it. Bend sign and target reach are one design decision, per clip.
   static final List<LimbIkTarget> _bugaLimbTargets = [
     LimbIkTarget(
       upperBoneId: CatBones.armUpperL,
@@ -7553,10 +7542,10 @@ class CatClips {
 
   /// Standalone "Buga" catalog move — the unison-hit show-off move: three prep
   /// knee-dips loading at the chest, then a leg-DRIVEN full-height RISE (knees
-  /// flex deep through the dips, extend on the hit) with a chest pop and a single
-  /// presenting arm thrust + overshoot on each cell's hit (right on frame 12,
-  /// left on frame 28). Current review target: strongest clip in the set, still
-  /// needs cleaner shoulder/foot mechanics before a 9/10 claim is true.
+  /// flex deep through the dips, extend on the hit) with a chest pop and BOTH
+  /// arms snapping open into the peacock bow with a double shoulder shrug on
+  /// each hit (frames 12 and 28) — the researched 2022 signature; the old
+  /// one-arm overhead present was the audit's top authenticity finding.
   static Clip get buga {
     final base = _danceBase;
     return Clip(
@@ -7605,11 +7594,11 @@ class CatClips {
           smooth: true,
         ),
         CatBones.armBicepR: _dancePhrase.jointChannel(
-          _bugaBicepRKeys,
+          _bugaBicepKeys,
           smooth: true,
         ),
         CatBones.armBicepL: _dancePhrase.jointChannel(
-          _bugaBicepLKeys,
+          _bugaBicepKeys,
           smooth: true,
         ),
         CatBones.legLowerL: _dancePhrase.jointChannel(
