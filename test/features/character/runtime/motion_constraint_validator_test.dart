@@ -319,6 +319,248 @@ void main() {
       );
     });
 
+    test('reports every violation category and sorts by severity', () {
+      const report = MotionConstraintReport(
+        clipName: 'synthetic-report',
+        profile: MotionConstraintProfile(
+          maxStableContactDrift: 10,
+          maxStableVerticalDrift: 6,
+          maxSupportOffset: 5,
+          maxIkReachRatio: 0.8,
+          maxIkTargetResidual: 4,
+          minLimbBendDegrees: 12,
+          maxLimbBendDegrees: 160,
+          maxLimbLaneReversal: 3,
+          minRaisedShoulderResponse: 0.3,
+          minRaisedSocketResponse: 0.2,
+          maxRaisedShoulderMeshGap: 4,
+          minRaisedShoulderMeshSpan: 20,
+          minRaisedShoulderToBicepRatio: 0.8,
+          maxRaisedUpperArmMeshEdge: 12,
+        ),
+        contactDrifts: [
+          MotionContactDrift(
+            clipName: 'synthetic-report',
+            boneId: CatBones.footL,
+            phase: 0.1,
+            anchorPhase: 0,
+            dx: 11,
+            dy: 7,
+            distance: 13,
+          ),
+        ],
+        supportBalances: [
+          MotionSupportBalance(
+            clipName: 'synthetic-report',
+            supportBoneId: CatBones.footR,
+            rootBoneId: CatBones.hips,
+            phase: 0.2,
+            offsetX: -9,
+            offsetY: 1,
+          ),
+        ],
+        ikReaches: [
+          MotionIkReach(
+            clipName: 'synthetic-report',
+            upperBoneId: CatBones.armUpperL,
+            lowerBoneId: CatBones.armLowerL,
+            endBoneId: CatBones.handL,
+            anchorBoneId: CatBones.torso,
+            phase: 0.3,
+            weight: 1,
+            reach: 90,
+            chainLength: 100,
+            reachRatio: 0.9,
+          ),
+        ],
+        ikTargetResiduals: [
+          MotionIkTargetResidual(
+            clipName: 'synthetic-report',
+            upperBoneId: CatBones.armUpperL,
+            lowerBoneId: CatBones.armLowerL,
+            endBoneId: CatBones.handL,
+            anchorBoneId: CatBones.torso,
+            phase: 0.35,
+            weight: 1,
+            endX: 0,
+            endY: 0,
+            targetX: 5,
+            targetY: 0,
+            dx: 5,
+            dy: 0,
+            distance: 5,
+          ),
+        ],
+        limbBends: [
+          MotionLimbBend(
+            clipName: 'synthetic-report',
+            upperBoneId: CatBones.armUpperL,
+            lowerBoneId: CatBones.armLowerL,
+            endBoneId: CatBones.handL,
+            phase: 0.4,
+            weight: 1,
+            expectedBendDirection: 1,
+            actualBendDirection: -1,
+            signedArea: -40,
+            bendDegrees: 170,
+            straightnessDegrees: 10,
+          ),
+          MotionLimbBend(
+            clipName: 'synthetic-report',
+            upperBoneId: CatBones.armUpperR,
+            lowerBoneId: CatBones.armLowerR,
+            endBoneId: CatBones.handR,
+            phase: 0.45,
+            weight: 1,
+            expectedBendDirection: -1,
+            actualBendDirection: 0,
+            signedArea: 0,
+            bendDegrees: 5,
+            straightnessDegrees: 175,
+          ),
+        ],
+        limbLanes: [
+          MotionLimbLane(
+            clipName: 'synthetic-report',
+            upperBoneId: CatBones.armUpperL,
+            lowerBoneId: CatBones.armLowerL,
+            endBoneId: CatBones.handL,
+            phase: 0.5,
+            side: -1,
+            targetX: -50,
+            shoulderX: -20,
+            elbowX: 5,
+            endX: -40,
+            elbowReversal: 25,
+            endReversal: 0,
+            reversalDistance: 25,
+            horizontalFold: 25,
+          ),
+        ],
+        shoulderResponses: [
+          MotionShoulderResponse(
+            clipName: 'synthetic-report',
+            upperBoneId: CatBones.armUpperL,
+            endBoneId: CatBones.handL,
+            clavicleBoneId: CatBones.clavicleL,
+            socketBoneId: CatBones.shoulderSocketL,
+            phase: 0.55,
+            targetY: -80,
+            clavicleRotation: 0.05,
+            socketRotation: 0.03,
+            socketScaleX: 1,
+            socketScaleY: 1.02,
+            socketResponse: 0.03,
+            totalResponse: 0.08,
+          ),
+        ],
+        shoulderMeshBridges: [
+          MotionShoulderMeshBridge(
+            clipName: 'synthetic-report',
+            endBoneId: CatBones.handL,
+            armMeshId: 'arm.L.mesh',
+            foldMeshId: 'arm.L.mesh',
+            phase: 0.6,
+            targetY: -90,
+            gap: 8,
+            shoulderSpan: 10,
+            bicepSpan: 0,
+            maxUpperArmEdge: 16,
+          ),
+        ],
+        jointEnvelopes: [
+          MotionJointEnvelope(
+            clipName: 'synthetic-report',
+            boneId: CatBones.torso,
+            phase: 0.65,
+            rotation: 1,
+            scaleX: 1.5,
+            scaleY: 0.7,
+            maxAbsRotation: 0.5,
+            maxScaleDelta: 0.2,
+          ),
+        ],
+        limitEngagements: [
+          MotionJointLimitEngagement(
+            clipName: 'synthetic-report',
+            boneId: CatBones.armLowerL,
+            phase: 0.7,
+            askedRotation: 2,
+            clampedRotation: 1.4,
+            engagement: 0.6,
+          ),
+        ],
+      );
+
+      expect(report.worstContactDrift?.distance, 13);
+      expect(report.worstSupportBalance?.offsetX, -9);
+      expect(report.worstIkReach?.reachRatio, 0.9);
+      expect(report.worstIkTargetResidual?.distance, 5);
+      expect(report.straightestLimbBend?.bendDegrees, 170);
+      expect(report.tightestLimbBend?.bendDegrees, 5);
+      expect(report.worstLimbLane?.reversalDistance, 25);
+      expect(report.weakestRaisedShoulderResponse?.endBoneId, CatBones.handL);
+      expect(
+        report.worstShoulderMeshBridge?.shoulderToBicepRatio.isInfinite,
+        isTrue,
+      );
+      expect(report.worstJointEnvelope?.boneId, CatBones.torso);
+      expect(report.worstLimitEngagement?.engagement, 0.6);
+
+      final violations = report.violations;
+      expect(
+        violations.map((violation) => violation.category).toSet(),
+        containsAll({
+          MotionConstraintCategory.footContact,
+          MotionConstraintCategory.supportBalance,
+          MotionConstraintCategory.ikReach,
+          MotionConstraintCategory.ikTargetResidual,
+          MotionConstraintCategory.limbBend,
+          MotionConstraintCategory.limbBendDirection,
+          MotionConstraintCategory.limbLane,
+          MotionConstraintCategory.shoulderResponse,
+          MotionConstraintCategory.shoulderMeshBridge,
+          MotionConstraintCategory.jointEnvelope,
+          MotionConstraintCategory.jointLimitClipping,
+        }),
+      );
+      expect(
+        violations.map((violation) => violation.severity),
+        orderedEquals(
+          violations.map((violation) => violation.severity).toList()
+            ..sort((a, b) => b.compareTo(a)),
+        ),
+      );
+      expect(
+        violations.map((violation) => violation.message).join('\n'),
+        allOf(
+          contains('stable support'),
+          contains('limb reach'),
+          contains('opposite its authored side'),
+          contains('raised shoulder gap'),
+          contains('runtime joint limiter'),
+        ),
+      );
+    });
+
+    test('rejects non-positive sample counts', () {
+      final validator = MotionConstraintValidator(
+        CharacterScene(buildCatInSuitRig()),
+      );
+
+      expect(
+        () => validator.analyze(
+          clip: CatClips.shaku,
+          contactSamplesPerSpan: 0,
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => validator.analyze(clip: CatClips.shaku, ikSamples: 0),
+        throwsArgumentError,
+      );
+    });
+
     test('detects resolved joints outside the dancer envelope', () {
       final validator = MotionConstraintValidator(
         CharacterScene(buildCatInSuitRig()),

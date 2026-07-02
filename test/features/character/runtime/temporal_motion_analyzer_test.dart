@@ -251,6 +251,33 @@ void main() {
       );
     });
 
+    test('velocitySpikes rejects invalid thresholds', () {
+      const report = TemporalMotionReport(
+        clipName: 'empty',
+        samples: 0,
+        segments: [],
+        accelerations: [],
+        jerks: [],
+      );
+
+      expect(
+        () => report.velocitySpikes(minAcceleration: -1),
+        throwsArgumentError,
+      );
+      expect(
+        () => report.velocitySpikes(minSpeedDelta: -1),
+        throwsArgumentError,
+      );
+      expect(
+        () => report.velocitySpikes(minSpeedRatio: 0.99),
+        throwsArgumentError,
+      );
+      expect(
+        () => report.velocitySpikes(minSegmentDistance: -1),
+        throwsArgumentError,
+      );
+    });
+
     test('pathCorners finds a hard direction change without a speed pulse', () {
       final analyzer = TemporalMotionAnalyzer(
         _oneBoneScene(),
@@ -314,6 +341,37 @@ void main() {
       );
     });
 
+    test('pathCorners rejects invalid thresholds', () {
+      const report = TemporalMotionReport(
+        clipName: 'empty',
+        samples: 0,
+        segments: [],
+        accelerations: [],
+        jerks: [],
+      );
+
+      expect(
+        () => report.pathCorners(minTurnDegrees: -1),
+        throwsArgumentError,
+      );
+      expect(
+        () => report.pathCorners(minTurnDegrees: 181),
+        throwsArgumentError,
+      );
+      expect(
+        () => report.pathCorners(minAcceleration: -1),
+        throwsArgumentError,
+      );
+      expect(
+        () => report.pathCorners(minArcRatio: 0.99),
+        throwsArgumentError,
+      );
+      expect(
+        () => report.pathCorners(minSegmentDistance: -1),
+        throwsArgumentError,
+      );
+    });
+
     test('loopSeamVelocityJumps catches a discontinuous loop seam', () {
       final analyzer = TemporalMotionAnalyzer(
         _oneBoneScene(),
@@ -365,6 +423,25 @@ void main() {
       );
 
       expect(report.loopSeamVelocityJumps(minVelocityJump: 1), isEmpty);
+    });
+
+    test('loopSeamVelocityJumps rejects invalid thresholds', () {
+      const report = TemporalMotionReport(
+        clipName: 'empty',
+        samples: 0,
+        segments: [],
+        accelerations: [],
+        jerks: [],
+      );
+
+      expect(
+        () => report.loopSeamVelocityJumps(minVelocityJump: -1),
+        throwsArgumentError,
+      );
+      expect(
+        () => report.loopSeamVelocityJumps(minSegmentDistance: -1),
+        throwsArgumentError,
+      );
     });
 
     test('stutterTransitions finds a held pose followed by a snap', () {
@@ -431,6 +508,49 @@ void main() {
         isEmpty,
       );
     });
+
+    test('stutterTransitions rejects invalid thresholds', () {
+      const report = TemporalMotionReport(
+        clipName: 'empty',
+        samples: 0,
+        segments: [],
+        accelerations: [],
+        jerks: [],
+      );
+
+      expect(
+        () => report.stutterTransitions(holdDistance: -1),
+        throwsArgumentError,
+      );
+      expect(
+        () => report.stutterTransitions(releaseDistance: -1),
+        throwsArgumentError,
+      );
+      expect(
+        () => report.stutterTransitions(minHoldSegments: 0),
+        throwsArgumentError,
+      );
+    });
+
+    test(
+      'empty reports reject worst queries and top queries clamp to empty',
+      () {
+        const report = TemporalMotionReport(
+          clipName: 'empty',
+          samples: 0,
+          segments: [],
+          accelerations: [],
+          jerks: [],
+        );
+
+        expect(() => report.worstDisplacement, throwsStateError);
+        expect(() => report.worstAcceleration, throwsStateError);
+        expect(() => report.worstJerk, throwsStateError);
+        expect(report.topDisplacements(0), isEmpty);
+        expect(report.topAccelerations(-1), isEmpty);
+        expect(report.topJerks(0), isEmpty);
+      },
+    );
 
     test('dance hands and torso avoid egregious hold-then-teleport pops', () {
       final analyzer = TemporalMotionAnalyzer(
