@@ -8567,85 +8567,99 @@ class CatClips {
     DanceJointKey(28, rotation: -0.06),
     DanceJointKey(32, rotation: -0.16),
   ];
-  // Hands alternate Sekem's readable call-and-answer without ever crossing
-  // through the torso. The LOW hand now tucks near the beltline on its own side
-  // while the opposite hand flicks outward at chest height; keeping those lanes
-  // separate preserves anatomy while making the move less like generic posing.
+  // The Sekem anchors (research audit finding 5, panel round 1's headline):
+  // one paw PINNED flat at the sternum, the other TUCKED at the back waist —
+  // held base keys with only a micro-breath, swapping sides once per bar at
+  // frame 16. The pump lives in the shoulder girdle (see the sekem clavicle
+  // keys), not in paddling arms; the old outboard paddles at x ±90-102 were
+  // exactly the "generic mirrored arms" the panel scored down.
   static const _sekemHandLTargetKeys = [
-    DanceIkTargetKey(0, x: -94, y: 0), // compact low scoop, left lane
-    DanceIkTargetKey(2, x: -92, y: -8), // outside rib recoil
-    DanceIkTargetKey(4, x: -92, y: -38), // compact outward chest paddle
-    DanceIkTargetKey(6, x: -96, y: -12),
-    DanceIkTargetKey(8, x: -96, y: 0),
-    DanceIkTargetKey(10, x: -96, y: -4),
-    DanceIkTargetKey(12, x: -94, y: -34),
-    DanceIkTargetKey(14, x: -102, y: -18),
-    DanceIkTargetKey(16, x: -93, y: 0),
-    DanceIkTargetKey(18, x: -90, y: 0),
-    DanceIkTargetKey(20, x: -92, y: -8),
-    DanceIkTargetKey(22, x: -94, y: -40),
-    DanceIkTargetKey(24, x: -96, y: -44), // bigger outward accent
-    DanceIkTargetKey(26, x: -88, y: -12),
-    DanceIkTargetKey(28, x: -90, y: 0),
-    DanceIkTargetKey(30, x: -96, y: -8),
-    DanceIkTargetKey(32, x: -94, y: 0),
+    DanceIkTargetKey(0, x: -10, y: -48, tension: 1), // pinned at the sternum
+    DanceIkTargetKey(4, x: -11, y: -46, tension: 0.7), // micro-breath
+    DanceIkTargetKey(8, x: -10, y: -48, tension: 1),
+    DanceIkTargetKey(12, x: -11, y: -46, tension: 0.7),
+    DanceIkTargetKey(14, x: -10, y: -48, tension: 0.5),
+    DanceIkTargetKey(16, x: -24, y: -6, tension: 1), // swap: back-waist tuck
+    DanceIkTargetKey(20, x: -25, y: -8, tension: 0.7),
+    DanceIkTargetKey(24, x: -24, y: -6, tension: 1),
+    DanceIkTargetKey(28, x: -25, y: -8, tension: 0.7),
+    DanceIkTargetKey(30, x: -24, y: -6, tension: 0.5),
+    DanceIkTargetKey(32, x: -10, y: -48, tension: 1),
   ];
   static const _sekemHandRTargetKeys = [
-    DanceIkTargetKey(0, x: 92, y: -44), // compact outward chest paddle
-    DanceIkTargetKey(2, x: 96, y: -12),
-    DanceIkTargetKey(4, x: 94, y: 0), // compact low scoop, right lane
-    DanceIkTargetKey(6, x: 94, y: -4),
-    DanceIkTargetKey(8, x: 94, y: -34),
-    DanceIkTargetKey(10, x: 102, y: -18),
-    DanceIkTargetKey(12, x: 92, y: 0),
-    DanceIkTargetKey(14, x: 94, y: -2),
-    DanceIkTargetKey(16, x: 92, y: -34),
-    DanceIkTargetKey(18, x: 94, y: -40),
-    DanceIkTargetKey(20, x: 96, y: -12),
-    DanceIkTargetKey(22, x: 96, y: 0),
-    DanceIkTargetKey(24, x: 96, y: -8),
-    DanceIkTargetKey(26, x: 94, y: -40),
-    DanceIkTargetKey(28, x: 96, y: -44), // bigger outward accent
-    DanceIkTargetKey(30, x: 96, y: -12),
-    DanceIkTargetKey(32, x: 92, y: -44),
+    DanceIkTargetKey(0, x: 24, y: -6, tension: 1), // tucked at the back waist
+    DanceIkTargetKey(4, x: 25, y: -8, tension: 0.7), // micro-breath
+    DanceIkTargetKey(8, x: 24, y: -6, tension: 1),
+    DanceIkTargetKey(12, x: 25, y: -8, tension: 0.7),
+    DanceIkTargetKey(14, x: 24, y: -6, tension: 0.5),
+    DanceIkTargetKey(16, x: 10, y: -48, tension: 1), // swap: sternum pin
+    DanceIkTargetKey(20, x: 11, y: -46, tension: 0.7),
+    DanceIkTargetKey(24, x: 10, y: -48, tension: 1),
+    DanceIkTargetKey(28, x: 11, y: -46, tension: 0.7),
+    DanceIkTargetKey(30, x: 10, y: -48, tension: 0.5),
+    DanceIkTargetKey(32, x: 24, y: -6, tension: 1),
   ];
+  // Anchored paws lie quietly: a small settle ride on the pins instead of
+  // the old paddle flicks.
   static const _sekemHandLKeys = [
-    DanceJointKey(0, rotation: -0.32),
-    DanceJointKey(2, rotation: -0.18),
-    DanceJointKey(4, rotation: 0.22),
-    DanceJointKey(6, rotation: 0.28),
-    DanceJointKey(8, rotation: -0.32),
-    DanceJointKey(10, rotation: -0.18),
-    DanceJointKey(12, rotation: 0.22),
-    DanceJointKey(14, rotation: 0.28),
-    DanceJointKey(16, rotation: 0.26),
-    DanceJointKey(18, rotation: -0.3),
-    DanceJointKey(20, rotation: -0.16),
-    DanceJointKey(22, rotation: 0.24),
-    DanceJointKey(24, rotation: 0.32),
-    DanceJointKey(26, rotation: 0.28),
-    DanceJointKey(28, rotation: -0.3),
-    DanceJointKey(30, rotation: -0.16),
-    DanceJointKey(32, rotation: -0.32),
+    DanceJointKey(0, rotation: -0.08),
+    DanceJointKey(8, rotation: -0.04),
+    DanceJointKey(14, rotation: -0.08),
+    DanceJointKey(16, rotation: 0.1),
+    DanceJointKey(24, rotation: 0.06),
+    DanceJointKey(30, rotation: 0.1),
+    DanceJointKey(32, rotation: -0.08),
   ];
   static const _sekemHandRKeys = [
-    DanceJointKey(0, rotation: -0.22),
-    DanceJointKey(2, rotation: -0.28),
-    DanceJointKey(4, rotation: 0.32),
-    DanceJointKey(6, rotation: 0.18),
-    DanceJointKey(8, rotation: -0.22),
-    DanceJointKey(10, rotation: -0.28),
-    DanceJointKey(12, rotation: 0.32),
-    DanceJointKey(14, rotation: 0.18),
-    DanceJointKey(16, rotation: -0.26),
-    DanceJointKey(18, rotation: -0.24),
-    DanceJointKey(20, rotation: -0.3),
-    DanceJointKey(22, rotation: 0.3),
-    DanceJointKey(24, rotation: 0.16),
-    DanceJointKey(26, rotation: -0.24),
-    DanceJointKey(28, rotation: -0.32),
-    DanceJointKey(30, rotation: -0.28),
-    DanceJointKey(32, rotation: -0.22),
+    DanceJointKey(0, rotation: -0.1),
+    DanceJointKey(8, rotation: -0.06),
+    DanceJointKey(14, rotation: -0.1),
+    DanceJointKey(16, rotation: 0.08),
+    DanceJointKey(24, rotation: 0.04),
+    DanceJointKey(30, rotation: 0.08),
+    DanceJointKey(32, rotation: -0.1),
+  ];
+  // The Sekem engine: contralateral clavicle pumps every beat — right
+  // shoulder jerks up into the odd counts, left into the even counts, each
+  // dropping through the count itself so the pump reads as a hit, with the
+  // pinned paws riding underneath.
+  static const _sekemClavicleRKeys = [
+    DanceJointKey(0, rotation: -0.18),
+    DanceJointKey(2, rotation: 0.03),
+    DanceJointKey(4, rotation: 0.06),
+    DanceJointKey(6, rotation: -0.04),
+    DanceJointKey(8, rotation: -0.18),
+    DanceJointKey(10, rotation: 0.03),
+    DanceJointKey(12, rotation: 0.06),
+    DanceJointKey(14, rotation: -0.04),
+    DanceJointKey(16, rotation: -0.18),
+    DanceJointKey(18, rotation: 0.03),
+    DanceJointKey(20, rotation: 0.06),
+    DanceJointKey(22, rotation: -0.04),
+    DanceJointKey(24, rotation: -0.18),
+    DanceJointKey(26, rotation: 0.03),
+    DanceJointKey(28, rotation: 0.06),
+    DanceJointKey(30, rotation: -0.04),
+    DanceJointKey(32, rotation: -0.18),
+  ];
+  static const _sekemClavicleLKeys = [
+    DanceJointKey(0, rotation: -0.06),
+    DanceJointKey(2, rotation: 0.04),
+    DanceJointKey(4, rotation: 0.18),
+    DanceJointKey(6, rotation: -0.03),
+    DanceJointKey(8, rotation: -0.06),
+    DanceJointKey(10, rotation: 0.04),
+    DanceJointKey(12, rotation: 0.18),
+    DanceJointKey(14, rotation: -0.03),
+    DanceJointKey(16, rotation: -0.06),
+    DanceJointKey(18, rotation: 0.04),
+    DanceJointKey(20, rotation: 0.18),
+    DanceJointKey(22, rotation: -0.03),
+    DanceJointKey(24, rotation: -0.06),
+    DanceJointKey(26, rotation: 0.04),
+    DanceJointKey(28, rotation: 0.18),
+    DanceJointKey(30, rotation: -0.03),
+    DanceJointKey(32, rotation: -0.06),
   ];
   // Non-smooth (the default) so the per-key ease applies: the slam keys use
   // Ease.easeIn (accelerate into the floor) for a hard-stop strike in the live
@@ -8814,6 +8828,16 @@ class CatClips {
           _sekemHandRKeys,
           smooth: true,
         ),
+        // The shoulder-led pump: contralateral clavicle jerks on every beat,
+        // layered over the base girdle groove.
+        CatBones.clavicleR: LayeredJointChannel([
+          base.channels[CatBones.clavicleR]!,
+          _dancePhrase.jointChannel(_sekemClavicleRKeys, smooth: true),
+        ]),
+        CatBones.clavicleL: LayeredJointChannel([
+          base.channels[CatBones.clavicleL]!,
+          _dancePhrase.jointChannel(_sekemClavicleLKeys, smooth: true),
+        ]),
         CatBones.earL: _earFollow(side: 1),
         CatBones.earR: _earFollow(side: -1, phase: 0.55),
         ..._tailFollowThrough(amplitude: 0.1, phase: 0.07),

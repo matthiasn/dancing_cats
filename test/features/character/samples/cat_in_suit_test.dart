@@ -745,6 +745,10 @@ void main() {
     });
 
     test('dance clips carry alternating shoulder overlap', () {
+      // Per-clip shrug ceilings: groove clips keep the girdle subtle, while
+      // sekem's whole identity is the shoulder-led pump (panel round 1: the
+      // frozen yoke was scored down) so its clavicles may jerk visibly.
+      const shrugCeiling = {'shaku': 0.07, 'zanku': 0.07, 'sekem': 0.24};
       for (final clip in [CatClips.shaku, CatClips.zanku, CatClips.sekem]) {
         final left = clip.channels[CatBones.clavicleL];
         final right = clip.channels[CatBones.clavicleR];
@@ -785,8 +789,8 @@ void main() {
         );
         expect(
           [minLeft.abs(), maxLeft.abs(), minRight.abs(), maxRight.abs()],
-          everyElement(lessThan(0.07)),
-          reason: 'shoulder controls should stay subtle, not shrug wildly',
+          everyElement(lessThan(shrugCeiling[clip.name]!)),
+          reason: 'shoulder controls should stay in character for the move',
         );
       }
     });
@@ -1945,58 +1949,22 @@ void main() {
           reason: 'right Sekem support should stay on the floor mid-window',
         );
 
+        // The Sekem anchors: through bar 1 the left paw stays pinned at the
+        // sternum while the right tucks at the back waist.
         final leftPlantHand = handL.sample(0);
         final rightPlantHand = handR.sample(0);
         expect(
           leftPlantHand.x,
-          lessThanOrEqualTo(-64),
-          reason:
-              'Sekem left hand should stay in the left anatomical lane; '
-              'cross-body targets make the arms fold impossibly',
+          inInclusiveRange(-16, -4),
+          reason: 'Sekem bar 1: the left paw is pinned at the sternum',
         );
-        expect(
-          leftPlantHand.y,
-          greaterThan(-4),
-          reason: 'the low Sekem hand should visibly sit in a compact scoop',
-        );
+        expect(leftPlantHand.y, inInclusiveRange(-54, -40));
         expect(
           rightPlantHand.x,
-          greaterThan(78),
-          reason:
-              'the opposite hand should paddle outward in its own lane so '
-              'the move reads as Sekem without folded forearms',
+          inInclusiveRange(16, 32),
+          reason: 'Sekem bar 1: the right paw tucks at the back waist',
         );
-        expect(rightPlantHand.y, inInclusiveRange(-42, -34));
-
-        final leftPullbackApproach = handL.sample(2 / phrase.frameCount);
-        final leftPullback = handL.sample(2.55 / phrase.frameCount);
-        final rightRecover = handR.sample(2.55 / phrase.frameCount);
-        expect(
-          leftPullbackApproach.x,
-          lessThan(-72),
-          reason:
-              'the delayed Sekem pullback may not sweep through the torso '
-              'while the paw is still approaching its late hit',
-        );
-        expect(
-          leftPullback.x,
-          inInclusiveRange(-96, -86),
-          reason:
-              'the left Sekem offbeat should rebound up in the left lane on '
-              'its delayed wrist follow-through, not on the integer frame',
-        );
-        expect(
-          leftPullback.x,
-          lessThan(-64),
-          reason: 'left Sekem sweep must never cross the torso centreline',
-        );
-        expect(
-          rightRecover.x,
-          greaterThan(74),
-          reason:
-              'the right Sekem recover must stay outside the right shoulder '
-              'line; centerline targets create impossible folded arms',
-        );
+        expect(rightPlantHand.y, inInclusiveRange(-14, 2));
 
         final rightPickup = footR.sample(2 / phrase.frameCount);
         expect(
@@ -2012,40 +1980,22 @@ void main() {
           reason: 'Sekem should skim the floor, not lift into a side-kick',
         );
 
-        final leftPoint = handL.sample(4.55 / phrase.frameCount);
-        final rightSweep = handR.sample(4.55 / phrase.frameCount);
+        // The anchors trade sides once per bar: after frame 16 the right paw
+        // takes the sternum pin and the left tucks at the back waist.
+        final leftSwapped = handL.sample(20 / phrase.frameCount);
+        final rightSwapped = handR.sample(20 / phrase.frameCount);
         expect(
-          leftPoint.x,
-          lessThan(-82),
-          reason:
-              'the next plant should swap: left hand becomes the outward '
-              'paddle',
+          leftSwapped.x,
+          inInclusiveRange(-32, -16),
+          reason: 'Sekem bar 2: the left paw tucks at the back waist',
         );
+        expect(leftSwapped.y, inInclusiveRange(-14, 2));
         expect(
-          leftPoint.y,
-          inInclusiveRange(-42, -34),
-          reason:
-              'the outward Sekem hit should sit at chest/shoulder level, '
-              'not punch into an impossible high fold',
+          rightSwapped.x,
+          inInclusiveRange(4, 16),
+          reason: 'Sekem bar 2: the right paw takes the sternum pin',
         );
-        expect(
-          rightSweep.x,
-          greaterThan(62),
-          reason:
-              'the next plant should swap levels while right hand stays in '
-              'the right anatomical lane',
-        );
-        expect(
-          rightSweep.y,
-          greaterThan(-4),
-          reason: 'the low Sekem hand should visibly sit in a compact scoop',
-        );
-        final rightSweepInward = handR.sample(6.55 / phrase.frameCount);
-        expect(
-          rightSweepInward.x,
-          greaterThan(74),
-          reason: 'right Sekem sweep must never cross the torso centreline',
-        );
+        expect(rightSwapped.y, inInclusiveRange(-54, -40));
         final leftPickup = footL.sample(6 / phrase.frameCount);
         expect(
           leftPickup.x,
@@ -2060,18 +2010,14 @@ void main() {
           reason: 'Sekem should skim the floor, not lift into a side-kick',
         );
         expect(
-          handLRotation.sample(4 / phrase.frameCount).rotation,
-          inInclusiveRange(0.18, 0.26),
-          reason:
-              'Sekem needs a loose paddle wrist, not a twisted high-punch '
-              'fist',
+          handLRotation.sample(4 / phrase.frameCount).rotation.abs(),
+          lessThan(0.14),
+          reason: 'the pinned Sekem paw lies quietly on the chest',
         );
         expect(
-          handRRotation.sample(4 / phrase.frameCount).rotation,
-          inInclusiveRange(0.28, 0.36),
-          reason:
-              'Sekem needs loose wrist rotation on the waist scoop, not '
-              'stiff jogging fists',
+          handRRotation.sample(4 / phrase.frameCount).rotation.abs(),
+          lessThan(0.14),
+          reason: 'the tucked Sekem paw lies quietly at the waist',
         );
         expect(
           footRRotation.sample(2 / phrase.frameCount).rotation,
@@ -2173,127 +2119,83 @@ void main() {
       },
     );
 
-    test('sekem hand targets never create a folded forearm cross', () {
+    test('sekem holds its anchors and pumps the shoulders on every beat', () {
       final phrase = CatClips.dancePhrase;
       final sekem = CatClips.sekem;
       final handL = _targetFor(sekem, CatBones.handL).channel;
       final handR = _targetFor(sekem, CatBones.handR).channel;
 
-      for (var frame = 0; frame <= phrase.frameCount; frame += 2) {
+      // Anchor duty cycle: pinned through the whole bar, not flashed.
+      for (final frame in [0, 4, 8, 12]) {
         final p = frame / phrase.frameCount;
-        final left = handL.sample(p);
-        final right = handR.sample(p);
-
         expect(
-          left.x,
-          lessThanOrEqualTo(-64),
-          reason:
-              'Sekem frame $frame must keep the left paw outside the left '
-              'shoulder line; centerline hands read as impossible arm folding',
+          handL.sample(p).x,
+          inInclusiveRange(-16, -4),
+          reason: 'Sekem frame $frame: left paw pinned at the sternum',
         );
         expect(
-          right.x,
-          greaterThanOrEqualTo(64),
-          reason:
-              'Sekem frame $frame must keep the right paw outside the right '
-              'shoulder line; centerline hands read as impossible arm folding',
-        );
-        expect(
-          right.x - left.x,
-          greaterThan(135),
-          reason:
-              'Sekem frame $frame should show two separate arm lanes, not a '
-              'clasp or X through the jacket',
+          handR.sample(p).x,
+          inInclusiveRange(16, 32),
+          reason: 'Sekem frame $frame: right paw tucked at the back waist',
         );
       }
+      for (final frame in [16, 20, 24, 28]) {
+        final p = frame / phrase.frameCount;
+        expect(
+          handR.sample(p).x,
+          inInclusiveRange(4, 16),
+          reason: 'Sekem frame $frame: right paw takes the sternum pin',
+        );
+        expect(
+          handL.sample(p).x,
+          inInclusiveRange(-32, -16),
+          reason: 'Sekem frame $frame: left paw tucks at the back waist',
+        );
+      }
+
+      // The shoulder-led engine: contralateral clavicle pumps on the beats.
+      final clavicleR = sekem.channels[CatBones.clavicleR]!;
+      final clavicleL = sekem.channels[CatBones.clavicleL]!;
+      expect(
+        clavicleR.sample(0).rotation,
+        lessThan(-0.1),
+        reason: 'the right shoulder jerks up into count 1',
+      );
+      expect(
+        clavicleL.sample(4 / phrase.frameCount).rotation,
+        greaterThan(0.1),
+        reason: 'the left shoulder answers on count 2',
+      );
+      expect(
+        clavicleR.sample(4 / phrase.frameCount).rotation,
+        greaterThan(-0.06),
+        reason: 'the right shoulder settles while the left pumps',
+      );
+      expect(
+        clavicleL.sample(0).rotation,
+        lessThan(0.1),
+        reason: 'the left shoulder stays low while the right pumps',
+      );
     });
 
-    test('sekem solved arms bend through one anatomical lane', () {
+    test('sekem anchored arms never engage the anti-fold rule', () {
       final scene = CharacterScene(buildCatInSuitRig());
-      for (
-        var frame = 0;
-        frame <= CatClips.dancePhrase.frameCount;
-        frame += 2
-      ) {
-        final p = frame / CatClips.dancePhrase.frameCount;
-        final solved = scene.frameAt(
+      for (var i = 0; i < 64; i++) {
+        final p = i / 64;
+        final raw = scene.preClampPoseAt(
           clip: CatClips.sekem,
           timeSeconds: p * CatClips.sekem.duration,
         );
-        final w = solved.world;
-
-        double horizontalFold(String shoulder, String elbow, String hand) {
-          final shoulderX = w[shoulder]!.origin.x;
-          final elbowX = w[elbow]!.origin.x;
-          final handX = w[hand]!.origin.x;
-          return (elbowX - shoulderX) * (handX - elbowX);
-        }
-
-        final leftShoulder = w[CatBones.armUpperL]!.origin.x;
-        final leftElbow = w[CatBones.armLowerL]!.origin.x;
-        final leftHand = w[CatBones.handL]!.origin.x;
-        final rightShoulder = w[CatBones.armUpperR]!.origin.x;
-        final rightElbow = w[CatBones.armLowerR]!.origin.x;
-        final rightHand = w[CatBones.handR]!.origin.x;
-
         expect(
-          horizontalFold(
-            CatBones.armUpperL,
-            CatBones.armLowerL,
-            CatBones.handL,
-          ),
-          greaterThanOrEqualTo(0),
+          scene.armFoldCorrections(raw),
+          isEmpty,
           reason:
-              'Sekem frame $frame should not reverse the left forearm back '
-              'through its upper arm; that renders as an impossible folded X '
-              '(shoulder=${leftShoulder.toStringAsFixed(1)}, '
-              'elbow=${leftElbow.toStringAsFixed(1)}, '
-              'hand=${leftHand.toStringAsFixed(1)})',
-        );
-        expect(
-          horizontalFold(
-            CatBones.armUpperR,
-            CatBones.armLowerR,
-            CatBones.handR,
-          ),
-          greaterThanOrEqualTo(0),
-          reason:
-              'Sekem frame $frame should not reverse the right forearm back '
-              'through its upper arm; that renders as an impossible folded X '
-              '(shoulder=${rightShoulder.toStringAsFixed(1)}, '
-              'elbow=${rightElbow.toStringAsFixed(1)}, '
-              'hand=${rightHand.toStringAsFixed(1)})',
-        );
-        expect(
-          leftElbow,
-          lessThanOrEqualTo(leftShoulder),
-          reason:
-              'Sekem frame $frame should keep the left elbow outside/left of '
-              'its shoulder; inward elbows make the sleeve cross the torso',
-        );
-        expect(
-          leftHand,
-          lessThanOrEqualTo(leftElbow),
-          reason:
-              'Sekem frame $frame should keep the left paw past the left '
-              'elbow, not folded back inward across the jacket',
-        );
-        expect(
-          rightElbow,
-          greaterThanOrEqualTo(rightShoulder),
-          reason:
-              'Sekem frame $frame should keep the right elbow outside/right of '
-              'its shoulder; inward elbows make the sleeve cross the torso',
-        );
-        expect(
-          rightHand,
-          greaterThanOrEqualTo(rightElbow),
-          reason:
-              'Sekem frame $frame should keep the right paw past the right '
-              'elbow, not folded back inward across the jacket',
+              'Sekem p=$p: the sternum pin and back-waist tuck must live '
+              'inside the coupled arm-fold ROM with headroom',
         );
       }
     });
+
 
     test('pouncing cat compresses, pushes, lands, and rebounds compactly', () {
       final phrase = CatClips.dancePhrase;
