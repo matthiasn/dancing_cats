@@ -53,3 +53,7 @@ tools/**/out/
 # FVM
 .fvm/
 assets/sample_track/*.grade.json.bak
+
+# Gemini CLI GitHub Actions
+.gemini/
+gha-creds-*.json
