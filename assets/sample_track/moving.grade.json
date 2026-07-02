@@ -7,135 +7,34 @@
         {
           "t_sec": 0.0,
           "interp": "linear",
-          "look": {
-            "lift": {
-              "x": 0.0,
-              "y": 0.0,
-              "m": 0.0
-            },
-            "gamma": {
-              "x": 0.0,
-              "y": 0.0,
-              "m": 0.0
-            },
-            "gain": {
-              "x": 0.0,
-              "y": 0.0,
-              "m": 0.0
-            },
-            "saturation": 1.0,
-            "temperature": 0.0,
-            "tint": 0.0,
-            "contrast": 1.0,
-            "pivot": 0.435
-          }
+          "look": {}
         },
         {
           "t_sec": 42.4,
           "interp": "linear",
           "look": {
-            "lift": {
-              "x": 0.0,
-              "y": 0.0,
-              "m": 0.0
-            },
-            "gamma": {
-              "x": 0.0,
-              "y": 0.0,
-              "m": 0.0
-            },
-            "gain": {
-              "x": 0.0,
-              "y": 0.0,
-              "m": -0.02
-            },
-            "saturation": 1.0,
             "temperature": 0.06,
-            "tint": 0.0,
-            "contrast": 1.0,
-            "pivot": 0.435
+            "gain": { "m": -0.02 }
           }
         },
         {
           "t_sec": 90.8,
           "interp": "linear",
           "look": {
-            "lift": {
-              "x": 0.0,
-              "y": 0.0,
-              "m": 0.0
-            },
-            "gamma": {
-              "x": 0.0,
-              "y": 0.0,
-              "m": 0.0
-            },
-            "gain": {
-              "x": 0.0,
-              "y": 0.0,
-              "m": -0.045
-            },
-            "saturation": 0.98,
             "temperature": 0.12,
-            "tint": 0.0,
-            "contrast": 1.0,
-            "pivot": 0.435
+            "saturation": 0.98,
+            "gain": { "m": -0.045 }
           }
         },
         {
           "t_sec": 137.0,
           "interp": "linear",
           "look": {
-            "lift": {
-              "x": 0.0,
-              "y": 0.0,
-              "m": -0.015
-            },
-            "gamma": {
-              "x": 0.0,
-              "y": 0.0,
-              "m": 0.0
-            },
-            "gain": {
-              "x": 0.0,
-              "y": 0.0,
-              "m": -0.07
-            },
-            "saturation": 0.95,
             "temperature": 0.18,
             "tint": 0.02,
-            "contrast": 1.0,
-            "pivot": 0.435
-          }
-        }
-      ]
-    },
-    {
-      "target": "city-lights",
-      "keyframes": [
-        {
-          "t_sec": 42.399978,
-          "look": {
-            "lift": {
-              "x": 0.0,
-              "y": 0.0,
-              "m": 0.0
-            },
-            "gamma": {
-              "x": 0.0,
-              "y": 0.0,
-              "m": 0.0
-            },
-            "gain": {
-              "x": 0.0,
-              "y": 0.0,
-              "m": 0.0
-            },
-            "saturation": 0.0,
-            "temperature": 0.0,
-            "tint": 0.0,
-            "contrast": 1.0,
-            "pivot": 0.435
+            "saturation": 0.95,
+            "gain": { "m": -0.07 },
+            "lift": { "m": -0.015 }
           }
         }
       ]
