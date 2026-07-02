@@ -8447,12 +8447,20 @@ class CatClips {
     ),
   ];
 
+  // pelvis/chest ROTATION gains cut well below the translation gains: a probe
+  // of rendered free-foot world position (the foot IK targets anchor to
+  // hips, ~60 local units out) showed the pelvis swing's lever arm was
+  // popping the free foot ~54 world units airborne despite the target curve
+  // itself staying near the floor — round-3's "airborne at calf height,
+  // near-straight knee... march/cheer step-touch" critique. Translation
+  // (rootDx/rootDy) is untouched: that IS the weight commit onto the support
+  // foot and reads correctly; only the rotation was amplifying into a kick.
   static final List<DanceBodyKey> _sekemBodyKeys = _scaledBodyKeys(
     _sekemBodyKeysRaw,
     rootDxGain: 0.78,
     rootDyGain: 0.9,
-    pelvisRotationGain: 0.8,
-    chestRotationGain: 0.85,
+    pelvisRotationGain: 0.5,
+    chestRotationGain: 0.55,
     chestScaleGain: 0.75,
   );
   static const _sekemPocketBoostKeys = [
