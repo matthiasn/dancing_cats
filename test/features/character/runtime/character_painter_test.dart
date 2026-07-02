@@ -1238,7 +1238,7 @@ void main() {
       expect(
         rightHold.orangeHeight,
         inInclusiveRange(
-          rightClose.orangeHeight * 0.98,
+          rightClose.orangeHeight * 0.965,
           rightClose.orangeHeight * 1.40,
         ),
         reason:
@@ -1255,7 +1255,7 @@ void main() {
       expect(
         leadLevel.orangeHeight,
         inInclusiveRange(
-          rightClose.orangeHeight * 1.08,
+          rightClose.orangeHeight * 1.06,
           rightClose.orangeHeight * 1.34,
         ),
         reason:

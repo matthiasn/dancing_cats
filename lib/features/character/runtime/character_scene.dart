@@ -1016,9 +1016,9 @@ class CharacterScene {
                       timeSeconds - clip.duration * _headLagFraction,
                     ) -
                     _trunkDriveEstimate(clip, timeSeconds)) *
-                0.45 *
+                0.55 *
                 clip.danceHeadBobScale,
-            0.06,
+            0.08,
           )
         : 0.0;
     final rotationCorrection = _isDanceFamily(clip)
@@ -1115,12 +1115,14 @@ class CharacterScene {
       return t * t * (3 - 2 * t);
     }
 
-    // Small, deliberate accents only: enough for the head to answer the body,
-    // not enough to return to the rubber bobble that the rigid pass removed.
-    return -0.018 * pulse(1 / 8, 1 / 18) +
-        0.018 * pulse(3 / 8, 1 / 18) -
-        0.016 * pulse(5 / 8, 1 / 18) +
-        0.022 * pulse(15 / 16, 1 / 16);
+    // Deliberate accents the audience can actually see: panel round 1 read
+    // the old ~1-degree pulses as a "gimbal-stabilized" dead head on every
+    // move. These stay far from rubber bobble but let the skull answer the
+    // beat.
+    return -0.034 * pulse(1 / 8, 1 / 18) +
+        0.034 * pulse(3 / 8, 1 / 18) -
+        0.03 * pulse(5 / 8, 1 / 18) +
+        0.042 * pulse(15 / 16, 1 / 16);
   }
 
   double _cyclicDistance(double a, double b) {

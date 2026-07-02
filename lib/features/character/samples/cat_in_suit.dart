@@ -5603,10 +5603,10 @@ class CatClips {
       limbTargets: _shakuLimbTargets,
       supportFootWorldAnchor: true,
       supportFootWorldAnchorStrength: 0.74,
-      // Calm the skull so the beat reads in the body, not the ear-fan that
-      // dominated the onion — at 0.2 the head also lags most of the lateral
-      // sway, so the tall ears stop sweeping side to side.
-      danceHeadBobScale: 0.2,
+      // Panel round 1: the fixed bright smile through the deepest pocket read
+      // as a dead head. Enough presence for the chin-drop bop toward the X
+      // to register, still shy of the old ear-fan.
+      danceHeadBobScale: 0.8,
       root: LayeredRootChannel([
         _bodyRootLeadChannel(
           _shakuGrooveCalm,
@@ -7080,9 +7080,9 @@ class CatClips {
       limbTargets: _azontoLimbTargets,
       supportFootWorldAnchor: true,
       supportFootWorldAnchorStrength: 0.86,
-      // Calm the vertical head bob so the skull lags the pelvis sway laterally
-      // rather than bouncing — the groove dip is in rootDy, which this counters.
-      danceHeadBobScale: 0.3,
+      // The head answers the mime (panel: the azonto head never turns): most
+      // of the nod presence back, lateral lag still counters the groove dip.
+      danceHeadBobScale: 0.7,
       root: LayeredRootChannel([
         _bodyRootLeadChannel(_shakuGrooveCalm, smooth: true),
         _bodyRootLeadChannel(_danceBodyAccentKeys, smooth: true),

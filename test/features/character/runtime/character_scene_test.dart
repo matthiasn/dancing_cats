@@ -998,10 +998,12 @@ void main() {
         );
         expect(
           headRange,
-          lessThan(0.24),
+          lessThan(0.27),
           reason:
               '${clip.name} head should bank with the body as a damped slice '
-              'of the lean (~10°), never a full rubber bobble',
+              'of the lean (~10-15°), never a full rubber bobble — the bound '
+              'moved up when panel round 1 scored the near-frozen head down '
+              'on every move',
         );
       }
     });
