@@ -5652,6 +5652,18 @@ class CatClips {
       // as a dead head. Enough presence for the chin-drop bop toward the X
       // to register, still shy of the old ear-fan.
       danceHeadBobScale: 0.8,
+      // Round 6: hand.L always renders in front (fixed rig z 18 vs 17) even
+      // though the choreography's own comments call for the top wrist to
+      // alternate every bar ("bar-2 X — R takes TOP"). Bar 2 (phase 0.5..1)
+      // now actually swaps which hand paints on top to match.
+      zOrderSwaps: const [
+        ZOrderSwapWindow(
+          boneA: CatBones.handL,
+          boneB: CatBones.handR,
+          start: 0.5,
+          end: 1,
+        ),
+      ],
       root: LayeredRootChannel([
         _bodyRootLeadChannel(
           _shakuGrooveCalm,

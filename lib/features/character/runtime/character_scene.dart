@@ -22,6 +22,7 @@ class CharacterFrame {
     required this.world,
     required this.face,
     required this.locomotionX,
+    this.zOrderSwaps = const [],
   });
 
   final Map<String, Affine2D> world;
@@ -33,6 +34,12 @@ class CharacterFrame {
   /// this yet** — it is the kinematic hook the Phase-2 "walks across the screen"
   /// surface will fold into its placement transform.
   final double locomotionX;
+
+  /// Bone id pairs that should swap paint order for this frame, resolved from
+  /// the clip's [Clip.zOrderSwaps] at the current phase. Empty on almost
+  /// every clip/frame — passed straight through to `CharacterRenderer.paint`'s
+  /// `zOrderSwaps` parameter.
+  final List<(String, String)> zOrderSwaps;
 }
 
 /// Ties the engine pieces together: evaluate a clip, layer the autonomic
@@ -299,7 +306,19 @@ class CharacterScene {
       );
     }
     final locomotion = locomotionOffset(clip, timeSeconds);
-    return CharacterFrame(world: world, face: face, locomotionX: locomotion);
+    final zOrderSwaps = clip.zOrderSwaps.isEmpty
+        ? const <(String, String)>[]
+        : [
+            for (final window in clip.zOrderSwaps)
+              if (window.activeAt(evaluator.phaseAt(clip, timeSeconds)))
+                (window.boneA, window.boneB),
+          ];
+    return CharacterFrame(
+      world: world,
+      face: face,
+      locomotionX: locomotion,
+      zOrderSwaps: zOrderSwaps,
+    );
   }
 
   /// Returns the final local-space pose that [frameAt] will solve and draw.
