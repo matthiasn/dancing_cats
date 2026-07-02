@@ -1143,6 +1143,7 @@ class Clip {
     this.supportFootWorldAnchorStrength = 0.6,
     this.danceHeadBobScale = 1.0,
     this.transitionPlan,
+    this.zOrderSwaps = const [],
   }) : assert(
          supportFootWorldAnchorStrength >= 0 &&
              supportFootWorldAnchorStrength <= 1,
@@ -1213,8 +1214,37 @@ class Clip {
   /// Source clips and transition weight when this clip is a runtime blend.
   final ClipTransitionPlan? transitionPlan;
 
+  /// Windows where two bones should swap paint order (whichever normally
+  /// renders behind now renders in front). A bone's paint depth is fixed at
+  /// rig-build time — a clip can't reorder it directly — but a move like a
+  /// crossed-wrist hold whose "top" hand alternates per bar needs exactly
+  /// that. See [ZOrderSwapWindow].
+  final List<ZOrderSwapWindow> zOrderSwaps;
+
   /// Whether this clip travels across the stage at all (either model).
   bool get locomotes => locomotionSpeed != 0 || groundSpans.isNotEmpty;
+}
+
+/// Declares that [boneA] and [boneB] swap paint order for the phase span
+/// `[start, end)`. `start > end` wraps across the cyclic seam (e.g. `0.9` to
+/// `0.1` covers the loop boundary). Both bones must exist in the rig and are
+/// looked up by id at paint time; missing ids are silently ignored (a typo
+/// here should not crash a render).
+class ZOrderSwapWindow {
+  const ZOrderSwapWindow({
+    required this.boneA,
+    required this.boneB,
+    required this.start,
+    required this.end,
+  });
+
+  final String boneA;
+  final String boneB;
+  final double start;
+  final double end;
+
+  bool activeAt(double phase) =>
+      start <= end ? (phase >= start && phase < end) : (phase >= start || phase < end);
 }
 
 Clip blendedClip({

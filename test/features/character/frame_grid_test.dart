@@ -301,6 +301,7 @@ void main() {
         reviewWorld,
         frame.face,
         memberTransform: base,
+        zOrderSwaps: frame.zOrderSwaps,
       );
 
       drawLabel(
@@ -362,6 +363,7 @@ void main() {
         reviewWorld,
         frame.face,
         memberTransform: base,
+        zOrderSwaps: frame.zOrderSwaps,
       );
       canvas.restore();
     }
@@ -413,6 +415,7 @@ void main() {
       reviewWorld,
       frame.face,
       memberTransform: base,
+      zOrderSwaps: frame.zOrderSwaps,
     );
     return _pngOf(recorder.endRecording(), cellW.round(), cellH.round());
   }
@@ -582,6 +585,7 @@ void main() {
         frame.world,
         frame.face,
         memberTransform: base,
+        zOrderSwaps: frame.zOrderSwaps,
       );
       canvas.restore();
     }

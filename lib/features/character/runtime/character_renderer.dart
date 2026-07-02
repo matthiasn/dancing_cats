@@ -53,6 +53,7 @@ class CharacterRenderer {
     Map<String, Affine2D> world,
     FaceState face, {
     Affine2D? memberTransform,
+    List<(String, String)> zOrderSwaps = const [],
   }) {
     if (memberTransform != null) {
       final inverse = memberTransform.inverse();
@@ -64,12 +65,13 @@ class CharacterRenderer {
         canvas
           ..save()
           ..transform(memberTransform.toMatrix4Storage(_matrix));
-        paint(canvas, rig, local, face);
+        paint(canvas, rig, local, face, zOrderSwaps: zOrderSwaps);
         canvas.restore();
         return;
       }
     }
     final hiddenBones = rig.hiddenDrawableBoneIds;
+    final drawOrder = _effectiveDrawOrder(rig, zOrderSwaps);
 
     // Ribbons are drawn in the same silhouette/fill two-pass style as bones.
     // They replace selected rigid upper/lower limb drawables with one continuous
@@ -87,7 +89,10 @@ class CharacterRenderer {
     }
 
     // Pass 1: the unified dark silhouette (outer outline, no internal seams).
-    for (final bone in rig.drawOrder) {
+    // Draw order doesn't matter here (every piece shares one outline colour
+    // and unions together), but iterating the same list keeps this pass and
+    // the fill pass working from one consistent source of truth.
+    for (final bone in drawOrder) {
       if (hiddenBones.contains(bone.id)) continue;
       final drawable = bone.drawable;
       if (drawable == null) continue;
@@ -103,7 +108,7 @@ class CharacterRenderer {
     }
 
     // Pass 2: ribbons + bone fills, painted back-to-front over the silhouette.
-    _drawFills(canvas, rig, world, hiddenBones);
+    _drawFills(canvas, rig, drawOrder, world, hiddenBones);
 
     final faceRig = rig.face;
     if (faceRig != null) {
@@ -118,9 +123,37 @@ class CharacterRenderer {
     }
   }
 
+  /// `rig.drawOrder` is fixed at rig-build time (see [Bone.z]), but a clip
+  /// can ask two specific bones to swap which one paints on top for the
+  /// current frame (e.g. shaku's held X, whose top wrist alternates per
+  /// bar). Swapping their two LIST POSITIONS — rather than re-sorting by an
+  /// overridden z — touches only those two bones: every other bone's
+  /// relative order (including ties at the same z) is untouched, and
+  /// there's no dependency on `List.sort` being stable. `z` is an int, so no
+  /// ribbon/mesh ever sits strictly between two adjacent bone z values —
+  /// confirmed no ribbon/mesh in this rig sits at z 17 or 18, the hand
+  /// bones' own z — so this can't shift ribbon/mesh interleaving either.
+  List<Bone> _effectiveDrawOrder(
+    RigSpec rig,
+    List<(String, String)> swaps,
+  ) {
+    if (swaps.isEmpty) return rig.drawOrder;
+    final order = [...rig.drawOrder];
+    for (final (aId, bId) in swaps) {
+      final aIndex = order.indexWhere((bone) => bone.id == aId);
+      final bIndex = order.indexWhere((bone) => bone.id == bId);
+      if (aIndex == -1 || bIndex == -1) continue;
+      final a = order[aIndex];
+      order[aIndex] = order[bIndex];
+      order[bIndex] = a;
+    }
+    return order;
+  }
+
   void _drawFills(
     Canvas canvas,
     RigSpec rig,
+    List<Bone> drawOrder,
     Map<String, Affine2D> world,
     Set<String> hiddenBones,
   ) {
@@ -137,7 +170,7 @@ class CharacterRenderer {
     var ribbonIndex = 0;
     var meshIndex = 0;
     var seamIndex = 0;
-    for (final bone in rig.drawOrder) {
+    for (final bone in drawOrder) {
       while (ribbonIndex < ribbons.length && ribbons[ribbonIndex].z <= bone.z) {
         _drawRibbonFill(canvas, ribbons[ribbonIndex], world);
         if (celShade != null) {

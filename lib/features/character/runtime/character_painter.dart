@@ -1785,6 +1785,7 @@ class CharacterPainter extends CustomPainter {
       // member. Painting them in canvas units made the scaled-up lead read
       // spindly while the scaled-down backups ballooned.
       memberTransform: base,
+      zOrderSwaps: groundedFrame.zOrderSwaps,
     );
   }
 

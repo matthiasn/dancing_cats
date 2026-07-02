@@ -61,7 +61,7 @@ import 'package:window_manager/window_manager.dart';
 /// beat-map JSON is read here (also kept out of VCS).
 const String kDefaultDanceAudioPath = String.fromEnvironment(
   'DANCE_AUDIO',
-  defaultValue: '/home/parallels/Downloads/Omah_Lay-Moving.mp3',
+  defaultValue: '~/Downloads/Omah_Lay-Moving.mp3',
 );
 const String kDefaultDanceBeatMapPath = String.fromEnvironment(
   'DANCE_BEATMAP',
@@ -90,14 +90,54 @@ String get kDanceGradePath =>
     Platform.environment['DANCE_GRADE'] ??
     danceGradePathForBeatMap(kDanceBeatMapPath);
 
-String get kDanceAudioPath =>
-    Platform.environment['DANCE_AUDIO'] ?? kDefaultDanceAudioPath;
-String get kDanceBeatMapPath =>
-    Platform.environment['DANCE_BEATMAP'] ?? kDefaultDanceBeatMapPath;
-String get kDanceWordsPath =>
-    Platform.environment['DANCE_WORDS'] ?? kDefaultDanceWordsPath;
-String get kDanceCuesPath =>
-    Platform.environment['DANCE_CUES'] ?? kDefaultDanceCuesPath;
+String get kDanceAudioPath => _expandUserPath(
+  Platform.environment['DANCE_AUDIO'] ?? kDefaultDanceAudioPath,
+);
+String get kDanceBeatMapPath => _expandUserPath(
+  Platform.environment['DANCE_BEATMAP'] ?? kDefaultDanceBeatMapPath,
+);
+String get kDanceWordsPath => _expandUserPath(
+  Platform.environment['DANCE_WORDS'] ?? kDefaultDanceWordsPath,
+);
+String get kDanceCuesPath => _expandUserPath(
+  Platform.environment['DANCE_CUES'] ?? kDefaultDanceCuesPath,
+);
+
+String _expandUserPath(String path) {
+  final home =
+      Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
+  if (home == null || home.isEmpty) return path;
+  if (path == '~') return home;
+  if (path.startsWith('~/') || path.startsWith(r'~\')) {
+    return '$home${path.substring(1)}';
+  }
+  if (path == r'$HOME') return home;
+  if (path.startsWith(r'$HOME/') || path.startsWith(r'$HOME\')) {
+    return '$home${path.substring(5)}';
+  }
+  return path;
+}
+
+void _logDanceError(String message, [Object? error, StackTrace? stackTrace]) {
+  final detail = error == null ? message : '$message\n$error';
+  debugPrint(detail);
+  if (stackTrace != null) debugPrint('$stackTrace');
+  stderr.writeln(detail);
+  if (stackTrace != null) stderr.writeln(stackTrace);
+}
+
+Future<String> _readRequiredTextInput(String path, String label) async {
+  final file = File(path);
+  if (file.existsSync()) return file.readAsString();
+  if (file.isAbsolute) {
+    throw StateError('$label not found: $path');
+  }
+  try {
+    return await rootBundle.loadString(path);
+  } on Object catch (e) {
+    throw StateError('$label not found as file or bundled asset: $path ($e)');
+  }
+}
 
 /// Runtime-only capture mode for command-line video export. This avoids the
 /// slow test-engine `toImage()` path: the release Linux app renders normally
@@ -372,12 +412,19 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
 
   Future<void> _load() async {
     try {
-      final mapFile = File(kDanceBeatMapPath);
-      if (!mapFile.existsSync()) {
-        throw StateError('beat map not found: $kDanceBeatMapPath');
-      }
+      debugPrint(
+        'Dance demo startup:\n'
+        '  cwd: ${Directory.current.path}\n'
+        '  audio: $kDanceAudioPath\n'
+        '  beat map: $kDanceBeatMapPath\n'
+        '  words: $kDanceWordsPath\n'
+        '  cues: $kDanceCuesPath',
+      );
       final json =
-          jsonDecode(await mapFile.readAsString()) as Map<String, Object?>;
+          jsonDecode(
+                await _readRequiredTextInput(kDanceBeatMapPath, 'beat map'),
+              )
+              as Map<String, Object?>;
       final map = BeatMap.fromJson(json);
       final audio = json['audio'] as Map<String, Object?>?;
       final tempo = json['tempo'] as Map<String, Object?>?;
@@ -385,7 +432,11 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
           (audio?['duration_sec'] as num?)?.toDouble() ?? map.beatTimesSec.last;
 
       if (!kDanceRenderOnly) {
-        await _player.open(Media(kDanceAudioPath), play: false);
+        final audioFile = File(kDanceAudioPath);
+        if (!audioFile.existsSync()) {
+          throw StateError('audio file not found: $kDanceAudioPath');
+        }
+        await _player.open(Media(audioFile.path), play: false);
         await _player.setPlaylistMode(
           _loop ? PlaylistMode.loop : PlaylistMode.none,
         );
@@ -447,7 +498,8 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
         _gradeController = gradeController;
       });
       if (kDanceAppExport) unawaited(_exportFramesFromApp());
-    } catch (e) {
+    } on Object catch (e, st) {
+      _logDanceError('Could not start beat-synced demo.', e, st);
       if (mounted) setState(() => _error = '$e');
     }
   }

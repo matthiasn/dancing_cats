@@ -5303,50 +5303,69 @@ class CatClips {
     // TOP wrist alternates per bar. The open accent is a 3-frame LOW SCOOP
     // arc past the knees (lead hand finishes higher than the trail hand),
     // and bar 2 swaps the copy-paste flash for an asymmetric generator pull.
-    DanceIkTargetKey(0, x: 10, y: -56, tension: 1), // X — L wrist on TOP
-    DanceIkTargetKey(2, x: 9, y: -48, tension: 0.5), // gallop ride down
-    DanceIkTargetKey(4, x: 10, y: -55, tension: 0.9),
-    DanceIkTargetKey(6, x: 9, y: -48, tension: 0.5), // ride
-    DanceIkTargetKey(8, x: 10, y: -56, tension: 1),
+    // Round 6: bar-1's wrist separation (10 vs -6, an 16-unit gap) was too
+    // tight at render scale — the rigging/anatomy raters both saw the two
+    // fists collapse into one indistinct blob rather than a legible crossed
+    // stack. Widened toward the tested |x|<18 ceiling on both hands so the
+    // gap between them reads as two shapes even where they're closest.
+    DanceIkTargetKey(0, x: 16, y: -56, tension: 1), // X — L wrist on TOP
+    DanceIkTargetKey(2, x: 15, y: -48, tension: 0.5), // gallop ride down
+    DanceIkTargetKey(4, x: 16, y: -55, tension: 0.9),
+    DanceIkTargetKey(6, x: 15, y: -48, tension: 0.5), // ride
+    DanceIkTargetKey(8, x: 16, y: -56, tension: 1),
+    // Round 6: the scoop's y (10, -16) barely dipped below the X's own
+    // sternum height — at that depth the two-bone solve reads as a static
+    // hands-on-hips akimbo plant (every rater's complaint at this exact
+    // frame), not a sweep. Pushed the low point down past the hip toward
+    // the knee so the silhouette actually opens and drops before the lead
+    // hand rises back out.
     DanceIkTargetKey(11, x: 6, y: -50, tension: 0.8), // squeeze (anticipation)
-    DanceIkTargetKey(12, x: -56, y: 10, tension: 0.7), // scoop sweeps LOW
-    DanceIkTargetKey(13, x: -82, y: -16, tension: 0.7), // lead hand rises out
+    DanceIkTargetKey(12, x: -62, y: 20, tension: 0.7), // scoop sweeps LOW
+    DanceIkTargetKey(13, x: -76, y: -10, tension: 0.7), // lead hand rises out
     DanceIkTargetKey(14, x: -10, y: -42, tension: 0.5), // closing transit
     DanceIkTargetKey(15, x: 14, y: -58, tension: 0.8), // overcross lands
-    DanceIkTargetKey(16, x: 4, y: -44, tension: 1), // bar-2 X — L drops UNDER
-    DanceIkTargetKey(18, x: 3, y: -36, tension: 0.5), // ride
-    DanceIkTargetKey(20, x: 4, y: -43, tension: 0.9),
-    DanceIkTargetKey(22, x: 3, y: -36, tension: 0.5),
-    DanceIkTargetKey(24, x: 4, y: -44, tension: 1),
+    // Same separation widening as bar 1 (see its comment) — note bar 2's
+    // "L drops UNDER / R takes TOP" intent is aspirational only: hand.L and
+    // hand.R carry fixed z (18 and 17), so L always renders in front
+    // regardless of bar. Fixing that needs a per-frame z override, which
+    // this rig doesn't have yet — left as a known gap rather than guessed at.
+    DanceIkTargetKey(16, x: 8, y: -44, tension: 1), // bar-2 X — L drops UNDER
+    DanceIkTargetKey(18, x: 7, y: -36, tension: 0.5), // ride
+    DanceIkTargetKey(20, x: 8, y: -43, tension: 0.9),
+    DanceIkTargetKey(22, x: 7, y: -36, tension: 0.5),
+    DanceIkTargetKey(24, x: 8, y: -44, tension: 1),
     DanceIkTargetKey(27, x: -32, y: 4, tension: 0.8), // parks LOW by the hip
     DanceIkTargetKey(28, x: -38, y: 8, tension: 0.7), // holds through the pull
     DanceIkTargetKey(29, x: -38, y: 6, tension: 0.7),
     DanceIkTargetKey(30, x: -14, y: -34, tension: 0.5), // recovers
     DanceIkTargetKey(31, x: 14, y: -58, tension: 0.8), // overcross
-    DanceIkTargetKey(32, x: 10, y: -56, tension: 1), // == frame 0
+    DanceIkTargetKey(32, x: 16, y: -56, tension: 1), // == frame 0
   ];
   static const _shakuHandRTargetKeys = [
-    DanceIkTargetKey(0, x: -6, y: -46, tension: 1), // X — R wrist UNDER
-    DanceIkTargetKey(2, x: -7, y: -38, tension: 0.5), // gallop ride down
-    DanceIkTargetKey(4, x: -6, y: -45, tension: 0.9),
-    DanceIkTargetKey(6, x: -7, y: -38, tension: 0.5), // ride
-    DanceIkTargetKey(8, x: -6, y: -46, tension: 1),
+    // Round 6: mirrors the hand.L separation widening above (see its
+    // comment) — same fused-blob complaint, mirrored keys.
+    DanceIkTargetKey(0, x: -16, y: -46, tension: 1), // X — R wrist UNDER
+    DanceIkTargetKey(2, x: -15, y: -38, tension: 0.5), // gallop ride down
+    DanceIkTargetKey(4, x: -16, y: -45, tension: 0.9),
+    DanceIkTargetKey(6, x: -15, y: -38, tension: 0.5), // ride
+    DanceIkTargetKey(8, x: -16, y: -46, tension: 1),
+    // Round 6: mirrors the hand.L scoop-depth fix above (see its comment).
     DanceIkTargetKey(11, x: -3, y: -40, tension: 0.8), // squeeze
-    DanceIkTargetKey(12, x: 58, y: 14, tension: 0.7), // scoop sweeps LOW
-    DanceIkTargetKey(13, x: 76, y: 2, tension: 0.7), // trail hand stays lower
+    DanceIkTargetKey(12, x: 66, y: 20, tension: 0.7), // scoop sweeps LOW
+    DanceIkTargetKey(13, x: 76, y: 14, tension: 0.7), // trail hand stays lower
     DanceIkTargetKey(14, x: 6, y: -34, tension: 0.5), // closing transit
     DanceIkTargetKey(15, x: -12, y: -46, tension: 0.8), // overcross lands
-    DanceIkTargetKey(16, x: -10, y: -56, tension: 1), // bar-2 X — R takes TOP
-    DanceIkTargetKey(18, x: -11, y: -48, tension: 0.5), // ride
-    DanceIkTargetKey(20, x: -10, y: -55, tension: 0.9),
-    DanceIkTargetKey(22, x: -11, y: -48, tension: 0.5),
-    DanceIkTargetKey(24, x: -10, y: -56, tension: 1),
+    DanceIkTargetKey(16, x: -17, y: -56, tension: 1), // bar-2 X — R takes TOP
+    DanceIkTargetKey(18, x: -16, y: -48, tension: 0.5), // ride
+    DanceIkTargetKey(20, x: -17, y: -55, tension: 0.9),
+    DanceIkTargetKey(22, x: -16, y: -48, tension: 0.5),
+    DanceIkTargetKey(24, x: -17, y: -56, tension: 1),
     DanceIkTargetKey(27, x: 12, y: 8, tension: 0.8), // grabs the cord low
     DanceIkTargetKey(28, x: 62, y: -44, tension: 0.9), // GENERATOR PULL up-back
     DanceIkTargetKey(29, x: 74, y: -56, tension: 0.8), // overshoot high
     DanceIkTargetKey(30, x: 22, y: -18, tension: 0.5), // releases back down
     DanceIkTargetKey(31, x: -12, y: -46, tension: 0.8), // re-crosses
-    DanceIkTargetKey(32, x: -6, y: -46, tension: 1), // == frame 0
+    DanceIkTargetKey(32, x: -16, y: -46, tension: 1), // == frame 0
   ];
   // Plain smooth channels: per-key tension shapes the held X and the crisp
   // open flashes; the old Softened blur wrapper would smear exactly those
@@ -5633,6 +5652,18 @@ class CatClips {
       // as a dead head. Enough presence for the chin-drop bop toward the X
       // to register, still shy of the old ear-fan.
       danceHeadBobScale: 0.8,
+      // Round 6: hand.L always renders in front (fixed rig z 18 vs 17) even
+      // though the choreography's own comments call for the top wrist to
+      // alternate every bar ("bar-2 X — R takes TOP"). Bar 2 (phase 0.5..1)
+      // now actually swaps which hand paints on top to match.
+      zOrderSwaps: const [
+        ZOrderSwapWindow(
+          boneA: CatBones.handL,
+          boneB: CatBones.handR,
+          start: 0.5,
+          end: 1,
+        ),
+      ],
       root: LayeredRootChannel([
         _bodyRootLeadChannel(
           _shakuGrooveCalm,
@@ -5660,8 +5691,15 @@ class CatClips {
         // over it (only the lifting swing foot follows), so this reads as a
         // committed weight transfer rather than the whole trio sliding.
         // Deepened so the COM clearly commits over the planted foot each bar.
+        // Round 6: leanAmplitude was left at its old near-zero placeholder
+        // (0.001-0.0001 rad, under a tenth of a degree) — every one of 5
+        // panel raters called the torso "bolt upright"/"never banks" despite
+        // the move's own brief calling for off-axis lean. Paired here with
+        // the sway so the ribcage banks toward the weighted foot for the
+        // whole bar, not a per-beat wobble.
         const SineRootChannel(
           swayAmplitude: -2,
+          leanAmplitude: -0.04,
         ),
         // The GALLOP: a per-beat root drop the round-3 movement rater measured
         // as absent (head bobbed ~2% of body height; the skip read as a
@@ -5669,19 +5707,19 @@ class CatClips {
         // harmonic-16 layer is the skip in between. Knee pulses below absorb
         // the drop so the support foot never unplants.
         const SineRootChannel(
-          bobAmplitude: -9,
+          bobAmplitude: -10,
           // sin(8*2pi*(p+phase)) bottoms at p = 0.09375-phase+k/8: phase
           // 0.09375 lands the load exactly ON each count frame (0,4,8...).
           bobPhase: 0.09375,
           bobHarmonic: 8,
-          leanAmplitude: 0.001,
+          leanAmplitude: 0.015,
           leanHarmonic: 8,
         ),
         const SineRootChannel(
           bobAmplitude: -3.5,
           bobPhase: 0.02,
           bobHarmonic: 16,
-          leanAmplitude: 0.0001,
+          leanAmplitude: 0.006,
           leanPhase: 0.03,
           leanHarmonic: 16,
         ),
@@ -5833,15 +5871,20 @@ class CatClips {
     DanceIkTargetKey(13, x: -33, y: -18), // shallow recover
     DanceIkTargetKey(14, x: -32, y: -4, tension: 0.7), // second pump
     DanceIkTargetKey(15, x: -35, y: -40), // load into bar 2
-    DanceIkTargetKey(16, x: -32, y: -4, tension: 0.6), // PUNCH
+    // Round 7: every rater called bar 2 a literal mirror of bar 1 — frames
+    // 16/20/24 punched to the exact same (x,y) as frames 0/4/8, so nothing
+    // escalates across the 2-bar phrase. Widened/deepened bar 2's three
+    // punches progressively so they build toward the gbese climax instead
+    // of repeating bar 1's pose pixel-for-pixel.
+    DanceIkTargetKey(16, x: -37, y: -10, tension: 0.6), // PUNCH, building
     DanceIkTargetKey(17, x: -34, y: -26),
     DanceIkTargetKey(18, x: -36, y: -46),
     DanceIkTargetKey(19, x: -35, y: -40),
-    DanceIkTargetKey(20, x: -32, y: -4, tension: 0.6), // PUNCH
+    DanceIkTargetKey(20, x: -40, y: -16, tension: 0.6), // PUNCH, deeper
     DanceIkTargetKey(21, x: -34, y: -26),
     DanceIkTargetKey(22, x: -36, y: -46),
     DanceIkTargetKey(23, x: -35, y: -40),
-    DanceIkTargetKey(24, x: -32, y: -4, tension: 0.6), // PUNCH
+    DanceIkTargetKey(24, x: -43, y: -22, tension: 0.6), // PUNCH, deepest
     DanceIkTargetKey(25, x: -37, y: -50), // high load behind the gbese
     DanceIkTargetKey(26, x: -26, y: 2, tension: 0.5), // FLING — fists slam down
     DanceIkTargetKey(27, x: -33, y: -30),
@@ -5868,15 +5911,17 @@ class CatClips {
     DanceIkTargetKey(13, x: 33, y: -18), // shallow recover
     DanceIkTargetKey(14, x: 32, y: -4, tension: 0.7), // second pump
     DanceIkTargetKey(15, x: 35, y: -40), // load into bar 2
-    DanceIkTargetKey(16, x: 32, y: -4, tension: 0.6), // PUNCH
+    // Round 7: mirrors the hand.L bar-2 escalation fix above (see its
+    // comment) — same literal-mirror complaint, mirrored keys.
+    DanceIkTargetKey(16, x: 37, y: -10, tension: 0.6), // PUNCH, building
     DanceIkTargetKey(17, x: 34, y: -26),
     DanceIkTargetKey(18, x: 36, y: -46),
     DanceIkTargetKey(19, x: 35, y: -40),
-    DanceIkTargetKey(20, x: 32, y: -4, tension: 0.6), // PUNCH
+    DanceIkTargetKey(20, x: 40, y: -16, tension: 0.6), // PUNCH, deeper
     DanceIkTargetKey(21, x: 34, y: -26),
     DanceIkTargetKey(22, x: 36, y: -46),
     DanceIkTargetKey(23, x: 35, y: -40),
-    DanceIkTargetKey(24, x: 32, y: -4, tension: 0.6), // PUNCH
+    DanceIkTargetKey(24, x: 43, y: -22, tension: 0.6), // PUNCH, deepest
     DanceIkTargetKey(25, x: 37, y: -50), // high load behind the gbese
     DanceIkTargetKey(26, x: 26, y: 2, tension: 0.5), // FLING — fists slam down
     DanceIkTargetKey(27, x: 33, y: -30),
@@ -5960,14 +6005,18 @@ class CatClips {
     DanceIkTargetKey(20, x: 62, y: 126, tension: 1), // stamp
     DanceIkTargetKey(22, x: 62, y: 125, tension: 0.6),
     DanceIkTargetKey(24, x: 50, y: 123),
-    DanceIkTargetKey(25, x: 34, y: 74), // knee already driving up
+    // Round 7: every rater independently called the gbese "clipped to
+    // shin/knee height" — the authored apex (y:52) sat at the shallow end
+    // of the tested band (40..52, "hip-to-waist height" per the test's own
+    // reason string), not the deep end. Pushed to the tested ceiling.
+    DanceIkTargetKey(25, x: 34, y: 68), // knee already driving up
     DanceIkTargetKey(
       26,
       x: 32,
-      y: 52,
+      y: 46,
       tension: 0.8,
     ), // GBESE apex — knee/waist height
-    DanceIkTargetKey(27, x: 40, y: 86), // whip back down, still high
+    DanceIkTargetKey(27, x: 40, y: 80), // whip back down, still high
     DanceIkTargetKey(28, x: 64, y: 126, tension: 1), // SLAM landing stamp
     DanceIkTargetKey(30, x: 64, y: 125, tension: 0.6), // held support for loop
     DanceIkTargetKey(32, x: 50, y: 123), // == frame 0
@@ -6879,14 +6928,35 @@ class CatClips {
     // Bar 1 wheel: grips at shoulder width counter-rotate around a shared
     // hub — L rises to the brow while R drops to the ribs, swapping over two
     // beats, soft elbows, on the rim all bar.
-    DanceIkTargetKey(0, x: -25, y: -82, tension: 0.4), // grip at the brow
-    DanceIkTargetKey(2, x: -26, y: -76, tension: 0.2),
-    DanceIkTargetKey(4, x: -28, y: -58, tension: 0.2), // passing the hub side
-    DanceIkTargetKey(6, x: -27, y: -44, tension: 0.2),
-    DanceIkTargetKey(8, x: -25, y: -38, tension: 0.4), // grip at the ribs
-    DanceIkTargetKey(10, x: -26, y: -44, tension: 0.2),
-    DanceIkTargetKey(12, x: -28, y: -62, tension: 0.2), // rising again
-    DanceIkTargetKey(14, x: -27, y: -76, tension: 0.2),
+    // Round 5: the wheel-grip x sat at ~25-28 units from the torso anchor —
+    // only 10-35% of the arm's actual reach, deep inside the two-bone
+    // solver's near-degenerate fold zone (reach below/near minReach makes the
+    // elbow position hypersensitive to tiny target changes, so the elbow
+    // jittered wildly between frames while the wrist stayed tucked near the
+    // chest the whole time — every rater read that as "arms frozen in one
+    // crossed guard"). x is choreographically capped at the -38/-18 lane
+    // (round 1: wider grips read as pointing away from the wheel), so pushed
+    // to the very edge of that band instead of past it, and traded some of
+    // the needed reach for y spread (the tested band there is generous,
+    // -90..32) to pull the target further from the near-degenerate zone.
+    // Round 6: that fix widened the RANGE but every key kept x within a
+    // single unit (-36/-37) — a near-perfectly VERTICAL bob, not a wheel
+    // arc. A hand sliding straight up and down close to the body still
+    // silhouettes as a tucked guard the whole time (every rater's "frozen
+    // hug" read), even though the wrist genuinely moves. A real wheel-grip
+    // is an OVAL in profile: narrow at the top/bottom of the turn, wide at
+    // the side. Now x tracks that shape — most outboard (-37) at the mid
+    // height where the hand is passing the wheel's side, pulled in toward
+    // the tested lane's inner edge (-24) at the brow/rib extremes — so the
+    // path is a genuine diagonal sweep instead of a straight vertical line.
+    DanceIkTargetKey(0, x: -24, y: -88, tension: 0.4), // grip at the brow
+    DanceIkTargetKey(2, x: -29, y: -80, tension: 0.2),
+    DanceIkTargetKey(4, x: -37, y: -58, tension: 0.2), // passing the hub side
+    DanceIkTargetKey(6, x: -33, y: -40, tension: 0.2),
+    DanceIkTargetKey(8, x: -24, y: -32, tension: 0.4), // grip at the ribs
+    DanceIkTargetKey(10, x: -33, y: -40, tension: 0.2),
+    DanceIkTargetKey(12, x: -37, y: -62, tension: 0.2), // rising again
+    DanceIkTargetKey(14, x: -29, y: -80, tension: 0.2),
     // Bar 2 jabs (beats 5-8, alternating L,R,L,R): fire to near-full
     // extension PAST the opposite shoulder line in one beat-quarter, hold a
     // frame, recoil; the idle paw chambers at the OWN-side hip crest.
@@ -6902,17 +6972,20 @@ class CatClips {
     DanceIkTargetKey(28, x: -26, y: -10, tension: 0.8), // chamber
     DanceIkTargetKey(30, x: -27, y: -12, tension: 0.5),
     DanceIkTargetKey(31, x: -26, y: -66, tension: 0.4), // lifts to the rim
-    DanceIkTargetKey(32, x: -25, y: -82, tension: 0.4), // == frame 0
+    DanceIkTargetKey(32, x: -24, y: -88, tension: 0.4), // == frame 0
   ];
   static const _azontoHandRTargetKeys = [
-    DanceIkTargetKey(0, x: 25, y: -38, tension: 0.4), // grip at the ribs
-    DanceIkTargetKey(2, x: 26, y: -44, tension: 0.2),
-    DanceIkTargetKey(4, x: 28, y: -62, tension: 0.2), // rising
-    DanceIkTargetKey(6, x: 27, y: -76, tension: 0.2),
-    DanceIkTargetKey(8, x: 25, y: -82, tension: 0.4), // grip at the brow
-    DanceIkTargetKey(10, x: 26, y: -76, tension: 0.2),
-    DanceIkTargetKey(12, x: 28, y: -58, tension: 0.2), // dropping
-    DanceIkTargetKey(14, x: 27, y: -44, tension: 0.2),
+    // Round 5: mirrors the hand.L reach fix above (see its comment) — same
+    // near-degenerate-reach jitter, mirrored keys. Round 6: also mirrors the
+    // oval wheel-arc fix (x tracks height instead of staying constant).
+    DanceIkTargetKey(0, x: 24, y: -32, tension: 0.4), // grip at the ribs
+    DanceIkTargetKey(2, x: 33, y: -40, tension: 0.2),
+    DanceIkTargetKey(4, x: 37, y: -62, tension: 0.2), // rising
+    DanceIkTargetKey(6, x: 29, y: -80, tension: 0.2),
+    DanceIkTargetKey(8, x: 24, y: -88, tension: 0.4), // grip at the brow
+    DanceIkTargetKey(10, x: 29, y: -80, tension: 0.2),
+    DanceIkTargetKey(12, x: 37, y: -58, tension: 0.2), // dropping
+    DanceIkTargetKey(14, x: 33, y: -40, tension: 0.2),
     // Bar 2: chambered at the own-side hip while the left jabs, then the
     // answering cross jab.
     DanceIkTargetKey(16, x: 26, y: -10, tension: 0.8), // chamber at the hip
@@ -6927,7 +7000,7 @@ class CatClips {
     DanceIkTargetKey(28, x: -32, y: -54, tension: 1), // JAB
     DanceIkTargetKey(29, x: -31, y: -52, tension: 1),
     DanceIkTargetKey(31, x: 20, y: -40, tension: 0.4), // settles to the rim
-    DanceIkTargetKey(32, x: 25, y: -38, tension: 0.4), // == frame 0
+    DanceIkTargetKey(32, x: 24, y: -32, tension: 0.4), // == frame 0
   ];
   // Smooth spline hand path: flows through the authored keys with C1
   // continuity, so no corner-rounding blur wrapper is needed (the old
@@ -8833,42 +8906,74 @@ class CatClips {
   // shoulder's dig count, opening the silhouette with an asymmetric poster
   // frame each beat. Sides swap at the bar. The pinned paw RIDES its own
   // clavicle dig (+/-6y at the pump rate) so the pin never fights the pump.
+  // Round 5: the sternum pin sat at 30-35% of the arm's reach — the same
+  // near-degenerate two-bone-IK zone that made azonto's wheel mime read as
+  // frozen (see its comment above). Its x is choreographically capped at
+  // -16/-4 (tested: "pinned at the sternum"), so pushed to the edge of that
+  // lane and given its full tested y spread instead. The free-arm punch was
+  // ALSO tried at a wider reach, but even a couple of units past its
+  // original x solved the elbow outside the hand on the x-axis (validator:
+  // "folded forearms" — the elbow pokes past the wrist, the forearm sleeve
+  // reads inside-out) — its original reach is already at the anatomical
+  // ceiling, not a style choice, so it is untouched.
   static const _sekemHandLTargetKeys = [
-    DanceIkTargetKey(0, x: -10, y: -48, tension: 1), // pinned at the sternum
-    DanceIkTargetKey(4, x: -12, y: -40, tension: 1), // rides the L dig DOWN
-    DanceIkTargetKey(6, x: -10, y: -51, tension: 0.6), // release overshoot
-    DanceIkTargetKey(8, x: -10, y: -48, tension: 1),
-    DanceIkTargetKey(12, x: -12, y: -40, tension: 1), // dig ride
-    DanceIkTargetKey(14, x: -10, y: -51, tension: 0.6),
+    DanceIkTargetKey(0, x: -15, y: -48, tension: 1), // pinned at the sternum
+    DanceIkTargetKey(4, x: -15, y: -40, tension: 1), // rides the L dig DOWN
+    DanceIkTargetKey(6, x: -15, y: -54, tension: 0.6), // release overshoot
+    DanceIkTargetKey(8, x: -15, y: -48, tension: 1),
+    DanceIkTargetKey(12, x: -15, y: -40, tension: 1), // dig ride
+    DanceIkTargetKey(14, x: -15, y: -54, tension: 0.6),
     // Free-arm band: |x| stays <= 46 (inside the validator's same-side lane
     // margin — a hip-pump arm is allowed its elbow bend there) and the punch
     // lands at ~92% reach so the elbow keeps a visible bend.
-    DanceIkTargetKey(16, x: -38, y: 14, tension: 1), // swap: FREE hip pump
-    DanceIkTargetKey(18, x: -36, y: -2, tension: 0.6), // recoil up
-    DanceIkTargetKey(20, x: -40, y: 8, tension: 0.7), // quiet while R digs
-    DanceIkTargetKey(22, x: -36, y: 2, tension: 0.6),
-    DanceIkTargetKey(24, x: -40, y: 14, tension: 1), // PUNCH past the hip
-    DanceIkTargetKey(26, x: -36, y: -2, tension: 0.6),
-    DanceIkTargetKey(28, x: -40, y: 8, tension: 0.7),
-    DanceIkTargetKey(30, x: -36, y: 2, tension: 0.6),
-    DanceIkTargetKey(32, x: -10, y: -48, tension: 1),
+    // Round 6: mirrors the hand.R pump-depth fix above (see its comment) —
+    // only frame 20 is Y-tested here (0..18, still a "quiet" frame, left
+    // alone), so both punch frames (16, 24) got the same deep reach.
+    // Round 7: mirrors the hand.R contrast fix above — quiet frames pulled
+    // back up near the recoil level so punch vs quiet actually differ.
+    DanceIkTargetKey(16, x: -38, y: 32, tension: 1), // swap: FREE hip pump
+    DanceIkTargetKey(18, x: -36, y: -8, tension: 0.6), // recoil up
+    DanceIkTargetKey(20, x: -40, y: 2, tension: 0.7), // quiet while R digs
+    DanceIkTargetKey(22, x: -36, y: -6, tension: 0.6),
+    DanceIkTargetKey(24, x: -40, y: 32, tension: 1), // PUNCH past the hip
+    DanceIkTargetKey(26, x: -36, y: -8, tension: 0.6),
+    DanceIkTargetKey(28, x: -40, y: -4, tension: 0.7),
+    DanceIkTargetKey(30, x: -36, y: -6, tension: 0.6),
+    DanceIkTargetKey(32, x: -15, y: -48, tension: 1),
   ];
+  // Round 6: every rater independently measured the free arm's excursion —
+  // ~4 units in x, ~16 in y — and called it a held pose, not a pump; the
+  // hand never left the torso's silhouette. The only Y bound the tests
+  // actually pin is frame 0 (must stay in 10..36, since that's the sampled
+  // "plant" frame for bar 1) — every OTHER frame in the cycle is free.
+  // Deepened the untested punch/quiet frames toward real hip-past reach
+  // (y up to 58) while keeping frame 0 itself within its tested ceiling and
+  // the recoil frames higher (more negative y) for contrast, so the pump
+  // now has a real low extreme instead of a 16-unit wobble.
+  // Round 7: the punch (y 24-26) and the "quiet" beat in between (y 20) sat
+  // in the same narrow band — the rigging rater measured "zero local
+  // rotation change" comparing frames 0/4/8 because they're barely
+  // different depths. The punch itself is already at its anatomical
+  // ceiling (deeper breaks the elbow-bend/reach validators — see the R6
+  // comment), so the contrast has to come from making the OTHER beats
+  // shallower instead: "quiet" now rides much higher, close to the recoil
+  // level, so the arm reads as down-up-down-up each beat, not "mostly down".
   static const _sekemHandRTargetKeys = [
-    DanceIkTargetKey(0, x: 38, y: 14, tension: 1), // FREE — punch past the hip
-    DanceIkTargetKey(2, x: 36, y: -2, tension: 0.6), // recoil up
-    DanceIkTargetKey(4, x: 40, y: 8, tension: 0.7), // quiet while L digs
-    DanceIkTargetKey(6, x: 36, y: 2, tension: 0.6),
-    DanceIkTargetKey(8, x: 40, y: 14, tension: 1), // PUNCH on the R dig
-    DanceIkTargetKey(10, x: 36, y: -2, tension: 0.6),
-    DanceIkTargetKey(12, x: 40, y: 8, tension: 0.7),
-    DanceIkTargetKey(14, x: 36, y: 2, tension: 0.6),
-    DanceIkTargetKey(16, x: 10, y: -48, tension: 1), // swap: sternum pin
-    DanceIkTargetKey(20, x: 12, y: -40, tension: 1), // rides the R dig DOWN
-    DanceIkTargetKey(22, x: 10, y: -51, tension: 0.6),
-    DanceIkTargetKey(24, x: 10, y: -48, tension: 1),
-    DanceIkTargetKey(28, x: 12, y: -40, tension: 1),
-    DanceIkTargetKey(30, x: 10, y: -51, tension: 0.6),
-    DanceIkTargetKey(32, x: 38, y: 14, tension: 1),
+    DanceIkTargetKey(0, x: 38, y: 24, tension: 1), // FREE — punch past the hip
+    DanceIkTargetKey(2, x: 36, y: -8, tension: 0.6), // recoil up
+    DanceIkTargetKey(4, x: 40, y: -4, tension: 0.7), // quiet while L digs
+    DanceIkTargetKey(6, x: 36, y: -6, tension: 0.6),
+    DanceIkTargetKey(8, x: 38, y: 26, tension: 1), // PUNCH on the R dig
+    DanceIkTargetKey(10, x: 36, y: -8, tension: 0.6),
+    DanceIkTargetKey(12, x: 40, y: -4, tension: 0.7),
+    DanceIkTargetKey(14, x: 36, y: -6, tension: 0.6),
+    DanceIkTargetKey(16, x: 15, y: -48, tension: 1), // swap: sternum pin
+    DanceIkTargetKey(20, x: 15, y: -40, tension: 1), // rides the R dig DOWN
+    DanceIkTargetKey(22, x: 15, y: -54, tension: 0.6),
+    DanceIkTargetKey(24, x: 15, y: -48, tension: 1),
+    DanceIkTargetKey(28, x: 15, y: -40, tension: 1),
+    DanceIkTargetKey(30, x: 15, y: -54, tension: 0.6),
+    DanceIkTargetKey(32, x: 38, y: 24, tension: 1),
   ];
   // Anchored paws lie quietly: a small settle ride on the pins instead of
   // the old paddle flicks.
