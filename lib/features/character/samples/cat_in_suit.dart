@@ -5775,7 +5775,7 @@ class CatClips {
     DanceIkTargetKey(1, x: -66, y: -46),
     DanceIkTargetKey(2, x: -60, y: -32),
     DanceIkTargetKey(3, x: -72, y: -44),
-    DanceIkTargetKey(4, x: -98, y: -10, ease: Ease.easeOutBack), // punch down
+    DanceIkTargetKey(4, x: -98, y: -6, tension: 0.85), // punch down HITS
     DanceIkTargetKey(5, x: -76, y: -48),
     DanceIkTargetKey(6, x: -66, y: -58),
     DanceIkTargetKey(7, x: -72, y: -48),
@@ -5783,7 +5783,7 @@ class CatClips {
     DanceIkTargetKey(9, x: -70, y: -38),
     DanceIkTargetKey(10, x: -58, y: -28),
     DanceIkTargetKey(11, x: -74, y: -40),
-    DanceIkTargetKey(12, x: -98, y: -12, ease: Ease.easeOutBack),
+    DanceIkTargetKey(12, x: -98, y: -8, tension: 0.85),
     DanceIkTargetKey(13, x: -80, y: -48),
     DanceIkTargetKey(14, x: -68, y: -60),
     DanceIkTargetKey(15, x: -72, y: -48),
@@ -5791,7 +5791,7 @@ class CatClips {
     DanceIkTargetKey(17, x: -64, y: -46),
     DanceIkTargetKey(18, x: -56, y: -30),
     DanceIkTargetKey(19, x: -74, y: -44),
-    DanceIkTargetKey(20, x: -98, y: -10, ease: Ease.easeOutBack),
+    DanceIkTargetKey(20, x: -98, y: -6, tension: 0.85),
     DanceIkTargetKey(21, x: -78, y: -48),
     DanceIkTargetKey(22, x: -66, y: -58),
     DanceIkTargetKey(23, x: -72, y: -48),
@@ -5799,14 +5799,14 @@ class CatClips {
     DanceIkTargetKey(25, x: -68, y: -44),
     DanceIkTargetKey(26, x: -56, y: -30),
     DanceIkTargetKey(27, x: -72, y: -44),
-    DanceIkTargetKey(28, x: -98, y: -7, ease: Ease.easeOutBack),
+    DanceIkTargetKey(28, x: -98, y: -4, tension: 0.85),
     DanceIkTargetKey(29, x: -78, y: -48),
     DanceIkTargetKey(30, x: -66, y: -58),
     DanceIkTargetKey(31, x: -72, y: -48),
     DanceIkTargetKey(32, x: -74, y: -54),
   ];
   static const _zankuHandRTargetKeys = [
-    DanceIkTargetKey(0, x: 98, y: -10, ease: Ease.easeOutBack), // punch down
+    DanceIkTargetKey(0, x: 98, y: -6, tension: 0.85), // punch down HITS
     DanceIkTargetKey(1, x: 76, y: -48),
     DanceIkTargetKey(2, x: 66, y: -58),
     DanceIkTargetKey(3, x: 72, y: -48),
@@ -5814,7 +5814,7 @@ class CatClips {
     DanceIkTargetKey(5, x: 66, y: -46),
     DanceIkTargetKey(6, x: 60, y: -32),
     DanceIkTargetKey(7, x: 72, y: -44),
-    DanceIkTargetKey(8, x: 98, y: -12, ease: Ease.easeOutBack),
+    DanceIkTargetKey(8, x: 98, y: -8, tension: 0.85),
     DanceIkTargetKey(9, x: 80, y: -48),
     DanceIkTargetKey(10, x: 68, y: -60),
     DanceIkTargetKey(11, x: 72, y: -48),
@@ -5822,7 +5822,7 @@ class CatClips {
     DanceIkTargetKey(13, x: 70, y: -38),
     DanceIkTargetKey(14, x: 58, y: -28),
     DanceIkTargetKey(15, x: 74, y: -40),
-    DanceIkTargetKey(16, x: 98, y: -10, ease: Ease.easeOutBack),
+    DanceIkTargetKey(16, x: 98, y: -6, tension: 0.85),
     DanceIkTargetKey(17, x: 78, y: -48),
     DanceIkTargetKey(18, x: 66, y: -58),
     DanceIkTargetKey(19, x: 72, y: -48),
@@ -5830,7 +5830,7 @@ class CatClips {
     DanceIkTargetKey(21, x: 64, y: -46),
     DanceIkTargetKey(22, x: 56, y: -30),
     DanceIkTargetKey(23, x: 74, y: -44),
-    DanceIkTargetKey(24, x: 98, y: -10, ease: Ease.easeOutBack),
+    DanceIkTargetKey(24, x: 98, y: -6, tension: 0.85),
     DanceIkTargetKey(25, x: 78, y: -48),
     DanceIkTargetKey(26, x: 66, y: -58),
     DanceIkTargetKey(27, x: 72, y: -48),
@@ -5838,7 +5838,7 @@ class CatClips {
     DanceIkTargetKey(29, x: 68, y: -44),
     DanceIkTargetKey(30, x: 58, y: -30),
     DanceIkTargetKey(31, x: 72, y: -44),
-    DanceIkTargetKey(32, x: 98, y: -10, ease: Ease.easeOutBack),
+    DanceIkTargetKey(32, x: 98, y: -6, tension: 0.85),
   ];
   // Smooth spline hand path: flows through the authored keys with C1
   // continuity, so no corner-rounding blur wrapper is needed (the old
@@ -5910,9 +5910,9 @@ class CatClips {
     DanceIkTargetKey(20, x: 62, y: 126, tension: 1), // stamp
     DanceIkTargetKey(22, x: 62, y: 125, tension: 0.6),
     DanceIkTargetKey(24, x: 50, y: 123),
-    DanceIkTargetKey(25, x: 38, y: 102), // promoted knock-door pickup
-    DanceIkTargetKey(26, x: 30, y: 84), // forward/up accent, not a side kick
-    DanceIkTargetKey(27, x: 54, y: 114), // retract under the knee
+    DanceIkTargetKey(25, x: 36, y: 92), // promoted knock-door pickup
+    DanceIkTargetKey(26, x: 26, y: 58, tension: 0.7), // GBESE — knee drives up, foot at waist height
+    DanceIkTargetKey(27, x: 52, y: 112), // retract under the knee
     DanceIkTargetKey(28, x: 64, y: 126, tension: 1), // exact-window support stamp
     DanceIkTargetKey(30, x: 64, y: 125, tension: 0.6), // held support for loop
     DanceIkTargetKey(32, x: 50, y: 123), // == frame 0
@@ -5980,6 +5980,48 @@ class CatClips {
     DanceJointKey(27, rotation: 0.42),
     DanceJointKey(28, rotation: -0.1),
     DanceJointKey(32, rotation: 0.42),
+  ];
+  // Clavicle rolls behind the stamps (panel: 'elbow-only hinges, clavicles
+  // frozen'): the shoulder opposite the striking foot dips into each count
+  // — left foot stamps the odd counts so the RIGHT shoulder dips there, the
+  // LEFT answers on the right foot's counts.
+  static const _zankuClavicleRKeys = [
+    DanceJointKey(0, rotation: 0.12),
+    DanceJointKey(2, rotation: -0.1),
+    DanceJointKey(4, rotation: -0.03),
+    DanceJointKey(6, rotation: 0.02),
+    DanceJointKey(8, rotation: 0.12),
+    DanceJointKey(10, rotation: -0.1),
+    DanceJointKey(12, rotation: -0.03),
+    DanceJointKey(14, rotation: 0.02),
+    DanceJointKey(16, rotation: 0.12),
+    DanceJointKey(18, rotation: -0.1),
+    DanceJointKey(20, rotation: -0.03),
+    DanceJointKey(22, rotation: 0.02),
+    DanceJointKey(24, rotation: 0.12),
+    DanceJointKey(26, rotation: -0.1),
+    DanceJointKey(28, rotation: -0.03),
+    DanceJointKey(30, rotation: 0.02),
+    DanceJointKey(32, rotation: 0.12),
+  ];
+  static const _zankuClavicleLKeys = [
+    DanceJointKey(0, rotation: 0.03),
+    DanceJointKey(2, rotation: -0.12),
+    DanceJointKey(4, rotation: 0.1),
+    DanceJointKey(6, rotation: -0.02),
+    DanceJointKey(8, rotation: 0.03),
+    DanceJointKey(10, rotation: -0.12),
+    DanceJointKey(12, rotation: 0.1),
+    DanceJointKey(14, rotation: -0.02),
+    DanceJointKey(16, rotation: 0.03),
+    DanceJointKey(18, rotation: -0.12),
+    DanceJointKey(20, rotation: 0.1),
+    DanceJointKey(22, rotation: -0.02),
+    DanceJointKey(24, rotation: 0.03),
+    DanceJointKey(26, rotation: -0.12),
+    DanceJointKey(28, rotation: 0.1),
+    DanceJointKey(30, rotation: -0.02),
+    DanceJointKey(32, rotation: 0.03),
   ];
   static const _zankuHandLKeys = [
     DanceJointKey(0, rotation: -0.18),
@@ -6695,8 +6737,16 @@ class CatClips {
           _zankuHandRKeys,
           smooth: true,
         ),
-        //
-        //
+        // Shoulder rolls behind the stamps, contralateral to the striking
+        // foot, layered over the base girdle groove.
+        CatBones.clavicleR: LayeredJointChannel([
+          base.channels[CatBones.clavicleR]!,
+          _dancePhrase.jointChannel(_zankuClavicleRKeys, smooth: true),
+        ]),
+        CatBones.clavicleL: LayeredJointChannel([
+          base.channels[CatBones.clavicleL]!,
+          _dancePhrase.jointChannel(_zankuClavicleLKeys, smooth: true),
+        ]),
         CatBones.earL: _earFollow(side: 1, amplitude: 0.022, phase: 0.1),
         CatBones.earR: _earFollow(side: -1, amplitude: 0.022, phase: 0.57),
         ..._tailFollowThrough(amplitude: 0.095, phase: 0.06),
@@ -7101,85 +7151,61 @@ class CatClips {
   // frame-12 hit, LEFT arm on the frame-28 hit.
   // ─────────────────────────────────────────────────────────────────────────
   static const _bugaBodyKeys = [
-    // "lo-lo-lo-BUGA": three DISTINCT dip pulses (down on each count, partial
-    // rise between) that deepen toward count 3, a held re-load just before the
-    // hit (anticipation), then a hard RISE above standing height with a chest
-    // pop on count 4 (the biggest vertical delta in the loop).
+    // "lo-lo-lo-BUGA" as three STEPPED plateaus (panel round 2): each count
+    // drops to a distinct level and HOLDS two frames so the level registers
+    // as a pose (the old keys drifted through a smooth two-pulse dip that
+    // read as idle bobbing), then the hit explodes up out of the third
+    // level. Bar 2 repeats at the SAME depths — the second phrase must not
+    // sink lazy.
     DanceBodyKey(
       0,
-      rootDx: -6,
-      rootDy: 18,
-      pelvisRotation: -0.08,
-      chestRotation: -0.16,
+      rootDx: -5,
+      rootDy: 14,
+      pelvisRotation: -0.05,
+      chestRotation: -0.12,
       chestScaleY: 0.96,
-    ), // lo1 dip (count 1)
-    DanceBodyKey(
-      2,
-      rootDx: -9,
-      rootDy: 6,
-      chestRotation: -0.18,
-      chestScaleY: 1.05,
-    ),
+    ), // lo1 arrives ON count 1
+    DanceBodyKey(2, rootDx: -6, rootDy: 14, chestRotation: -0.12, chestScaleY: 0.96), // lo1 HOLDS
     DanceBodyKey(
       4,
       rootDx: 5,
-      rootDy: 25,
-      rootRotation: 0.002,
-      pelvisRotation: 0.08,
-      chestRotation: -0.26,
-      chestScaleY: 0.88,
-    ), // lo2 dip (count 2)
-    DanceBodyKey(
-      6,
-      rootDx: 9,
-      rootDy: 7,
-      chestRotation: -0.08,
-      chestScaleY: 1,
-    ),
+      rootDy: 24,
+      pelvisRotation: 0.06,
+      chestRotation: -0.18,
+      chestScaleY: 0.9,
+    ), // lo2 steps down
+    DanceBodyKey(6, rootDx: 6, rootDy: 24, chestRotation: -0.18, chestScaleY: 0.9), // lo2 HOLDS
     DanceBodyKey(
       8,
-      rootDx: -7,
-      rootDy: 34,
-      rootRotation: 0.003,
-      pelvisRotation: -0.14,
-      chestRotation: -0.24,
-      chestScaleY: 0.82,
-    ), // lo3 DEEP load (count 3)
-    DanceBodyKey(
-      10,
-      rootDx: -12,
-      rootDy: 20,
-      rootRotation: 0.003,
-      pelvisRotation: 0.04,
-      chestRotation: -0.08,
-      chestScaleY: 0.95,
-      chestScaleX: 1.02,
-    ),
+      rootDx: -6,
+      rootDy: 36,
+      pelvisRotation: -0.1,
+      chestRotation: -0.22,
+      chestScaleY: 0.84,
+    ), // lo3 — deepest step
+    DanceBodyKey(10, rootDx: -7, rootDy: 36, chestRotation: -0.2, chestScaleY: 0.84), // lo3 HOLDS
     DanceBodyKey(
       11,
       rootDx: -8,
-      rootDy: 38,
+      rootDy: 40,
       pelvisRotation: -0.06,
       chestRotation: 0.05,
-      chestScaleY: 0.84,
-    ), // hold/re-load (anticip.)
-    // The unison peacock hit pops the chest SQUARE to the audience: the old
-    // heavy pelvis/chest twist belonged to the alternating one-arm present
-    // and banked the girdle ~20 units, winging the high-side elbow.
+      chestScaleY: 0.82,
+    ), // extra re-load (anticipation)
     DanceBodyKey(
       12,
       rootDx: -6,
-      rootDy: 6,
+      rootDy: 4,
       rootRotation: 0.003,
       pelvisRotation: 0.06,
       chestRotation: -0.1,
       chestScaleY: 1.16,
       chestScaleX: 0.97,
-    ), // HIT
+    ), // HIT — explode up, chest pops square
     DanceBodyKey(
       14,
       rootDx: -5,
-      rootDy: 8,
+      rootDy: 6,
       rootRotation: 0.002,
       pelvisRotation: 0.05,
       chestRotation: -0.08,
@@ -7188,7 +7214,7 @@ class CatClips {
     DanceBodyKey(
       15,
       rootDx: -4,
-      rootDy: 18,
+      rootDy: 10,
       rootRotation: 0.002,
       pelvisRotation: 0.03,
       chestRotation: -0.05,
@@ -7196,68 +7222,43 @@ class CatClips {
     ),
     DanceBodyKey(
       16,
-      rootDx: 6,
-      rootDy: 18,
-      pelvisRotation: 0.04,
-      chestRotation: 0.16,
+      rootDx: 5,
+      rootDy: 14,
+      pelvisRotation: 0.05,
+      chestRotation: 0.12,
       chestScaleY: 0.96,
-    ), // cell 2: lo1
-    DanceBodyKey(
-      18,
-      rootDx: 9,
-      rootDy: 4,
-      pelvisRotation: -0.08,
-      chestRotation: 0.24,
-      chestScaleY: 1.08,
-    ),
+    ), // cell 2: lo1 — same depth as bar 1
+    DanceBodyKey(18, rootDx: 6, rootDy: 14, chestRotation: 0.12, chestScaleY: 0.96), // lo1 HOLDS
     DanceBodyKey(
       20,
       rootDx: -5,
-      rootDy: 22,
-      rootRotation: -0.002,
-      pelvisRotation: -0.12,
-      chestRotation: 0.3,
+      rootDy: 24,
+      pelvisRotation: -0.06,
+      chestRotation: 0.18,
       chestScaleY: 0.9,
-    ),
-    DanceBodyKey(
-      22,
-      rootDx: -9,
-      rootDy: 5,
-      pelvisRotation: 0.08,
-      chestRotation: -0.18,
-      chestScaleY: 1.06,
-    ),
+    ), // lo2
+    DanceBodyKey(22, rootDx: -6, rootDy: 24, chestRotation: 0.18, chestScaleY: 0.9), // lo2 HOLDS
     DanceBodyKey(
       24,
-      rootDx: 7,
-      rootDy: 30,
-      rootRotation: -0.003,
-      pelvisRotation: 0.16,
-      chestRotation: -0.24,
+      rootDx: 6,
+      rootDy: 36,
+      pelvisRotation: 0.1,
+      chestRotation: 0.22,
       chestScaleY: 0.84,
-    ),
-    DanceBodyKey(
-      26,
-      rootDx: 12,
-      rootDy: 20,
-      rootRotation: -0.003,
-      pelvisRotation: -0.04,
-      chestRotation: 0.08,
-      chestScaleY: 0.95,
-      chestScaleX: 1.02,
-    ),
+    ), // lo3
+    DanceBodyKey(26, rootDx: 7, rootDy: 36, chestRotation: 0.2, chestScaleY: 0.84), // lo3 HOLDS
     DanceBodyKey(
       27,
       rootDx: 8,
-      rootDy: 38,
+      rootDy: 40,
       pelvisRotation: 0.06,
       chestRotation: -0.05,
-      chestScaleY: 0.84,
-    ),
+      chestScaleY: 0.82,
+    ), // re-load
     DanceBodyKey(
       28,
       rootDx: 6,
-      rootDy: 6,
+      rootDy: 4,
       rootRotation: -0.003,
       pelvisRotation: -0.06,
       chestRotation: 0.1,
@@ -7267,7 +7268,7 @@ class CatClips {
     DanceBodyKey(
       30,
       rootDx: 5,
-      rootDy: 8,
+      rootDy: 6,
       rootRotation: -0.002,
       pelvisRotation: -0.05,
       chestRotation: 0.08,
@@ -7275,39 +7276,47 @@ class CatClips {
     ),
     DanceBodyKey(
       31,
-      rootDx: 12,
-      rootDy: 18,
-      rootRotation: -0.003,
-      pelvisRotation: -0.08,
-      chestRotation: 0.18,
+      rootDx: 4,
+      rootDy: 10,
+      rootRotation: -0.002,
+      pelvisRotation: -0.03,
+      chestRotation: 0.05,
       chestScaleY: 0.98,
     ),
     DanceBodyKey(
       32,
-      rootDx: -6,
-      rootDy: 18,
-      pelvisRotation: -0.04,
-      chestRotation: 0.04,
-      chestScaleY: 0.93,
+      rootDx: -5,
+      rootDy: 14,
+      pelvisRotation: -0.05,
+      chestRotation: -0.12,
+      chestScaleY: 0.96,
     ),
   ];
   // Shins drive the hit: knees flex DEEP through the three dips (loading), then
   // EXTEND hard on the BUGA frame so the rise is powered from the ground/legs,
   // not just an arm raise. Both legs together (unison move).
   static const _bugaLegLowerKeys = [
-    DanceJointKey(0, rotation: -1),
-    DanceJointKey(4, rotation: -1.12),
-    DanceJointKey(8, rotation: -1.3), // deep load
-    DanceJointKey(11, rotation: -1.34),
+    DanceJointKey(0, rotation: -1.02), // lo1 flex
+    DanceJointKey(2, rotation: -1.02),
+    DanceJointKey(4, rotation: -1.16), // lo2 deeper
+    DanceJointKey(6, rotation: -1.16),
+    DanceJointKey(8, rotation: -1.32), // lo3 deepest load
+    DanceJointKey(10, rotation: -1.32),
+    DanceJointKey(11, rotation: -1.36),
     DanceJointKey(12, rotation: -0.72), // EXTEND — leg drive, not a locked knee
     DanceJointKey(14, rotation: -0.76),
-    DanceJointKey(16, rotation: -0.84),
-    DanceJointKey(20, rotation: -1.12),
-    DanceJointKey(24, rotation: -1.3),
-    DanceJointKey(27, rotation: -1.34),
+    DanceJointKey(15, rotation: -0.86),
+    DanceJointKey(16, rotation: -1.02),
+    DanceJointKey(18, rotation: -1.02),
+    DanceJointKey(20, rotation: -1.16),
+    DanceJointKey(22, rotation: -1.16),
+    DanceJointKey(24, rotation: -1.32),
+    DanceJointKey(26, rotation: -1.32),
+    DanceJointKey(27, rotation: -1.36),
     DanceJointKey(28, rotation: -0.72), // EXTEND
     DanceJointKey(30, rotation: -0.76),
-    DanceJointKey(32, rotation: -0.84),
+    DanceJointKey(31, rotation: -0.86),
+    DanceJointKey(32, rotation: -1.02),
   ];
   // The peacock hit lands with a DOUBLE shoulder shrug — both clavicles rise
   // together on every hit (the audit's mirror fix; the old keys shrugged one
@@ -7660,22 +7669,22 @@ class CatClips {
     DanceBodyKey(
       10,
       rootDx: 16,
-      rootDy: 54,
-      pelvisRotation: 0.3,
-      chestRotation: -0.36,
-      chestScaleY: 0.76,
-      chestScaleX: 1.2,
-    ),
+      rootDy: 44,
+      pelvisRotation: 0.15,
+      chestRotation: -0.14,
+      chestScaleY: 0.94,
+      chestScaleX: 1.04,
+    ), // settle into the glide
     DanceBodyKey(
       12,
       rootDx: 14,
-      rootDy: 76,
+      rootDy: 48,
       rootRotation: -0.004,
-      pelvisRotation: 0.24,
-      chestRotation: -0.24,
-      chestScaleY: 0.66,
-      chestScaleX: 1.22,
-    ),
+      pelvisRotation: 0.12,
+      chestRotation: -0.12,
+      chestScaleY: 0.92,
+      chestScaleX: 1.06,
+    ), // GLIDE — level head, knees absorb (the Amapiano contrast)
     DanceBodyKey(
       14,
       rootDx: 8,
@@ -7726,22 +7735,22 @@ class CatClips {
     DanceBodyKey(
       26,
       rootDx: -16,
-      rootDy: 54,
-      pelvisRotation: -0.3,
-      chestRotation: 0.36,
-      chestScaleY: 0.76,
-      chestScaleX: 1.2,
-    ),
+      rootDy: 44,
+      pelvisRotation: -0.15,
+      chestRotation: 0.14,
+      chestScaleY: 0.94,
+      chestScaleX: 1.04,
+    ), // GLIDE
     DanceBodyKey(
       28,
       rootDx: -14,
-      rootDy: 76,
+      rootDy: 48,
       rootRotation: 0.004,
-      pelvisRotation: -0.24,
-      chestRotation: 0.24,
-      chestScaleY: 0.66,
-      chestScaleX: 1.22,
-    ),
+      pelvisRotation: -0.12,
+      chestRotation: 0.12,
+      chestScaleY: 0.92,
+      chestScaleX: 1.06,
+    ), // GLIDE
     DanceBodyKey(
       30,
       rootDx: -8,
@@ -7887,8 +7896,8 @@ class CatClips {
     DanceIkTargetKey(6, x: -44, y: -54),
     // Mirrored cross-body guide — see the right hand's frame-23 key.
     DanceIkTargetKey(7, x: -12, y: -86),
-    DanceIkTargetKey(8, x: 18, y: -74, ease: Ease.easeOutBack),
-    DanceIkTargetKey(10, x: 30, y: -58),
+    DanceIkTargetKey(8, x: 38, y: -92, tension: 0.6), // swipe apex past the far ear
+    DanceIkTargetKey(10, x: 44, y: -78), // releasing off the apex
     DanceIkTargetKey(12, x: -52, y: -34),
     DanceIkTargetKey(14, x: -34, y: -38),
     DanceIkTargetKey(16, x: -48, y: -24),
@@ -7915,8 +7924,8 @@ class CatClips {
     // path between 22 and 24 dips within ~6 units of the shoulder, demanding
     // an impossible fold (the clipping meter flagged it).
     DanceIkTargetKey(23, x: 12, y: -86),
-    DanceIkTargetKey(24, x: -18, y: -74, ease: Ease.easeOutBack),
-    DanceIkTargetKey(26, x: -30, y: -58),
+    DanceIkTargetKey(24, x: -38, y: -92, tension: 0.6), // swipe apex past the far ear
+    DanceIkTargetKey(26, x: -44, y: -78), // releasing off the apex
     DanceIkTargetKey(28, x: 52, y: -34),
     DanceIkTargetKey(30, x: 34, y: -38),
     DanceIkTargetKey(32, x: 42, y: -8),
@@ -7967,7 +7976,7 @@ class CatClips {
       contactPinning: base.contactPinning,
       limbTargets: _pounceLimbTargets,
       supportFootWorldAnchor: true,
-      supportFootWorldAnchorStrength: 0.78,
+      supportFootWorldAnchorStrength: 0.88,
       // The head must stay DEAD-LEVEL over the gliding base (the signature
       // Amapiano contrast). Kill the engine's dance head-nod attitude (scale 0)
       // and the inherited dance neck/head nod channels below — the body's rootDy

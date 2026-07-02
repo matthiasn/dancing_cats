@@ -748,7 +748,7 @@ void main() {
       // Per-clip shrug ceilings: groove clips keep the girdle subtle, while
       // sekem's whole identity is the shoulder-led pump (panel round 1: the
       // frozen yoke was scored down) so its clavicles may jerk visibly.
-      const shrugCeiling = {'shaku': 0.07, 'zanku': 0.07, 'sekem': 0.24};
+      const shrugCeiling = {'shaku': 0.07, 'zanku': 0.2, 'sekem': 0.24};
       for (final clip in [CatClips.shaku, CatClips.zanku, CatClips.sekem]) {
         final left = clip.channels[CatBones.clavicleL];
         final right = clip.channels[CatBones.clavicleR];
@@ -1443,17 +1443,18 @@ void main() {
       final promotedKick = footR.sample(26 / phrase.frameCount);
       expect(
         promotedKick.y,
-        inInclusiveRange(82, 86),
+        inInclusiveRange(54, 64),
         reason:
-            'Zanku needs one legible knock-door accent in the phrase; otherwise '
-            'the move reads as a generic in-place groove',
+            'the gbese is the phrase climax: the knee drives up with the foot '
+            'flicking at hip-to-waist height (panel round 1: a shin-height '
+            'kick reads as just another step)',
       );
       expect(
         promotedKick.x,
-        inInclusiveRange(24, 32),
+        inInclusiveRange(22, 32),
         reason:
-            'the promoted accent should lift forward under the body, not become '
-            'a wide side kick',
+            'the gbese lifts forward under the body, not out into a wide '
+            'side kick',
       );
 
       for (final frame in [2, 4, 14, 26, 28, 30]) {
@@ -2161,8 +2162,21 @@ void main() {
       );
       expect(
         landing.dy,
-        greaterThan(push.dy + 55),
-        reason: 'the landing should squash after the push accent',
+        inInclusiveRange(push.dy + 25, push.dy + 48),
+        reason:
+            'the landing absorbs in the KNEES under a level head — the old '
+            'full-depth landing dive made the skull ride every bounce '
+            '(panel round 1: the Amapiano level-head contrast never '
+            'materialized)',
+      );
+      // The glide beats hold the head level (within a narrow band) so the
+      // one compress per bar reads as THE accent.
+      final glideA = pounce.root.sample(13 / phrase.frameCount);
+      final glideB = pounce.root.sample(15 / phrase.frameCount);
+      expect(
+        (glideA.dy - glideB.dy).abs(),
+        lessThan(8),
+        reason: 'the glide rides level between accents',
       );
       expect(
         landing.dx,
@@ -2186,10 +2200,11 @@ void main() {
       final firstAccentRight = handR.sample(8 / phrase.frameCount);
       expect(
         firstAccentLeft.x,
-        inInclusiveRange(8, 28),
+        inInclusiveRange(30, 48),
         reason:
-            'the first cat accent should keep the left paw as a bent chest '
-            'guard, not fire both paws straight forward',
+            'the cross-body swipe apex must clear the head silhouette '
+            '(panel round 1: the swipe died against the muzzle as face-on-fur '
+            'mush) — up-and-out past the far ear, not parked at the chest',
       );
       expect(
         firstAccentRight.x,
@@ -2212,15 +2227,16 @@ void main() {
       );
       expect(
         mirrorAccentRight.x,
-        inInclusiveRange(-28, -8),
+        inInclusiveRange(-48, -30),
         reason:
-            'the mirrored hit should keep the right paw as a bent chest guard',
+            'the mirrored swipe apex must clear the head silhouette on the '
+            'other side',
       );
       expect(
         (mirrorAccentRight.x - mirrorAccentLeft.x).abs(),
-        inInclusiveRange(70, 100),
+        inInclusiveRange(44, 100),
         reason:
-            'the mirrored accent needs clear lead paw plus guard separation '
+            'the mirrored accent needs clear lead paw plus swipe separation '
             'without a full attack reach',
       );
 
