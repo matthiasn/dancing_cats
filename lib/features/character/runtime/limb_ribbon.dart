@@ -149,7 +149,7 @@ Path limbRibbonInkPath(
   // strongly-creased samples and resumes past them.
   final path = Path();
   var penDown = false;
-  void walk(Offset p, bool crease) {
+  void walk(Offset p, {required bool crease}) {
     if (crease) {
       penDown = false;
       return;
@@ -163,7 +163,7 @@ Path limbRibbonInkPath(
   }
 
   for (var i = start; i < samples.length; i++) {
-    walk(frontEdge(samples[i]), samples[i].creaseFront);
+    walk(frontEdge(samples[i]), crease: samples[i].creaseFront);
   }
   final last = samples.last;
   final capCentre = (frontEdge(last) + backEdge(last)) / 2;
@@ -178,7 +178,7 @@ Path limbRibbonInkPath(
     );
   }
   for (var i = samples.length - 2; i >= start; i--) {
-    walk(backEdge(samples[i]), samples[i].creaseBack);
+    walk(backEdge(samples[i]), crease: samples[i].creaseBack);
   }
   return path;
 }
@@ -286,13 +286,15 @@ void _clampInnerEdgeToCurvature(List<_Sample> samples) {
       if (here.halfWidth > maxInnerOffset) {
         // A cut below ~70% of the authored width means this sample sits deep
         // inside a fold — flag it so the ink line lifts over the crease.
-        here.creaseFront = maxInnerOffset < here.halfWidth * 0.7;
-        here.halfWidth = maxInnerOffset;
+        here
+          ..creaseFront = maxInnerOffset < here.halfWidth * 0.7
+          ..halfWidth = maxInnerOffset;
       }
     } else {
       if (here.backHalfWidth > maxInnerOffset) {
-        here.creaseBack = maxInnerOffset < here.backHalfWidth * 0.7;
-        here.backHalfWidth = maxInnerOffset;
+        here
+          ..creaseBack = maxInnerOffset < here.backHalfWidth * 0.7
+          ..backHalfWidth = maxInnerOffset;
       }
     }
   }
