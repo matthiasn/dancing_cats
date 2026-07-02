@@ -419,6 +419,50 @@ void main() {
       );
     });
 
+    test('throws when ribbon back half-widths disagree in length', () {
+      expect(
+        () => _rigWithRibbons([
+          LimbRibbonSpec(
+            id: 'back-mismatch',
+            jointBoneIds: const ['a', 'b'],
+            halfWidths: const [4, 3],
+            backHalfWidths: const [4, 3, 2],
+            z: 0,
+            color: 0xFFFFFFFF,
+          ),
+        ]),
+        throwsA(
+          isA<ArgumentError>().having(
+            (e) => e.message,
+            'message',
+            allOf(contains('2 joints'), contains('3 back half-widths')),
+          ),
+        ),
+      );
+    });
+
+    test('throws when a ribbon back half-width is not positive', () {
+      expect(
+        () => _rigWithRibbons([
+          LimbRibbonSpec(
+            id: 'back-width',
+            jointBoneIds: const ['a', 'b'],
+            halfWidths: const [4, 3],
+            backHalfWidths: const [4, 0],
+            z: 0,
+            color: 0xFFFFFFFF,
+          ),
+        ]),
+        throwsA(
+          isA<ArgumentError>().having(
+            (e) => e.message,
+            'message',
+            contains('back half-widths must be positive'),
+          ),
+        ),
+      );
+    });
+
     test('throws when a ribbon has non-positive samplesPerSegment', () {
       expect(
         () => _rigWithRibbons([
@@ -561,6 +605,74 @@ void main() {
             (e) => e.message,
             'message',
             contains('boundary index 5 is out of range'),
+          ),
+        ),
+      );
+    });
+
+    test('throws when a mesh ink seam has fewer than two points', () {
+      expect(
+        () => _rigWithMeshes([
+          SkinnedMeshSpec(
+            id: 'short-seam',
+            vertices: const [
+              SkinnedMeshVertex([
+                MeshInfluence(boneId: 'a', x: 0, y: 0, weight: 1),
+              ]),
+              SkinnedMeshVertex([
+                MeshInfluence(boneId: 'a', x: 1, y: 0, weight: 1),
+              ]),
+              SkinnedMeshVertex([
+                MeshInfluence(boneId: 'a', x: 0, y: 1, weight: 1),
+              ]),
+            ],
+            boundary: const [0, 1, 2],
+            inkSeams: const [
+              [1],
+            ],
+            z: 0,
+            color: 0xFFFFFFFF,
+          ),
+        ]),
+        throwsA(
+          isA<ArgumentError>().having(
+            (e) => e.message,
+            'message',
+            contains('ink seams need at least two points'),
+          ),
+        ),
+      );
+    });
+
+    test('throws when a mesh ink seam index is out of range', () {
+      expect(
+        () => _rigWithMeshes([
+          SkinnedMeshSpec(
+            id: 'bad-seam',
+            vertices: const [
+              SkinnedMeshVertex([
+                MeshInfluence(boneId: 'a', x: 0, y: 0, weight: 1),
+              ]),
+              SkinnedMeshVertex([
+                MeshInfluence(boneId: 'a', x: 1, y: 0, weight: 1),
+              ]),
+              SkinnedMeshVertex([
+                MeshInfluence(boneId: 'a', x: 0, y: 1, weight: 1),
+              ]),
+            ],
+            boundary: const [0, 1, 2],
+            inkSeams: const [
+              [0, 5],
+            ],
+            z: 0,
+            color: 0xFFFFFFFF,
+          ),
+        ]),
+        throwsA(
+          isA<ArgumentError>().having(
+            (e) => e.message,
+            'message',
+            contains('ink seam index 5 is out of range'),
           ),
         ),
       );
