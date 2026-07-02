@@ -168,8 +168,10 @@ BackdropGrade gradeFromWheels({
   final liftT = wheelTint(lift.balance);
   final gammaT = wheelTint(gamma.balance);
 
-  double slopeAt(double t) => 1 + gain.master * _slopeMasterGain + t * _slopeBalanceGain;
-  double offsetAt(double t) => lift.master * _offsetMasterGain + t * _offsetBalanceGain;
+  double slopeAt(double t) =>
+      1 + gain.master * _slopeMasterGain + t * _slopeBalanceGain;
+  double offsetAt(double t) =>
+      lift.master * _offsetMasterGain + t * _offsetBalanceGain;
   // Positive gamma delta → brighter mids → exponent below 1. Clamp so power stays
   // positive and bounded (a colourist never wants a runaway gamma).
   double powerAt(double t) {

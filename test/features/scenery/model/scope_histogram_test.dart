@@ -47,15 +47,18 @@ void main() {
       expect(h.hasData, isTrue);
     });
 
-    test('all-white pixels pile into the brightest bin and read as clipped', () {
-      final h = buildScopeHistogram(
-        _pixels(List.filled(6, [255, 255, 255])),
-        bins: 8,
-      );
-      expect(h.r.last, 6);
-      expect(h.clip.g, 1.0);
-      expect(h.crush.g, 0.0);
-    });
+    test(
+      'all-white pixels pile into the brightest bin and read as clipped',
+      () {
+        final h = buildScopeHistogram(
+          _pixels(List.filled(6, [255, 255, 255])),
+          bins: 8,
+        );
+        expect(h.r.last, 6);
+        expect(h.clip.g, 1.0);
+        expect(h.crush.g, 0.0);
+      },
+    );
 
     test('per-channel binning is independent', () {
       // One bright-red pixel: red clips, green/blue crush.

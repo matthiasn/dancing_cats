@@ -8,12 +8,43 @@ import 'package:dancing_cats/features/scenery/layers/cloud_parallax_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/deck_glow_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/distant_jet_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/drone_show_layer.dart';
+import 'package:dancing_cats/features/scenery/layers/graded_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/image_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/ocean_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/parallax_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/sky_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/vignette_layer.dart';
 import 'package:dancing_cats/features/scenery/model/scenery_assets.dart';
+
+/// The blue-hour scene's per-layer grade targets (ADR 0002 §3): only the
+/// cleanly separable layers. The baked-twin re-draws (base plate, skyline,
+/// yacht, foreground deck) are deliberately NOT targets — grading one copy of
+/// a structure that also exists inside the base plate paints ungraded rim
+/// halos at every feathered edge (ADR 0001's doubling, in colour), so world
+/// looks belong on the `backdrop`/`master` nodes instead. Additive light
+/// passes are marked so their grade drops the Offset term.
+const List<({String id, String label, bool additive})> kBlueHourGradeTargets = [
+  (id: 'clouds-far', label: 'Clouds far', additive: false),
+  (id: 'clouds-mid', label: 'Clouds mid', additive: false),
+  (id: 'clouds-near', label: 'Clouds near', additive: false),
+  (id: 'jet', label: 'Distant jet', additive: false),
+  (id: 'ocean', label: 'Ocean', additive: true),
+  (id: 'city-lights', label: 'City lights', additive: true),
+  (id: 'haze', label: 'Haze band', additive: false),
+  (id: 'deck-glow', label: 'Deck glow', additive: true),
+  (id: 'police', label: 'Police strobes', additive: true),
+  (id: 'drones-sky', label: 'Drones (sky)', additive: true),
+  (id: 'drones-launch', label: 'Drones (launch)', additive: true),
+  (id: 'vignette', label: 'Vignette', additive: false),
+];
+
+bool _isAdditiveTarget(String id) =>
+    kBlueHourGradeTargets.any((t) => t.id == id && t.additive);
+
+/// Wraps a scene layer as a grade target (grade OUTSIDE parallax, so the pass
+/// captures the layer after placement and never re-samples it twice).
+GradedLayer _target(String id, BackdropLayer layer) =>
+    GradedLayer(layer, target: id, additive: _isAdditiveTarget(id));
 
 /// Parallax depth PLANES — deliberately coarse. The painted base plate has the
 /// skyline, yacht and deck baked in, and the scene re-draws those same
@@ -26,7 +57,8 @@ import 'package:dancing_cats/features/scenery/model/scenery_assets.dart';
 /// `0` locks a plane at infinity, `1` moves it with the dancers (see
 /// `CharacterPainter.danceParallaxMatrixForShotAtDepth`). Five planes in all,
 /// front to back: lead cat (1.0) › backup cats (0.9) › stage › background › jet.
-const double _depthAircraft = 0.04; // the lone jet — farthest of all, near-locked
+const double _depthAircraft =
+    0.04; // the lone jet — farthest of all, near-locked
 const double _depthBackground = 0.12; // all backdrop art, moving as one plane
 const double _depthStage = 0.5; // the foreground deck + its lantern glow.
 // Restored from the gentled 0.35: that cut was tuned under the old snap-zoom
@@ -58,58 +90,86 @@ class BackdropScene {
   /// passes above the painted structures so bridge cables cannot slice holes in
   /// the ascent. All sit behind the dancers (they are background layers).
   factory BackdropScene.blueHourWaterfront() {
-    return const BackdropScene(
+    return BackdropScene(
       // Each layer is wrapped in a [ParallaxLayer] on one of the coarse planes
       // above — the whole backdrop shares _depthBackground so re-draws never
       // slide off their baked twins; the deck rides _depthStage and the jet
       // _depthAircraft. The dancers move most; far barely moves. The foreground
-      // vignette is intentionally NOT wrapped — it is a screen-space effect.
+      // vignette is intentionally NOT parallax-wrapped — it is a screen-space
+      // effect. Separable layers additionally carry a [GradedLayer] target id
+      // (see [kBlueHourGradeTargets]); the baked-twin re-draws intentionally
+      // do not.
       layers: [
-        ParallaxLayer(ImageLayer(SceneryAssets.cloudlessPlate), depth: _depthBackground),
-        ParallaxLayer(
-          CloudParallaxLayer(
-            SceneryAssets.cloudsFar,
-            opacity: 0.84,
-            dxPerSecond: 0.00165,
-            dyAmplitude: 0.001,
-            dyCycleSeconds: 72,
-            phase: 0.17,
-          ),
+        const ParallaxLayer(
+          ImageLayer(SceneryAssets.cloudlessPlate),
           depth: _depthBackground,
         ),
-        ParallaxLayer(
-          CloudParallaxLayer(
-            SceneryAssets.cloudsMid,
-            opacity: 0.84,
-            dxPerSecond: 0.0021,
-            dyAmplitude: 0.0015,
-            dyCycleSeconds: 58,
-            phase: 0.43,
+        _target(
+          'clouds-far',
+          const ParallaxLayer(
+            CloudParallaxLayer(
+              SceneryAssets.cloudsFar,
+              opacity: 0.84,
+              dxPerSecond: 0.00165,
+              dyAmplitude: 0.001,
+              dyCycleSeconds: 72,
+              phase: 0.17,
+            ),
+            depth: _depthBackground,
           ),
-          depth: _depthBackground,
         ),
-        ParallaxLayer(
-          CloudParallaxLayer(
-            SceneryAssets.cloudsNear,
-            opacity: 0.9,
-            dxPerSecond: 0.002775,
-            dyCycleSeconds: 46,
-            phase: 0.71,
+        _target(
+          'clouds-mid',
+          const ParallaxLayer(
+            CloudParallaxLayer(
+              SceneryAssets.cloudsMid,
+              opacity: 0.84,
+              dxPerSecond: 0.0021,
+              dyAmplitude: 0.0015,
+              dyCycleSeconds: 58,
+              phase: 0.43,
+            ),
+            depth: _depthBackground,
           ),
-          depth: _depthBackground,
+        ),
+        _target(
+          'clouds-near',
+          const ParallaxLayer(
+            CloudParallaxLayer(
+              SceneryAssets.cloudsNear,
+              opacity: 0.9,
+              dxPerSecond: 0.002775,
+              dyCycleSeconds: 46,
+              phase: 0.71,
+            ),
+            depth: _depthBackground,
+          ),
         ),
         // Small 747-ish wide-body crossing in the far sky. It sits behind the
         // fixed skyline/yacht redraws and far below the dancer plane, giving the
         // opening seconds a readable motion cue without becoming foreground
         // spectacle.
-        ParallaxLayer(DistantJetLayer(), depth: _depthAircraft),
+        _target(
+          'jet',
+          const ParallaxLayer(DistantJetLayer(), depth: _depthAircraft),
+        ),
         // Animated water first; the additive ocean and additive city lights
         // commute, so the only thing the order buys us is letting the opaque
         // yacht sit BETWEEN them.
-        ParallaxLayer(OceanLayer(foamDensity: 0.3), depth: _depthBackground),
+        _target(
+          'ocean',
+          const ParallaxLayer(
+            OceanLayer(foamDensity: 0.3),
+            depth: _depthBackground,
+          ),
+        ),
         // Re-draw fixed skyline + bridge over the drifting cloud layers and
-        // ocean shimmer, preserving the original depth ordering.
-        ParallaxLayer(ImageLayer(SceneryAssets.cityBridge), depth: _depthBackground),
+        // ocean shimmer, preserving the original depth ordering. NOT a grade
+        // target: its twin is baked into the base plate (see the doc above).
+        const ParallaxLayer(
+          ImageLayer(SceneryAssets.cityBridge),
+          depth: _depthBackground,
+        ),
         // The moored yacht silhouette, re-drawn over the ocean so its hull
         // covers the foam that would otherwise wash up its side. The yacht sits
         // NEARER than the far skyline, so it must read at least as sharp and as
@@ -117,39 +177,65 @@ class BackdropScene {
         // object foggier than the distant towers (a depth inversion). Keep only
         // a light cool exposure pull so it doesn't blaze as a foreground hero,
         // and NO blur, so it reads as a clean mid-distance object. The warm cabin
-        // windows are added after this (CityLightsLayer) so the glow reads on top.
-        ParallaxLayer(
-          ImageLayer(
-            SceneryAssets.yacht,
-            modulate: Color(0xFFD0D5DE),
-          ),
+        // windows are added after this (CityLightsLayer) so the glow reads on
+        // top. NOT a grade target (baked twin).
+        const ParallaxLayer(
+          ImageLayer(SceneryAssets.yacht, modulate: Color(0xFFD0D5DE)),
           depth: _depthBackground,
         ),
         // More windows lit (brighter highrises) than the 0.6 default; drawn
         // after the yacht so the warm cabin glow reads on top of the hull.
-        ParallaxLayer(CityLightsLayer(windowAmount: 0.8), depth: _depthBackground),
+        _target(
+          'city-lights',
+          const ParallaxLayer(
+            CityLightsLayer(windowAmount: 0.8),
+            depth: _depthBackground,
+          ),
+        ),
         // Aerial-perspective haze banded on the waterline: lifts + cools the
         // distant skyline/bridge/yacht so the midground recedes behind the
         // sharp, un-hazed foreground deck + trio (the establishing-shot depth
         // cue). Sits over the structures + lights but under the deck/palms.
-        ParallaxLayer(AtmosphericHazeLayer(), depth: _depthBackground),
-        ParallaxLayer(ImageLayer(SceneryAssets.foreground), depth: _depthStage),
-        ParallaxLayer(DeckGlowLayer(), depth: _depthStage),
+        _target(
+          'haze',
+          const ParallaxLayer(AtmosphericHazeLayer(), depth: _depthBackground),
+        ),
+        // NOT a grade target (the deck/palms redraw is a baked twin).
+        const ParallaxLayer(
+          ImageLayer(SceneryAssets.foreground),
+          depth: _depthStage,
+        ),
+        _target(
+          'deck-glow',
+          const ParallaxLayer(DeckGlowLayer(), depth: _depthStage),
+        ),
         // Police cordon on the bridge roadway: blue (and a few red) emergency
         // strobes that stop traffic while the drones stage on the cleared deck,
         // timed to the drone loop so they roll in before launch and clear out as
         // the formation climbs away. Drawn just under the drones (both are the
         // post-haze "active light show" passes) so the dancers still occlude any
         // strobe behind them.
-        ParallaxLayer(BridgePoliceLayer(), depth: _depthBackground),
+        _target(
+          'police',
+          const ParallaxLayer(BridgePoliceLayer(), depth: _depthBackground),
+        ),
         // Drones are the highest backdrop art pass: the takeoff starts as
         // unlit dark dots and switches on above the cable-stayed bridge, so
         // painted bridge cables/trees must not cut gaps through the aircraft.
-        ParallaxLayer(DroneShowLayer.sky(), depth: _depthBackground),
-        ParallaxLayer(DroneShowLayer.launchRoad(), depth: _depthBackground),
+        _target(
+          'drones-sky',
+          const ParallaxLayer(DroneShowLayer.sky(), depth: _depthBackground),
+        ),
+        _target(
+          'drones-launch',
+          const ParallaxLayer(
+            DroneShowLayer.launchRoad(),
+            depth: _depthBackground,
+          ),
+        ),
       ],
-      foregroundLayers: [VignetteLayer(dim: 0.12)],
-      imageAssets: [
+      foregroundLayers: [_target('vignette', const VignetteLayer(dim: 0.12))],
+      imageAssets: const [
         SceneryAssets.cloudlessPlate,
         SceneryAssets.masterPlate,
         SceneryAssets.cloudsFar,

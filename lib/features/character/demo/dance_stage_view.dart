@@ -12,6 +12,7 @@ import 'package:dancing_cats/features/character/samples/cat_in_suit.dart';
 import 'package:dancing_cats/features/scenery/layered_backdrop.dart';
 import 'package:dancing_cats/features/scenery/model/backdrop_grade.dart';
 import 'package:dancing_cats/features/scenery/model/backdrop_scene.dart';
+import 'package:dancing_cats/features/scenery/runtime/grade_filter.dart';
 import 'package:dancing_cats/features/scenery/runtime/stage_lights.dart';
 import 'package:dancing_cats/features/scenery/scene_texture_overlay.dart';
 import 'package:dancing_cats/features/scenery/stage_lights_overlay.dart';
@@ -54,6 +55,9 @@ class DanceStageView extends StatelessWidget {
     this.showCaptions = false,
     this.words = const [],
     this.grade = BackdropGrade.identity,
+    this.masterGrade = BackdropGrade.identity,
+    this.castGrade = BackdropGrade.identity,
+    this.gradeForTarget,
     this.onBackdropReady,
     this.backdropImage,
     this.cloudsImage,
@@ -104,9 +108,23 @@ class DanceStageView extends StatelessWidget {
   final bool showCaptions;
   final List<DanceWord> words;
 
-  /// Colour grade applied to the painted backdrop (the live grading tool feeds
-  /// this from its wheels). Identity by default (no grade).
+  /// Colour grade applied to the painted backdrop (the ADR 0002 `backdrop`
+  /// node — the pre-timeline behaviour). Identity by default (no grade).
   final BackdropGrade grade;
+
+  /// Finishing grade over the whole stage — backdrop, haze, light pools AND
+  /// the cats (the `master` node). Grain and captions composite after it, so
+  /// film texture never pumps with an animated look. Identity by default.
+  final BackdropGrade masterGrade;
+
+  /// Grade for the trio alone (the `cast` node, premultiplied). Identity by
+  /// default.
+  final BackdropGrade castGrade;
+
+  /// Per-layer grades for the scenery's `GradedLayer` targets, forwarded to
+  /// [LayeredBackdrop]. Null → no per-layer passes.
+  final BackdropGrade? Function(String target)? gradeForTarget;
+
   final VoidCallback? onBackdropReady;
 
   /// Old-plate images (only used when [useNewBackdrop] is false).
@@ -137,69 +155,94 @@ class DanceStageView extends StatelessWidget {
           child: LayoutBuilder(
             builder: (context, constraints) {
               final scale = danceCastScale(constraints.maxHeight);
+              // The graded core of the stage, in ADR 0002's node order: any
+              // per-layer passes run inside the backdrop's own painter, the
+              // backdrop-composite pass wraps the painted world, the cast pass
+              // wraps the trio, and the master pass wraps all of it. Grain
+              // (SceneTextureOverlay) and captions composite AFTER master so
+              // film texture and text never pump with an animated look.
+              final gradedStage = GradeFilter(
+                grade: masterGrade,
+                repaintTick: lightsTimeSeconds,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    if (useNewBackdrop)
+                      // Clip the parallax-driven backdrop to the 16:9 stage so no
+                      // plane breathes past the frame as the camera pushes in. The
+                      // grain/lights overlays are screen-fixed to this same 16:9
+                      // box, so without this a zoomed plane's edges (e.g. the side
+                      // planters) could fall outside the grained region. Mirrors the
+                      // offline composer's `clipRect(size)` around the backdrop. The
+                      // parallax now lives PER LAYER (each plane lags by its depth),
+                      // injected into the scene rather than one transform over all.
+                      ClipRect(
+                        child: LayeredBackdrop(
+                          scene: BackdropScene.blueHourWaterfront(),
+                          timeSeconds: backdropTimeSeconds,
+                          beatPulse: beat,
+                          grade: grade,
+                          gradeForTarget: gradeForTarget,
+                          onReady: onBackdropReady,
+                          parallaxForDepth: (depth, s) =>
+                              CharacterPainter.danceParallaxMatrixForShotAtDepth(
+                                shot: shot,
+                                size: s,
+                                depth: depth,
+                              ),
+                        ),
+                      ),
+                    // Aerial-perspective haze band at the waterline (frame-fixed,
+                    // fades out above the dancers' feet so they stay crisp).
+                    if (useNewBackdrop)
+                      const DecoratedBox(
+                        decoration: BoxDecoration(gradient: kDanceHazeGradient),
+                        child: SizedBox.expand(),
+                      ),
+                    // Floor pools under the feet, grounding each cat in its gel.
+                    if (useNewBackdrop)
+                      StageLightsOverlay(
+                        timeSeconds: lightsTimeSeconds,
+                        beat: beat,
+                        dancerAnchors: dancerAnchors,
+                        rig: rig,
+                      ),
+                    GradeFilter(
+                      grade: castGrade,
+                      premultiplied: true,
+                      repaintTick: lightsTimeSeconds,
+                      child: CustomPaint(
+                        painter: danceCharacterPainter(
+                          cast: cast,
+                          renderer: renderer,
+                          stage: stage,
+                          shot: shot,
+                          leadMouth: leadMouth,
+                          bgMouth: bgMouth,
+                          leadShape: leadShape,
+                          bgShape: bgShape,
+                          scale: scale,
+                          backlights: backlights,
+                          onDancerAnchors: onDancerAnchors,
+                          useNewBackdrop: useNewBackdrop,
+                          backdropImage: backdropImage,
+                          cloudsImage: cloudsImage,
+                          wavesImage: wavesImage,
+                        ),
+                        child: const SizedBox.expand(),
+                      ),
+                    ),
+                  ],
+                ),
+              );
               return Stack(
                 fit: StackFit.expand,
                 children: [
-                  if (useNewBackdrop)
-                    // Clip the parallax-driven backdrop to the 16:9 stage so no
-                    // plane breathes past the frame as the camera pushes in. The
-                    // grain/lights overlays are screen-fixed to this same 16:9
-                    // box, so without this a zoomed plane's edges (e.g. the side
-                    // planters) could fall outside the grained region. Mirrors the
-                    // offline composer's `clipRect(size)` around the backdrop. The
-                    // parallax now lives PER LAYER (each plane lags by its depth),
-                    // injected into the scene rather than one transform over all.
-                    ClipRect(
-                      child: LayeredBackdrop(
-                        scene: BackdropScene.blueHourWaterfront(),
-                        timeSeconds: backdropTimeSeconds,
-                        beatPulse: beat,
-                        grade: grade,
-                        onReady: onBackdropReady,
-                        parallaxForDepth: (depth, s) =>
-                            CharacterPainter.danceParallaxMatrixForShotAtDepth(
-                              shot: shot,
-                              size: s,
-                              depth: depth,
-                            ),
-                      ),
-                    ),
-                  // Aerial-perspective haze band at the waterline (frame-fixed,
-                  // fades out above the dancers' feet so they stay crisp).
-                  if (useNewBackdrop)
-                    const DecoratedBox(
-                      decoration: BoxDecoration(gradient: kDanceHazeGradient),
-                      child: SizedBox.expand(),
-                    ),
-                  // Floor pools under the feet, grounding each cat in its gel.
-                  if (useNewBackdrop)
-                    StageLightsOverlay(
-                      timeSeconds: lightsTimeSeconds,
-                      beat: beat,
-                      dancerAnchors: dancerAnchors,
-                      rig: rig,
-                    ),
+                  gradedStage,
+                  // Film grain rides ABOVE the master pass (and now above the
+                  // cats too — one grain pass over the finished frame, the
+                  // finishing order a colourist expects).
                   if (useNewBackdrop) const SceneTextureOverlay(),
-                  CustomPaint(
-                    painter: danceCharacterPainter(
-                      cast: cast,
-                      renderer: renderer,
-                      stage: stage,
-                      shot: shot,
-                      leadMouth: leadMouth,
-                      bgMouth: bgMouth,
-                      leadShape: leadShape,
-                      bgShape: bgShape,
-                      scale: scale,
-                      backlights: backlights,
-                      onDancerAnchors: onDancerAnchors,
-                      useNewBackdrop: useNewBackdrop,
-                      backdropImage: backdropImage,
-                      cloudsImage: cloudsImage,
-                      wavesImage: wavesImage,
-                    ),
-                    child: const SizedBox.expand(),
-                  ),
                   if (showCaptions && words.isNotEmpty)
                     Positioned(
                       left: 24,

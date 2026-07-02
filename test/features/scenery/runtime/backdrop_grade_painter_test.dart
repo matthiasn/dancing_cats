@@ -35,19 +35,22 @@ void main() {
     expect(layer.paints, 1);
   });
 
-  test('a non-neutral grade with no program loaded falls back to direct paint', () {
-    final layer = _RecordingLayer();
-    final canvas = Canvas(ui.PictureRecorder());
-    paintGradedBackdrop(
-      canvas: canvas,
-      size: size,
-      layers: [layer],
-      ctx: _ctx(size),
-      grade: gradeFromWheels(gain: const GradeWheel(master: 0.3)),
-      gradeProgram: null,
-    );
-    expect(layer.paints, 1);
-  });
+  test(
+    'a non-neutral grade with no program loaded falls back to direct paint',
+    () {
+      final layer = _RecordingLayer();
+      final canvas = Canvas(ui.PictureRecorder());
+      paintGradedBackdrop(
+        canvas: canvas,
+        size: size,
+        layers: [layer],
+        ctx: _ctx(size),
+        grade: gradeFromWheels(gain: const GradeWheel(master: 0.3)),
+        gradeProgram: null,
+      );
+      expect(layer.paints, 1);
+    },
+  );
 
   testWidgets('an empty size falls back to direct paint (no offscreen)', (
     tester,
