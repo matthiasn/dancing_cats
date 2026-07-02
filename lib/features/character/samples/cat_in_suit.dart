@@ -8918,13 +8918,15 @@ class CatClips {
     // Round 6: mirrors the hand.R pump-depth fix above (see its comment) —
     // only frame 20 is Y-tested here (0..18, still a "quiet" frame, left
     // alone), so both punch frames (16, 24) got the same deep reach.
+    // Round 7: mirrors the hand.R contrast fix above — quiet frames pulled
+    // back up near the recoil level so punch vs quiet actually differ.
     DanceIkTargetKey(16, x: -38, y: 32, tension: 1), // swap: FREE hip pump
     DanceIkTargetKey(18, x: -36, y: -8, tension: 0.6), // recoil up
-    DanceIkTargetKey(20, x: -40, y: 8, tension: 0.7), // quiet while R digs
+    DanceIkTargetKey(20, x: -40, y: 2, tension: 0.7), // quiet while R digs
     DanceIkTargetKey(22, x: -36, y: -6, tension: 0.6),
     DanceIkTargetKey(24, x: -40, y: 32, tension: 1), // PUNCH past the hip
     DanceIkTargetKey(26, x: -36, y: -8, tension: 0.6),
-    DanceIkTargetKey(28, x: -40, y: 20, tension: 0.7),
+    DanceIkTargetKey(28, x: -40, y: -4, tension: 0.7),
     DanceIkTargetKey(30, x: -36, y: -6, tension: 0.6),
     DanceIkTargetKey(32, x: -15, y: -48, tension: 1),
   ];
@@ -8937,14 +8939,22 @@ class CatClips {
   // (y up to 58) while keeping frame 0 itself within its tested ceiling and
   // the recoil frames higher (more negative y) for contrast, so the pump
   // now has a real low extreme instead of a 16-unit wobble.
+  // Round 7: the punch (y 24-26) and the "quiet" beat in between (y 20) sat
+  // in the same narrow band — the rigging rater measured "zero local
+  // rotation change" comparing frames 0/4/8 because they're barely
+  // different depths. The punch itself is already at its anatomical
+  // ceiling (deeper breaks the elbow-bend/reach validators — see the R6
+  // comment), so the contrast has to come from making the OTHER beats
+  // shallower instead: "quiet" now rides much higher, close to the recoil
+  // level, so the arm reads as down-up-down-up each beat, not "mostly down".
   static const _sekemHandRTargetKeys = [
     DanceIkTargetKey(0, x: 38, y: 24, tension: 1), // FREE — punch past the hip
     DanceIkTargetKey(2, x: 36, y: -8, tension: 0.6), // recoil up
-    DanceIkTargetKey(4, x: 40, y: 20, tension: 0.7), // quiet while L digs
+    DanceIkTargetKey(4, x: 40, y: -4, tension: 0.7), // quiet while L digs
     DanceIkTargetKey(6, x: 36, y: -6, tension: 0.6),
     DanceIkTargetKey(8, x: 38, y: 26, tension: 1), // PUNCH on the R dig
     DanceIkTargetKey(10, x: 36, y: -8, tension: 0.6),
-    DanceIkTargetKey(12, x: 40, y: 20, tension: 0.7),
+    DanceIkTargetKey(12, x: 40, y: -4, tension: 0.7),
     DanceIkTargetKey(14, x: 36, y: -6, tension: 0.6),
     DanceIkTargetKey(16, x: 15, y: -48, tension: 1), // swap: sternum pin
     DanceIkTargetKey(20, x: 15, y: -40, tension: 1), // rides the R dig DOWN
