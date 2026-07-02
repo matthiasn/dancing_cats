@@ -12,6 +12,7 @@ import 'dart:io';
 
 import 'package:dancing_cats/features/character/demo/dance_lip_sync.dart';
 import 'package:dancing_cats/features/character/demo/dance_performance.dart';
+import 'package:flutter/services.dart';
 
 /// Parses the `words` array of a synced-lyrics JSON document. Skips entries
 /// without both timestamps; defaults missing voice to `lead` and section to ''.
@@ -49,10 +50,10 @@ List<DanceCue> parseDanceCues(Map<String, Object?> json) {
 /// Loads word-level lyrics from [path] (absent → no captions / no singing).
 /// Parse failures degrade gracefully to an empty list.
 Future<List<DanceWord>> loadDanceWords(String path) async {
-  final file = File(path);
-  if (!file.existsSync()) return const [];
   try {
-    final json = jsonDecode(await file.readAsString()) as Map<String, Object?>;
+    final content = await _readOptionalTextInput(path);
+    if (content == null) return const [];
+    final json = jsonDecode(content) as Map<String, Object?>;
     return parseDanceWords(json);
   } catch (_) {
     return const [];
@@ -62,12 +63,23 @@ Future<List<DanceWord>> loadDanceWords(String path) async {
 /// Loads the Rhubarb lip-sync cue track from [path] (absent → no mouth motion).
 /// Parse failures degrade gracefully to an empty list.
 Future<List<DanceCue>> loadDanceCues(String path) async {
-  final file = File(path);
-  if (!file.existsSync()) return const [];
   try {
-    final json = jsonDecode(await file.readAsString()) as Map<String, Object?>;
+    final content = await _readOptionalTextInput(path);
+    if (content == null) return const [];
+    final json = jsonDecode(content) as Map<String, Object?>;
     return parseDanceCues(json);
   } catch (_) {
     return const [];
+  }
+}
+
+Future<String?> _readOptionalTextInput(String path) async {
+  final file = File(path);
+  if (file.existsSync()) return file.readAsString();
+  if (file.isAbsolute) return null;
+  try {
+    return await rootBundle.loadString(path);
+  } catch (_) {
+    return null;
   }
 }
