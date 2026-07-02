@@ -5871,15 +5871,20 @@ class CatClips {
     DanceIkTargetKey(13, x: -33, y: -18), // shallow recover
     DanceIkTargetKey(14, x: -32, y: -4, tension: 0.7), // second pump
     DanceIkTargetKey(15, x: -35, y: -40), // load into bar 2
-    DanceIkTargetKey(16, x: -32, y: -4, tension: 0.6), // PUNCH
+    // Round 7: every rater called bar 2 a literal mirror of bar 1 — frames
+    // 16/20/24 punched to the exact same (x,y) as frames 0/4/8, so nothing
+    // escalates across the 2-bar phrase. Widened/deepened bar 2's three
+    // punches progressively so they build toward the gbese climax instead
+    // of repeating bar 1's pose pixel-for-pixel.
+    DanceIkTargetKey(16, x: -37, y: -10, tension: 0.6), // PUNCH, building
     DanceIkTargetKey(17, x: -34, y: -26),
     DanceIkTargetKey(18, x: -36, y: -46),
     DanceIkTargetKey(19, x: -35, y: -40),
-    DanceIkTargetKey(20, x: -32, y: -4, tension: 0.6), // PUNCH
+    DanceIkTargetKey(20, x: -40, y: -16, tension: 0.6), // PUNCH, deeper
     DanceIkTargetKey(21, x: -34, y: -26),
     DanceIkTargetKey(22, x: -36, y: -46),
     DanceIkTargetKey(23, x: -35, y: -40),
-    DanceIkTargetKey(24, x: -32, y: -4, tension: 0.6), // PUNCH
+    DanceIkTargetKey(24, x: -43, y: -22, tension: 0.6), // PUNCH, deepest
     DanceIkTargetKey(25, x: -37, y: -50), // high load behind the gbese
     DanceIkTargetKey(26, x: -26, y: 2, tension: 0.5), // FLING — fists slam down
     DanceIkTargetKey(27, x: -33, y: -30),
@@ -5906,15 +5911,17 @@ class CatClips {
     DanceIkTargetKey(13, x: 33, y: -18), // shallow recover
     DanceIkTargetKey(14, x: 32, y: -4, tension: 0.7), // second pump
     DanceIkTargetKey(15, x: 35, y: -40), // load into bar 2
-    DanceIkTargetKey(16, x: 32, y: -4, tension: 0.6), // PUNCH
+    // Round 7: mirrors the hand.L bar-2 escalation fix above (see its
+    // comment) — same literal-mirror complaint, mirrored keys.
+    DanceIkTargetKey(16, x: 37, y: -10, tension: 0.6), // PUNCH, building
     DanceIkTargetKey(17, x: 34, y: -26),
     DanceIkTargetKey(18, x: 36, y: -46),
     DanceIkTargetKey(19, x: 35, y: -40),
-    DanceIkTargetKey(20, x: 32, y: -4, tension: 0.6), // PUNCH
+    DanceIkTargetKey(20, x: 40, y: -16, tension: 0.6), // PUNCH, deeper
     DanceIkTargetKey(21, x: 34, y: -26),
     DanceIkTargetKey(22, x: 36, y: -46),
     DanceIkTargetKey(23, x: 35, y: -40),
-    DanceIkTargetKey(24, x: 32, y: -4, tension: 0.6), // PUNCH
+    DanceIkTargetKey(24, x: 43, y: -22, tension: 0.6), // PUNCH, deepest
     DanceIkTargetKey(25, x: 37, y: -50), // high load behind the gbese
     DanceIkTargetKey(26, x: 26, y: 2, tension: 0.5), // FLING — fists slam down
     DanceIkTargetKey(27, x: 33, y: -30),
