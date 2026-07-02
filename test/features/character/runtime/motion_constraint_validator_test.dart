@@ -858,10 +858,9 @@ void main() {
       }
     });
 
-    test('buga raised presents deform clavicle and shoulder sockets', () {
-      final validator = MotionConstraintValidator(
-        CharacterScene(buildCatInSuitRig()),
-      );
+    test('buga peacock hits shrug BOTH shoulders on every hit', () {
+      final scene = CharacterScene(buildCatInSuitRig());
+      final validator = MotionConstraintValidator(scene);
 
       final report = validator.analyze(
         clip: CatClips.buga,
@@ -871,31 +870,70 @@ void main() {
         (violation) =>
             violation.category == MotionConstraintCategory.shoulderResponse,
       );
-      final rightResponses =
-          report.shoulderResponses
-              .where((response) => response.endBoneId == CatBones.handR)
-              .toList()
-            ..sort((a, b) => b.socketResponse.compareTo(a.socketResponse));
-      final leftResponses =
-          report.shoulderResponses
-              .where((response) => response.endBoneId == CatBones.handL)
-              .toList()
-            ..sort((a, b) => b.socketResponse.compareTo(a.socketResponse));
-
       expect(
         shoulderViolations,
         isEmpty,
         reason:
-            'Buga overhead hands should pull clavicle/socket controls with '
-            'them instead of hinging from a static jacket edge: '
+            'Buga hands should never hinge from a static jacket edge: '
             '${shoulderViolations.take(4).map((v) => '${v.boneId}@${v.phase.toStringAsFixed(3)} ${v.message}').join(' | ')}',
       );
-      expect(rightResponses, isNotEmpty);
-      expect(leftResponses, isNotEmpty);
-      expect(rightResponses.first.socketResponse, greaterThan(0.28));
-      expect(leftResponses.first.socketResponse, greaterThan(0.28));
-      expect(rightResponses.first.clavicleRotation, lessThan(-0.2));
-      expect(leftResponses.first.clavicleRotation, greaterThan(0.2));
+
+      // The researched Buga signature is a DOUBLE shrug: both clavicles rise
+      // together on each unison peacock hit (frames 13 and 29 of 32).
+      for (final hitFrame in const [13, 29]) {
+        final pose = scene.poseAt(
+          clip: CatClips.buga,
+          timeSeconds: hitFrame / 32 * CatClips.buga.duration,
+          includeAutonomic: false,
+        );
+        expect(
+          pose.jointOf(CatBones.clavicleR).rotation,
+          lessThan(-0.2),
+          reason: 'right clavicle must shrug on the frame-$hitFrame hit',
+        );
+        expect(
+          pose.jointOf(CatBones.clavicleL).rotation,
+          greaterThan(0.2),
+          reason: 'left clavicle must shrug on the frame-$hitFrame hit',
+        );
+      }
+
+      // Hand-led peacock: the "sleeve fin" pathology is an elbow riding high
+      // WHILE the paw folds back inboard of it (dangling at the chest). An
+      // extended wing may carry the elbow slightly above the shoulder line —
+      // that is a straight proud arm, not a fin, because the paw is beyond
+      // the elbow. Forbid the conjunction, plus any true fin-height elbow.
+      for (var frame = 0; frame < 32; frame++) {
+        final world = scene.solver.solve(
+          scene.poseAt(
+            clip: CatClips.buga,
+            timeSeconds: frame / 32 * CatClips.buga.duration,
+            includeAutonomic: false,
+          ),
+        );
+        for (final side in const ['L', 'R']) {
+          final shoulder = world['arm_upper.$side']!.origin;
+          final elbow = world['arm_lower.$side']!.origin;
+          final wrist = world['hand.$side']!.origin;
+          expect(
+            elbow.y,
+            greaterThan(shoulder.y - 30),
+            reason:
+                'frame $frame $side elbow must never reach fin height above '
+                'the shoulder',
+          );
+          final outboard = elbow.x >= shoulder.x ? 1.0 : -1.0;
+          final elbowHigh = elbow.y < shoulder.y - 12;
+          final pawFoldedBack = (wrist.x - elbow.x) * outboard < -2;
+          expect(
+            elbowHigh && pawFoldedBack,
+            isFalse,
+            reason:
+                'frame $frame $side: a raised elbow with the paw folded back '
+                'inboard is the elbow-led fin silhouette',
+          );
+        }
+      }
     });
 
     test('arm ribbon shoulder joint stays welded to the clavicle', () {

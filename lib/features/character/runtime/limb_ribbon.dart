@@ -53,10 +53,8 @@ Path limbRibbonPath(
   final first = samples.first;
   final last = samples.last;
 
-  Offset frontEdge(_Sample s) =>
-      s.centre + s.normal * s.halfWidth;
-  Offset backEdge(_Sample s) =>
-      s.centre - s.normal * s.backHalfWidth;
+  Offset frontEdge(_Sample s) => s.centre + s.normal * s.halfWidth;
+  Offset backEdge(_Sample s) => s.centre - s.normal * s.backHalfWidth;
 
   path.moveTo(backEdge(first).dx, backEdge(first).dy);
   if (roundCaps) {
@@ -106,7 +104,6 @@ Path limbRibbonPath(
   return path;
 }
 
-
 /// The hand-drawn INK LINE for a ribbon that overlaps its own body: an OPEN
 /// path tracing the limb's edges from [startFraction] of the centreline down
 /// to and around the tip — deliberately NOT closed over the root, so the
@@ -130,9 +127,10 @@ Path limbRibbonInkPath(
     backHalfWidths ?? halfWidths,
     samplesPerSegment,
   );
-  final start = (samples.length * startFraction)
-      .round()
-      .clamp(0, samples.length - 2);
+  final start = (samples.length * startFraction).round().clamp(
+    0,
+    samples.length - 2,
+  );
 
   Offset frontEdge(_Sample s) => s.centre + s.normal * s.halfWidth;
   Offset backEdge(_Sample s) => s.centre - s.normal * s.backHalfWidth;
@@ -168,8 +166,20 @@ class _Sample {
   final double backHalfWidth;
 }
 
-/// Resamples [spine] into a Catmull-Rom curve, carrying the per-sample tangent
-/// normal and the interpolated half-widths for both sides.
+/// How hard the centreline hugs the joint polyline. 0 = classic Catmull-Rom
+/// (bends smear along the whole limb — the "boneless noodle" read on a bent
+/// elbow); 1 = the raw polyline (a cardboard hinge). 0.45 still let a bent
+/// arm render as a constant-curvature crescent (panel round 3: "the limb
+/// loses its elbow entirely"); 0.68 keeps upper arm and forearm near-straight
+/// so all visible flexion resolves at a defined joint vertex, while the
+/// curvature clamp below keeps the crease from self-intersecting.
+const double _kCentrelineTension = 0.68;
+
+/// Resamples [spine] into a tensioned Catmull-Rom curve, carrying the
+/// per-sample tangent normal and the interpolated half-widths for both
+/// sides. On tight folds the inner-edge offset is clamped to the local
+/// radius of curvature so the ribbon pinches to a crease instead of
+/// crossing itself into a wire.
 List<_Sample> _sampleCentreline(
   List<Offset> spine,
   List<double> halfWidths,
@@ -203,18 +213,72 @@ List<_Sample> _sampleCentreline(
       );
     }
   }
+  _clampInnerEdgeToCurvature(out);
   return out;
 }
 
+/// Prevents self-intersection on tight folds: where the centreline's radius
+/// of curvature drops below a side's half-width, offsetting the full width
+/// on the INSIDE of the bend folds the edge back across itself (the
+/// crossed-wrist X read as a wire). Clamp that side's offset to ~90% of the
+/// local radius; the outer side is untouched, so the fold keeps its mass and
+/// gains a crease.
+void _clampInnerEdgeToCurvature(List<_Sample> samples) {
+  for (var i = 1; i < samples.length - 1; i++) {
+    final prev = samples[i - 1];
+    final here = samples[i];
+    final next = samples[i + 1];
+    // Signed turn between adjacent sample directions; + turns toward the
+    // +normal side, so the -normal (back) side is the inside of that bend.
+    final inDir = here.centre - prev.centre;
+    final outDir = next.centre - here.centre;
+    final inLen = inDir.distance;
+    final outLen = outDir.distance;
+    if (inLen < 1e-6 || outLen < 1e-6) continue;
+    final cross =
+        (inDir.dx * outDir.dy - inDir.dy * outDir.dx) / (inLen * outLen);
+    final dot =
+        (inDir.dx * outDir.dx + inDir.dy * outDir.dy) / (inLen * outLen);
+    final turn = math.atan2(cross, dot);
+    if (turn.abs() < 1e-4) continue;
+    final radius = ((inLen + outLen) / 2) / turn.abs();
+    final maxInnerOffset = radius * 0.9;
+    if (turn > 0) {
+      // Curving toward +normal: the +normal (front) side is the inside.
+      if (here.halfWidth > maxInnerOffset) {
+        samples[i] = _Sample(
+          here.centre,
+          here.normal,
+          maxInnerOffset,
+          here.backHalfWidth,
+        );
+      }
+    } else {
+      if (here.backHalfWidth > maxInnerOffset) {
+        samples[i] = _Sample(
+          here.centre,
+          here.normal,
+          here.halfWidth,
+          maxInnerOffset,
+        );
+      }
+    }
+  }
+}
+
+// Hermite form of Catmull-Rom with tension: tangents m1/m2 are the classic
+// half-chord tangents scaled by (1 - tension), so tension 0 reproduces the
+// historic spline exactly and tension 1 degenerates to the joint polyline.
 Offset _catmullRom(Offset p0, Offset p1, Offset p2, Offset p3, double t) {
   final t2 = t * t;
   final t3 = t2 * t;
+  const scale = (1 - _kCentrelineTension) * 0.5;
+  final h00 = 2 * t3 - 3 * t2 + 1;
+  final h10 = t3 - 2 * t2 + t;
+  final h01 = -2 * t3 + 3 * t2;
+  final h11 = t3 - t2;
   double c(double a, double b, double cc, double d) =>
-      0.5 *
-      ((2 * b) +
-          (-a + cc) * t +
-          (2 * a - 5 * b + 4 * cc - d) * t2 +
-          (-a + 3 * b - 3 * cc + d) * t3);
+      h00 * b + h10 * scale * (cc - a) + h01 * cc + h11 * scale * (d - b);
   return Offset(
     c(p0.dx, p1.dx, p2.dx, p3.dx),
     c(p0.dy, p1.dy, p2.dy, p3.dy),
@@ -229,11 +293,13 @@ Offset _catmullRomTangent(
   double t,
 ) {
   final t2 = t * t;
+  const scale = (1 - _kCentrelineTension) * 0.5;
+  final h00 = 6 * t2 - 6 * t;
+  final h10 = 3 * t2 - 4 * t + 1;
+  final h01 = -6 * t2 + 6 * t;
+  final h11 = 3 * t2 - 2 * t;
   double c(double a, double b, double cc, double d) =>
-      0.5 *
-      ((-a + cc) +
-          2 * (2 * a - 5 * b + 4 * cc - d) * t +
-          3 * (-a + 3 * b - 3 * cc + d) * t2);
+      h00 * b + h10 * scale * (cc - a) + h01 * cc + h11 * scale * (d - b);
   return Offset(
     c(p0.dx, p1.dx, p2.dx, p3.dx),
     c(p0.dy, p1.dy, p2.dy, p3.dy),

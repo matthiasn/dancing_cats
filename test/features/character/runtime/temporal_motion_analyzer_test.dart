@@ -613,8 +613,12 @@ void main() {
           samples: 128,
           boneIds: watchedBones,
         );
+        // minAcceleration calibrated up from 24 when shaku's X went to HELD
+        // anchor keys: a crossed fist riding the body's weight commit peaks
+        // at ~25 without any independent hand motion — that is groove, not
+        // a robotic pulse.
         final spikes = report.velocitySpikes(
-          minAcceleration: 24,
+          minAcceleration: 27,
           minSpeedDelta: 14,
           minSpeedRatio: 2.5,
           minSegmentDistance: 3,
@@ -723,7 +727,7 @@ void main() {
       }
     });
 
-    test('buga generated overhead arcs avoid hard hand-path corners', () {
+    test('buga peacock hand paths avoid hard corners', () {
       final analyzer = TemporalMotionAnalyzer(
         CharacterScene(buildCatInSuitRig()),
       );
@@ -744,9 +748,9 @@ void main() {
         corners,
         isEmpty,
         reason:
-            'Buga overhead presents are authored as generated arcs; the solved '
-            'hands should travel through the hit and release without a hard '
-            'corner. Worst ${corners.isEmpty ? 'none' : corners.first.boneId} '
+            'The solved hands should swell into the peacock hit and release '
+            'without a hard corner. '
+            'Worst ${corners.isEmpty ? 'none' : corners.first.boneId} '
             'frames=${corners.isEmpty ? 'n/a' : '${corners.first.fromFrame}-${corners.first.toFrame}'} '
             'turn=${corners.isEmpty ? 'n/a' : corners.first.turnDegrees.toStringAsFixed(1)} '
             'arc=${corners.isEmpty ? 'n/a' : corners.first.arcRatio.toStringAsFixed(2)} '

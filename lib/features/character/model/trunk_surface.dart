@@ -79,7 +79,9 @@ SkinnedMeshSpec buildTrunkSurface({
     weightsByBone.forEach((boneId, weight) {
       final origin = origins[boneId];
       if (origin == null) {
-        throw ArgumentError('Trunk surface "$id" references missing bone "$boneId"');
+        throw ArgumentError(
+          'Trunk surface "$id" references missing bone "$boneId"',
+        );
       }
       influences.add(
         MeshInfluence(
@@ -228,9 +230,7 @@ Map<String, ({double x, double y})> _restWorldOrigins(List<Bone> bones) {
     final cached = cache[bone.id];
     if (cached != null) return cached;
     final parent = bone.parent == null ? null : byId[bone.parent];
-    final parentOrigin = parent == null
-        ? (x: 0.0, y: 0.0)
-        : originOf(parent);
+    final parentOrigin = parent == null ? (x: 0.0, y: 0.0) : originOf(parent);
     final origin = (
       x: parentOrigin.x + bone.pivotX,
       y: parentOrigin.y + bone.pivotY,

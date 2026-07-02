@@ -286,7 +286,8 @@ double _easedTrapezoid(double p, {double edge = 0.18}) {
   } else if (t <= 1 - edge) {
     travelled = edge / 2 + (t - edge);
   } else {
-    travelled = edge / 2 + (1 - 2 * edge) + edge * (0.5 - rampArea((1 - t) / edge));
+    travelled =
+        edge / 2 + (1 - 2 * edge) + edge * (0.5 - rampArea((1 - t) / edge));
   }
   return travelled / (1 - edge);
 }
@@ -311,8 +312,13 @@ Shot cameraShot(DanceCameraContext c) {
   // before this section began (its launch started during the approach).
   final launchSeconds =
       c.sectionPhase * c.sectionSeconds + kCameraLaunchLeadSeconds;
-  var shot = _sectionShot(c, c.section, c.occurrence, c.sectionPhase,
-      launchSeconds: launchSeconds);
+  var shot = _sectionShot(
+    c,
+    c.section,
+    c.occurrence,
+    c.sectionPhase,
+    launchSeconds: launchSeconds,
+  );
   final next = c.nextSection;
   if (next != null) {
     final window = cameraAnticipationWindow(next, c.nextOccurrence);
@@ -327,9 +333,13 @@ Shot cameraShot(DanceCameraContext c) {
       final t = smoothstep(
         ((window - c.secondsToNext) / glide).clamp(0.0, 1.0),
       );
-      final open = _sectionShot(c, next, c.nextOccurrence, 0,
-          launchSeconds:
-              math.max(0, kCameraLaunchLeadSeconds - c.secondsToNext));
+      final open = _sectionShot(
+        c,
+        next,
+        c.nextOccurrence,
+        0,
+        launchSeconds: math.max(0, kCameraLaunchLeadSeconds - c.secondsToNext),
+      );
       shot = _mix(shot, open, t);
     }
   }
@@ -475,8 +485,7 @@ Shot _postChorusShot(DanceCameraContext c, double sectionPhase) {
   // the chorus shot size — the coil reads as its own register, not a fourth
   // build.
   final z =
-      1.375 +
-      0.035 * math.sin(math.pi * (sectionPhase / 0.88).clamp(0.0, 1.0));
+      1.375 + 0.035 * math.sin(math.pi * (sectionPhase / 0.88).clamp(0.0, 1.0));
   // Sway fades in over the opening edge, DECAYS across the coil (a pendulum
   // that never loses energy read as metronomic), and releases over a longer
   // closing edge so the resolution is calm before the outro's pull-back. A

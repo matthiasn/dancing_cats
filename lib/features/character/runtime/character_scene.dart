@@ -427,7 +427,10 @@ class CharacterScene {
       final isTip = earId.toLowerCase().contains('tip');
       final gain = isTip ? 2.6 : 1.0;
       final clampAt = isTip ? 0.2 : 0.06;
-      final delta = _clampMagnitude(side * earDrive * gain + flick * gain, clampAt);
+      final delta = _clampMagnitude(
+        side * earDrive * gain + flick * gain,
+        clampAt,
+      );
       if (delta.abs() < 0.0001) continue;
       joints[earId] = _addJointRotation(pose.jointOf(earId), delta);
       changed = true;
@@ -457,9 +460,7 @@ class CharacterScene {
     final torsoId = rig.bone(chestId)!.parent!;
     final authored = pose.jointOf(torsoId);
 
-    final lag = clip.loop && clip.duration > 0
-        ? clip.duration / 32
-        : 0.0;
+    final lag = clip.loop && clip.duration > 0 ? clip.duration / 32 : 0.0;
     final source = lag > 0
         ? evaluator.evaluate(clip, timeSeconds - lag).jointOf(torsoId).rotation
         : authored.rotation;
@@ -723,7 +724,6 @@ class CharacterScene {
           ));
         }
       }
-
     }
 
     return currentPose;
@@ -1016,9 +1016,9 @@ class CharacterScene {
                       timeSeconds - clip.duration * _headLagFraction,
                     ) -
                     _trunkDriveEstimate(clip, timeSeconds)) *
-                0.45 *
+                0.55 *
                 clip.danceHeadBobScale,
-            0.06,
+            0.08,
           )
         : 0.0;
     final rotationCorrection = _isDanceFamily(clip)
@@ -1115,12 +1115,14 @@ class CharacterScene {
       return t * t * (3 - 2 * t);
     }
 
-    // Small, deliberate accents only: enough for the head to answer the body,
-    // not enough to return to the rubber bobble that the rigid pass removed.
-    return -0.018 * pulse(1 / 8, 1 / 18) +
-        0.018 * pulse(3 / 8, 1 / 18) -
-        0.016 * pulse(5 / 8, 1 / 18) +
-        0.022 * pulse(15 / 16, 1 / 16);
+    // Deliberate accents the audience can actually see: panel round 1 read
+    // the old ~1-degree pulses as a "gimbal-stabilized" dead head on every
+    // move. These stay far from rubber bobble but let the skull answer the
+    // beat.
+    return -0.034 * pulse(1 / 8, 1 / 18) +
+        0.034 * pulse(3 / 8, 1 / 18) -
+        0.03 * pulse(5 / 8, 1 / 18) +
+        0.042 * pulse(15 / 16, 1 / 16);
   }
 
   double _cyclicDistance(double a, double b) {
@@ -1558,8 +1560,10 @@ class CharacterScene {
       // Medial = toward the OTHER shoulder, in the girdle's own frame — the
       // root's lateral weight commits and trunk banks move the body midline
       // far off world x = 0.
-      final other = _armFoldChains
-          .firstWhere((c) => !identical(c, chain), orElse: () => chain);
+      final other = _armFoldChains.firstWhere(
+        (c) => !identical(c, chain),
+        orElse: () => chain,
+      );
       final otherWorld = world[other.upper.id];
       if (otherWorld == null || identical(other, chain)) continue;
       final otherShoulder = otherWorld.origin;
@@ -1576,8 +1580,10 @@ class CharacterScene {
         dx = -dx;
         dy = -dy;
       }
-      final upperMedial = (elbow.x - shoulder.x) * mx + (elbow.y - shoulder.y) * my;
-      final upperDown = (elbow.x - shoulder.x) * dx + (elbow.y - shoulder.y) * dy;
+      final upperMedial =
+          (elbow.x - shoulder.x) * mx + (elbow.y - shoulder.y) * my;
+      final upperDown =
+          (elbow.x - shoulder.x) * dx + (elbow.y - shoulder.y) * dy;
       // Signed tilt of the upper arm from body-down; + = adducted.
       final adduction = math.atan2(upperMedial, upperDown);
       if (adduction >= _kArmFoldAdductionCutoff) continue;
@@ -1621,8 +1627,7 @@ class CharacterScene {
       }
       // Emit the branch-normalized equivalent so a large correction lands on
       // a sane (-pi, pi] joint value instead of a +-2pi representation.
-      localDelta =
-          _shortestAngle(currentLocal + localDelta) - currentLocal;
+      localDelta = _shortestAngle(currentLocal + localDelta) - currentLocal;
       corrections ??= <String, double>{};
       corrections[chain.lower.id] = localDelta;
     }
