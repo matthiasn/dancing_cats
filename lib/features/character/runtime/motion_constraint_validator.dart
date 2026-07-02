@@ -894,7 +894,7 @@ class MotionConstraintProfile {
     this.minRaisedShoulderToBicepRatio = 0.66,
     this.maxRaisedUpperArmMeshEdge = 40,
     this.jointEnvelopeRules = defaultMotionJointEnvelopeRules,
-    this.maxJointLimitEngagement = 0.15,
+    this.maxJointLimitEngagement = 0.1,
   }) : assert(
          contactEdgeFraction >= 0 && contactEdgeFraction < 0.5,
          'contact edge fraction must be in [0, 0.5)',
@@ -1043,9 +1043,9 @@ class MotionConstraintProfile {
   final List<MotionJointEnvelopeRule> jointEnvelopeRules;
 
   /// Maximum tolerated runtime joint-limit clipping (radians). Anything above
-  /// zero is choreography leaning on the limiter. Ratcheted 0.45 → 0.15 once
-  /// the catalogue was re-authored clean (worst remaining: shaku's crossed-X
-  /// at ~0.11); push toward ~0.05 with the next choreography pass.
+  /// zero is choreography leaning on the limiter. Ratcheted 0.45 → 0.15 → 0.1
+  /// as routines were re-authored clean (worst remaining ~0.08 on shaku's
+  /// loop seam and pounce's cross sweep); push toward ~0.05 next pass.
   final double maxJointLimitEngagement;
 }
 

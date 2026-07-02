@@ -5297,7 +5297,11 @@ class CatClips {
     DanceIkTargetKey(21, x: -80, y: -22),
     DanceIkTargetKey(22, x: -72, y: -20),
     DanceIkTargetKey(23, x: -82, y: -32),
-    DanceIkTargetKey(24, x: -34, y: -54, ease: Ease.easeOutBack),
+    // Windup INTO the wrist-cross: a low centre scoop. The old key (-34,-54)
+    // sat ~2 units from the left shoulder itself — a full elbow fold no body
+    // can make (the on-screen 'anatomical crime' X) — flagged by the
+    // jointLimitClipping meter at p0.75.
+    DanceIkTargetKey(24, x: -18, y: -24, ease: Ease.easeOutBack),
     DanceIkTargetKey(25, x: 42, y: -56),
     DanceIkTargetKey(26, x: -92, y: -28),
     DanceIkTargetKey(27, x: -78, y: -36),
