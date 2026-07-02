@@ -165,13 +165,13 @@ void main() {
       );
       final asked = scene.preClampPoseAt(clip: foldClip, timeSeconds: 0);
       final corrections = scene.armFoldCorrections(asked);
+      expect(corrections, contains(CatBones.armLowerL));
+      expect(corrections, contains(CatBones.armLowerR));
       expect(
-        corrections.values.map((delta) => delta.abs()).fold<double>(0, math.max),
+        corrections.values.map((delta) => delta.abs()).reduce(math.max),
         greaterThan(0.3),
         reason: 'the fold ask must engage the anti-fold rule on both arms',
       );
-      expect(corrections, contains(CatBones.armLowerL));
-      expect(corrections, contains(CatBones.armLowerR));
 
       final rendered = scene.poseAt(
         clip: foldClip,
@@ -180,8 +180,8 @@ void main() {
       );
       final residual = scene.armFoldCorrections(rendered);
       expect(
-        residual.values.map((delta) => delta.abs()).fold<double>(0, math.max),
-        lessThan(0.05),
+        residual.values.every((delta) => delta.abs() < 0.05),
+        isTrue,
         reason: 'the rendered pose must sit at (or inside) the fold boundary '
             '— the impossible configuration never reaches the screen',
       );
