@@ -5308,9 +5308,15 @@ class CatClips {
     DanceIkTargetKey(4, x: 10, y: -55, tension: 0.9),
     DanceIkTargetKey(6, x: 9, y: -48, tension: 0.5), // ride
     DanceIkTargetKey(8, x: 10, y: -56, tension: 1),
+    // Round 6: the scoop's y (10, -16) barely dipped below the X's own
+    // sternum height — at that depth the two-bone solve reads as a static
+    // hands-on-hips akimbo plant (every rater's complaint at this exact
+    // frame), not a sweep. Pushed the low point down past the hip toward
+    // the knee so the silhouette actually opens and drops before the lead
+    // hand rises back out.
     DanceIkTargetKey(11, x: 6, y: -50, tension: 0.8), // squeeze (anticipation)
-    DanceIkTargetKey(12, x: -56, y: 10, tension: 0.7), // scoop sweeps LOW
-    DanceIkTargetKey(13, x: -82, y: -16, tension: 0.7), // lead hand rises out
+    DanceIkTargetKey(12, x: -62, y: 20, tension: 0.7), // scoop sweeps LOW
+    DanceIkTargetKey(13, x: -76, y: -10, tension: 0.7), // lead hand rises out
     DanceIkTargetKey(14, x: -10, y: -42, tension: 0.5), // closing transit
     DanceIkTargetKey(15, x: 14, y: -58, tension: 0.8), // overcross lands
     DanceIkTargetKey(16, x: 4, y: -44, tension: 1), // bar-2 X — L drops UNDER
@@ -5331,9 +5337,10 @@ class CatClips {
     DanceIkTargetKey(4, x: -6, y: -45, tension: 0.9),
     DanceIkTargetKey(6, x: -7, y: -38, tension: 0.5), // ride
     DanceIkTargetKey(8, x: -6, y: -46, tension: 1),
+    // Round 6: mirrors the hand.L scoop-depth fix above (see its comment).
     DanceIkTargetKey(11, x: -3, y: -40, tension: 0.8), // squeeze
-    DanceIkTargetKey(12, x: 58, y: 14, tension: 0.7), // scoop sweeps LOW
-    DanceIkTargetKey(13, x: 76, y: 2, tension: 0.7), // trail hand stays lower
+    DanceIkTargetKey(12, x: 66, y: 20, tension: 0.7), // scoop sweeps LOW
+    DanceIkTargetKey(13, x: 76, y: 14, tension: 0.7), // trail hand stays lower
     DanceIkTargetKey(14, x: 6, y: -34, tension: 0.5), // closing transit
     DanceIkTargetKey(15, x: -12, y: -46, tension: 0.8), // overcross lands
     DanceIkTargetKey(16, x: -10, y: -56, tension: 1), // bar-2 X — R takes TOP
@@ -5660,8 +5667,15 @@ class CatClips {
         // over it (only the lifting swing foot follows), so this reads as a
         // committed weight transfer rather than the whole trio sliding.
         // Deepened so the COM clearly commits over the planted foot each bar.
+        // Round 6: leanAmplitude was left at its old near-zero placeholder
+        // (0.001-0.0001 rad, under a tenth of a degree) — every one of 5
+        // panel raters called the torso "bolt upright"/"never banks" despite
+        // the move's own brief calling for off-axis lean. Paired here with
+        // the sway so the ribcage banks toward the weighted foot for the
+        // whole bar, not a per-beat wobble.
         const SineRootChannel(
           swayAmplitude: -2,
+          leanAmplitude: -0.04,
         ),
         // The GALLOP: a per-beat root drop the round-3 movement rater measured
         // as absent (head bobbed ~2% of body height; the skip read as a
@@ -5669,19 +5683,19 @@ class CatClips {
         // harmonic-16 layer is the skip in between. Knee pulses below absorb
         // the drop so the support foot never unplants.
         const SineRootChannel(
-          bobAmplitude: -9,
+          bobAmplitude: -10,
           // sin(8*2pi*(p+phase)) bottoms at p = 0.09375-phase+k/8: phase
           // 0.09375 lands the load exactly ON each count frame (0,4,8...).
           bobPhase: 0.09375,
           bobHarmonic: 8,
-          leanAmplitude: 0.001,
+          leanAmplitude: 0.015,
           leanHarmonic: 8,
         ),
         const SineRootChannel(
           bobAmplitude: -3.5,
           bobPhase: 0.02,
           bobHarmonic: 16,
-          leanAmplitude: 0.0001,
+          leanAmplitude: 0.006,
           leanPhase: 0.03,
           leanHarmonic: 16,
         ),
