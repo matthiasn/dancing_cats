@@ -4,9 +4,11 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
-import 'package:dancing_cats/features/character/demo/color_grade_panel.dart';
 import 'package:dancing_cats/features/character/demo/dance_app_frame_exporter.dart';
 import 'package:dancing_cats/features/character/demo/dance_ffmpeg_encoder.dart';
+import 'package:dancing_cats/features/character/demo/dance_grade_controller.dart';
+import 'package:dancing_cats/features/character/demo/dance_grade_store.dart';
+import 'package:dancing_cats/features/character/demo/dance_grade_workspace.dart';
 import 'package:dancing_cats/features/character/demo/dance_lip_sync.dart';
 import 'package:dancing_cats/features/character/demo/dance_loaders.dart';
 import 'package:dancing_cats/features/character/demo/dance_performance.dart';
@@ -17,6 +19,7 @@ import 'package:dancing_cats/features/character/model/beat_map.dart';
 import 'package:dancing_cats/features/character/runtime/character_painter.dart';
 import 'package:dancing_cats/features/character/runtime/character_renderer.dart';
 import 'package:dancing_cats/features/scenery/model/backdrop_grade.dart';
+import 'package:dancing_cats/features/scenery/model/grade_timeline.dart';
 import 'package:dancing_cats/features/scenery/model/scope_histogram.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -78,6 +81,13 @@ const String kDefaultDanceCuesPath = String.fromEnvironment(
   'DANCE_CUES',
   defaultValue: 'assets/sample_track/moving.cues.json',
 );
+
+/// Optional keyframed colour-grade timeline (ADR 0002) — written by the
+/// in-app workspace and/or by hand/LLM; hot-reloaded while the app runs.
+/// Defaults to the beat map's side-file sibling (`moving.grade.json`).
+String get kDanceGradePath =>
+    Platform.environment['DANCE_GRADE'] ??
+    danceGradePathForBeatMap(kDanceBeatMapPath);
 
 String get kDanceAudioPath =>
     Platform.environment['DANCE_AUDIO'] ?? kDefaultDanceAudioPath;
@@ -231,17 +241,14 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
   // Mute forces the player volume to zero; the video keeps playing. The app has
   // no volume slider, so unmuting restores full (100) volume.
   bool _muted = false;
-  // Live colour-grade controls (Lift/Gamma/Gain wheels, white balance, contrast,
-  // saturation) driving the backdrop grade shader. All neutral by default →
-  // identity grade → no grade pass. [_bypass] shows the clean plate (before).
-  GradeWheel _lift = const GradeWheel();
-  GradeWheel _gamma = const GradeWheel();
-  GradeWheel _gain = const GradeWheel();
-  double _saturation = 1;
-  double _temperature = 0;
-  double _tint = 0;
-  double _contrast = 1;
-  double _pivot = 0.435;
+  // The keyframed colour-grade timeline (ADR 0002): the store persists and
+  // watches <track>.grade.json, the controller owns editing state, and the
+  // workspace below the transport renders both when the GRADE toggle is on.
+  // [_bypass] feeds the stage identity grades (the clean plate) while the
+  // console keeps its state; export paths ignore it by construction.
+  DanceGradeStore? _gradeStore;
+  DanceGradeController? _gradeController;
+  bool _gradeOpen = false;
   bool _bypass = false;
 
   // Image-derived RGB parade: a tiny snapshot of the graded stage, sampled a few
@@ -402,21 +409,41 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
         words: words,
       );
 
-      if (!mounted) return;
+      // The grade timeline document (ADR 0002): load before first build so
+      // exports and the live stage grade identically from frame zero. The
+      // watcher (LLM round-trip) only runs in the interactive app.
+      final gradeStore = DanceGradeStore(path: kDanceGradePath);
+      await gradeStore.load();
+      final sections = _buildWaveformSections(
+        perf.sectionSpans,
+        perf.sections,
+        duration,
+      );
+      final gradeController = DanceGradeController(
+        store: gradeStore,
+        beatTimesSec: map.beatTimesSec,
+        downbeatIndices: map.downbeatIndices,
+        sectionStartsSec: [for (final s in sections) s.start],
+      );
+      if (!kDanceRenderOnly && !kDanceAppExport) gradeStore.startWatching();
+
+      if (!mounted) {
+        gradeController.dispose();
+        gradeStore.dispose();
+        return;
+      }
       setState(() {
         _map = map;
         _trackDurationSec = duration;
         _bpm = (tempo?['global_bpm'] as num?)?.toDouble() ?? 0;
         _perf = perf;
         _amplitudes = amplitudes;
-        _waveformSections = _buildWaveformSections(
-          perf.sectionSpans,
-          perf.sections,
-          duration,
-        );
+        _waveformSections = sections;
         _words = words;
         _sectionSpans = perf.sectionSpans;
         _cues = cues;
+        _gradeStore = gradeStore;
+        _gradeController = gradeController;
       });
       if (kDanceAppExport) unawaited(_exportFramesFromApp());
     } catch (e) {
@@ -655,6 +682,12 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
     HardwareKeyboard.instance.removeHandler(_handleGlobalKeyEvent);
     _ticker.dispose();
     unawaited(_player.dispose());
+    final store = _gradeStore;
+    _gradeController?.dispose();
+    if (store != null) {
+      // Land any pending debounced save before tearing the store down.
+      unawaited(store.flush().whenComplete(store.dispose));
+    }
     _backdrop?.dispose();
     _clouds?.dispose();
     _waves?.dispose();
@@ -686,23 +719,26 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
     // singing mouths. The whole composite is the generalized DanceStageView,
     // rendered identically by the live app and every offline renderer — there is
     // no second paint path to drift.
-    // Bypass shows the clean plate (the "before"): feed the stage an identity
-    // grade while the panel keeps the dialled look, so a colourist can A/B.
-    final grade = _bypass
-        ? BackdropGrade.identity
-        : gradeFromWheels(
-            lift: _lift,
-            gamma: _gamma,
-            gain: _gain,
-            saturation: _saturation,
-            temperature: _temperature,
-            tint: _tint,
-            contrast: _contrast,
-            pivot: _pivot,
-          );
+    // Evaluate the grade timeline at the playhead — the per-frame feed for
+    // every node of the ADR 0002 grade graph. Export paths render the
+    // DOCUMENT only (no bypass, no unkeyed previews — a forgotten toggle
+    // must never ship); the interactive app honours both, and Bypass shows
+    // the clean plate while the console keeps the dialled look.
+    final exporting = kDanceRenderOnly || kDanceAppExport;
+    final controller = _gradeController;
+    final grades = controller == null
+        ? const <String, BackdropGrade>{}
+        : exporting
+        ? controller.gradesAt(posSec, includePreview: false)
+        : _bypass
+        ? const <String, BackdropGrade>{}
+        : controller.gradesAt(posSec);
     final stageView = DanceStageView(
       boundaryKey: _stageBoundaryKey,
-      grade: grade,
+      grade: grades[GradeTargets.backdrop] ?? BackdropGrade.identity,
+      masterGrade: grades[GradeTargets.master] ?? BackdropGrade.identity,
+      castGrade: grades[GradeTargets.cast] ?? BackdropGrade.identity,
+      gradeForTarget: grades.isEmpty ? null : (t) => grades[t],
       cast: _cast,
       renderer: _renderer,
       stage: stage,
@@ -753,6 +789,7 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
                   positionSec: posSec,
                   durationSec: _trackDurationSec,
                   currentSectionLabel: musicalLabel,
+                  barsBeats: _barBeatFromMap(posSec),
                   moveLabels: [
                     for (final clip in stage.ensemble) clip.name,
                   ],
@@ -766,41 +803,61 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
                       setState(() => _useNewBackdrop = !_useNewBackdrop),
                   onToggleMute: () => unawaited(_toggleMute()),
                   onSeekToSeconds: _seekToTime,
+                  gradeOpen: _gradeOpen,
+                  gradeActive: _gradeStore?.doc.isActive ?? false,
+                  onToggleGrade: controller == null
+                      ? null
+                      : () => setState(() => _gradeOpen = !_gradeOpen),
+                  showTimeline: !_gradeOpen,
                 ),
-                ColorGradePanel(
-                  lift: _lift,
-                  gamma: _gamma,
-                  gain: _gain,
-                  saturation: _saturation,
-                  temperature: _temperature,
-                  tint: _tint,
-                  contrast: _contrast,
-                  pivot: _pivot,
-                  bypass: _bypass,
-                  parade: _scope,
-                  onLift: (w) => setState(() => _lift = w),
-                  onGamma: (w) => setState(() => _gamma = w),
-                  onGain: (w) => setState(() => _gain = w),
-                  onSaturation: (v) => setState(() => _saturation = v),
-                  onTemperature: (v) => setState(() => _temperature = v),
-                  onTint: (v) => setState(() => _tint = v),
-                  onContrast: (v) => setState(() => _contrast = v),
-                  onPivot: (v) => setState(() => _pivot = v),
-                  onBypass: (v) => setState(() => _bypass = v),
-                  onReset: () => setState(() {
-                    _lift = const GradeWheel();
-                    _gamma = const GradeWheel();
-                    _gain = const GradeWheel();
-                    _saturation = 1;
-                    _temperature = 0;
-                    _tint = 0;
-                    _contrast = 1;
-                    _pivot = 0.435;
-                    _bypass = false;
-                  }),
-                ),
+                if (_gradeOpen && controller != null)
+                  SizedBox(
+                    // The stage keeps its floor (~45% of the window); past
+                    // three lanes the workspace scrolls internally instead of
+                    // starving the picture a colourist grades by.
+                    height: math.min(
+                      470,
+                      MediaQuery.sizeOf(context).height * 0.46,
+                    ),
+                    child: SingleChildScrollView(
+                      child: DanceGradeWorkspace(
+                        controller: controller,
+                        positionSec: posSec,
+                        durationSec: _trackDurationSec,
+                        playing: _player.state.playing,
+                        amplitudes: _amplitudes ?? const [],
+                        sections: _waveformSections,
+                        parade: _scope,
+                        bypass: _bypass,
+                        onBypass: (v) => setState(() => _bypass = v),
+                        onSeek: _seekToTime,
+                      ),
+                    ),
+                  ),
               ],
             ),
     );
+  }
+
+  /// The BAR n.b.s readout from the DETECTED beat grid (bars counted from
+  /// real downbeats), so the transport and the workspace's beat lane can
+  /// never show two disagreeing bar numbers. Null (no map / before the first
+  /// downbeat) falls back to the transport's nominal-BPM derivation.
+  String? _barBeatFromMap(double pos) {
+    final map = _map;
+    if (map == null || map.downbeatIndices.isEmpty) return null;
+    final beat = map.beatAt(pos);
+    final idx = beat.floor();
+    var bar = 0;
+    var lastDown = -1;
+    for (final db in map.downbeatIndices) {
+      if (db > idx) break;
+      bar++;
+      lastDown = db;
+    }
+    if (lastDown < 0) return null;
+    final beatInBar = idx - lastDown + 1;
+    final sixteenth = (((beat - idx) * 4).floor() + 1).clamp(1, 4);
+    return '$bar.$beatInBar.$sixteenth';
   }
 }

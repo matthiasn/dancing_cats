@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "lanes": [
+    {
+      "target": "master",
+      "keyframes": [
+        {
+          "t_sec": 0.0,
+          "interp": "linear",
+          "look": {}
+        },
+        {
+          "t_sec": 42.4,
+          "interp": "linear",
+          "look": {
+            "temperature": 0.06,
+            "gain": { "m": -0.02 }
+          }
+        },
+        {
+          "t_sec": 90.8,
+          "interp": "linear",
+          "look": {
+            "temperature": 0.12,
+            "saturation": 0.98,
+            "gain": { "m": -0.045 }
+          }
+        },
+        {
+          "t_sec": 137.0,
+          "interp": "linear",
+          "look": {
+            "temperature": 0.18,
+            "tint": 0.02,
+            "saturation": 0.95,
+            "gain": { "m": -0.07 },
+            "lift": { "m": -0.015 }
+          }
+        }
+      ]
+    }
+  ]
+}
