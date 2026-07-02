@@ -5979,7 +5979,7 @@ class CatClips {
   static const _zankuFootRKeys = [
     DanceJointKey(0, rotation: 0.42),
     DanceJointKey(1, rotation: -0.34),
-    DanceJointKey(2, rotation: -1.02),
+    DanceJointKey(2, rotation: -1.08),
     DanceJointKey(3, rotation: 0.42),
     DanceJointKey(4, rotation: -0.1),
     DanceJointKey(8, rotation: 0.42),
@@ -5989,7 +5989,7 @@ class CatClips {
     DanceJointKey(12, rotation: -0.1),
     DanceJointKey(16, rotation: 0.42),
     DanceJointKey(17, rotation: -0.34),
-    DanceJointKey(18, rotation: -1.02),
+    DanceJointKey(18, rotation: -1.08),
     DanceJointKey(19, rotation: 0.42),
     DanceJointKey(20, rotation: -0.1),
     DanceJointKey(24, rotation: 0.42),
@@ -7181,34 +7181,37 @@ class CatClips {
     DanceBodyKey(
       0,
       rootDx: -5,
-      rootDy: 14,
+      rootDy: 20,
       pelvisRotation: -0.05,
       chestRotation: -0.12,
       chestScaleY: 0.96,
     ), // lo1 arrives ON count 1
-    DanceBodyKey(2, rootDx: -6, rootDy: 14, chestRotation: -0.12, chestScaleY: 0.96), // lo1 HOLDS
+    DanceBodyKey(
+      2, rootDx: -6, rootDy: 20, chestRotation: -0.12, chestScaleY: 0.96), // lo1 HOLDS
     DanceBodyKey(
       4,
       rootDx: 5,
-      rootDy: 24,
+      rootDy: 38,
       pelvisRotation: 0.06,
       chestRotation: -0.18,
       chestScaleY: 0.9,
     ), // lo2 steps down
-    DanceBodyKey(6, rootDx: 6, rootDy: 24, chestRotation: -0.18, chestScaleY: 0.9), // lo2 HOLDS
+    DanceBodyKey(
+      6, rootDx: 6, rootDy: 38, chestRotation: -0.18, chestScaleY: 0.9), // lo2 HOLDS
     DanceBodyKey(
       8,
       rootDx: -6,
-      rootDy: 36,
+      rootDy: 56,
       pelvisRotation: -0.1,
       chestRotation: -0.22,
       chestScaleY: 0.84,
     ), // lo3 — deepest step
-    DanceBodyKey(10, rootDx: -7, rootDy: 36, chestRotation: -0.2, chestScaleY: 0.84), // lo3 HOLDS
+    DanceBodyKey(
+      10, rootDx: -7, rootDy: 56, chestRotation: -0.2, chestScaleY: 0.84), // lo3 HOLDS
     DanceBodyKey(
       11,
       rootDx: -8,
-      rootDy: 40,
+      rootDy: 60,
       pelvisRotation: -0.06,
       chestRotation: 0.05,
       chestScaleY: 0.82,
@@ -7216,7 +7219,7 @@ class CatClips {
     DanceBodyKey(
       12,
       rootDx: -6,
-      rootDy: 4,
+      rootDy: 8,
       rootRotation: 0.003,
       pelvisRotation: 0.06,
       chestRotation: -0.1,
@@ -7226,7 +7229,7 @@ class CatClips {
     DanceBodyKey(
       14,
       rootDx: -5,
-      rootDy: 6,
+      rootDy: 9,
       rootRotation: 0.002,
       pelvisRotation: 0.05,
       chestRotation: -0.08,
@@ -7235,7 +7238,7 @@ class CatClips {
     DanceBodyKey(
       15,
       rootDx: -4,
-      rootDy: 10,
+      rootDy: 8,
       rootRotation: 0.002,
       pelvisRotation: 0.03,
       chestRotation: -0.05,
@@ -7244,34 +7247,37 @@ class CatClips {
     DanceBodyKey(
       16,
       rootDx: 5,
-      rootDy: 14,
+      rootDy: 20,
       pelvisRotation: 0.05,
       chestRotation: 0.12,
       chestScaleY: 0.96,
     ), // cell 2: lo1 — same depth as bar 1
-    DanceBodyKey(18, rootDx: 6, rootDy: 14, chestRotation: 0.12, chestScaleY: 0.96), // lo1 HOLDS
+    DanceBodyKey(
+      18, rootDx: 6, rootDy: 20, chestRotation: 0.12, chestScaleY: 0.96), // lo1 HOLDS
     DanceBodyKey(
       20,
       rootDx: -5,
-      rootDy: 24,
+      rootDy: 38,
       pelvisRotation: -0.06,
       chestRotation: 0.18,
       chestScaleY: 0.9,
     ), // lo2
-    DanceBodyKey(22, rootDx: -6, rootDy: 24, chestRotation: 0.18, chestScaleY: 0.9), // lo2 HOLDS
+    DanceBodyKey(
+      22, rootDx: -6, rootDy: 38, chestRotation: 0.18, chestScaleY: 0.9), // lo2 HOLDS
     DanceBodyKey(
       24,
       rootDx: 6,
-      rootDy: 36,
+      rootDy: 56,
       pelvisRotation: 0.1,
       chestRotation: 0.22,
       chestScaleY: 0.84,
     ), // lo3
-    DanceBodyKey(26, rootDx: 7, rootDy: 36, chestRotation: 0.2, chestScaleY: 0.84), // lo3 HOLDS
+    DanceBodyKey(
+      26, rootDx: 7, rootDy: 56, chestRotation: 0.2, chestScaleY: 0.84), // lo3 HOLDS
     DanceBodyKey(
       27,
       rootDx: 8,
-      rootDy: 40,
+      rootDy: 60,
       pelvisRotation: 0.06,
       chestRotation: -0.05,
       chestScaleY: 0.82,
@@ -7279,7 +7285,7 @@ class CatClips {
     DanceBodyKey(
       28,
       rootDx: 6,
-      rootDy: 4,
+      rootDy: 8,
       rootRotation: -0.003,
       pelvisRotation: -0.06,
       chestRotation: 0.1,
@@ -7289,7 +7295,7 @@ class CatClips {
     DanceBodyKey(
       30,
       rootDx: 5,
-      rootDy: 6,
+      rootDy: 9,
       rootRotation: -0.002,
       pelvisRotation: -0.05,
       chestRotation: 0.08,
@@ -7298,7 +7304,7 @@ class CatClips {
     DanceBodyKey(
       31,
       rootDx: 4,
-      rootDy: 10,
+      rootDy: 8,
       rootRotation: -0.002,
       pelvisRotation: -0.03,
       chestRotation: 0.05,
@@ -7307,7 +7313,7 @@ class CatClips {
     DanceBodyKey(
       32,
       rootDx: -5,
-      rootDy: 14,
+      rootDy: 20,
       pelvisRotation: -0.05,
       chestRotation: -0.12,
       chestScaleY: 0.96,
@@ -7317,23 +7323,23 @@ class CatClips {
   // EXTEND hard on the BUGA frame so the rise is powered from the ground/legs,
   // not just an arm raise. Both legs together (unison move).
   static const _bugaLegLowerKeys = [
-    DanceJointKey(0, rotation: -1.02), // lo1 flex
-    DanceJointKey(2, rotation: -1.02),
-    DanceJointKey(4, rotation: -1.16), // lo2 deeper
-    DanceJointKey(6, rotation: -1.16),
-    DanceJointKey(8, rotation: -1.32), // lo3 deepest load
-    DanceJointKey(10, rotation: -1.32),
-    DanceJointKey(11, rotation: -1.36),
+    DanceJointKey(0, rotation: -1.08), // lo1 flex
+    DanceJointKey(2, rotation: -1.08),
+    DanceJointKey(4, rotation: -1.3), // lo2 deeper
+    DanceJointKey(6, rotation: -1.3),
+    DanceJointKey(8, rotation: -1.52), // lo3 deepest load
+    DanceJointKey(10, rotation: -1.52),
+    DanceJointKey(11, rotation: -1.58),
     DanceJointKey(12, rotation: -0.72), // EXTEND — leg drive, not a locked knee
     DanceJointKey(14, rotation: -0.76),
     DanceJointKey(15, rotation: -0.86),
-    DanceJointKey(16, rotation: -1.02),
-    DanceJointKey(18, rotation: -1.02),
-    DanceJointKey(20, rotation: -1.16),
-    DanceJointKey(22, rotation: -1.16),
-    DanceJointKey(24, rotation: -1.32),
-    DanceJointKey(26, rotation: -1.32),
-    DanceJointKey(27, rotation: -1.36),
+    DanceJointKey(16, rotation: -1.08),
+    DanceJointKey(18, rotation: -1.08),
+    DanceJointKey(20, rotation: -1.3),
+    DanceJointKey(22, rotation: -1.3),
+    DanceJointKey(24, rotation: -1.52),
+    DanceJointKey(26, rotation: -1.52),
+    DanceJointKey(27, rotation: -1.58),
     DanceJointKey(28, rotation: -0.72), // EXTEND
     DanceJointKey(30, rotation: -0.76),
     DanceJointKey(31, rotation: -0.86),
@@ -7672,7 +7678,7 @@ class CatClips {
     DanceBodyKey(
       6,
       rootDx: -10,
-      rootDy: 40,
+      rootDy: 34,
       pelvisRotation: -0.08,
       chestRotation: 0.02,
       chestScaleY: 1.06,
@@ -7738,7 +7744,7 @@ class CatClips {
     DanceBodyKey(
       22,
       rootDx: 8,
-      rootDy: 40,
+      rootDy: 34,
       pelvisRotation: 0.08,
       chestRotation: -0.02,
       chestScaleY: 1.06,
