@@ -6879,14 +6879,25 @@ class CatClips {
     // Bar 1 wheel: grips at shoulder width counter-rotate around a shared
     // hub — L rises to the brow while R drops to the ribs, swapping over two
     // beats, soft elbows, on the rim all bar.
-    DanceIkTargetKey(0, x: -25, y: -82, tension: 0.4), // grip at the brow
-    DanceIkTargetKey(2, x: -26, y: -76, tension: 0.2),
-    DanceIkTargetKey(4, x: -28, y: -58, tension: 0.2), // passing the hub side
-    DanceIkTargetKey(6, x: -27, y: -44, tension: 0.2),
-    DanceIkTargetKey(8, x: -25, y: -38, tension: 0.4), // grip at the ribs
-    DanceIkTargetKey(10, x: -26, y: -44, tension: 0.2),
-    DanceIkTargetKey(12, x: -28, y: -62, tension: 0.2), // rising again
-    DanceIkTargetKey(14, x: -27, y: -76, tension: 0.2),
+    // Round 5: the wheel-grip x sat at ~25-28 units from the torso anchor —
+    // only 10-35% of the arm's actual reach, deep inside the two-bone
+    // solver's near-degenerate fold zone (reach below/near minReach makes the
+    // elbow position hypersensitive to tiny target changes, so the elbow
+    // jittered wildly between frames while the wrist stayed tucked near the
+    // chest the whole time — every rater read that as "arms frozen in one
+    // crossed guard"). x is choreographically capped at the -38/-18 lane
+    // (round 1: wider grips read as pointing away from the wheel), so pushed
+    // to the very edge of that band instead of past it, and traded some of
+    // the needed reach for y spread (the tested band there is generous,
+    // -90..32) to pull the target further from the near-degenerate zone.
+    DanceIkTargetKey(0, x: -36, y: -88, tension: 0.4), // grip at the brow
+    DanceIkTargetKey(2, x: -36, y: -80, tension: 0.2),
+    DanceIkTargetKey(4, x: -37, y: -58, tension: 0.2), // passing the hub side
+    DanceIkTargetKey(6, x: -37, y: -40, tension: 0.2),
+    DanceIkTargetKey(8, x: -36, y: -32, tension: 0.4), // grip at the ribs
+    DanceIkTargetKey(10, x: -37, y: -40, tension: 0.2),
+    DanceIkTargetKey(12, x: -37, y: -62, tension: 0.2), // rising again
+    DanceIkTargetKey(14, x: -36, y: -80, tension: 0.2),
     // Bar 2 jabs (beats 5-8, alternating L,R,L,R): fire to near-full
     // extension PAST the opposite shoulder line in one beat-quarter, hold a
     // frame, recoil; the idle paw chambers at the OWN-side hip crest.
@@ -6902,17 +6913,19 @@ class CatClips {
     DanceIkTargetKey(28, x: -26, y: -10, tension: 0.8), // chamber
     DanceIkTargetKey(30, x: -27, y: -12, tension: 0.5),
     DanceIkTargetKey(31, x: -26, y: -66, tension: 0.4), // lifts to the rim
-    DanceIkTargetKey(32, x: -25, y: -82, tension: 0.4), // == frame 0
+    DanceIkTargetKey(32, x: -36, y: -88, tension: 0.4), // == frame 0
   ];
   static const _azontoHandRTargetKeys = [
-    DanceIkTargetKey(0, x: 25, y: -38, tension: 0.4), // grip at the ribs
-    DanceIkTargetKey(2, x: 26, y: -44, tension: 0.2),
-    DanceIkTargetKey(4, x: 28, y: -62, tension: 0.2), // rising
-    DanceIkTargetKey(6, x: 27, y: -76, tension: 0.2),
-    DanceIkTargetKey(8, x: 25, y: -82, tension: 0.4), // grip at the brow
-    DanceIkTargetKey(10, x: 26, y: -76, tension: 0.2),
-    DanceIkTargetKey(12, x: 28, y: -58, tension: 0.2), // dropping
-    DanceIkTargetKey(14, x: 27, y: -44, tension: 0.2),
+    // Round 5: mirrors the hand.L reach fix above (see its comment) — same
+    // near-degenerate-reach jitter, mirrored keys.
+    DanceIkTargetKey(0, x: 36, y: -32, tension: 0.4), // grip at the ribs
+    DanceIkTargetKey(2, x: 37, y: -40, tension: 0.2),
+    DanceIkTargetKey(4, x: 37, y: -62, tension: 0.2), // rising
+    DanceIkTargetKey(6, x: 36, y: -80, tension: 0.2),
+    DanceIkTargetKey(8, x: 36, y: -88, tension: 0.4), // grip at the brow
+    DanceIkTargetKey(10, x: 36, y: -80, tension: 0.2),
+    DanceIkTargetKey(12, x: 37, y: -58, tension: 0.2), // dropping
+    DanceIkTargetKey(14, x: 37, y: -40, tension: 0.2),
     // Bar 2: chambered at the own-side hip while the left jabs, then the
     // answering cross jab.
     DanceIkTargetKey(16, x: 26, y: -10, tension: 0.8), // chamber at the hip
@@ -6927,7 +6940,7 @@ class CatClips {
     DanceIkTargetKey(28, x: -32, y: -54, tension: 1), // JAB
     DanceIkTargetKey(29, x: -31, y: -52, tension: 1),
     DanceIkTargetKey(31, x: 20, y: -40, tension: 0.4), // settles to the rim
-    DanceIkTargetKey(32, x: 25, y: -38, tension: 0.4), // == frame 0
+    DanceIkTargetKey(32, x: 36, y: -32, tension: 0.4), // == frame 0
   ];
   // Smooth spline hand path: flows through the authored keys with C1
   // continuity, so no corner-rounding blur wrapper is needed (the old
@@ -8833,13 +8846,23 @@ class CatClips {
   // shoulder's dig count, opening the silhouette with an asymmetric poster
   // frame each beat. Sides swap at the bar. The pinned paw RIDES its own
   // clavicle dig (+/-6y at the pump rate) so the pin never fights the pump.
+  // Round 5: the sternum pin sat at 30-35% of the arm's reach — the same
+  // near-degenerate two-bone-IK zone that made azonto's wheel mime read as
+  // frozen (see its comment above). Its x is choreographically capped at
+  // -16/-4 (tested: "pinned at the sternum"), so pushed to the edge of that
+  // lane and given its full tested y spread instead. The free-arm punch was
+  // ALSO tried at a wider reach, but even a couple of units past its
+  // original x solved the elbow outside the hand on the x-axis (validator:
+  // "folded forearms" — the elbow pokes past the wrist, the forearm sleeve
+  // reads inside-out) — its original reach is already at the anatomical
+  // ceiling, not a style choice, so it is untouched.
   static const _sekemHandLTargetKeys = [
-    DanceIkTargetKey(0, x: -10, y: -48, tension: 1), // pinned at the sternum
-    DanceIkTargetKey(4, x: -12, y: -40, tension: 1), // rides the L dig DOWN
-    DanceIkTargetKey(6, x: -10, y: -51, tension: 0.6), // release overshoot
-    DanceIkTargetKey(8, x: -10, y: -48, tension: 1),
-    DanceIkTargetKey(12, x: -12, y: -40, tension: 1), // dig ride
-    DanceIkTargetKey(14, x: -10, y: -51, tension: 0.6),
+    DanceIkTargetKey(0, x: -15, y: -48, tension: 1), // pinned at the sternum
+    DanceIkTargetKey(4, x: -15, y: -40, tension: 1), // rides the L dig DOWN
+    DanceIkTargetKey(6, x: -15, y: -54, tension: 0.6), // release overshoot
+    DanceIkTargetKey(8, x: -15, y: -48, tension: 1),
+    DanceIkTargetKey(12, x: -15, y: -40, tension: 1), // dig ride
+    DanceIkTargetKey(14, x: -15, y: -54, tension: 0.6),
     // Free-arm band: |x| stays <= 46 (inside the validator's same-side lane
     // margin — a hip-pump arm is allowed its elbow bend there) and the punch
     // lands at ~92% reach so the elbow keeps a visible bend.
@@ -8851,7 +8874,7 @@ class CatClips {
     DanceIkTargetKey(26, x: -36, y: -2, tension: 0.6),
     DanceIkTargetKey(28, x: -40, y: 8, tension: 0.7),
     DanceIkTargetKey(30, x: -36, y: 2, tension: 0.6),
-    DanceIkTargetKey(32, x: -10, y: -48, tension: 1),
+    DanceIkTargetKey(32, x: -15, y: -48, tension: 1),
   ];
   static const _sekemHandRTargetKeys = [
     DanceIkTargetKey(0, x: 38, y: 14, tension: 1), // FREE — punch past the hip
@@ -8862,12 +8885,12 @@ class CatClips {
     DanceIkTargetKey(10, x: 36, y: -2, tension: 0.6),
     DanceIkTargetKey(12, x: 40, y: 8, tension: 0.7),
     DanceIkTargetKey(14, x: 36, y: 2, tension: 0.6),
-    DanceIkTargetKey(16, x: 10, y: -48, tension: 1), // swap: sternum pin
-    DanceIkTargetKey(20, x: 12, y: -40, tension: 1), // rides the R dig DOWN
-    DanceIkTargetKey(22, x: 10, y: -51, tension: 0.6),
-    DanceIkTargetKey(24, x: 10, y: -48, tension: 1),
-    DanceIkTargetKey(28, x: 12, y: -40, tension: 1),
-    DanceIkTargetKey(30, x: 10, y: -51, tension: 0.6),
+    DanceIkTargetKey(16, x: 15, y: -48, tension: 1), // swap: sternum pin
+    DanceIkTargetKey(20, x: 15, y: -40, tension: 1), // rides the R dig DOWN
+    DanceIkTargetKey(22, x: 15, y: -54, tension: 0.6),
+    DanceIkTargetKey(24, x: 15, y: -48, tension: 1),
+    DanceIkTargetKey(28, x: 15, y: -40, tension: 1),
+    DanceIkTargetKey(30, x: 15, y: -54, tension: 0.6),
     DanceIkTargetKey(32, x: 38, y: 14, tension: 1),
   ];
   // Anchored paws lie quietly: a small settle ride on the pins instead of
