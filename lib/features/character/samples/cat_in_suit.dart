@@ -1659,12 +1659,15 @@ RigSpec buildCatInSuitRig({
       ],
       // FRONT profile [clavicle, deltoid, bicep, elbow, forearm, wrist]:
       // the BICEP carries the upper-arm mass and the forearm swells with the
-      // brachioradialis before tapering into the wrist.
-      halfWidths: scaledArmWidths(const [10.8, 11.0, 11.2, 7.2, 8.5, 5.2]),
+      // brachioradialis before tapering into the wrist. The clavicle root is
+      // NARROW so the round start cap (the armhole gap-proofing dome) hides
+      // inside the jacket shoulder instead of bulging past its silhouette
+      // as a separate bubble per sleeve tone.
+      halfWidths: scaledArmWidths(const [7.0, 11.0, 11.2, 7.2, 8.5, 5.2]),
       // BACK profile: fuller triceps up high, a tight bony elbow point, and
       // a lean forearm underside — the same put-the-mass-where-the-muscle-is
       // asymmetry that makes the legs read athletic.
-      backHalfWidths: scaledArmWidths(const [10.8, 10.4, 10.2, 7.4, 7.2, 5.0]),
+      backHalfWidths: scaledArmWidths(const [7.0, 10.4, 10.2, 7.4, 7.2, 5.0]),
       // Tension profile: soft over the clavicle/deltoid cap (a flat firm
       // tension scalloped the shoulder into per-joint lobes), firm from the
       // bicep out so the elbow keeps a defined vertex at any flexion.
@@ -1699,12 +1702,15 @@ RigSpec buildCatInSuitRig({
       ],
       // FRONT profile [clavicle, deltoid, bicep, elbow, forearm, wrist]:
       // the BICEP carries the upper-arm mass and the forearm swells with the
-      // brachioradialis before tapering into the wrist.
-      halfWidths: scaledArmWidths(const [10.8, 11.0, 11.2, 7.2, 8.5, 5.2]),
+      // brachioradialis before tapering into the wrist. The clavicle root is
+      // NARROW so the round start cap (the armhole gap-proofing dome) hides
+      // inside the jacket shoulder instead of bulging past its silhouette
+      // as a separate bubble per sleeve tone.
+      halfWidths: scaledArmWidths(const [7.0, 11.0, 11.2, 7.2, 8.5, 5.2]),
       // BACK profile: fuller triceps up high, a tight bony elbow point, and
       // a lean forearm underside — the same put-the-mass-where-the-muscle-is
       // asymmetry that makes the legs read athletic.
-      backHalfWidths: scaledArmWidths(const [10.8, 10.4, 10.2, 7.4, 7.2, 5.0]),
+      backHalfWidths: scaledArmWidths(const [7.0, 10.4, 10.2, 7.4, 7.2, 5.0]),
       // Tension profile: soft over the clavicle/deltoid cap (a flat firm
       // tension scalloped the shoulder into per-joint lobes), firm from the
       // bicep out so the elbow keeps a defined vertex at any flexion.
