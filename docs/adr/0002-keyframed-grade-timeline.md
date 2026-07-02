@@ -1,16 +1,16 @@
 # ADR 0002 — Keyframed colour-grade timeline (per-layer looks over the clip)
 
-- **Status:** Proposed (panel review pending)
+- **Status:** Accepted (rev 2 — expert-panel feedback folded in; see §Panel review)
 - **Date:** 2026-07-02
 - **Deciders:** dancing_cats rendering + demo tooling
 - **Tags:** grading, timeline, keyframes, DAW-UX, persistence, LLM-authoring
 
 ## Context
 
-ADR-adjacent history: PR #12 added an in-app ASC CDL grading console — three
-3-way wheels (Lift/Gamma/Gain), white balance, contrast/pivot, saturation, a
-transfer-curve scope and an image-derived RGB parade — driving a single
-`BackdropGrade` applied as one SOP+S shader pass over the composited backdrop.
+PR #12 added an in-app ASC CDL grading console — three 3-way wheels
+(Lift/Gamma/Gain), white balance, contrast/pivot, saturation, a transfer-curve
+scope and an image-derived RGB parade — driving a single `BackdropGrade`
+applied as one SOP+S shader pass over the composited backdrop.
 
 That console has four structural limits:
 
@@ -18,9 +18,9 @@ That console has four structural limits:
    evolve with the music — no "the scene slides toward sunset and dims a touch
    over the clip", no chorus lift, no bridge cool-down.
 2. **It is monolithic.** One grade for the entire painted world. A colourist
-   cannot warm just the deck, pull the yacht down half a stop, or desaturate
-   the drone show — there is no per-layer control, even though the scene is
-   already an ordered stack of named-in-code layers.
+   cannot warm just the deck glow, pull the drone show down half a stop, or
+   desaturate the city lights — there is no per-layer control, even though the
+   scene is already an ordered stack of layers.
 3. **It grades only the backdrop.** The cats, the stage-light pools and the
    grain overlay are outside the pass, so "dim the scene" leaves the performers
    glowing at full brightness — the exact artefact a scene-wide grade exists to
@@ -44,19 +44,23 @@ Constraints carried over from ADRs/PRs past:
   whatever the live stage renders at time *t* is what exports.
 - **The scenery feature stays ejectable and camera/demo-agnostic** — it must
   not import the character/demo feature.
+- **The baked-twin constraint (ADR 0001):** the painted base plate has the
+  skyline, yacht and deck baked in, and the scene re-draws those structures as
+  separate layers purely for depth ordering. Anything that treats a re-draw
+  differently from its baked twin re-exposes the double.
 - **100% line coverage on tested units, generative (glados) tests for pure
   models, zero analyzer warnings.**
 
 ## Decision
 
 Introduce a **keyframed grade timeline**: a per-song JSON side file holding
-grade **lanes** (master + named layer targets), each a sparse list of
-**keyframes** in wheel-space with an interpolation curve per segment; a runtime
-that evaluates the document at the audio position every frame and feeds
-per-target CDL passes; and a **DAW-style authoring workspace** that shares one
-zoomable timeline with the waveform and the true detected beat grid. The
-console (wheels + scopes) becomes the *editor of the selected lane at the
-playhead* rather than a free-floating global state.
+grade **lanes** (master + named targets), each a sparse list of **keyframes**
+in wheel-space with an interpolation curve per segment; a runtime that
+evaluates the document at the audio position every frame and feeds per-target
+CDL passes in a **declared node order**; and a **DAW-style authoring
+workspace** sharing one zoomable timeline with the waveform and the true
+detected beat grid. The console (wheels + scopes) becomes the *editor of the
+selected lane at the playhead* rather than a free-floating global state.
 
 ### 1. The document: `<track>.grade.json`, wheel-space, seconds
 
@@ -94,30 +98,41 @@ override with `DANCE_GRADE`). Schema v1:
 - **Values are wheel-space (`GradeLook`), not raw CDL.** Wheel-space is the
   console's own vocabulary (puck x/y in −1..1, masters in −1..1, the familiar
   slider ranges), it round-trips pixel-exactly into the UI, it interpolates
-  tastefully (the sensitivity mapping in `gradeFromWheels` keeps every
-  in-between frame inside the tuned range — interpolating raw power exponents
-  can't drift out of bounds because raw power is never stored), and it is the
-  same language an LLM prompt naturally speaks ("push gain toward orange 0.15,
-  master −0.05"). The true Slope/Offset/Power numbers remain visible in the
-  console readouts, derived per frame through the existing `gradeFromWheels`.
+  tastefully (the sensitivity mapping in `gradeFromWheels` maps the gamma wheel
+  through `2^(−delta)`, so lerping wheel values interpolates the power exponent
+  geometrically — the perceptually right gamma path — and every in-between
+  frame stays inside the tuned range), and it is the language an LLM prompt
+  naturally speaks ("push gain toward orange 0.15, master −0.05"). The true
+  Slope/Offset/Power numbers remain visible in the console readouts, derived
+  per frame through the existing `gradeFromWheels`.
 - **Keyframe times are seconds**, the same `*_sec` vocabulary as every other
-  side file. The UI *snaps* to detected beats/bars on input when the magnet
-  toggle is on, but storage stays in seconds so re-running beat detection can
-  never silently move an authored look.
-- **Sparse-friendly:** any omitted `look` field defaults to its neutral value,
-  so a hand- or LLM-written file stays minimal.
+  side file. The UI *snaps* to detected beats/half-beats and section
+  boundaries on input when the magnet is on, but storage stays in seconds so
+  re-running beat detection can never silently move an authored look.
+- **Omitted look fields inherit from the previous keyframe in the lane**
+  (time order; the first keyframe inherits from neutral). *Panel-revised:*
+  the draft's "omitted = neutral" rule meant a minimal LLM edit like
+  `{"t_sec": 30, "look": {"saturation": 0.8}}` silently animated every other
+  parameter back to neutral — the opposite of author intent. Inheritance keeps
+  sparse authoring honest: unmentioned parameters hold their course. The app
+  itself always **writes full looks**, so files the UI saves are explicit and
+  diff-friendly; sparseness is an input convenience only.
+- **Parsed values are clamped to console ranges** (puck radius ≤ 1, masters
+  ±1, saturation 0..2, contrast 0.5..1.8, pivot 0.2..0.7, temp/tint ±1), so a
+  hand- or LLM-typed `{"gain": {"m": 10}}` cannot blow out the image live
+  through the file watcher.
 - A lane with a single keyframe is a **static look** for that target (constant
-  extrapolation on both sides), which is exactly how "I dialled something in
-  and pressed key once" persists.
+  extrapolation both sides) — how "I dialled something in and keyed it once"
+  persists.
 
 Dart model: `lib/features/scenery/model/grade_timeline.dart` — `GradeLook`
-(the eight console fields + `lerp` + JSON), `GradeKeyframe` (`tSec`, `interp`,
-`look`), `GradeLane` (`target`, `enabled`, sorted keyframes), and
-`GradeTimelineDoc` (`lanes`, `evaluate(tSec) → Map<String, GradeLook>`).
-Pure, immutable, no Flutter imports beyond `Offset` — glados-testable. The
-model lives in the scenery feature (it is a grading concept); the *file IO*
-(loader/saver/watcher) lives with the other side-file loaders in the demo
-feature, keeping scenery ejectable.
+(the eight console fields + lerp + JSON + deviation norm), `GradeKeyframe`
+(`tSec`, `interp`, `look`), `GradeLane` (`target`, `enabled`, sorted keyframes,
+evaluate + edit primitives), `GradeTimelineDoc` (`lanes`,
+`evaluate(tSec) → Map<String, GradeLook>`). Pure, immutable, no Flutter
+imports beyond `Offset` — glados-testable. The model lives in the scenery
+feature; the *file IO* (loader/saver/watcher) lives with the other side-file
+loaders in the demo feature, keeping scenery ejectable.
 
 ### 2. Interpolation: named curves per segment
 
@@ -125,189 +140,293 @@ Each keyframe carries the curve of the segment **leaving** it:
 
 | `interp`  | meaning                                             |
 | --------- | --------------------------------------------------- |
-| `hold`    | step — value holds until the next key (cuts)        |
+| `hold`    | step — value holds until the next key (beat cuts)   |
 | `linear`  | straight lerp                                       |
-| `smooth`  | cosine ease-in-out (the default; broadcast-safe)    |
+| `smooth`  | cosine ease-in-out (default; broadcast-safe)        |
 | `easeIn`  | accelerating                                        |
 | `easeOut` | decelerating                                        |
 
-These reuse the character engine's `Ease` vocabulary (`easing.dart`) where the
-names overlap — one easing language across the repo. The overshoot curves
-(`*Back`) are deliberately excluded: a grade that overshoots produces a visible
-colour pump; anticipation is for limbs, not for looks. Components interpolate
-independently in wheel-space; pucks lerp in x/y (not polar), so a puck animated
-through centre crosses neutral instead of whipping around the hue circle.
-Outside the keyframed range the edge value extrapolates as a constant. Cubic
-bezier handles are deferred — five named curves cover the current need and stay
-trivially LLM-writable.
+These reuse the character engine's `Ease` vocabulary where the names overlap.
+The overshoot curves (`*Back`) are deliberately excluded: a grade that
+overshoots produces a visible colour pump; anticipation is for limbs, not
+looks. Components interpolate independently in wheel-space; pucks lerp in x/y
+(not polar), so a puck animated through centre crosses neutral instead of
+whipping around the hue circle. Outside the keyframed range the edge value
+extrapolates as a constant.
 
-### 3. Targets: master, the named layers, the cast
+*Panel note (colorist):* `smooth` has zero derivative at both ends of every
+segment, so a *continuous* multi-key ramp (the sunset use case) stalls and
+re-accelerates at each key — a breathing cadence. Authoring guidance (and the
+shipped sample): use `linear` on the interior keys of a continuous evolution;
+`smooth` is for isolated transitions. A C1 monotone spline (`spline`) is the
+named follow-up if breathing shows up in review; cubic-bezier handles stay
+rejected (curve-editor UI, not LLM-writable).
 
-A lane's `target` is a stable string id:
+### 3. Targets and the grade node graph
+
+A lane's `target` is a stable string id. **v1 exposes only cleanly separable
+targets:**
 
 - **`master`** — the whole stage composite: backdrop, haze band, stage-light
-  pools, grain overlay **and the cats**, excluding captions. Implemented as a
-  final CDL pass over the stage subtree via an offscreen capture (the
-  `SnapshotWidget` technique: paint the subtree into an `OffsetLayer`,
-  `toImageSync`, draw through the grade shader). This *changes master's
-  meaning* from "backdrop only" to "the scene", fixing limit (3): dimming the
-  scene now dims the performers. The RGB parade already samples the whole
-  stage, so the scope finally measures what master actually does.
-- **`backdrop`** — the painted world composite (exactly today's pass), kept as
-  its own target for looks that must not touch the cats or the light pools.
-- **Per-layer ids** — every layer in `BackdropScene.blueHourWaterfront()` gets
-  a stable id on its `ParallaxLayer` wrapper: `base-plate`, `clouds-far`,
-  `clouds-mid`, `clouds-near`, `jet`, `ocean`, `skyline`, `yacht`,
-  `city-lights`, `haze`, `deck`, `deck-glow`, `police`, `drones-sky`,
-  `drones-launch`, and `vignette` (foreground). A per-layer pass composites
-  that one layer offscreen and grades it before it lands in the stack; only
-  targets whose *evaluated grade at this instant* is non-neutral pay the cost.
-- **`cast`** — the trio, graded at the painter level (the character painter's
-  output composited offscreen and passed through the same shader), so a
-  colourist can hold the cats while the world shifts — or vice versa.
+  pools **and the cats** — excluding captions *and excluding the grain
+  overlay* (grain is finishing texture; grading it would make film grain pump
+  with every animated look change, so it composites after the master pass).
+  Implemented as a final CDL pass over the stage subtree via an offscreen
+  capture (paint the subtree into an `OffsetLayer`, `toImageSync` at the
+  surface's device pixel ratio, draw through the grade shader). This *changes
+  master's meaning* from "backdrop only" to "the scene": dimming the scene now
+  dims the performers, and the RGB parade finally measures what master does.
+- **`backdrop`** — the painted-world composite (exactly today's pass), for
+  looks that must not touch the cats or the light pools.
+- **`cast`** — the trio, graded at the character-painter level (its output
+  composited offscreen through the same shader).
+- **Separable scenery layers** — ids on the scene's layer wrappers:
+  `clouds-far`, `clouds-mid`, `clouds-near`, `jet`, `ocean`, `city-lights`,
+  `haze`, `deck-glow`, `police`, `drones-sky`, `drones-launch`, `vignette`.
+
+**Excluded from v1: the baked-twin re-draws** (`base-plate`, `skyline`,
+`yacht`, `deck`). *Panel-revised:* ADR 0001 exists because those structures
+are baked into the base plate *and* re-drawn on top; grading one copy
+independently produces ungraded rim halos at every feathered silhouette edge —
+the chromatic analogue of the doubled yacht. Until a de-baked art pass exists,
+world-level looks belong on `backdrop`/`master`. The ADD TRACK picker simply
+does not offer the twinned ids.
+
+**Blend-aware grade policy.** The overlay layers are premultiplied-alpha; the
+light passes (`city-lights`, `deck-glow`, `police`, `drones-*`, `ocean`'s
+additive shimmer) are additive, where black = no contribution. A non-zero
+Offset on an additive layer lifts black into a full-frame wash. Policy:
+per-layer passes un-premultiply → grade → re-premultiply where α > 0, and
+**additive targets ignore Offset** (slope/power/saturation only — the controls
+that make sense on a light pass). The opaque `backdrop`/`master` composites
+keep the existing shader.
+
+**Node order (normative).** CDL passes do not commute, so the composed result
+is pinned and covered by a painter test:
+
+```
+per-layer passes (inside the stack, each on its own offscreen)
+  → backdrop composite pass (background layers as one image)
+    → cast pass (the trio's painter output)
+      → master pass (whole stage; grain + captions composite after)
+```
+
+Master re-grades everything beneath it, by design (it is the finishing node).
+The same document therefore renders identically across refactors — the one
+property a grade file must have.
 
 Plumbing: `BackdropContext` grows an optional `gradeForTarget(String id)`
-callback + the grade program; `ParallaxLayer` consults it for its own id.
-The scenery feature only ever sees *ids and grades* — it stays ejectable; the
-demo page owns which document supplies them.
-
-**Premultiplied-alpha caveat (correctness):** the overlay layers are
-premultiplied-alpha images. Grading premultiplied RGB with a non-zero Offset
-would tint fully-transparent pixels (haloing). The per-layer pass therefore
-uses a shader variant that un-premultiplies (where α > 0), grades, and
-re-premultiplies. The backdrop/master composites are opaque and keep the
-existing shader.
+callback + the grade program; a layer wrapper consults it for its own id. The
+scenery feature only ever sees *ids and grades* — it stays ejectable; the demo
+page owns which document supplies them.
 
 ### 4. Runtime evaluation and the editing model
 
-Every frame the page evaluates the doc at the audio position (`evaluate` is a
-binary search + one lerp per lane — trivially 60 fps). The console becomes a
-**view/editor of the selected lane at the playhead**:
+Every frame the page evaluates the doc at the audio position (binary search +
+one lerp per lane — trivially 60 fps). The console is a **view/editor of the
+selected lane at the playhead**, with one rule for the edit target:
 
-- Not interacting → the wheels *follow* the evaluated values (they animate
-  with playback, like automation readouts in a DAW).
-- Interacting → the dragged state applies live to that target (instant visual
-  feedback), and on release **auto-key** (default ON, with a visible toggle)
-  stamps/updates a keyframe at the playhead; while *playing*, a continuous
-  drag stamps a throttled trail (touch-automation style). Auto-key OFF → the
-  edit is a live preview flagged "unkeyed"; the ● KEY button stamps it
-  explicitly, seeking away discards it.
+- **Clicking a keyframe moves the playhead to it.** Edit target and displayed
+  frame always coincide — wheels never show a look the stage isn't rendering.
+  When the playhead moves on its own, selection drops back to "lane at
+  playhead".
+- Not interacting → the wheels *follow* the evaluated values (automation
+  readouts).
+- Interacting → **absolute-touch**: the baseline freezes at grab (the wheels
+  stop following while held) and the dragged state applies live to that
+  target. On release with **auto-key** (default ON, visible toggle):
+  - *paused* → stamp/update one keyframe at the playhead;
+  - *playing* → the gesture wrote a throttled **touch trail**; on release the
+    trail **replaces every pre-existing key inside the touched span** and is
+    **thinned** (Ramer–Douglas–Peucker in wheel-space, tolerance below visible
+    grade difference) so a ridden 8-bar automation stays editable and the JSON
+    stays LLM-readable.
+  - Every auto-stamp flashes the new diamond + a transient "keyed @ m:ss.mmm"
+    note, so accidental writes are noticed while undo is cheap.
+- Auto-key OFF → the edit is a **sticky unkeyed preview**: it survives seeks
+  and playback (an absolute override on that lane), shows an UNKEYED badge on
+  the lane header and console, and is dropped only by Esc/revert or replaced
+  by ● KEY. *Panel-revised:* the draft discarded it on seek — a data-loss trap
+  in the most reflexive gesture the tool has.
 - A lane with no keyframes evaluates to neutral; the first touch under
-  auto-key creates its first keyframe — nothing a user dials is ever silently
-  lost.
-- **Undo/redo** (Ctrl+Z / Ctrl+Shift+Z) over document mutations — table stakes
-  for an authoring surface; the docs are tiny, so an immutable-snapshot stack
-  is enough.
+  auto-key creates its first keyframe — nothing dialled is ever silently lost.
+- **Undo/redo** (Ctrl+Z / Ctrl+Shift+Z): one *gesture* (wheel ride, key drag,
+  slider scrub, context-menu action, external reload) = one undo transaction.
 - Bypass keeps its meaning (feed the stage identity while the panel keeps
-  state); each lane also has an **enable** toggle (mute one lane like muting
-  an automation lane).
+  state); each lane has an **enable** toggle (automation-lane mute). Export
+  paths force bypass off and resolve/ignore unkeyed previews, logging loudly —
+  a forgotten toggle must not silently export the clean plate.
 
 ### 5. Persistence and the LLM round-trip
 
 - **Save:** any document mutation schedules a debounced (~600 ms) atomic write
-  (temp file + rename) to the grade path. No explicit save button to forget.
+  (temp file + rename). Before the session's first overwrite, the store copies
+  the existing file to `<file>.bak` — one known-good checkpoint per session.
 - **Watch:** the store polls the file's mtime (~1 s). An external change with
-  no pending local edit hot-reloads the document live — so a human and an LLM
-  can genuinely alternate: the LLM edits JSON, the app reflects it at once;
-  the human drags a wheel, the file updates for the LLM to read back.
-  Conflict policy is last-writer-wins (single-user dev tool; no merge).
+  no pending local edit hot-reloads live — the LLM edits JSON, the app
+  reflects it at once; the human drags a wheel, the file updates for the LLM
+  to read back. A reload is **announced** (transient "reloaded from disk"
+  note) and enters the undo stack as one step (Ctrl+Z restores the pre-LLM
+  document — the conflict-resolution affordance).
+- **Corrupt input never destroys work.** *Panel-revised:* the draft's "parse
+  failure → empty doc" would let one malformed LLM write hot-reload an empty
+  document that the next autosave burns over the real file. Now: parse failure
+  keeps the last good document in memory, surfaces a visible error badge
+  ("grade file unreadable — showing last good"), and **suppresses autosave**
+  until the file parses again or the user explicitly re-saves.
+- Conflict policy stays last-writer-wins (single-user dev tool), but not
+  *silent*: if an external change lands during a pending local edit and gets
+  overwritten, the store surfaces an "external change overwritten" note.
 
 ### 6. The authoring UI
 
 **Compact (default).** The wheels/scopes row is *gone* — replaced by a GRADE
-toggle in the transport's toggle cluster (above the waveform, as requested).
-The transport waveform drops to half height (112 → 56 px). Zero grading cost
-when the workspace is closed.
+toggle in the transport's toggle cluster (above the waveform). The transport
+waveform drops to half height (112 → 56 px). The grade document still applies
+to the stage while the workspace is closed (live == offline demands it) — so
+the GRADE toggle **lights up whenever the loaded document is non-neutral**,
+the visibility hook for "why does my scene look dim?". Zero *UI* cost when
+closed; the grading passes themselves cost the same open or closed.
 
-**Expanded (GRADE on).** A workspace opens between the transport bar and the
-console:
+**Expanded (GRADE on).** The transport's own timeline row is **replaced** by
+the workspace's shared timeline (one seek surface, no competing waveforms);
+the transport keeps its control/readout row. Layout:
 
 ```
-┌────────────────────────────── stage (shrinks) ─────────────────────────────┐
-├─────────────────────────────── transport row ──────────────────────────────┤
-│ ruler ─ section pills ─────────────────────────────── (one shared x-axis) │
+┌──────────────────────────── stage (≥ ~45% of window height) ───────────────┐
+├──────────────────────────────── transport row ─────────────────────────────┤
+│ overview strip: whole track + draggable view-range brush                   │
+│ ruler (drag = SCRUB) ─ section pills ────────────── (one shared x-axis)    │
 │ waveform (seek)                                                            │
-│ BEATS lane: true detected beats — ticks; downbeats accented + bar numbers  │
-│ ── MASTER   ◆────────◆──────◆───────── keyframes + value sparkline ──      │
-│ ── deck     ◆──◆                        (lanes added via ADD TRACK)        │
-│ ── cast         ◆───────◆                                                  │
-├───────────── console: wheels (enlarged) + sliders + scopes ────────────────┤
+│ BEATS lane: detected beats — ticks; downbeats accented + bar numbers       │
+│ ── MASTER   ◆────────◆──────◆──── keyframes + deviation sparkline ──       │
+│ ── deck-glow ◆──◆                 (lanes on demand via ADD TRACK;          │
+│ ── cast         ◆───────◆          > N lanes scroll internally)            │
+├──────────── console: wheels (enlarged, relative drag) + scopes ────────────┤
 ```
 
-- **One shared x-axis** for ruler, markers, waveform, beats and every grade
-  lane — zooming zooms all of them together. Ctrl+scroll zooms about the
-  cursor; drag on the ruler pans; a FIT button resets; the view auto-follows
-  the playhead during playback.
+- **One shared x-axis** for everything; zoom zooms all lanes together.
+  Bindings follow twenty years of muscle memory: **ruler drag scrubs the
+  playhead**; Ctrl+scroll zooms about the cursor; horizontal/Shift+scroll and
+  middle-drag pan; the overview brush drags/resizes the visible range; FIT
+  resets. Playhead follow is **page-flip**, suspended by any manual pan or
+  active drag, re-engaged on play/seek.
 - **The beat lane renders the *detected* grid** (`BeatMap.beatTimesSec` +
-  downbeats), not the nominal-BPM approximation the old bar grid drew — at
-  high zoom the ticks sit exactly where Beat This! heard them, which is where
-  keyframes snap. Downbeats get taller accents and bar numbers.
-- **Lanes on demand** (the DAW automation-lane pattern): a fresh document
-  shows MASTER only; an ADD TRACK picker lists the remaining targets. Track
-  headers carry name, enable, and selection; the selected lane is what the
-  console edits.
-- **Keyframe interactions:** click selects (console loads that key's look);
-  drag moves in time (beat-snap magnet toggle; Alt bypasses); **right-click
-  deletes**; double-click on empty lane space adds a key at that time with the
-  lane's evaluated look; the selected key shows a curve chip cycling
-  HOLD / LINEAR / SMOOTH / EASE IN / EASE OUT.
+  downbeats), not a nominal-BPM approximation — at high zoom the ticks sit
+  where Beat This! heard them, which is where keyframes snap (beats,
+  half-beats via `timeAtBeat(k + ½)`, and section boundaries). The transport's
+  BAR n.b readout is driven from the same `BeatMap` so the two never disagree.
+- **Lanes on demand:** a fresh document shows MASTER only; ADD TRACK lists the
+  remaining v1 targets. Track headers carry name, enable (mute), selection,
+  and a context menu (clear keys / remove lane). Lane height is fixed
+  (~36 px); beyond ~3 visible lanes the lane area scrolls internally — the
+  stage never shrinks below its floor.
+- **Keyframe interactions:** click selects **and moves the playhead to the
+  key**; drag moves in time (snap magnet; Alt bypasses; dragging past a
+  neighbour clamps to it minus epsilon); **Delete/Backspace deletes the
+  selection; right-click opens a context menu** — Remove key, the five interp
+  curves, Copy look, Paste look — so the destructive action sits behind a
+  menu, the way every NLE/DAW does, while "right-click → Remove" stays a
+  two-hundred-millisecond gesture. Shift-click multi-selects; a group drag
+  moves the set. Double-click on empty lane space adds a key at that time
+  with the lane's evaluated look. ←/→ nudge the selection by a beat
+  (Shift = fine), Esc drops selection/preview.
 - **Wheels enlarge** in the workspace (≈120 px) and gain **relative drag**
-  (drag anywhere on the wheel moves the puck by the delta, Shift = fine),
-  replacing the absolute jump-to-cursor mapping that makes small pucks
-  unusable — the trackball behaviour every grading surface uses.
-- Each lane paints a **sparkline of its value over time** (luma-ish summary:
-  the look's overall lift/gain deviation) so "something changes here" is
-  visible without selecting the lane.
+  (drag anywhere on the wheel moves the puck by the delta, Shift = fine) —
+  the trackball behaviour every grading surface uses — replacing the absolute
+  jump-to-cursor mapping that makes small pucks unusable.
+- Each lane paints a **deviation sparkline**: a norm over *all* look fields
+  (≈1 at full deflection of any single control), not just luma — a
+  saturation-only ride must not read dead-flat. *Panel-revised.*
 
-Sizing target: comfortable on a 16-inch MacBook window (~1600×900, the demo's
-native size) and luxurious on 4K; the stage shrinks while the workspace is
-open (the grading posture — Resolve does the same) and springs back when
-closed.
+Sizing target: comfortable at the demo's native 1600×900 (stage keeps ≥ ~45%
+of window height; the workspace scrolls internally past that) and luxurious on
+4K; the stage springs back to full height when the workspace closes.
 
-### 7. Testing
+### 7. Testing & validation
 
-- Model (`grade_timeline.dart`): 100% line coverage; glados generative
-  round-trip (doc → JSON → doc), evaluation invariants (constant outside the
-  range, exact at keys, bounded between keys for monotone curves).
-- Store: temp-dir tests for save/load/watch/hot-reload and corrupt-file
-  degradation (parse failure → empty doc, never a crash).
-- Runtime: painter tests for per-target passes (neutral skips, non-neutral
-  grades, premul variant), master-pass widget test.
+- Model: 100% line coverage; glados generative round-trips (doc → JSON → doc),
+  evaluation invariants (constant outside range, exact at keys, bounded
+  between keys), **inheritance semantics** (a sparse second key holds
+  unmentioned fields) and **clamping** of out-of-range input.
+- Store: temp-dir tests for save/load/watch/hot-reload, the corrupt-file
+  path (last-good retained, autosave suppressed), `.bak` creation.
+- Runtime: painter tests pinning the node order, neutral-skip, the premul and
+  additive-policy variants; a widget test for the master pass; a measured
+  frame-time check for the master capture at 1600×900 before merge (the
+  parade sampler is throttled — it is *not* the proof).
 - UI: widget tests keyed like the existing console/transport suites (toggle,
-  lanes, keyframe add/move/delete via right-click, curve cycling, zoom math
-  extracted pure).
+  lanes, add/move/multi-select/delete, context menu, curve set, snap, zoom
+  math extracted pure, sticky preview, undo transactions).
+
+## Panel review
+
+A four-expert design panel (senior colorist; video editor/finisher; DAW
+automation UX specialist; pro-tool interaction designer) reviewed rev 1
+grounded in this repo's code. Scores: **7.5 / 7 / 7 / 7** — architecture
+endorsed (wheel-space keyframing, seconds + snap-on-input, x/y puck lerps, no
+overshoot curves, lanes-on-demand, compact-by-default), with convergent
+majors, all folded into rev 2:
+
+| # | Finding (panel) | Resolution |
+|---|---|---|
+| 1 | Omitted-field = neutral silently animates looks toward identity (all four flagged it) | Inherit-from-previous-key semantics; app writes full looks (§1) |
+| 2 | No clamping of hand-written values | Parse-time clamps to console ranges (§1) |
+| 3 | Grade node order unspecified → irreproducible documents | Normative order + painter test (§3) |
+| 4 | Additive light passes: Offset lifts black into a wash | Additive targets ignore Offset (§3) |
+| 5 | Baked-twin layers as targets re-expose ADR 0001's double, in colour | Twinned ids excluded from v1 (§3) |
+| 6 | Bare right-click delete violates muscle memory; single-key-only editing | Context menu + Delete key + shift multi-select + copy/paste look (§6) |
+| 7 | Unkeyed preview discarded on seek = data loss | Sticky preview + badge + Esc (§4) |
+| 8 | Selected-key vs playhead edit-target ambiguity | Click-key-moves-playhead rule (§4) |
+| 9 | Touch trail: overwrite semantics + key spam | Replace-span + RDP thinning + one undo transaction per gesture (§4) |
+| 10 | Corrupt external write → empty doc → autosave destroys file | Last-good + error badge + autosave suppression + `.bak` (§5) |
+| 11 | Ruler-drag-pans inverts scrub convention; no navigator | Ruler scrubs; overview brush; scroll/middle-drag pans (§6) |
+| 12 | Hidden active grade in compact mode | GRADE toggle lights when doc non-neutral (§6) |
+| 13 | No vertical budget → viewer starves | Stage floor ≥ ~45%, fixed lane height, internal lane scroll (§6) |
+| 14 | Grain graded under master pumps with look changes | Grain composites after the master pass (§3) |
+| 15 | Two disagreeing bar-number systems | Transport BAR readout driven from `BeatMap` (§6) |
+| 16 | Master-pass cost asserted, not measured | Measured frame-time check gate before merge (§7) |
+
+Deferred, recorded here so they stay visible: `spline` interp for continuous
+ramps; marquee selection; typed numeric entry on readouts; scope-selected-
+target mode; loop-range audition; CDL (.ccc) export as a derived artifact.
 
 ## Alternatives considered
 
 - **Store raw CDL per keyframe.** Rejected: interpolating power exponents and
-  reconstructing wheel positions from CDL is lossy and unintuitive; the UI
-  and LLM both think in wheel-space. CDL stays a *derived* readout.
+  reconstructing wheel positions from CDL is lossy and unintuitive; the UI and
+  LLM both think in wheel-space. CDL stays a derived readout.
+- **Per-parameter automation channels** (one sparse key list per look field,
+  the classic DAW model). Considered at panel prompting: it is the most
+  correct automation representation, but it multiplies the lane UI by eight,
+  makes whole-look A/B and copy/paste harder, and the snapshot-keyframe model
+  with inheritance semantics covers the real authoring patterns here (looks
+  evolve as looks). Revisit only if per-field editing pain shows up in use.
 - **Beat-indexed keyframe times.** Rejected: re-running beat detection would
   silently re-time an authored look. Seconds + snap-on-input gives the same
   authoring feel with stable storage.
 - **Grade every layer via `ColorFilter.matrix`.** Rejected: CDL's power and
   saturation terms are non-linear; a 4×5 matrix cannot express them, and two
-  grade models (matrix vs shader) would drift.
-- **A single "wheels + timeline always visible" surface.** Rejected: the
-  console is heavy; the request is explicit that the default view is compact
-  with an opt-in toggle.
-- **Cubic-bezier curve handles per segment.** Deferred: five named curves
-  cover the shipping need, keep the JSON LLM-writable, and avoid a whole
-  curve-editor UI in v1.
+  grade models would drift.
+- **A single always-visible wheels+timeline surface.** Rejected: the request
+  is explicit that the default view is compact with an opt-in toggle.
+- **Cubic-bezier curve handles per segment.** Rejected for v1: named curves
+  cover the shipping need, keep the JSON LLM-writable, and avoid a curve-
+  editor UI.
 
 ## Consequences
 
 - Each *active* (non-neutral at this instant) target costs one offscreen
-  composite + one shader pass per frame. Neutral lanes cost nothing; the
-  common closed-workspace state costs exactly today's price. This is a desktop
-  dev tool; the budget is acceptable and measured, not guessed — the parade
-  sampler already exercises the same capture path.
+  composite + one shader pass per frame. Neutral lanes cost nothing. The
+  master pass is the expensive one and is gated on a measured frame-time
+  check; if it misses at 4K, the fallback is documented (prefer the
+  exact-frame export path while a master lane is active).
 - Master's meaning changes (backdrop-only → whole stage). The old behaviour
   remains available as the `backdrop` target. Exports pick the grade up for
   free because both export paths render the live widget at audio positions.
-- The film-strip/frame-composer test path renders ungraded unless it opts into
-  supplying a document — acceptable: grading is a demo-page concern, and the
-  live/offline contract is carried by the widget-pumping exporters.
-- A new authoring surface (workspace) becomes the largest widget in the demo;
-  it ships behind the GRADE toggle, so the default experience is *lighter*
-  than before (the always-on console row disappears).
+- The film-strip/frame-composer test path renders ungraded unless it opts in
+  by supplying a document — grading is a demo-page concern; the live/offline
+  contract is carried by the widget-pumping exporters.
+- A new authoring surface becomes the largest widget in the demo, but ships
+  behind the GRADE toggle: the default experience is *lighter* than before
+  (the always-on console row disappears, the waveform halves).
