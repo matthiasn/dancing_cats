@@ -249,8 +249,7 @@ fi
 
 app="build/linux/arm64/release/bundle/dancing_cats"
 if [[ "$rebuild" == "1" || ! -x "$app" ]]; then
-  fvm flutter build linux --release \
-    -t lib/features/character/demo/character_dance_to_track_demo.dart
+  fvm flutter build linux --release -t lib/main.dart
 fi
 
 mkdir -p "$(dirname "$out")"

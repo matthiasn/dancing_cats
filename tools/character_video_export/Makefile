@@ -10,7 +10,7 @@ DURATION ?=
 CRF ?= 18
 X264_PRESET ?= veryfast
 AUDIO_KBPS ?= 320
-REBUILD ?= 0
+REBUILD ?= 1
 CAPTIONS ?= 0
 OUT ?= $(OUT_DIR)/dance_full_1080p$(FPS)_fast.mp4
 
@@ -69,7 +69,8 @@ help:
 	  '  make verify OUT=...      ffprobe + full-color frame-hash cadence check' \
 	  '' \
 	  'Useful variables:' \
-	  '  REBUILD=1                rebuild release Linux bundle first' \
+	  '  REBUILD=1                rebuild release Linux bundle first (default)' \
+	  '  REBUILD=0                reuse the existing release bundle' \
 	  '  FPS=60                   output fps' \
 	  '  CRF=18                   x264 CRF' \
 	  '  X264_PRESET=veryfast     x264 preset' \
