@@ -5998,14 +5998,18 @@ class CatClips {
     DanceIkTargetKey(20, x: 62, y: 126, tension: 1), // stamp
     DanceIkTargetKey(22, x: 62, y: 125, tension: 0.6),
     DanceIkTargetKey(24, x: 50, y: 123),
-    DanceIkTargetKey(25, x: 34, y: 74), // knee already driving up
+    // Round 7: every rater independently called the gbese "clipped to
+    // shin/knee height" — the authored apex (y:52) sat at the shallow end
+    // of the tested band (40..52, "hip-to-waist height" per the test's own
+    // reason string), not the deep end. Pushed to the tested ceiling.
+    DanceIkTargetKey(25, x: 34, y: 68), // knee already driving up
     DanceIkTargetKey(
       26,
       x: 32,
-      y: 52,
+      y: 46,
       tension: 0.8,
     ), // GBESE apex — knee/waist height
-    DanceIkTargetKey(27, x: 40, y: 86), // whip back down, still high
+    DanceIkTargetKey(27, x: 40, y: 80), // whip back down, still high
     DanceIkTargetKey(28, x: 64, y: 126, tension: 1), // SLAM landing stamp
     DanceIkTargetKey(30, x: 64, y: 125, tension: 0.6), // held support for loop
     DanceIkTargetKey(32, x: 50, y: 123), // == frame 0
