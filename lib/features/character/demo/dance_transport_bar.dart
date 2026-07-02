@@ -33,6 +33,10 @@ class DanceTransportBar extends StatelessWidget {
     required this.onToggleBackdrop,
     required this.onToggleMute,
     required this.onSeekToSeconds,
+    this.gradeOpen = false,
+    this.gradeActive = false,
+    this.onToggleGrade,
+    this.showTimeline = true,
     super.key,
   });
 
@@ -68,6 +72,22 @@ class DanceTransportBar extends StatelessWidget {
   final VoidCallback onToggleMute;
   final ValueChanged<double> onSeekToSeconds;
 
+  /// Whether the colour-grade workspace is expanded below the bar.
+  final bool gradeOpen;
+
+  /// Whether the loaded grade document is non-neutral — lights a badge on the
+  /// GRADE toggle even while the workspace is closed, so an invisible
+  /// document can never silently colour the stage (ADR 0002 §6).
+  final bool gradeActive;
+
+  /// Shows/hides the grade workspace. Null hides the toggle entirely (e.g.
+  /// export chrome).
+  final VoidCallback? onToggleGrade;
+
+  /// False while the grade workspace is open: the workspace's shared zoomable
+  /// timeline replaces this bar's compact one (one seek surface at a time).
+  final bool showTimeline;
+
   @override
   Widget build(BuildContext context) {
     // Pin Inter across the whole console so the widget text and the painter's
@@ -89,8 +109,10 @@ class DanceTransportBar extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               _transportRow(),
-              const SizedBox(height: 12),
-              _timeline(),
+              if (showTimeline) ...[
+                const SizedBox(height: 12),
+                _timeline(),
+              ],
             ],
           ),
         ),
@@ -235,6 +257,25 @@ class DanceTransportBar extends StatelessWidget {
             tooltip: useNewBackdrop ? 'Blue-hour scene' : 'Waterfront plate',
             onTap: onToggleBackdrop,
           ),
+          if (onToggleGrade != null) ...[
+            const _VRule(height: 40),
+            _toggle(
+              key: const Key('gradeWorkspaceToggle'),
+              icon: gradeOpen ? Icons.palette_rounded : Icons.palette_outlined,
+              active: gradeOpen,
+              enabled: true,
+              tooltip: gradeOpen
+                  ? 'Close the grade timeline'
+                  : gradeActive
+                  ? 'Open the grade timeline (a grade is active)'
+                  : 'Open the grade timeline',
+              onTap: onToggleGrade!,
+              // A grade document can colour the stage while this workspace is
+              // closed; the badge keeps that state visible (never a mystery
+              // "why is my scene dim?").
+              badge: gradeActive && !gradeOpen,
+            ),
+          ],
         ],
       ),
     );
@@ -246,6 +287,8 @@ class DanceTransportBar extends StatelessWidget {
     required bool enabled,
     required String tooltip,
     required VoidCallback onTap,
+    bool badge = false,
+    Key? key,
   }) {
     // Unmistakable on/off: an active cell lights up with a strong teal wash +
     // a white glyph + a thick underline; an inactive cell is a dim glyph on the
@@ -259,6 +302,7 @@ class DanceTransportBar extends StatelessWidget {
     return Tooltip(
       message: tooltip,
       child: InkWell(
+        key: key,
         onTap: enabled ? onTap : null,
         child: Container(
           height: 40,
@@ -275,7 +319,29 @@ class DanceTransportBar extends StatelessWidget {
                   ),
                 )
               : null,
-          child: Icon(icon, size: 19, color: color),
+          child: badge
+              ? Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Icon(icon, size: 19, color: color),
+                    // The "a grade is live" dot — same teal as the accent so
+                    // the language stays one-colour.
+                    Positioned(
+                      right: -2,
+                      top: -2,
+                      child: Container(
+                        key: const Key('gradeActiveBadge'),
+                        width: 7,
+                        height: 7,
+                        decoration: const BoxDecoration(
+                          color: _Chrome.accent,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              : Icon(icon, size: 19, color: color),
         ),
       ),
     );
@@ -478,8 +544,10 @@ class DanceTransportBar extends StatelessWidget {
   }
 
   Widget _timeline() {
+    // Half the pre-grade-timeline height (was 112): the compact bar is a
+    // seek strip, not an editing surface — the workspace owns the tall view.
     return SizedBox(
-      height: 112,
+      height: 56,
       child: LayoutBuilder(
         builder: (context, constraints) {
           final width = constraints.maxWidth;
