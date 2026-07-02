@@ -366,24 +366,16 @@ void main() {
       final cuff = rig.bone(CatBones.wristCuffL)!.drawable!;
       final hand = rig.bone(CatBones.handL)!.drawable!;
 
-      // Index 0 is the CLAVICLE ROOT: deliberately narrow so the round
-      // start cap (the armhole gap-proofing dome) hides inside the jacket
-      // shoulder instead of bulging past its silhouette as a bump. The
-      // visible shoulder mass is the DELTOID at index 1.
-      final root = ribbon.halfWidths[0];
+      // Index 0 is the CLAVICLE ROOT (the round start cap / armhole
+      // gap-proofing dome); index 1 is the DELTOID. They stay close in width
+      // so the cap reads as one continuous mass with the shoulder instead of
+      // a pinched neck-then-bulge (the "separate clavicle" tell).
       final deltoid = ribbon.halfWidths[1];
       final bicep = ribbon.halfWidths[2];
       final elbow = ribbon.halfWidths[3];
       final forearm = ribbon.halfWidths[4];
       final wrist = ribbon.halfWidths[5];
 
-      expect(
-        root,
-        lessThan(deltoid),
-        reason:
-            'the clavicle root must tuck under the jacket shoulder — a root '
-            'as wide as the deltoid caps in a ball above the silhouette',
-      );
       expect(
         deltoid,
         greaterThan(bicep * 0.9),

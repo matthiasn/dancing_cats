@@ -1068,7 +1068,14 @@ RigSpec buildCatInSuitRig({
       // A narrow fold hugging the shirt V — near-vertical, not a wide wedge
       // sweeping across the yoke.
       restRotation: 0.45,
-      drawable: _tapered(11, 4, 36, _lapel, dy: 15),
+      // Flat-shaded like the collar (celShade:false) and for the same reason:
+      // _tapered's defaults (celShade+formRound both on) compute an
+      // INDEPENDENT directional+radial ramp over just this small shape's own
+      // bounding box, unlike the ribbon (which shares one ramp across the
+      // whole jacket group) — on a small panel that reads as its own
+      // separately-lit sphere sitting at the collar/shoulder seam, which the
+      // owner spotted as "a separate clavicle piece."
+      drawable: _tapered(11, 4, 36, _lapel, dy: 15, celShade: false),
     ),
     Bone(
       id: CatBones.lapelR,
@@ -1079,7 +1086,8 @@ RigSpec buildCatInSuitRig({
       // A narrow fold hugging the shirt V — near-vertical, not a wide wedge
       // sweeping across the yoke.
       restRotation: -0.45,
-      drawable: _tapered(11, 4, 36, _lapel, dy: 15),
+      // Flat-shaded like the collar — see the L lapel's comment.
+      drawable: _tapered(11, 4, 36, _lapel, dy: 15, celShade: false),
     ),
     // Shirt collar: two white points standing at the base of the neck, inside
     // the navy lapels, with the tie knot dropping between them — so the head
@@ -1659,15 +1667,15 @@ RigSpec buildCatInSuitRig({
       ],
       // FRONT profile [clavicle, deltoid, bicep, elbow, forearm, wrist]:
       // the BICEP carries the upper-arm mass and the forearm swells with the
-      // brachioradialis before tapering into the wrist. The clavicle root is
-      // NARROW so the round start cap (the armhole gap-proofing dome) hides
-      // inside the jacket shoulder instead of bulging past its silhouette
-      // as a separate bubble per sleeve tone.
-      halfWidths: scaledArmWidths(const [7.0, 11.0, 11.2, 7.2, 8.5, 5.2]),
+      // brachioradialis before tapering into the wrist. The clavicle root
+      // stays close to the deltoid width so the round start cap (the armhole
+      // gap-proofing dome) reads as one continuous mass with the shoulder,
+      // not a pinched neck-then-bulge.
+      halfWidths: scaledArmWidths(const [10.8, 11.0, 11.2, 7.2, 8.5, 5.2]),
       // BACK profile: fuller triceps up high, a tight bony elbow point, and
       // a lean forearm underside — the same put-the-mass-where-the-muscle-is
       // asymmetry that makes the legs read athletic.
-      backHalfWidths: scaledArmWidths(const [7.0, 10.4, 10.2, 7.4, 7.2, 5.0]),
+      backHalfWidths: scaledArmWidths(const [10.4, 10.4, 10.2, 7.4, 7.2, 5.0]),
       // Tension profile: soft over the clavicle/deltoid cap (a flat firm
       // tension scalloped the shoulder into per-joint lobes), firm from the
       // bicep out so the elbow keeps a defined vertex at any flexion.
@@ -1702,15 +1710,15 @@ RigSpec buildCatInSuitRig({
       ],
       // FRONT profile [clavicle, deltoid, bicep, elbow, forearm, wrist]:
       // the BICEP carries the upper-arm mass and the forearm swells with the
-      // brachioradialis before tapering into the wrist. The clavicle root is
-      // NARROW so the round start cap (the armhole gap-proofing dome) hides
-      // inside the jacket shoulder instead of bulging past its silhouette
-      // as a separate bubble per sleeve tone.
-      halfWidths: scaledArmWidths(const [7.0, 11.0, 11.2, 7.2, 8.5, 5.2]),
+      // brachioradialis before tapering into the wrist. The clavicle root
+      // stays close to the deltoid width so the round start cap (the armhole
+      // gap-proofing dome) reads as one continuous mass with the shoulder,
+      // not a pinched neck-then-bulge.
+      halfWidths: scaledArmWidths(const [10.8, 11.0, 11.2, 7.2, 8.5, 5.2]),
       // BACK profile: fuller triceps up high, a tight bony elbow point, and
       // a lean forearm underside — the same put-the-mass-where-the-muscle-is
       // asymmetry that makes the legs read athletic.
-      backHalfWidths: scaledArmWidths(const [7.0, 10.4, 10.2, 7.4, 7.2, 5.0]),
+      backHalfWidths: scaledArmWidths(const [10.4, 10.4, 10.2, 7.4, 7.2, 5.0]),
       // Tension profile: soft over the clavicle/deltoid cap (a flat firm
       // tension scalloped the shoulder into per-joint lobes), firm from the
       // bicep out so the elbow keeps a defined vertex at any flexion.
