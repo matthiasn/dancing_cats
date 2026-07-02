@@ -748,7 +748,7 @@ void main() {
       // Per-clip shrug ceilings: groove clips keep the girdle subtle, while
       // sekem's whole identity is the shoulder-led pump (panel round 1: the
       // frozen yoke was scored down) so its clavicles may jerk visibly.
-      const shrugCeiling = {'shaku': 0.07, 'zanku': 0.2, 'sekem': 0.24};
+      const shrugCeiling = {'shaku': 0.07, 'zanku': 0.2, 'sekem': 0.32};
       for (final clip in [CatClips.shaku, CatClips.zanku, CatClips.sekem]) {
         final left = clip.channels[CatBones.clavicleL];
         final right = clip.channels[CatBones.clavicleR];
@@ -1180,11 +1180,12 @@ void main() {
           reason: 'Shaku frame $frame: the flash opens the right arm out',
         );
       }
-      final reCrossed = handL.sample(14 / phrase.frameCount);
+      final reCrossed = handL.sample(16 / phrase.frameCount);
       expect(
         reCrossed.x,
         greaterThan(8),
-        reason: 'the X must be re-crossed by the downbeat after the flash',
+        reason: 'the X must be re-crossed (with its two-frame close and '
+            'overcross settle) by the downbeat after the flash',
       );
     });
 
@@ -1544,20 +1545,20 @@ void main() {
         final right = handR.sample(p);
         expect(
           left.x,
-          inExclusiveRange(-26, -10),
+          inExclusiveRange(-38, -18),
           reason:
               'Azonto frame $frame: the left paw should grip the mimed wheel '
-              'in front of the chest, not point out',
+              'in front of the body, not point out',
         );
         expect(
           right.x,
-          inExclusiveRange(10, 26),
+          inExclusiveRange(18, 38),
           reason:
               'Azonto frame $frame: the right paw should grip the mimed wheel '
-              'in front of the chest, not point out',
+              'in front of the body, not point out',
         );
-        expect(left.y, inExclusiveRange(-52, -24));
-        expect(right.y, inExclusiveRange(-52, -24));
+        expect(left.y, inExclusiveRange(-40, -6));
+        expect(right.y, inExclusiveRange(-40, -6));
         expect(
           (left.y - right.y).abs(),
           greaterThan(12),
