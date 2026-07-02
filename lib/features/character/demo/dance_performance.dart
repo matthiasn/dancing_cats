@@ -74,6 +74,28 @@ typedef DanceStage = ({
 /// on every routine at 8 beats.
 const int kDancePhraseBars = 2;
 
+/// How much faster the shipped app's beat-warped pose clock runs than the
+/// raw, authored clip clock (`_danceBase.duration`) motion-quality tests
+/// sample against.
+///
+/// `BeatMap.clipSecondsAt` re-maps clip-relative time onto the *real* detected
+/// beat grid via `BeatLoopBinding.barAligned`, whose loop spans
+/// `kDancePhraseBars * timeSignatureNumerator` beats — 8 beats for this
+/// track's 4/4 time signature. At the sample track's detected
+/// `tempo.global_bpm` (`assets/sample_track/moving.json`, 120.0), 8 beats take
+/// `8 * 60 / 120 = 4` real seconds, versus the `_danceBase` clip's authored
+/// `duration: 6` seconds — so the live/exported app plays every routine
+/// `6 / 4 = 1.5x` faster than the raw clip clock the film-strip tests and
+/// `TemporalMotionAnalyzer` sample by default.
+///
+/// This is *this project's current default track's* factor, not a universal
+/// constant — it would need recomputing (from the same formula) if the
+/// sample track or `kDancePhraseBars` ever changes. Compressing time by factor
+/// `k` scales the n-th time-derivative by `k^n`, so callers multiply speed by
+/// `k`, acceleration by `k^2`, and jerk by `k^3` rather than resampling at a
+/// different clock.
+const double kDanceRealTempoSpeedup = 6 / 4;
+
 /// Fraction of the track's energy range below which a section counts as "calm"
 /// (and, if also long enough, eases the trio into idle). See [kMinCalmSeconds].
 const double kSectionEnergyThreshold = 0.5;

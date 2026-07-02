@@ -36,12 +36,31 @@ class TemporalMotionAnalyzer {
     final previousByBone = <String, TemporalMotionSegment>{};
     final previousAccelerationByBone = <String, TemporalMotionAcceleration>{};
 
+    final angularSegments = <TemporalMotionAngularSegment>[];
+    final angularAccelerations = <TemporalMotionAngularAcceleration>[];
+    final angularJerks = <TemporalMotionAngularJerk>[];
+    final previousAngularByBone = <String, TemporalMotionAngularSegment>{};
+    final previousAngularAccelerationByBone =
+        <String, TemporalMotionAngularAcceleration>{};
+    // Unwrapped (accumulated, not wrapped to +/-pi) world-space angle per bone,
+    // so a bone whose rotation crosses the atan2 branch cut doesn't register a
+    // fake near-2*pi jerk spike. Seeded from frame 0 below.
+    final unwrappedAngleByBone = <String, double>{};
+
     var previous = scene.frameAt(
       clip: clip,
       timeSeconds: 0,
       expression: expression,
       base: base,
     );
+    for (final boneId in boneIds) {
+      final transform = previous.world[boneId];
+      if (transform == null) {
+        throw StateError('Bone "$boneId" was not resolved for ${clip.name}.');
+      }
+      unwrappedAngleByBone[boneId] = math.atan2(transform.b, transform.a);
+    }
+
     for (var frame = 1; frame <= samples; frame++) {
       final timeSeconds = clip.duration * frame / samples;
       final current = scene.frameAt(
@@ -114,6 +133,67 @@ class TemporalMotionAnalyzer {
           previousAccelerationByBone[boneId] = acceleration;
         }
         previousByBone[boneId] = segment;
+
+        // World-space angle (atan2(b, a)), not local JointPose.rotation: a
+        // forearm's visual rotation compounds parent rotation too, and world
+        // angle is what a viewer actually perceives as a "snap".
+        final rawAngle = math.atan2(currentTransform.b, currentTransform.a);
+        final previousUnwrapped = unwrappedAngleByBone[boneId]!;
+        final wrappedDelta = _wrapToPi(rawAngle - _wrapToPi(previousUnwrapped));
+        final unwrappedAngle = previousUnwrapped + wrappedDelta;
+        unwrappedAngleByBone[boneId] = unwrappedAngle;
+
+        final angularSegment = TemporalMotionAngularSegment(
+          boneId: boneId,
+          fromFrame: frame - 1,
+          toFrame: frame,
+          fromPhase: (frame - 1) / samples,
+          toPhase: frame / samples,
+          dAngle: wrappedDelta,
+          magnitude: wrappedDelta.abs(),
+        );
+        angularSegments.add(angularSegment);
+
+        final previousAngularSegment = previousAngularByBone[boneId];
+        if (previousAngularSegment != null) {
+          final aAngle = angularSegment.dAngle - previousAngularSegment.dAngle;
+          final angularAcceleration = TemporalMotionAngularAcceleration(
+            boneId: boneId,
+            fromFrame: previousAngularSegment.fromFrame,
+            throughFrame: previousAngularSegment.toFrame,
+            toFrame: angularSegment.toFrame,
+            fromPhase: previousAngularSegment.fromPhase,
+            throughPhase: previousAngularSegment.toPhase,
+            toPhase: angularSegment.toPhase,
+            dAngle: aAngle,
+            magnitude: aAngle.abs(),
+          );
+          angularAccelerations.add(angularAcceleration);
+
+          final previousAngularAcceleration =
+              previousAngularAccelerationByBone[boneId];
+          if (previousAngularAcceleration != null) {
+            final jAngle =
+                angularAcceleration.dAngle - previousAngularAcceleration.dAngle;
+            angularJerks.add(
+              TemporalMotionAngularJerk(
+                boneId: boneId,
+                fromFrame: previousAngularAcceleration.fromFrame,
+                throughFrameA: previousAngularAcceleration.throughFrame,
+                throughFrameB: angularAcceleration.throughFrame,
+                toFrame: angularAcceleration.toFrame,
+                fromPhase: previousAngularAcceleration.fromPhase,
+                throughPhaseA: previousAngularAcceleration.throughPhase,
+                throughPhaseB: angularAcceleration.throughPhase,
+                toPhase: angularAcceleration.toPhase,
+                dAngle: jAngle,
+                magnitude: jAngle.abs(),
+              ),
+            );
+          }
+          previousAngularAccelerationByBone[boneId] = angularAcceleration;
+        }
+        previousAngularByBone[boneId] = angularSegment;
       }
       previous = current;
     }
@@ -124,7 +204,18 @@ class TemporalMotionAnalyzer {
       segments: segments,
       accelerations: accelerations,
       jerks: jerks,
+      angularSegments: angularSegments,
+      angularAccelerations: angularAccelerations,
+      angularJerks: angularJerks,
     );
+  }
+
+  /// Wraps [angle] into `(-pi, pi]`.
+  static double _wrapToPi(double angle) {
+    var wrapped = angle % (2 * math.pi);
+    if (wrapped > math.pi) wrapped -= 2 * math.pi;
+    if (wrapped <= -math.pi) wrapped += 2 * math.pi;
+    return wrapped;
   }
 }
 
@@ -135,6 +226,9 @@ class TemporalMotionReport {
     required this.segments,
     required this.accelerations,
     required this.jerks,
+    required this.angularSegments,
+    required this.angularAccelerations,
+    required this.angularJerks,
   });
 
   final String clipName;
@@ -142,6 +236,9 @@ class TemporalMotionReport {
   final List<TemporalMotionSegment> segments;
   final List<TemporalMotionAcceleration> accelerations;
   final List<TemporalMotionJerk> jerks;
+  final List<TemporalMotionAngularSegment> angularSegments;
+  final List<TemporalMotionAngularAcceleration> angularAccelerations;
+  final List<TemporalMotionAngularJerk> angularJerks;
 
   TemporalMotionSegment get worstDisplacement => _maxBy(
     segments,
@@ -158,6 +255,21 @@ class TemporalMotionReport {
   TemporalMotionJerk get worstJerk =>
       _maxBy(jerks, (jerk) => jerk.magnitude, 'jerks');
 
+  TemporalMotionAngularSegment get worstAngularVelocity => _maxBy(
+    angularSegments,
+    (segment) => segment.magnitude,
+    'angularSegments',
+  );
+
+  TemporalMotionAngularAcceleration get worstAngularAcceleration => _maxBy(
+    angularAccelerations,
+    (acceleration) => acceleration.magnitude,
+    'angularAccelerations',
+  );
+
+  TemporalMotionAngularJerk get worstAngularJerk =>
+      _maxBy(angularJerks, (jerk) => jerk.magnitude, 'angularJerks');
+
   List<TemporalMotionSegment> topDisplacements(int count) =>
       _topBy(segments, count, (segment) => segment.distance);
 
@@ -166,6 +278,20 @@ class TemporalMotionReport {
 
   List<TemporalMotionJerk> topJerks(int count) =>
       _topBy(jerks, count, (jerk) => jerk.magnitude);
+
+  List<TemporalMotionAngularSegment> topAngularVelocities(int count) =>
+      _topBy(angularSegments, count, (segment) => segment.magnitude);
+
+  List<TemporalMotionAngularAcceleration> topAngularAccelerations(
+    int count,
+  ) => _topBy(
+    angularAccelerations,
+    count,
+    (acceleration) => acceleration.magnitude,
+  );
+
+  List<TemporalMotionAngularJerk> topAngularJerks(int count) =>
+      _topBy(angularJerks, count, (jerk) => jerk.magnitude);
 
   /// Finds robotic "hold, hold, snap" transitions.
   ///
@@ -757,4 +883,78 @@ class TemporalMotionLoopSeamJump {
   final double speedDelta;
   final double speedRatio;
   final double velocityJump;
+}
+
+class TemporalMotionAngularSegment {
+  const TemporalMotionAngularSegment({
+    required this.boneId,
+    required this.fromFrame,
+    required this.toFrame,
+    required this.fromPhase,
+    required this.toPhase,
+    required this.dAngle,
+    required this.magnitude,
+  });
+
+  final String boneId;
+  final int fromFrame;
+  final int toFrame;
+  final double fromPhase;
+  final double toPhase;
+
+  /// Unwrapped world-space angle delta, in radians.
+  final double dAngle;
+  final double magnitude;
+}
+
+class TemporalMotionAngularAcceleration {
+  const TemporalMotionAngularAcceleration({
+    required this.boneId,
+    required this.fromFrame,
+    required this.throughFrame,
+    required this.toFrame,
+    required this.fromPhase,
+    required this.throughPhase,
+    required this.toPhase,
+    required this.dAngle,
+    required this.magnitude,
+  });
+
+  final String boneId;
+  final int fromFrame;
+  final int throughFrame;
+  final int toFrame;
+  final double fromPhase;
+  final double throughPhase;
+  final double toPhase;
+  final double dAngle;
+  final double magnitude;
+}
+
+class TemporalMotionAngularJerk {
+  const TemporalMotionAngularJerk({
+    required this.boneId,
+    required this.fromFrame,
+    required this.throughFrameA,
+    required this.throughFrameB,
+    required this.toFrame,
+    required this.fromPhase,
+    required this.throughPhaseA,
+    required this.throughPhaseB,
+    required this.toPhase,
+    required this.dAngle,
+    required this.magnitude,
+  });
+
+  final String boneId;
+  final int fromFrame;
+  final int throughFrameA;
+  final int throughFrameB;
+  final int toFrame;
+  final double fromPhase;
+  final double throughPhaseA;
+  final double throughPhaseB;
+  final double toPhase;
+  final double dAngle;
+  final double magnitude;
 }
