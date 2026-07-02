@@ -606,6 +606,7 @@ class CharacterRenderer {
       spine,
       ribbon.halfWidths,
       backHalfWidths: ribbon.backHalfWidths,
+      jointTensions: ribbon.jointTensions,
       samplesPerSegment: ribbon.samplesPerSegment,
       startFraction: ribbon.inkStartFraction,
     );
@@ -671,6 +672,7 @@ class CharacterRenderer {
       spine,
       ribbon.halfWidths,
       backHalfWidths: ribbon.backHalfWidths,
+      jointTensions: ribbon.jointTensions,
       samplesPerSegment: ribbon.samplesPerSegment,
       roundCaps: ribbon.roundCaps,
     );

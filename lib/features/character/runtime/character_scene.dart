@@ -1423,18 +1423,22 @@ class CharacterScene {
       // Toe-down pitch: the foot's toe points local -x, so a NEGATIVE world
       // rotation drops the toe / raises the heel.
       final pitch = _worldRotation(footWorld);
-      if (pitch >= -0.04) continue;
+      if (pitch >= -0.02) continue;
 
       // The toe must be the WEIGHT-BEARING end: lower than the heel and
       // near the frame's ground. An airborne pointed toe keeps its sole
-      // straight; a dig or heel-lift bends it.
+      // straight; a dig or heel-lift bends it. The crease starts almost as
+      // soon as the heel peels and bends hard through the roll — the owner
+      // read the old late/shallow flex as a rigid slab tilting on its edge.
       if (tip.y <= heel.y + 2) continue;
       final gap = frameFloorY - tip.y;
-      final proximity = (1 - gap / 18).clamp(0.0, 1.0);
+      final proximity = (1 - gap / 26).clamp(0.0, 1.0);
       if (proximity <= 0) continue;
 
-      final flex = (-pitch - 0.04) * 1.15 * proximity;
-      final delta = flex.clamp(0.0, 0.8);
+      final flex = (-pitch - 0.02) * 1.65 * proximity;
+      // Cap inside the toe_flex dancer envelope (0.8 rad) — a sole creases
+      // hard through the roll but never folds past ~45 degrees.
+      final delta = flex.clamp(0.0, 0.78);
       if (delta < 0.01) continue;
 
       joints ??= Map<String, JointPose>.of(pose.joints);

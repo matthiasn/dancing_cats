@@ -375,6 +375,7 @@ class LimbRibbonSpec {
     required this.z,
     required this.color,
     List<double>? backHalfWidths,
+    List<double>? jointTensions,
     List<String> hiddenBoneIds = const [],
     this.outlineColor,
     this.outlineWidth = 0,
@@ -384,12 +385,19 @@ class LimbRibbonSpec {
     this.shadeGroup,
     this.inkOverFill = false,
     this.inkStartFraction = 0,
-  }) : jointBoneIds = List<String>.unmodifiable(jointBoneIds),
+  }) : assert(
+         jointTensions == null || jointTensions.length == jointBoneIds.length,
+         'jointTensions must match jointBoneIds',
+       ),
+       jointBoneIds = List<String>.unmodifiable(jointBoneIds),
        hiddenBoneIds = List<String>.unmodifiable(hiddenBoneIds),
        halfWidths = List<double>.unmodifiable(halfWidths),
        backHalfWidths = backHalfWidths == null
            ? null
-           : List<double>.unmodifiable(backHalfWidths);
+           : List<double>.unmodifiable(backHalfWidths),
+       jointTensions = jointTensions == null
+           ? null
+           : List<double>.unmodifiable(jointTensions);
 
   final String id;
   final List<String> jointBoneIds;
@@ -405,6 +413,14 @@ class LimbRibbonSpec {
   /// calf on the BACK of the shin; putting the mass where the muscle lives is
   /// what makes a leg read athletic instead of inflated.
   final List<double>? backHalfWidths;
+
+  /// Optional per-joint centreline tension (0 = classic Catmull-Rom, 1 = the
+  /// raw polyline). Limbs want a PROFILE, not one number: soft where the limb
+  /// roots into the garment (a flat high tension scallops the shoulder cap
+  /// into per-joint lobes), firm from the mid-limb joint outward so flexion
+  /// resolves at a defined elbow/knee vertex instead of a crescent. Null
+  /// falls back to the ribbon default.
+  final List<double>? jointTensions;
 
   final int z;
   final int color;

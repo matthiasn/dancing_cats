@@ -1586,6 +1586,10 @@ RigSpec buildCatInSuitRig({
       // BACK profile: hamstring eases off the seat, then the CALF bulge —
       // the S-curve that reads athletic where a symmetric tube reads stuffed.
       backHalfWidths: scaledLegWidths(const [15.0, 13.0, 11.2, 8.2, 12.2, 5.3]),
+      // Tension profile: soft through the hip/seat so the trouser root stays
+      // one smooth mass, firm from the knee down so flexion resolves at a
+      // visible knee vertex instead of a crescent shin.
+      jointTensions: const [0.42, 0.45, 0.55, 0.74, 0.74, 0.74],
       z: 3,
       color: _trouserRear,
       outlineColor: _outline,
@@ -1612,6 +1616,10 @@ RigSpec buildCatInSuitRig({
       // BACK profile: hamstring eases off the seat, then the CALF bulge —
       // the S-curve that reads athletic where a symmetric tube reads stuffed.
       backHalfWidths: scaledLegWidths(const [15.0, 13.0, 11.2, 8.2, 12.2, 5.3]),
+      // Tension profile: soft through the hip/seat so the trouser root stays
+      // one smooth mass, firm from the knee down so flexion resolves at a
+      // visible knee vertex instead of a crescent shin.
+      jointTensions: const [0.42, 0.45, 0.55, 0.74, 0.74, 0.74],
       z: 6,
       color: _trouser,
       outlineColor: _outline,
@@ -1657,6 +1665,10 @@ RigSpec buildCatInSuitRig({
       // a lean forearm underside — the same put-the-mass-where-the-muscle-is
       // asymmetry that makes the legs read athletic.
       backHalfWidths: scaledArmWidths(const [10.8, 10.4, 10.2, 7.4, 7.2, 5.0]),
+      // Tension profile: soft over the clavicle/deltoid cap (a flat firm
+      // tension scalloped the shoulder into per-joint lobes), firm from the
+      // bicep out so the elbow keeps a defined vertex at any flexion.
+      jointTensions: const [0.42, 0.42, 0.52, 0.74, 0.74, 0.74],
       z: 15,
       color: _sleeve,
       outlineColor: _outline,
@@ -1693,6 +1705,10 @@ RigSpec buildCatInSuitRig({
       // a lean forearm underside — the same put-the-mass-where-the-muscle-is
       // asymmetry that makes the legs read athletic.
       backHalfWidths: scaledArmWidths(const [10.8, 10.4, 10.2, 7.4, 7.2, 5.0]),
+      // Tension profile: soft over the clavicle/deltoid cap (a flat firm
+      // tension scalloped the shoulder into per-joint lobes), firm from the
+      // bicep out so the elbow keeps a defined vertex at any flexion.
+      jointTensions: const [0.42, 0.42, 0.52, 0.74, 0.74, 0.74],
       z: 16,
       color: _sleeveNear,
       outlineColor: _outline,
