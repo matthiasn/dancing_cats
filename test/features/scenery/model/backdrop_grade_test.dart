@@ -67,6 +67,28 @@ void main() {
     });
   });
 
+  group('GradeWheel', () {
+    test('equality and hashCode are value-based (keyframes rely on it)', () {
+      const a = GradeWheel(balance: Offset(0.2, -0.1), master: 0.3);
+      // Runtime-built twin (not const-canonicalised) must still compare equal.
+      double runtime(double v) => v;
+      final b = GradeWheel(
+        balance: const Offset(0.2, -0.1),
+        master: runtime(0.3),
+      );
+      expect(a, b);
+      expect(a.hashCode, b.hashCode);
+      expect(
+        a,
+        isNot(const GradeWheel(balance: Offset(0.2, -0.1), master: 0.4)),
+      );
+      expect(
+        a,
+        isNot(const GradeWheel(balance: Offset(0.2, 0.1), master: 0.3)),
+      );
+    });
+  });
+
   group('BackdropGrade.responseAt', () {
     test('the identity grade is the identity transfer curve', () {
       for (final x in [0.0, 0.25, 0.5, 1.0]) {
