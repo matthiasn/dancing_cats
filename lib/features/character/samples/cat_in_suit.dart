@@ -1824,9 +1824,17 @@ RigSpec buildCatInSuitRig({
     // fake with screen-space gradients; baking it per-shape means it tracks the
     // geometry through every pose instead of sliding over it.
     celShade: const CelShadeSpec(
-      shadowFactor: 0.5,
+      // Round-4-plus: a tall shape (a leg, lit from above) puts a large
+      // fraction of its own length past the shadow terminator by design —
+      // at hero scale on the lead dancer this crushed the trousers toward
+      // near-black ("harsh line... definitely mistuned"). Backed off both
+      // knobs: less of the shape falls into full shadow (coverage), and the
+      // shadow floor itself sits higher (shadowFactor), while keeping the
+      // shade cool/broad enough that limbs still read as dimensional, not
+      // flat stickers.
+      shadowFactor: 0.62,
       coolAmount: 0.26,
-      coverage: 0.52,
+      coverage: 0.4,
       softness: 0.16,
       // A modest lit-side SHEEN so the fabric/fur reads as catching the key,
       // without going so bright that the thin limbs/cuffs chrome out.
