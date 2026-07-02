@@ -73,8 +73,28 @@ a genuine support map, buga's progressive three-dip sink and leg-driven
 rise, sekem's dwelling lateral weight (no pass-through-centre sine),
 anti-clone ensemble variance, crossed WRISTS not folded forearms.
 
-Key sources: Guardian NG & Legit.ng & Face2Face Africa (Shaku), Filter Free
-NG & How-To-9ja & NativeMag (Zanku), Wikipedia & AFAR & GhanaRemembers
-(Azonto), Wikipedia & Skabash & the official dance class video (Buga),
-NativeMag & OkayAfrica (Sekem), Red Bull & Divira & District234 (grammar).
-Full URLs in the audit transcript.
+## Sources
+
+- Shaku Shaku: <https://guardian.ng/life/music/evolution-of-shaku-shaku-as-nigerias-leading-dance-step/>,
+  <https://www.legit.ng/1158626-shaku-shaku-dance-origin-history.html>,
+  <https://face2faceafrica.com/article/how-to-perfect-shaku-shaku-the-nigerian-dance-currently-exciting-the-world>,
+  <https://madjackentertainment.wordpress.com/2018/10/29/shaku-shaku-dance-origin-and-history/>
+- Zanku/Legwork: <https://filterfree.ng/features/zanku-origins-and-its-relationship-with-other-things/>,
+  <https://howto9ja.com/how-to-dance-zanku-leg-work>,
+  <https://thenativemag.com/how-to-a-guide-to-africas-most-popular-dance-moves-from-the-2010s/>,
+  <https://www.okayafrica.com/watch-the-music-video-for-zlatans-massive-dance-single-zanku-leg-work/>,
+  Chop Daily tutorial <https://www.youtube.com/watch?v=guT32EbS9A0>
+- Azonto: <https://en.wikipedia.org/wiki/Azonto>,
+  <https://www.afar.com/magazine/how-to-dance-the-azonto>,
+  <https://ghanaremembers.com/stories/culture/how-the-azonto-dance-captured-ghana-and-the-world.html>
+- Buga: <https://en.wikipedia.org/wiki/Buga_(Lo_Lo_Lo)>,
+  <https://www.skabash.com/buga-what-kizz-daniels-sensational-song-means/>,
+  <https://digimillennials.com/video/kizz-daniel-and-tekno-show-you-how-to-buga-in-electrifying-new-video/>,
+  official dance class <https://m.youtube.com/watch?v=M1WCi1sZE3E>
+- Sekem: <https://thenativemag.com/how-to-a-guide-to-africas-most-popular-dance-moves-from-the-2010s/>,
+  <https://www.okayafrica.com/sekem-swizz-beatz-mc-galaxy-remix/>,
+  <https://lists.ng/top-13-nigerian-dances-of-all-time/>,
+  <https://hqwords.com/nigerian-dance-steps/>
+- General grammar: <https://www.redbull.com/us-en/a-history-of-afropop-dance-crazes>,
+  <https://divirasartofbellydance.com/blog/what-is-afrobeat-dance-a-brief-guide-for-beginners>,
+  <https://www.district234.com/14-dance-moves-that-defines-the-nigerian-afrobeats-era/>
