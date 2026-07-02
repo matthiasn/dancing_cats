@@ -168,7 +168,7 @@ void main() {
       // from the verse shot to the bridge's opening silver-side feature without
       // a jump, parking on it kCameraArriveLeadSeconds early.
       final bridgeOpen = cameraShot(
-        _ctx(section: 'bridge', sectionPhase: 0, phrasePhase: 0.3),
+        _ctx(section: 'bridge', phrasePhase: 0.3),
       );
       final window = cameraAnticipationWindow('bridge', 0);
       var prev = cameraShot(
@@ -225,7 +225,7 @@ void main() {
             ),
           );
           final open = cameraShot(
-            _ctx(section: to, sectionPhase: 0, phrasePhase: 0.7),
+            _ctx(section: to, phrasePhase: 0.7),
           );
           expect(end.zoom, closeTo(open.zoom, 1e-9), reason: '$from->$to');
           expect(end.dx, closeTo(open.dx, 1e-9), reason: '$from->$to');
@@ -263,7 +263,7 @@ void main() {
       // secondsToNext=0 equals the chorus's own opening frame.
       final atBoundary = approach(0, 0.25);
       final open = cameraShot(
-        _ctx(occurrence: 1, sectionPhase: 0, phrasePhase: 0.25),
+        _ctx(occurrence: 1, phrasePhase: 0.25),
       );
       expect(atBoundary.zoom, closeTo(open.zoom, 1e-9));
       expect(atBoundary.dx, closeTo(open.dx, 1e-9));
@@ -304,7 +304,7 @@ void main() {
       expect(s.dy, kHorizonDropPx);
       // The slow lateral drift keeps the parallax alive on the wide…
       expect(
-        cameraShot(_ctx(section: '', energetic: false, phrasePhase: 0)).dx,
+        cameraShot(_ctx(section: '', energetic: false)).dx,
         closeTo(kCalmDriftRef, 1e-9),
       );
       expect(
@@ -348,7 +348,7 @@ void main() {
 
     test('each chorus owns a distinct home keyed on its OCCURRENCE', () {
       // First chorus: centred (up to the launch's small rightward ease).
-      expect(cameraShot(_ctx(occurrence: 0)).dx.abs(), lessThan(15));
+      expect(cameraShot(_ctx()).dx.abs(), lessThan(15));
       // Second chorus: leans LEFT toward the silver backup (+dx).
       expect(cameraShot(_ctx(occurrence: 1)).dx, greaterThan(0));
       // Third chorus: leans RIGHT toward the dark backup (-dx).
@@ -370,10 +370,10 @@ void main() {
     });
 
     test('the first chorus LAUNCHES on the drop, then drifts up with an arc', () {
-      final start = cameraShot(_ctx(occurrence: 0));
-      final launched = cameraShot(_ctx(occurrence: 0, sectionPhase: 0.12));
-      final mid = cameraShot(_ctx(occurrence: 0, sectionPhase: 0.5));
-      final end = cameraShot(_ctx(occurrence: 0, sectionPhase: 1));
+      final start = cameraShot(_ctx());
+      final launched = cameraShot(_ctx(sectionPhase: 0.12));
+      final mid = cameraShot(_ctx(sectionPhase: 0.5));
+      final end = cameraShot(_ctx(sectionPhase: 1));
       // The launch clock starts kCameraLaunchLeadSeconds before the boundary,
       // so the section opens already a touch into its launch-push…
       expect(start.zoom, inInclusiveRange(1.26, 1.33));
@@ -463,7 +463,7 @@ void main() {
       final step2 = at(0.6) - at(0.5);
       expect(step1, closeTo(step2, 1e-9));
       // …and the cruise is genuinely faster than the eased edges.
-      expect(step1, greaterThan(at(0.09) - at(0.0)));
+      expect(step1, greaterThan(at(0.09) - at(0)));
     });
 
     test('outro lands EXACTLY on the calm establish well before its end', () {
@@ -584,7 +584,7 @@ void main() {
       for (final pp in [0.0, 0.25, 0.6]) {
         expect(
           cameraShot(
-            _ctx(section: 'post-chorus', sectionPhase: 0, phrasePhase: pp),
+            _ctx(section: 'post-chorus', phrasePhase: pp),
           ).dx,
           closeTo(0, 1e-9),
           reason: 'pp=$pp',

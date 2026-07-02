@@ -158,7 +158,7 @@ double cameraAnticipationWindow(String next, int nextOccurrence) {
 /// camera's velocity — which lags the target by roughly the rig's response
 /// time — crests on the downbeat itself instead of half a beat after it (the
 /// panel measured a 0.35s lead cresting ~0.5s late through the 0.6s rig).
-/// Paired with [kDanceCameraSmoothTime] = 0.5 the measured crest lands within
+/// Paired with `kDanceCameraSmoothTime` = 0.5 the measured crest lands within
 /// ~0.2s of each drop (asserted by the continuity test).
 const double kCameraLaunchLeadSeconds = 0.6;
 

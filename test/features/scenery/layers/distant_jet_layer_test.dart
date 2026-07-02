@@ -191,7 +191,7 @@ void main() {
       const opaqueBottom = 0.9586;
       // Find the moment the jet centre crosses the antenna column.
       var t = kDistantJetStartDelaySeconds;
-      DistantJetSample crossing = sampleDistantJet(t + 30)!;
+      var crossing = sampleDistantJet(t + 30)!;
       for (var probe = 30.0; probe < 60; probe += 0.01) {
         final s = sampleDistantJet(kDistantJetStartDelaySeconds + probe);
         if (s == null) continue;
