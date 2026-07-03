@@ -349,22 +349,6 @@ const _bugaShoulderSocketLKeys = [
   DanceJointKey(31, rotation: 0.12, scaleX: 1.1, scaleY: 0.955),
   DanceJointKey(32, rotation: 0.11, scaleX: 1.1, scaleY: 0.955),
 ];
-// Both biceps swell together on each unison hit.
-const _bugaBicepKeys = [
-  DanceJointKey(0, scaleX: 1.08, scaleY: 0.975),
-  DanceJointKey(8, scaleX: 1.08, scaleY: 0.975),
-  DanceJointKey(10, scaleX: 1.06, scaleY: 0.985),
-  DanceJointKey(12, scaleX: 1.17, scaleY: 0.94),
-  DanceJointKey(13, scaleX: 1.13, scaleY: 0.96),
-  DanceJointKey(14, scaleX: 1.09, scaleY: 0.975),
-  DanceJointKey(16, scaleX: 1.04, scaleY: 0.985),
-  DanceJointKey(24, scaleX: 1.06, scaleY: 0.985),
-  DanceJointKey(26, scaleX: 1.06, scaleY: 0.985),
-  DanceJointKey(28, scaleX: 1.17, scaleY: 0.94),
-  DanceJointKey(29, scaleX: 1.13, scaleY: 0.96),
-  DanceJointKey(30, scaleX: 1.09, scaleY: 0.975),
-  DanceJointKey(32, scaleX: 1.08, scaleY: 0.975),
-];
 // The Buga show-off is the PEACOCK BOW (the research audit's top finding —
 // the real 2022 signature is BOTH arms opening out-down like a proud
 // peacock's wings, never a one-arm overhead present). The paws hang by the

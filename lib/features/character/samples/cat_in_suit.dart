@@ -946,14 +946,6 @@ class CatClips {
             _bugaShoulderSocketLKeys,
             smooth: true,
           ),
-          CatBones.armBicepR: const DanceJointTrack(
-            _bugaBicepKeys,
-            smooth: true,
-          ),
-          CatBones.armBicepL: const DanceJointTrack(
-            _bugaBicepKeys,
-            smooth: true,
-          ),
           CatBones.legLowerL: const DanceJointTrack(
             _bugaLegLowerKeys,
             smooth: true,

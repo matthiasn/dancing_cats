@@ -1766,13 +1766,11 @@ void main() {
       );
 
       // DOUBLE shrug: both clavicles lift together on BOTH hits, and the
-      // sleeve caps + biceps carry the girdle response on each side.
+      // sleeve caps carry the girdle response on each side.
       final clavicleR = buga.channels[CatBones.clavicleR]!;
       final clavicleL = buga.channels[CatBones.clavicleL]!;
       final shoulderSocketR = buga.channels[CatBones.shoulderSocketR]!;
       final shoulderSocketL = buga.channels[CatBones.shoulderSocketL]!;
-      final bicepR = buga.channels[CatBones.armBicepR]!;
-      final bicepL = buga.channels[CatBones.armBicepL]!;
       for (final hitFrame in [13, 29]) {
         final p = hitFrame / phrase.frameCount;
         expect(
@@ -1793,8 +1791,6 @@ void main() {
         expect(leftSocket.rotation, greaterThan(0.2));
         expect(leftSocket.scaleX, greaterThan(1.17));
         expect(leftSocket.scaleY, lessThanOrEqualTo(0.92));
-        expect(bicepR.sample(p).scaleX, greaterThan(1.12));
-        expect(bicepL.sample(p).scaleX, greaterThan(1.12));
       }
 
       final rootHit = buga.root.sample(12 / phrase.frameCount);
