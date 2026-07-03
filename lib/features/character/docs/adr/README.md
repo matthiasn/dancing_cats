@@ -31,6 +31,14 @@ Each ADR contains: `Status`, `Date`, `Context`, `Decision`, `Consequences`,
   plus the reusable engine toolkit that grind produced (`danceHeadBobScale`,
   `supportFootWorldAnchor`, `easeOutBack` IK overshoot, the forearm sleeve band)
   and the keyframe-sampling constraint that shaped it.
+- [`CHAR-0002-angular-motion-diagnostics-and-overshoot-settle.md`](./CHAR-0002-angular-motion-diagnostics-and-overshoot-settle.md)
+  — **Accepted/implemented.** Two independent mechanisms: a CI-only test gate
+  on world-space angular velocity/acceleration (tempo-scaled by
+  `kDanceRealTempoSpeedup`), and an always-on runtime pass
+  (`overshoot-settle`) that injects a critically-damped rotational settle
+  after a hard authored stop. Also documents the two-bone-IK
+  near-degenerate-reach artifact that tripped the gate and how it was
+  actually fixed (choreography reach, not engine code).
 
 ## Related research
 

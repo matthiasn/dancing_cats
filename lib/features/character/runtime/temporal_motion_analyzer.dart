@@ -219,6 +219,14 @@ class TemporalMotionAnalyzer {
   }
 }
 
+/// The result of [TemporalMotionAnalyzer.analyze]: two parallel
+/// displacement→acceleration→jerk chains over the sampled clip — one in
+/// world-space position (`segments`/`accelerations`/`jerks`), one in
+/// world-space bone angle (`angularSegments`/`angularAccelerations`/
+/// `angularJerks`, unwrapped across the atan2 branch cut). Neither chain
+/// carries a built-in pass/fail threshold; callers (tests, review tooling)
+/// read `worst*`/`top*` and decide what "too fast" or "too jumpy" means for
+/// the move being judged.
 class TemporalMotionReport {
   const TemporalMotionReport({
     required this.clipName,
