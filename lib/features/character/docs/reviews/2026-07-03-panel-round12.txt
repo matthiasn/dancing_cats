@@ -1,8 +1,8 @@
 Panel round 12 — 2026-07-03
-Task wdjq4igtr / run wf_1ba2771b-bec, 27/30 raters at time of processing
-(5 experts x 6 moves; pouncingCat still short 3 raters — anatomy, movement,
-rigging — when this digest was written; processed early per owner request
-rather than waiting for the run to fully drain).
+Task wdjq4igtr / run wf_1ba2771b-bec, 30/30 raters (5 experts x 6 moves).
+First processed at 27/30 (pouncingCat short 3 raters) per owner's explicit
+"why not process what we have already" — the run finished shortly after
+and this digest was updated with the final 3 pouncingCat raters.
 
 Context: run after ONE narrow fix — buga's lateral-motion redistribution
 (the "lo3 hold -> explosive HIT" rise spread across three graduated
@@ -15,14 +15,15 @@ down cumulative) and a subtle hip "jiggle" texture (+3.6% jerk, still net
 that now exist; the merged state is strictly smoother than what was judged
 here.
 
-SCORES (R11 -> R12, partial):
+SCORES (R11 -> R12, final):
   shaku       6.4 -> 6.5   (+0.1, flat)
   zanku       6.8 -> 6.4   (-0.4, untouched — variance)
   azonto      5.7 -> 5.8   (+0.1, flat, untouched)
   sekem       5.3 -> 5.2   (-0.1, flat, untouched)
-  buga        6.4 -> 7.1   (+0.7, the only move touched this round)
-  pouncingCat 6.7 -> 6.5*  (*only 2/5 raters in — afrobeats 6.5, director
-                            6.5 — not a reliable mean yet)
+  buga        6.4 -> 7.1   (+0.7, the only move deliberately touched this round)
+  pouncingCat 6.7 -> 7.1   (+0.4, untouched this round — normal variance;
+                            anatomy gave it 8.0, the highest single score
+                            of this entire project so far)
 
 == The one thing this round was run to check: confirmed ==
 Every rater who touched buga this round independently confirmed the
@@ -61,11 +62,32 @@ Recurring, still-unaddressed findings worth carrying forward:
 - Azonto and sekem's core namesake gestures (wheel/jab mime; pump-and-swap)
   are independently still called "frozen"/"static pose held for two bars"
   by multiple raters — same open thread since R5/R9, unresolved.
-- "Bar 2 = bar 1" copy-paste complaints persist (zanku, sekem, pouncingCat)
+- "Bar 2 = bar 1" copy-paste complaints persist (zanku, sekem, pouncingCat:
+  "a two-bar phrase that turns out to be one bar played twice" — director)
   — this is task #39 (approved, not yet started).
-- PouncingCat's "gliding base" is called out as pinned/static, not gliding,
-  by both raters received so far — worth confirming once the remaining 3
-  raters land.
+
+== PouncingCat: a genuine, unresolved split verdict on the headline claim ==
+The move's whole premise is "dead-level head over a gliding base." The 5
+raters flatly DISAGREE with each other on whether the head-level fix (PR
+#39, this session) actually works:
+- anatomy (8.0): "a genuinely dead-level head over the gliding legs —
+  professional-grade."
+- movement (7.0), director (6.5), afrobeats (6.5): all independently say
+  the opposite — movement measured "the head's vertical position swings
+  ~54-59px... not decoupled from the torso at all"; director: "the head
+  visibly bobs with the body"; afrobeats: "the gliding base... never
+  actually glides, the feet are pinned in one static lunge."
+This is a real 4-vs-1 split on a directly falsifiable, measurable claim
+(head pixel-position), not a matter of taste — worth a direct pixel-track
+probe of the rendered head position (the same technique that resolved the
+R10 azonto/sekem "solved rotation doesn't render" mysteries) before trusting
+either side. Possible explanation: anatomy may be judging the AUTHORED
+data/joint mechanics (which probably is level) while the other four are
+judging the RENDERED pixel trace (which may not be, if something between
+data and render reintroduces bob — same class of gap as the "solved
+rotation exists but doesn't render" pattern documented after R10/R11). Not
+investigated yet — flagging as the single most concrete, checkable lead
+in this round's whole result.
 
 == Process note ==
 This was the LAST full 6-move/5-expert (30-agent) panel round run this
