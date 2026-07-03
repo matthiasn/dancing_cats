@@ -19,6 +19,14 @@ notation-as-score model, and which Afrobeats moves the catalog encodes — is
 [`CHAR-0001`](./docs/adr/CHAR-0001-dance-choreography-encoding-and-move-library.md),
 with per-move keying notes under [`docs/research/`](./docs/research/).
 
+For a concept-first (rather than as-built-status-first) explanation of how the
+rig, its deformable ribbon mesh, limb/joint constraints, and the newer
+temporal motion constraints (angular-rate diagnostics + overshoot-settle)
+actually work — with diagrams — see
+[`docs/animation/`](../../../docs/animation/README.md) at the repo root
+(shared with `features/scenery`'s parallax layers, since the two halves read
+one camera shot together).
+
 ## Status (Phase 1)
 
 | Area | State |

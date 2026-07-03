@@ -73,4 +73,8 @@ tools/character_video_export/  MP4 export shell wrappers
 ```
 
 See `lib/features/character/README.md` and `lib/features/scenery/README.md` for
-the architecture of each module.
+the architecture of each module, and
+[`docs/animation/`](docs/animation/README.md) for concept-first explainers of
+the animation techniques themselves (parallax layers, the rig and its
+deformable mesh, limb/joint constraints, and the temporal motion constraints
+that keep rotation rate and stops readable).

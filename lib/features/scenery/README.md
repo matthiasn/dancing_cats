@@ -9,6 +9,11 @@ The module is deliberately independent from `features/character`. Consumers pass
 a clock and optional child into `LayeredBackdrop`; scenery code owns image/shader
 loading, reduced-motion handling, and layer composition.
 
+The multi-plane depth rig this README's layer stack implements is explained
+concept-first, with diagrams, in
+[`docs/animation/01-parallax-and-layers.md`](../../../docs/animation/01-parallax-and-layers.md)
+(design record: [ADR 0001](../../../docs/adr/0001-multiplane-parallax.md)).
+
 ## Runtime Architecture
 
 ```mermaid
