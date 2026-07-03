@@ -903,24 +903,23 @@ class CharacterScene {
     );
   }
 
-  /// Upper-arm and torso rotation channels eligible for overshoot, generically
-  /// derived from the clip/rig rather than any sample-catalogue bone-id list:
-  /// every [LimbIkTarget] whose end effector is NOT a declared ground/contact
-  /// bone (i.e. a hand, not a support foot) contributes its upper bone, plus
-  /// the torso bone (parent of [_chestBoneId]) if the rig declares one. Feet
-  /// are excluded explicitly per the coupled arm-fold / planted-contact
-  /// lesson: softening a support foot's arrival reads as sliding into contact
-  /// rather than landing.
+  /// Arm (upper + lower) and torso rotation channels eligible for overshoot,
+  /// generically derived from the clip/rig rather than any sample-catalogue
+  /// bone-id list: every [LimbIkTarget] whose end effector is NOT a declared
+  /// ground/contact bone (i.e. a hand, not a support foot) contributes its
+  /// upper and lower bones, plus the torso bone (parent of [_chestBoneId]) if
+  /// the rig declares one. Feet are excluded explicitly per the coupled
+  /// arm-fold / planted-contact lesson: softening a support foot's arrival
+  /// reads as sliding into contact rather than landing.
   ///
-  /// The LOWER arm bone (elbow/forearm) is deliberately excluded even though
-  /// it is a hand channel: it is the two-bone IK solver's most volatile
-  /// output near a near-degenerate reach (the same elbow-position
-  /// hypersensitivity this session already traced for azonto/sekem), so its
+  /// The lower arm bone (elbow/forearm) is the two-bone IK solver's most
+  /// volatile output near a near-degenerate reach (the same elbow-position
+  /// hypersensitivity this session already traced for azonto/sekem) — its
   /// frame-to-frame rotation can carry a genuine solver artifact rather than
-  /// authored motion. Settling on a spurious 70+ rad/s "velocity" reading
-  /// manufactures a far worse snap than the one this pass exists to remove;
-  /// the shoulder-level swing on its own still carries most of a punch's
-  /// visible follow-through.
+  /// authored motion, which is exactly what
+  /// [_kOvershootMaxPlausibleSpeed] in [_overshootSettledPose] guards
+  /// against so a spurious reading gets skipped instead of amplified into a
+  /// worse snap.
   Set<String> _overshootTargetBoneIds(Clip clip) {
     final feet = <String>{
       for (final span in clip.groundSpans) span.bone,
@@ -929,7 +928,9 @@ class CharacterScene {
     final targets = <String>{};
     for (final target in clip.limbTargets) {
       if (feet.contains(target.endBoneId)) continue;
-      targets.add(target.upperBoneId);
+      targets
+        ..add(target.upperBoneId)
+        ..add(target.lowerBoneId);
     }
     final chestId = _chestBoneId;
     if (chestId != null) {
