@@ -42,7 +42,7 @@ void main() {
   test('catalogue bone rotation keeps angular velocity below the snap band', () {
     final scene = CharacterScene(buildCatInSuitRig());
     final analyzer = TemporalMotionAnalyzer(scene);
-    final speedup = kDanceRealTempoSpeedup;
+    const speedup = kDanceRealTempoSpeedup;
 
     const known = <String>{};
 
@@ -83,8 +83,8 @@ void main() {
     () {
       final scene = CharacterScene(buildCatInSuitRig());
       final analyzer = TemporalMotionAnalyzer(scene);
-      final speedup = kDanceRealTempoSpeedup;
-      final speedupSquared = speedup * speedup;
+      const speedup = kDanceRealTempoSpeedup;
+      const speedupSquared = speedup * speedup;
 
       // azonto hand.L currently fails this ceiling (worst real-tempo value
       // approximately 2.0 against the 1.5 ceiling below) — see the file doc
