@@ -174,6 +174,26 @@ const _azontoHandLTargetKeys = [
   // (frames 14-20), which touches footwork/weight-commit timing shared
   // with other channels — left for a dedicated pass rather than risking
   // those here.
+  // R follow-up (panel post-PR#54): the anchor-drift damping fix measurably
+  // widened the jab/chamber world-x gap (probe numbers) but a direct render
+  // crop showed it still reads as a tight crossed guard — the panel was
+  // right that a few world units of anchor compensation doesn't survive
+  // down to a legible silhouette. TRIED widening the jab's local reach
+  // further (33,-50 -> 48,-60, then scaled attempts) on the theory that an
+  // elbow-bend-degrees probe (~90.8deg vs a 178deg ceiling) showed room —
+  // that theory was WRONG: the elbow-bend metric was measured against the
+  // wrong reference and looked permissive, but re-probing with the actual
+  // `MotionConstraintValidator.analyze()` (the same mechanism the "hard arm
+  // reach limit" test uses) shows the BASELINE (33,-50) already sits at
+  // reachRatio ~0.97 at its worst phase — essentially maxed out, not the
+  // ~80-85% every earlier round assumed. There is NO room to widen local
+  // reach further; the arm is already at its hard physical limit at
+  // baseline. Reverted the widen. The panel's OTHER suggested levers
+  // (elbow abduction independent of the wrist target, a forward shoulder
+  // roll, a post-strike recoil/rebound) are genuinely different mechanisms
+  // from "move the IK target further" and are the real next step — left
+  // for a dedicated pass since they need new authored motion, not a value
+  // tune. See the panel digest for the specific critiques.
   DanceIkTargetKey(16, x: 33, y: -50, tension: 1), // JAB past the far line
   DanceIkTargetKey(17, x: 32, y: -48, tension: 1), // hold
   DanceIkTargetKey(19, x: 10, y: -44, tension: 0.4), // recoil through guard
