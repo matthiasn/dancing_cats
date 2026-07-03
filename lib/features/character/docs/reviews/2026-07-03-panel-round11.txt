@@ -1,0 +1,81 @@
+Panel round 11 — 2026-07-03
+Task wmodi1p6h / run wf_265f98e0-aa1, 30/30 raters (5 experts x 6 moves)
+
+Context: run after four more targeted fixes merged since round 10 — shaku's
+open-scoop asymmetry (PR #36), buga's shoulder response through the sink
+(PR #37), pouncingCat's head-stability clamp + wider rebound (PR #39), and
+zanku's gbese kick-apex lean-back (PR #40) — on top of round 10's own
+azonto/zanku/buga/pouncingCat fixes, all merged to main before this render.
+
+SCORES (R10 -> R11):
+  shaku       7.0 -> 6.4   (-0.6)
+  zanku       6.8 -> 6.8   (flat)
+  azonto      5.7 -> 5.7   (flat)
+  sekem       6.3 -> 5.3   (-1.0)
+  buga        6.7 -> 6.4   (-0.3)
+  pouncingCat 6.8 -> 6.7   (-0.1)
+
+No move improved this round; several dropped. This is a genuinely mixed
+result — several of this round's targeted fixes are EXPLICITLY confirmed
+working by name in the raw critiques, but overall scores fell because the
+panel's attention has shifted to bigger structural issues that keyframe-
+level fixes don't touch, and a couple of "push to the validator ceiling"
+fixes exposed new mesh/ROM issues at the new limit.
+
+== Confirmed working (quoted directly from raters) ==
+- Zanku: "The elbow-out contrast now punctuates properly" (afrobeats);
+  "The elbow-width fix reads clean and lands squarely on the beat"
+  (movement); "the ribbon rig itself is deformation-clean" (rigging).
+- Azonto: "The paw-twist and wider wheel swing read clearly now" (rigging);
+  "The wheel-mime half has one genuine, well-timed accent" (movement).
+- Buga: "The lo-lo-lo sink now genuinely escalates and reads as
+  intentional" (movement); "The escalating sink... [is] now mechanically
+  sound" (anatomy).
+- PouncingCat: "its two targeted fixes (bar-2 escalation) verifiably land"
+  (afrobeats, explicit); "a genuinely quiet head over the base" (movement,
+  a real improvement over R10's "visibly bobs" framing, though anatomy
+  still flags residual bob).
+
+== Why scores fell despite that ==
+1. **The dominant complaint on THREE moves is now "bar 2 = bar 1 copy-
+   pasted," bigger than anything touched this round.** Zanku ("the 8-beat
+   phrase is really a 2-beat guard/punch loop tiled four times"), sekem
+   ("legs/pelvis never move at all across the full 2-bar loop"), and
+   pouncingCat (bar-2 escalation "too small to actually register") all
+   independently got this critique. Buga/pouncingCat's OWN bar-2
+   escalation fixes from this session address exactly this pattern for
+   THOSE two moves' root motion — but apparently not enough, and zanku's
+   footwork/legwork was never touched this way at all.
+2. **Buga's known, unfixed hop-and-shrink glitch is now the #1 flagged
+   issue** (4 of 5 raters mention a "pop" at the sink-to-hit transition) —
+   this was investigated twice this session and NOT fixed (see the
+   memory's "hop-and-shrink" notes); it was already there in R10 but is
+   now more prominent since the escalation fix made the surrounding
+   motion smoother, throwing the glitch into higher relief.
+3. **Sekem's "bar-2 side-swap never happens" claim persists** despite a
+   direct high-zoom crop comparison this session PROVING the swap
+   genuinely renders (screen-right hand up-at-chest in bar 2, mirrored
+   from bar 1) — this is the SAME false-alarm pattern documented before,
+   just recurring with a fresh panel. Likely a real, structural
+   perception limit of the 24-cell thumbnail render, not a fixable code
+   issue. NEW this round: sekem's anatomist independently flagged that
+   legs/pelvis never move at all — a genuine, not-yet-investigated
+   finding, distinct from the arm-swap non-issue.
+4. **Pushing values toward validator ceilings surfaced new mesh/ROM
+   findings at the new limits**: azonto's rigging rater now flags "a real
+   elbow ribbon-mesh pinch" at the wheel's wider swing; pouncingCat's
+   anatomist flags "a deepened lunge rolls a rear ankle past plausible
+   range." Both are plausible direct costs of this session's own
+   amplitude-widening fixes landing right at their tested ceilings.
+5. **Shaku's own unfixed issues (lean, elbow-in-sleeve) are unchanged**
+   and remain the dominant complaint there — the scoop-asymmetry fix
+   this round doesn't address either, so the score move is mostly noise/
+   variance plus a newly-mentioned "seam artifact" and "mesh occlusion
+   breaks" (rigging) not called out in R10, worth a fresh look.
+
+Overall: this round's fixes were real and independently verified in their
+own narrow dimension by multiple raters, but the panel has converged on
+two harder categories of remaining work: (a) genuine 2-bar structural
+monotony (not a keyframe depth issue, needs actual choreographic variation
+between bars), and (b) the recurring rendering-vs-data gap already
+flagged as this session's highest-leverage unsolved lead (see memory).
