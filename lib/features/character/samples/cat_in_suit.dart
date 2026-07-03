@@ -6992,7 +6992,7 @@ class CatClips {
     DanceIkTargetKey(27, x: 2, y: -48, tension: 0.4),
     DanceIkTargetKey(28, x: -26, y: -10, tension: 0.8), // chamber
     DanceIkTargetKey(30, x: -27, y: -12, tension: 0.5),
-    DanceIkTargetKey(31, x: -26, y: -66, tension: 0.4), // lifts to the rim
+    DanceIkTargetKey(31, x: -26, y: -40, tension: 0.4), // lifts to the rim
     DanceIkTargetKey(32, x: -24, y: -88, tension: 0.4), // == frame 0
   ];
   static const _azontoHandRTargetKeys = [

@@ -29,15 +29,21 @@ import 'package:flutter_test/flutter_test.dart';
 /// better.
 ///
 /// azonto hand.L's frame 30->31 transition (hip chamber sweeping up past the
-/// shoulder toward the wheel-grip) resisted the same fix: every attempted
-/// reposition (widening frame 31 alone, both endpoints together, a wide-arc
-/// via-point at frame 30.5) made the measured acceleration WORSE, up to
-/// 3-4x. The target angle relative to the shoulder sweeps ~117 degrees in
-/// half a frame here because the shoulder itself is also swinging fast and
-/// the two paths cross — repositioning the hand just shifts where in that
-/// crossing the near-degenerate moment lands. Fixing this for real likely
-/// means damping the shoulder's own swing through that beat, not the hand
-/// target; tracked as separate follow-up work, not further reach tuning.
+/// shoulder toward the wheel-grip) resisted a plain reposition: widening
+/// frame 31 alone, both endpoints together, or a wide-arc via-point all made
+/// it WORSE, up to 3-4x. Damping the shared root-motion layer azonto reuses
+/// from shaku (`_shakuGrooveCalm`) didn't help either — even zeroing it out
+/// entirely (scoped to azonto only) barely moved the number, since the
+/// target and the shoulder are both anchored to the same moving torso frame
+/// and translation mostly cancels out in their RELATIVE geometry. The actual
+/// fix: `_shoulderCorrectiveEngagement` (character_scene.dart) ramps the
+/// clavicle shrug on based on the hand target's raw Y — frame 31's y: -66
+/// crossed that ramp's threshold in the same single frame the arm was
+/// already fighting the near-degenerate reach, compounding two independent
+/// snaps at once. Spreading the rise across two frames instead of one
+/// (frame 31 eased to y: -40, frame 32 still lands the full y: -88) let the
+/// shoulder-engagement ramp and the arm's own transition resolve on
+/// different beats instead of stacking.
 void main() {
   test('catalogue bone rotation keeps angular velocity below the snap band', () {
     final scene = CharacterScene(buildCatInSuitRig());
@@ -86,10 +92,7 @@ void main() {
       const speedup = kDanceRealTempoSpeedup;
       const speedupSquared = speedup * speedup;
 
-      // azonto hand.L currently fails this ceiling (worst real-tempo value
-      // approximately 2.0 against the 1.5 ceiling below) — see the file doc
-      // comment above.
-      const known = {'${CatBones.handL}/azonto'};
+      const known = <String>{};
 
       for (final clip in [
         CatClips.shaku,
