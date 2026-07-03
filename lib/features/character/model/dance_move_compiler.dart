@@ -38,28 +38,36 @@ Clip assembleMoveClip(
   var root = base?.root ?? const SineRootChannel();
   final bodyMotion = descriptor.bodyMotion;
   if (bodyMotion != null) {
-    root = phrase.bodyRootChannel(
-      _reKeyedBodyKeys(bodyMotion.keys, microFrames: bodyMotion.rootMicroFrames),
-      smooth: bodyMotion.smooth,
-    );
+    root = LayeredRootChannel([
+      for (final track in bodyMotion.tracks)
+        phrase.bodyRootChannel(
+          _reKeyedBodyKeys(track.keys, microFrames: track.rootMicroFrames),
+          smooth: track.rootSmooth,
+        ),
+      ...bodyMotion.extraRootLayers,
+    ]);
 
-    final pelvisChannel = phrase.bodyPelvisChannel(
-      _reKeyedBodyKeys(bodyMotion.keys, microFrames: bodyMotion.pelvisMicroFrames),
-      smooth: bodyMotion.smooth,
-    );
-    channels[bodyMotion.pelvisBoneId] = switch (bodyMotion.pelvisTexture) {
-      null => pelvisChannel,
-      final texture => LayeredJointChannel([pelvisChannel, texture]),
-    };
-    channels[bodyMotion.chestBoneId] = phrase.bodyChestChannel(
-      _dampedChestKeys(
-        bodyMotion.keys,
-        microFrames: bodyMotion.chestMicroFrames,
-        rotationGain: bodyMotion.chestRotationGain,
-        scaleGain: bodyMotion.chestScaleGain,
-      ),
-      smooth: bodyMotion.smooth,
-    );
+    channels[bodyMotion.pelvisBoneId] = LayeredJointChannel([
+      for (final track in bodyMotion.tracks)
+        phrase.bodyPelvisChannel(
+          _reKeyedBodyKeys(track.keys, microFrames: track.pelvisMicroFrames),
+          smooth: track.pelvisSmooth,
+        ),
+      ...bodyMotion.extraPelvisLayers,
+    ]);
+    channels[bodyMotion.chestBoneId] = LayeredJointChannel([
+      for (final track in bodyMotion.tracks)
+        phrase.bodyChestChannel(
+          _dampedChestKeys(
+            track.keys,
+            microFrames: track.chestMicroFrames,
+            rotationGain: track.chestRotationGain,
+            scaleGain: track.chestScaleGain,
+          ),
+          smooth: track.chestSmooth,
+        ),
+      ...bodyMotion.extraChestLayers,
+    ]);
   }
 
   final limbTargets = [
@@ -70,6 +78,7 @@ Clip assembleMoveClip(
             track.keys,
             smooth: track.smooth,
             cyclic: track.cyclic,
+            microFrames: track.microFrames,
           ),
         )
       else
@@ -88,6 +97,7 @@ Clip assembleMoveClip(
         descriptor.locomotionSpeed ?? base?.locomotionSpeed ?? 0,
     contactSpans: [
       for (final support in descriptor.supports) support.toGroundSpan(phrase),
+      ...descriptor.rawContactSpans,
     ],
     contactPinning:
         descriptor.contactPinning ??
