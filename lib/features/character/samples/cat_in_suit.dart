@@ -6493,9 +6493,15 @@ class CatClips {
   // landing"): the trunk releases its forward fold into a lean-back exactly at
   // the kick apex (f26), then the landing stamp (f28) drives a deep slam drop
   // that settles over two frames.
+  // R10: probed the SOLVED torso world angle (not just this layer's own
+  // authored value) at f26 and found it nets out to only ~3deg — several
+  // OTHER layers active on the same beat (the commit/pocket-boost keys, the
+  // constant forward-fold bias) mostly cancel this release before it ever
+  // reaches the render. Deepened this layer's own contribution so its
+  // release actually survives being summed with the rest.
   static const _zankuGbeseAccentKeys = [
     DanceBodyKey(24, rootDy: 0, chestRotation: 0),
-    DanceBodyKey(26, rootDy: -5, chestRotation: -0.24, chestScaleY: 1.04),
+    DanceBodyKey(26, rootDy: -5, chestRotation: -0.85, chestScaleY: 1.04),
     DanceBodyKey(28, rootDy: 16, chestRotation: 0.08, chestScaleY: 0.94),
     DanceBodyKey(29, rootDy: 11, chestRotation: 0.05, chestScaleY: 0.97),
     DanceBodyKey(30, rootDy: 0, chestRotation: 0),
