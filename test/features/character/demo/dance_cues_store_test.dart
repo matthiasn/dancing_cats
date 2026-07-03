@@ -6,6 +6,8 @@ import 'package:dancing_cats/features/character/demo/dance_lip_sync_doc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
+import '../../../dance_store_test_utils.dart';
+
 LipSyncDoc _doc({String shape = 'B'}) => LipSyncDoc(
   cues: [(start: 0.0, end: 1.0, shape: 'X'), (start: 1.0, end: 2.0, shape: shape)],
   audio: const {'path': '/tmp/t.wav', 'duration_sec': 2.0},
@@ -25,8 +27,8 @@ void main() {
     store = DanceCuesStore(
       path: path,
       // Long timers: tests drive flush()/pollOnce() directly.
-      saveDebounce: const Duration(minutes: 1),
-      pollInterval: const Duration(minutes: 1),
+      saveDebounce: kTestStoreSaveDebounce,
+      pollInterval: kTestStorePollInterval,
     );
   });
 
@@ -216,7 +218,7 @@ void main() {
       final fast = DanceCuesStore(
         path: path,
         saveDebounce: const Duration(milliseconds: 10),
-        pollInterval: const Duration(minutes: 1),
+        pollInterval: kTestStorePollInterval,
       );
       await fast.load();
       fast.update(_doc(shape: 'F'));

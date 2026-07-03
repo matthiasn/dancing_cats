@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 /// Minimal testable-widget wrapper for the standalone dancing-cats repo.
 ///
@@ -18,4 +19,17 @@ Widget makeTestableWidgetNoScroll(
       home: child,
     ),
   );
+}
+
+/// Pins the test surface to [size] at a 1:1 device pixel ratio (so painted
+/// pixel offsets in assertions match logical coordinates exactly), and
+/// registers the matching `addTearDown` resets — the fixed-size-canvas setup
+/// several of the demo workspace/panel widget tests otherwise each
+/// hand-rolled identically.
+void setTestViewSize(WidgetTester tester, Size size) {
+  tester.view
+    ..physicalSize = size
+    ..devicePixelRatio = 1.0;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
 }

@@ -6,6 +6,8 @@ import 'package:dancing_cats/features/scenery/model/grade_timeline.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
+import '../../../dance_store_test_utils.dart';
+
 GradeTimelineDoc _doc({double saturation = 0.8, double t = 0}) =>
     GradeTimelineDoc(
       lanes: [
@@ -35,8 +37,8 @@ void main() {
     store = DanceGradeStore(
       path: path,
       // Long timers: tests drive flush()/pollOnce() directly.
-      saveDebounce: const Duration(minutes: 1),
-      pollInterval: const Duration(minutes: 1),
+      saveDebounce: kTestStoreSaveDebounce,
+      pollInterval: kTestStorePollInterval,
     );
   });
 
@@ -243,7 +245,7 @@ void main() {
       final fast = DanceGradeStore(
         path: path,
         saveDebounce: const Duration(milliseconds: 10),
-        pollInterval: const Duration(minutes: 1),
+        pollInterval: kTestStorePollInterval,
       );
       await fast.load();
       fast.update(_doc(saturation: 0.65));

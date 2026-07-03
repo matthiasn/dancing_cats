@@ -4,6 +4,7 @@ import 'package:dancing_cats/features/character/model/clip.dart';
 import 'package:dancing_cats/features/character/model/pose.dart';
 import 'package:dancing_cats/features/character/model/rig_spec.dart';
 import 'package:dancing_cats/features/character/runtime/character_scene.dart';
+import 'package:dancing_cats/features/character/runtime/dance_timing.dart';
 import 'package:dancing_cats/features/character/runtime/skinned_mesh_solver.dart';
 
 /// Test-time anatomy and contact validator for resolved character motion.
@@ -460,11 +461,11 @@ class MotionConstraintValidator {
         final elbow = lowerWorld.origin;
         final wrist = endWorld.origin;
         final targetPoint = anchorWorld.transformPoint(sample.x, sample.y);
-        final upperLength = _pointDistance(shoulder, elbow);
-        final lowerLength = _pointDistance(elbow, wrist);
+        final upperLength = pointDistance(shoulder, elbow);
+        final lowerLength = pointDistance(elbow, wrist);
         final chainLength = upperLength + lowerLength;
         if (chainLength <= 1e-6) continue;
-        final reach = _pointDistance(shoulder, targetPoint);
+        final reach = pointDistance(shoulder, targetPoint);
         checks.add(
           MotionIkReach(
             clipName: clip.name,
@@ -640,9 +641,6 @@ class MotionConstraintValidator {
     );
   }
 
-  double _pointDistance(({double x, double y}) a, ({double x, double y}) b) =>
-      _distance(a.x - b.x, a.y - b.y);
-
   double _distance(double dx, double dy) => math.sqrt(dx * dx + dy * dy);
 
   double _positive(double value) => value > 0 ? value : 0;
@@ -750,7 +748,7 @@ class MotionConstraintValidator {
       }
       longest = math.max(
         longest,
-        _pointDistance(vertices[aIndex], vertices[bIndex]),
+        pointDistance(vertices[aIndex], vertices[bIndex]),
       );
     }
     return longest;
@@ -763,7 +761,7 @@ class MotionConstraintValidator {
     var best = double.infinity;
     for (final pa in a) {
       for (final pb in b) {
-        best = math.min(best, _pointDistance(pa, pb));
+        best = math.min(best, pointDistance(pa, pb));
       }
     }
     return best;

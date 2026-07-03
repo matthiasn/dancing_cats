@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 
 import 'package:dancing_cats/features/scenery/layers/backdrop_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/drone_text_glyphs.dart';
+import 'package:dancing_cats/features/scenery/runtime/scenery_glow.dart';
 import 'package:dancing_cats/features/scenery/runtime/scenery_math.dart';
 
 /// First text held by the drone formation.
@@ -172,24 +173,20 @@ class DroneShowLayer implements BackdropLayer {
       }
 
       final color = ui.Color.lerp(cool, warm, hashUnit(c.dx.toInt()))!;
-      haloPaint.shader = ui.Gradient.radial(
-        c,
-        radius * 4.5,
-        [
-          color.withValues(alpha: 0.16 * alpha),
-          color.withValues(alpha: 0.04 * alpha),
-          color.withValues(alpha: 0),
-        ],
-        [0, 0.45, 1],
+      paintGlowPointLight(
+        canvas,
+        center: c,
+        color: color,
+        haloRadius: radius * 4.5,
+        haloInnerAlpha: 0.16 * alpha,
+        haloMidAlpha: 0.04 * alpha,
+        haloMidStop: 0.45,
+        coreRadius: radius,
+        coreColor: ui.Color.lerp(color, const ui.Color(0xFFFFFFFF), 0.55)!,
+        coreAlpha: 0.82 * alpha,
+        haloPaint: haloPaint,
+        corePaint: corePaint,
       );
-      corePaint.color = ui.Color.lerp(
-        color,
-        const ui.Color(0xFFFFFFFF),
-        0.55,
-      )!.withValues(alpha: 0.82 * alpha);
-      canvas
-        ..drawCircle(c, radius * 4.5, haloPaint)
-        ..drawCircle(c, radius, corePaint);
     }
   }
 }

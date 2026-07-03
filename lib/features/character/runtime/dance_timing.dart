@@ -4,6 +4,8 @@
 /// ensemble-formation passes. The painter keeps the canvas/matrix application.
 library;
 
+import 'dart:math' as math;
+
 /// Fractional phase in `[0, 1)` of [timeSeconds] within a [duration]-long loop,
 /// negative-safe (a bare `cycle - cycle.floor()` goes negative below zero).
 double cyclePhase(double timeSeconds, double duration) {
@@ -34,6 +36,16 @@ double smoothKeys(double p, List<({double p, double v})> keys) {
   final b = keys[keys.length - 1];
   final t = smoothstep(((p - a.p) / (b.p - a.p)).clamp(0.0, 1.0));
   return a.v + (b.v - a.v) * t;
+}
+
+/// Euclidean distance between two points expressed as `(x, y)` records —
+/// the shape solved bone world origins and IK targets pass around, so
+/// bone-length/reach math (two-bone IK, contact/anchor solving) can stay in
+/// that record shape without every caller unpacking to raw doubles.
+double pointDistance(({double x, double y}) a, ({double x, double y}) b) {
+  final dx = a.x - b.x;
+  final dy = a.y - b.y;
+  return math.sqrt(dx * dx + dy * dy);
 }
 
 /// The built-in dance camera's shot at [timeSeconds] over a [duration]-long

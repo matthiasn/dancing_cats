@@ -44,10 +44,7 @@ Future<_Rec> _pump(
   final rec = _Rec();
   // The panel is a full-width transport row sized for the 1600px demo window;
   // give the test surface comparable width so the Row lays out without overflow.
-  tester.view.physicalSize = const Size(1500, 640);
-  tester.view.devicePixelRatio = 1.0;
-  addTearDown(tester.view.resetPhysicalSize);
-  addTearDown(tester.view.resetDevicePixelRatio);
+  setTestViewSize(tester, const Size(1500, 640));
   await tester.pumpWidget(
     makeTestableWidgetNoScroll(
       Scaffold(

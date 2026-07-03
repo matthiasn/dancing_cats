@@ -5,6 +5,7 @@ import 'package:dancing_cats/features/scenery/layers/backdrop_layer.dart';
 import 'package:dancing_cats/features/scenery/model/scenery_assets.dart';
 import 'package:dancing_cats/features/scenery/model/skyline_manifest.dart';
 import 'package:dancing_cats/features/scenery/runtime/scenery_geometry.dart';
+import 'package:dancing_cats/features/scenery/runtime/scenery_glow.dart';
 import 'package:dancing_cats/features/scenery/runtime/scenery_math.dart';
 import 'package:dancing_cats/features/scenery/runtime/scenery_shaders.dart';
 import 'package:flutter/rendering.dart';
@@ -50,34 +51,18 @@ class CityLightsLayer implements BackdropLayer {
     Offset at(double x, double y) => cover.project(x, y);
 
     void lamp(Offset c, Color color, double amp, double scale) {
-      canvas
-        ..drawCircle(
-          c,
-          r * 4.2 * scale,
-          Paint()
-            ..blendMode = BlendMode.plus
-            ..shader = ui.Gradient.radial(
-              c,
-              r * 4.2 * scale,
-              [
-                color.withValues(alpha: 0.42 * amp),
-                color.withValues(alpha: 0.10 * amp),
-                color.withValues(alpha: 0),
-              ],
-              [0.0, 0.42, 1.0],
-            ),
-        )
-        ..drawCircle(
-          c,
-          r * 0.95 * scale,
-          Paint()
-            ..blendMode = BlendMode.plus
-            ..color = Color.lerp(
-              color,
-              const Color(0xFFFFFFFF),
-              0.5,
-            )!.withValues(alpha: 0.9 * amp),
-        );
+      paintGlowPointLight(
+        canvas,
+        center: c,
+        color: color,
+        haloRadius: r * 4.2 * scale,
+        haloInnerAlpha: 0.42 * amp,
+        haloMidAlpha: 0.10 * amp,
+        haloMidStop: 0.42,
+        coreRadius: r * 0.95 * scale,
+        coreColor: Color.lerp(color, const Color(0xFFFFFFFF), 0.5)!,
+        coreAlpha: 0.9 * amp,
+      );
     }
 
     // Navigation / anchor lights: white masthead anchor light (top of the mast),
@@ -156,34 +141,23 @@ class CityLightsLayer implements BackdropLayer {
       // Halo (0.34) + core (0.55) stay UNDER 1.0 summed so the centre never
       // blows to a magenta-white disc — it holds a hot red-orange instead.
       final core = Color.lerp(red, const Color(0xFFFFC890), 0.42)!;
+      // Steep falloff via an early-fading middle stop so the glow stays a
+      // tight halo around the core.
+      paintGlowPointLight(
+        canvas,
+        center: c,
+        color: red,
+        haloRadius: r * 3.6,
+        haloInnerAlpha: 0.34 * intensity,
+        haloMidAlpha: 0.08 * intensity,
+        haloMidStop: 0.4,
+        coreRadius: r * 0.75,
+        coreColor: core,
+        coreAlpha: 0.55 * intensity,
+      );
+      // A faint horizontal anamorphic streak so the lamp reads as an emissive
+      // SOURCE with a lens signature, not a round gaussian sticker.
       canvas
-        ..drawCircle(
-          c,
-          r * 3.6,
-          Paint()
-            ..blendMode = BlendMode.plus
-            // Steep falloff via an early-fading middle stop so the glow stays a
-            // tight halo around the core.
-            ..shader = ui.Gradient.radial(
-              c,
-              r * 3.6,
-              [
-                red.withValues(alpha: 0.34 * intensity),
-                red.withValues(alpha: 0.08 * intensity),
-                red.withValues(alpha: 0),
-              ],
-              [0.0, 0.4, 1.0],
-            ),
-        )
-        ..drawCircle(
-          c,
-          r * 0.75,
-          Paint()
-            ..blendMode = BlendMode.plus
-            ..color = core.withValues(alpha: 0.55 * intensity),
-        )
-        // A faint horizontal anamorphic streak so the lamp reads as an emissive
-        // SOURCE with a lens signature, not a round gaussian sticker.
         ..save()
         ..translate(c.dx, c.dy)
         ..scale(1, 0.22)
