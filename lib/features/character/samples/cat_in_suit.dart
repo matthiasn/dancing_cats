@@ -7588,18 +7588,20 @@ class CatClips {
     DanceBodyKey(
       10,
       rootDx: -7,
-      rootDy: 88,
-      chestRotation: -0.23,
-      chestScaleY: 0.84,
-    ), // HOLDS low
+      rootDy: 45,
+      chestRotation: -0.19,
+      chestScaleY: 0.93,
+    ), // rise begins — evenly-paced ramp from here to the hit (see below)
     DanceBodyKey(
       11,
-      rootDx: -8,
-      rootDy: 92,
-      pelvisRotation: -0.07,
-      chestRotation: -0.2,
-      chestScaleY: 0.82,
-    ), // re-load sinks a touch DEEPER (never rises before the hit)
+      rootDx: -7,
+      rootDy: 24,
+      pelvisRotation: 0,
+      chestRotation: -0.12,
+      chestScaleY: 1.05,
+    ), // rise continues at the SAME per-frame rate as 8->10 and 10->11,
+    // instead of a shallow hold followed by a steep cliff — spreads the
+    // whole ~90-unit rootDy change over three EVEN segments (8->10->11->12)
     DanceBodyKey(
       12,
       rootDx: -6,
@@ -7697,18 +7699,18 @@ class CatClips {
     DanceBodyKey(
       26,
       rootDx: 7,
-      rootDy: 97,
-      chestRotation: 0.25,
-      chestScaleY: 0.83,
-    ), // HOLDS low
+      rootDy: 50,
+      chestRotation: 0.2,
+      chestScaleY: 0.95,
+    ), // rise begins — evenly-paced ramp, mirrors frame 10's fix above
     DanceBodyKey(
       27,
-      rootDx: 8,
-      rootDy: 100,
-      pelvisRotation: 0.07,
-      chestRotation: 0.22,
-      chestScaleY: 0.82,
-    ), // re-load
+      rootDx: 7,
+      rootDy: 26,
+      pelvisRotation: 0,
+      chestRotation: 0.13,
+      chestScaleY: 1.06,
+    ), // rise continues at the same per-frame rate — mirrors frame 11
     DanceBodyKey(
       28,
       rootDx: 6,
@@ -8098,11 +8100,29 @@ class CatClips {
       ]),
       channels: {
         ...base.channels,
+        // Owner: "wondering if hips are moving enough or need a little
+        // jiggle" — checked, and buga was the only catalogue clip whose
+        // hips carry ONLY the big lead-key motion with no secondary
+        // texture layered on top (shaku/others all add a subtle
+        // harmonic-24 micro-wobble). Added the same kind of tremor here —
+        // reads as "holding under strain" through the sink's held low
+        // points, not just dead between the big beats.
         CatBones.hips: LayeredJointChannel([
           _bodyPelvisLeadChannel(
             _bugaBodyKeys,
             smooth: true,
             microFrames: -0.15,
+          ),
+          const SineChannel(
+            harmonicAmplitude: 0.006,
+            harmonicPhase: 0.02,
+            harmonicMultiplier: 24,
+            scaleXAmplitude: 0.002,
+            scaleXPhase: 0.02,
+            scaleXHarmonic: 24,
+            scaleYAmplitude: -0.002,
+            scaleYPhase: 0.02,
+            scaleYHarmonic: 24,
           ),
         ]),
         CatBones.torso: LayeredJointChannel([
