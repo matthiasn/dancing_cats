@@ -351,6 +351,17 @@ const _azontoHandRKeys = [
 // (PR #51) already amplifies clavicle rotation's visual displacement at the
 // ribbon mesh, so this channel should read without needing a bigger number.
 // Bar 1 (the wheel-mime) is left neutral — not in scope for this pass.
+//
+// CAVEAT, probe-verified post-merge: the channel genuinely solves (probed
+// `frame.world[CatBones.clavicleL/R]`, `atan2(b,a)`) — a real ~13deg swing
+// at frame 16, comparable to zanku's own working channel — but a direct
+// same-frame before/after render crop is pixel-near-identical; the
+// silhouette is dominated by the tightly crossed arms, and a shoulder roll
+// this size doesn't read against that. This is NOT the "solved rotation
+// doesn't render" mesh bug from PR #51 (the data->render path itself is
+// fine, confirmed by probe) — it's that a subtle secondary motion can't
+// compete with the crossed-arms silhouette itself. Real fix is the elbow-
+// abduction/pole-vector work (task #46), not a bigger shoulder-roll number.
 const _azontoClavicleLKeys = [
   DanceJointKey(0),
   DanceJointKey(14), // into bar 2
