@@ -701,6 +701,14 @@ class CharacterRenderer {
       final origin = transform.origin;
       spine.add(Offset(origin.x, origin.y));
     }
+    // Rendering-only lever amplification (see girdleLeverGain's doc comment):
+    // extrapolate the root→socket vector so a real clavicle roll/dig
+    // displaces the MESH further than the anti-hinge's short bone-to-bone
+    // radius alone would, without moving the actual socket bone (which
+    // stays welded at its tested rest distance for every other consumer).
+    if (ribbon.girdleLeverGain != 1 && spine.length > 1) {
+      spine[1] = spine[0] + (spine[1] - spine[0]) * ribbon.girdleLeverGain;
+    }
     return limbRibbonPath(
       spine,
       ribbon.halfWidths,
