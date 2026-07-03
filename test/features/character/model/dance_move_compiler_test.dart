@@ -44,10 +44,10 @@ void main() {
           locomotionSpeed: 2.5,
           contactPinning: ContactPinning.lowestContact,
           jointTracks: {
-            'arm.upper.R': [
+            'arm.upper.R': DanceJointTrack([
               DanceJointKey(0, rotation: 0.1),
               DanceJointKey(8, rotation: -0.2),
-            ],
+            ], smooth: true),
           },
           bodyMotion: DanceBodyMotionTrack(
             pelvisBoneId: 'pelvis',
@@ -64,10 +64,10 @@ void main() {
             ],
           ),
           limbTargetTracks: {
-            'hand.R': [
+            'hand.R': DanceIkTargetTrack([
               DanceIkTargetKey(0, x: 10, y: 5),
               DanceIkTargetKey(8, x: 12, y: 3),
-            ],
+            ], cyclic: true),
           },
           supports: [
             DanceSupportSpan(
@@ -125,9 +125,9 @@ void main() {
       expect(clip.zOrderSwaps.single.boneA, 'hand.L');
 
       // jointTracks compiles to a real KeyframeChannel via phrase.jointChannel.
-      final armChannel = clip.channels['arm.upper.R'];
-      expect(armChannel, isA<KeyframeChannel>());
-      expect((armChannel! as KeyframeChannel).keys, hasLength(2));
+      final armChannel = clip.channels['arm.upper.R']! as KeyframeChannel;
+      expect(armChannel.keys, hasLength(2));
+      expect(armChannel.smooth, isTrue);
 
       // bodyMotion writes pelvis/chest channels and layers the root channel.
       expect(clip.channels['pelvis'], isA<KeyframeChannel>());
@@ -135,7 +135,8 @@ void main() {
       // Only the key with chest data survives the damping filter.
       expect(chestChannel.keys, hasLength(1));
       expect(chestChannel.keys.single.rotation, closeTo(0.1 * 0.88, 1e-9));
-      expect(clip.root, isA<LayeredRootChannel>());
+      // bodyMotion fully owns root when set — no auto-layering with a base.
+      expect(clip.root, isA<KeyframeRootChannel>());
 
       // extraJointChannels overlays a raw procedural channel verbatim.
       expect(clip.channels['ear.L'], isA<SineChannel>());
@@ -151,10 +152,9 @@ void main() {
       expect(handTarget.upperBoneId, 'arm.upper.R');
       expect(handTarget.bendDirection, -1);
       expect(handTarget.channel, isA<KeyframeIkTargetChannel>());
-      expect(
-        (handTarget.channel as KeyframeIkTargetChannel).keys,
-        hasLength(2),
-      );
+      final handChannel = handTarget.channel as KeyframeIkTargetChannel;
+      expect(handChannel.keys, hasLength(2));
+      expect(handChannel.cyclic, isTrue);
       final footTarget = clip.limbTargets.firstWhere(
         (t) => t.endBoneId == 'foot.L',
       );
@@ -190,6 +190,11 @@ void main() {
         move: _move,
         duration: 2,
         baseClip: base,
+        jointTracks: {
+          'chest': const DanceJointTrack([
+            DanceJointKey(0, rotation: 0.2),
+          ], layerOnBase: true),
+        },
       );
 
       final clip = assembleMoveClip(_phrase, withBase);
@@ -202,10 +207,34 @@ void main() {
       expect(clip.danceHeadLevelClampMin, -3);
       expect(clip.zOrderSwaps, base.zOrderSwaps);
       expect(clip.transitionPlan, isNull);
-      // Base channel carries through untouched when no jointTracks override it.
-      expect(clip.channels['chest'], isA<SineChannel>());
-      expect((clip.channels['chest']! as SineChannel).amplitude, 0.01);
+      // layerOnBase: true composes onto the base's existing channel for that
+      // bone rather than replacing it.
+      final chestChannel = clip.channels['chest']! as LayeredJointChannel;
+      expect(chestChannel.channels, hasLength(2));
+      expect(chestChannel.channels.first, isA<SineChannel>());
+      expect(chestChannel.channels.last, isA<KeyframeChannel>());
       expect(clip.root, isA<SineRootChannel>());
+    });
+
+    test('bodyMotion.pelvisTexture layers a procedural channel onto the pelvis', () {
+      const descriptor = DanceMoveDescriptor(
+        move: _move,
+        duration: 1,
+        bodyMotion: DanceBodyMotionTrack(
+          pelvisBoneId: 'pelvis',
+          chestBoneId: 'chest',
+          keys: [DanceBodyKey(0, pelvisRotation: 0.05)],
+          pelvisTexture: SineChannel(harmonicAmplitude: 0.006),
+        ),
+      );
+
+      final clip = assembleMoveClip(_phrase, descriptor);
+
+      final pelvisChannel = clip.channels['pelvis']! as LayeredJointChannel;
+      expect(pelvisChannel.channels, hasLength(2));
+      expect(pelvisChannel.channels.first, isA<KeyframeChannel>());
+      final texture = pelvisChannel.channels.last as SineChannel;
+      expect(texture.harmonicAmplitude, 0.006);
     });
 
     test('an empty descriptor with no base falls back to Clip defaults', () {
