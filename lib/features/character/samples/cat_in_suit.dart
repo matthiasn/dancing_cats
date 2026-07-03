@@ -8961,13 +8961,13 @@ class CatClips {
     // Round 7: mirrors the hand.R contrast fix above — quiet frames pulled
     // back up near the recoil level so punch vs quiet actually differ.
     DanceIkTargetKey(16, x: -38, y: 32, tension: 1), // swap: FREE hip pump
-    DanceIkTargetKey(18, x: -36, y: -8, tension: 0.6), // recoil up
-    DanceIkTargetKey(20, x: -40, y: 2, tension: 0.7), // quiet while R digs
-    DanceIkTargetKey(22, x: -36, y: -6, tension: 0.6),
+    DanceIkTargetKey(18, x: -36, y: -10, tension: 0.4), // peak recovery
+    DanceIkTargetKey(20, x: -40, y: 8, tension: 0.5), // rising back out
+    DanceIkTargetKey(22, x: -38, y: 20, tension: 0.4), // closing in on the punch
     DanceIkTargetKey(24, x: -40, y: 32, tension: 1), // PUNCH past the hip
-    DanceIkTargetKey(26, x: -36, y: -8, tension: 0.6),
-    DanceIkTargetKey(28, x: -40, y: -4, tension: 0.7),
-    DanceIkTargetKey(30, x: -36, y: -6, tension: 0.6),
+    DanceIkTargetKey(26, x: -36, y: -10, tension: 0.4),
+    DanceIkTargetKey(28, x: -40, y: 8, tension: 0.5),
+    DanceIkTargetKey(30, x: -38, y: 20, tension: 0.4),
     DanceIkTargetKey(32, x: -15, y: -48, tension: 1),
   ];
   // Round 6: every rater independently measured the free arm's excursion —
@@ -8987,15 +8987,25 @@ class CatClips {
   // comment), so the contrast has to come from making the OTHER beats
   // shallower instead: "quiet" now rides much higher, close to the recoil
   // level, so the arm reads as down-up-down-up each beat, not "mostly down".
+  // Round 9: measured the SOLVED elbow rotation (not just the IK target) at
+  // every authored frame and found the "quiet" frames 2/4/6 all landed
+  // within 0.2 rad of each other while frames 0/8 hit tension: 1 — the
+  // punch was a single-instant dip bracketed by a long near-flat hold, so
+  // 6 of 8 sampled beats read as "parked" and only 2 as "punching," exactly
+  // matching the panel's "free arm never pumps" complaint. Reshaped 2/4/6
+  // into a genuine single arc — peak recovery right after the punch, then
+  // a monotonic rise back out across the remaining two "quiet" frames —
+  // so the elbow actually swings through the whole cycle each beat instead
+  // of dipping once and holding near-flat for three sampled instants.
   static const _sekemHandRTargetKeys = [
     DanceIkTargetKey(0, x: 38, y: 24, tension: 1), // FREE — punch past the hip
-    DanceIkTargetKey(2, x: 36, y: -8, tension: 0.6), // recoil up
-    DanceIkTargetKey(4, x: 40, y: -4, tension: 0.7), // quiet while L digs
-    DanceIkTargetKey(6, x: 36, y: -6, tension: 0.6),
+    DanceIkTargetKey(2, x: 36, y: -10, tension: 0.4), // peak recovery
+    DanceIkTargetKey(4, x: 40, y: 8, tension: 0.5), // rising back out
+    DanceIkTargetKey(6, x: 38, y: 20, tension: 0.4), // closing in on the punch
     DanceIkTargetKey(8, x: 38, y: 26, tension: 1), // PUNCH on the R dig
-    DanceIkTargetKey(10, x: 36, y: -8, tension: 0.6),
-    DanceIkTargetKey(12, x: 40, y: -4, tension: 0.7),
-    DanceIkTargetKey(14, x: 36, y: -6, tension: 0.6),
+    DanceIkTargetKey(10, x: 36, y: -10, tension: 0.4),
+    DanceIkTargetKey(12, x: 40, y: 8, tension: 0.5),
+    DanceIkTargetKey(14, x: 38, y: 20, tension: 0.4),
     DanceIkTargetKey(16, x: 15, y: -48, tension: 1), // swap: sternum pin
     DanceIkTargetKey(20, x: 15, y: -40, tension: 1), // rides the R dig DOWN
     DanceIkTargetKey(22, x: 15, y: -54, tension: 0.6),
