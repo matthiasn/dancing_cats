@@ -1324,19 +1324,22 @@ void main() {
       final leftFlickLift = zanku.root.sample(22 / phrase.frameCount);
       expect(
         leftLift.y,
-        inInclusiveRange(104, 110),
+        inInclusiveRange(96, 110),
         reason:
             'Zanku should show a compact pre-stomp pickup before the heel-toe '
-            'flick, not a walking stride',
+            'flick, not a walking stride — task #39 widened the lower bound '
+            'so bar 2 (this frame) can lift noticeably higher than bar 1, '
+            'reading as building weight commitment rather than a repeat',
       );
       expect(
         leftFlick.x,
-        inInclusiveRange(-85, -80),
+        inInclusiveRange(-92, -80),
         reason:
             'Zanku should show a readable heel-toe knock outside the trouser '
-            'mass without becoming a side kick',
+            'mass without becoming a side kick — task #39 widened this so '
+            "bar 2's knock can reach further out than bar 1's",
       );
-      expect(leftFlick.y, inInclusiveRange(122, 125));
+      expect(leftFlick.y, inInclusiveRange(118, 125));
       expect(
         leftRecoil.x,
         greaterThan(leftFlick.x + 10),

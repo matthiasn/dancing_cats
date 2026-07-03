@@ -5893,14 +5893,21 @@ class CatClips {
     // escalates across the 2-bar phrase. Widened/deepened bar 2's three
     // punches progressively so they build toward the gbese climax instead
     // of repeating bar 1's pose pixel-for-pixel.
+    // R12+ (task #39): the punch depths escalate but the GUARD in between
+    // them (17-19, 21-23) was still the exact same rib-guard hold as bar
+    // 1's 1-3/5-7 — panel called this "arms static between punches," and
+    // it's the other half of why bar 2 still read as a copy. Coiled the
+    // guard progressively wider/higher alongside the punch escalation, so
+    // the recovery itself visibly builds tension toward the gbese instead
+    // of resetting to an identical shape each time.
     DanceIkTargetKey(16, x: -37, y: -10, tension: 0.6), // PUNCH, building
-    DanceIkTargetKey(17, x: -34, y: -26),
-    DanceIkTargetKey(18, x: -36, y: -46),
-    DanceIkTargetKey(19, x: -35, y: -40),
+    DanceIkTargetKey(17, x: -35, y: -28), // guard coiling, 1st step
+    DanceIkTargetKey(18, x: -37, y: -49),
+    DanceIkTargetKey(19, x: -36, y: -42),
     DanceIkTargetKey(20, x: -40, y: -16, tension: 0.6), // PUNCH, deeper
-    DanceIkTargetKey(21, x: -34, y: -26),
-    DanceIkTargetKey(22, x: -36, y: -46),
-    DanceIkTargetKey(23, x: -35, y: -40),
+    DanceIkTargetKey(21, x: -35, y: -29), // guard coiling, 2nd step
+    DanceIkTargetKey(22, x: -38, y: -51),
+    DanceIkTargetKey(23, x: -36, y: -44),
     DanceIkTargetKey(24, x: -43, y: -22, tension: 0.6), // PUNCH, deepest
     DanceIkTargetKey(25, x: -37, y: -50), // high load behind the gbese
     DanceIkTargetKey(26, x: -26, y: 2, tension: 0.5), // FLING — fists slam down
@@ -6006,9 +6013,17 @@ class CatClips {
     DanceIkTargetKey(16, x: -62, y: 126, tension: 1), // stamp
     DanceIkTargetKey(18, x: -62, y: 125, tension: 0.6),
     DanceIkTargetKey(20, x: -62, y: 126, tension: 0.4),
-    DanceIkTargetKey(21, x: -44, y: 108),
-    DanceIkTargetKey(22, x: -82, y: 123),
-    DanceIkTargetKey(23, x: -48, y: 123),
+    // R12+ (task #39): this pickup/knock/drag was a near-pixel-identical
+    // repeat of frames 5/6/7 (and 13/14/15 before it) — panel called the
+    // whole loop "one knee-lift shape looped four times." The foot is
+    // airborne here (support is on the other foot per the contact span),
+    // so there's room to widen the arc without disturbing weight-bearing:
+    // pushed the pickup higher and the knock/drag further out, reading as
+    // a deeper, more committed step building into the gbese half of the
+    // phrase rather than a fourth identical rep.
+    DanceIkTargetKey(21, x: -40, y: 100),
+    DanceIkTargetKey(22, x: -92, y: 118),
+    DanceIkTargetKey(23, x: -54, y: 117),
     DanceIkTargetKey(24, x: -64, y: 126, tension: 1), // stamp/support
     DanceIkTargetKey(
       26,
@@ -8485,8 +8500,13 @@ class CatClips {
     // frame 23): without it the smooth path between 22 and 24 dips close to
     // the shoulder, the two-bone solver's near-degenerate fold zone.
     DanceIkTargetKey(23, x: -12, y: -86),
-    DanceIkTargetKey(24, x: -92, y: -54, ease: Ease.easeOutBack),
-    DanceIkTargetKey(26, x: -70, y: -32),
+    // task #39: bar 2's swipe was a pixel-perfect L/R mirror of bar 1's
+    // (92,-54 <-> -92,-54) — panel called this "one bar played twice."
+    // Pushed bar 2's outer-lead reach further out/deeper than bar 1's so
+    // the second swipe reads as a genuine escalation, not just the same
+    // gesture on the other side.
+    DanceIkTargetKey(24, x: -96, y: -56, ease: Ease.easeOutBack),
+    DanceIkTargetKey(26, x: -73, y: -33),
     DanceIkTargetKey(28, x: -56, y: -26),
     DanceIkTargetKey(30, x: -62, y: -20),
     DanceIkTargetKey(32, x: -42, y: -8),
@@ -8512,13 +8532,16 @@ class CatClips {
     // path between 22 and 24 dips within ~6 units of the shoulder, demanding
     // an impossible fold (the clipping meter flagged it).
     DanceIkTargetKey(23, x: 12, y: -86),
+    // task #39: matches hand.L frame-24's escalation above — bar 2's
+    // cross-body reach past the far ear now goes higher than bar 1's,
+    // so both hands of the second swipe read as more committed.
     DanceIkTargetKey(
       24,
-      x: -38,
-      y: -92,
+      x: -39,
+      y: -93,
       tension: 0.6,
-    ), // swipe apex past the far ear
-    DanceIkTargetKey(26, x: -44, y: -78, tension: 0.85), // releasing off the apex
+    ), // swipe apex past the far ear, deeper than bar 1
+    DanceIkTargetKey(26, x: -45, y: -79, tension: 0.85), // releasing off the apex
     DanceIkTargetKey(28, x: 52, y: -34),
     DanceIkTargetKey(30, x: 34, y: -38),
     DanceIkTargetKey(32, x: 42, y: -8),
@@ -8701,13 +8724,21 @@ class CatClips {
       chestRotation: -0.08,
       chestScaleY: 1,
     ),
+    // task #39: bar 2's four weight commits (16/20/24/28) used to be a flat
+    // repeat of bar 1 for the first two beats, with only the last two beats
+    // (24/28) carrying a small pre-existing escalation — panel called this
+    // "legs/pelvis never move at all across the full 2-bar loop." Made the
+    // whole bar a genuine ramp instead: each commit digs a little deeper
+    // than the last, so bar 2 reads as one continuous build toward its own
+    // deepest commit (28), not bar 1's pattern repeated then bumped at the
+    // very end.
     DanceBodyKey(
       16,
-      rootDx: -28,
-      rootDy: 40,
-      pelvisRotation: -0.36,
-      chestRotation: 0.36,
-      chestScaleY: 0.84,
+      rootDx: -29,
+      rootDy: 41,
+      pelvisRotation: -0.37,
+      chestRotation: 0.37,
+      chestScaleY: 0.83,
     ),
     DanceBodyKey(
       18,
@@ -8719,11 +8750,11 @@ class CatClips {
     ),
     DanceBodyKey(
       20,
-      rootDx: 28,
-      rootDy: 40,
-      pelvisRotation: 0.36,
-      chestRotation: -0.36,
-      chestScaleY: 0.84,
+      rootDx: 29,
+      rootDy: 42,
+      pelvisRotation: 0.37,
+      chestRotation: -0.37,
+      chestScaleY: 0.82,
     ),
     DanceBodyKey(
       22,
@@ -8735,11 +8766,11 @@ class CatClips {
     ),
     DanceBodyKey(
       24,
-      rootDx: -30,
-      rootDy: 42,
-      pelvisRotation: -0.38,
-      chestRotation: 0.38,
-      chestScaleY: 0.82,
+      rootDx: -31,
+      rootDy: 44,
+      pelvisRotation: -0.4,
+      chestRotation: 0.4,
+      chestScaleY: 0.8,
     ),
     DanceBodyKey(
       26,
@@ -8751,11 +8782,11 @@ class CatClips {
     ),
     DanceBodyKey(
       28,
-      rootDx: 30,
-      rootDy: 42,
-      pelvisRotation: 0.38,
-      chestRotation: -0.38,
-      chestScaleY: 0.82,
+      rootDx: 32,
+      rootDy: 46,
+      pelvisRotation: 0.42,
+      chestRotation: -0.42,
+      chestScaleY: 0.78,
     ),
     DanceBodyKey(
       30,
