@@ -15,18 +15,16 @@ import 'package:flutter_test/flutter_test.dart';
 ///
 /// Thresholds are calibrated against sekem (this session's un-complained-about
 /// reference clip) with roughly 3-4x headroom, not reverse-engineered to only
-/// catch one clip. At these thresholds zanku's punch accents and azonto's
-/// wheel-mime currently exceed the acceleration ceiling, and pounce's swipe
-/// exceeds both ceilings — these are real findings, not test bugs.
+/// catch one clip. At these thresholds azonto's wheel-mime and pounce's swipe
+/// currently exceed the acceleration ceiling — real findings, not test bugs.
 ///
-/// The overshoot-and-settle pass measurably improves zanku hand.L's raw
-/// position jerk (see `dance_smoothness_test.dart`), but the exclusions below
-/// are unchanged from before that pass landed: none of these specific
-/// worst-case acceleration/velocity readings currently drop under ceiling as
-/// a result of it. The settle only fires where a clean hard-stop pattern is
-/// detected on the arm-rotation channel; these worst-case readings apparently
-/// come from elsewhere (IK target geometry/timing, not a simple decelerate-
-/// then-hold on rotation) and remain open work.
+/// zanku's hand.R punch-guard used to fail this ceiling too (worst ~3.4):
+/// root-caused to the guard hold sitting at ~12% of arm reach (the two-bone
+/// solver's near-degenerate fold zone) against a shoulder that itself swings
+/// widely during that beat. The overshoot-and-settle pass alone didn't fix
+/// it — none of these failures are a clean "decelerate then hold" pattern on
+/// the rotation channel, they're the IK reach geometry itself. Widening the
+/// guard's reach at every occurrence (bars 1 and 2) fixed it outright.
 void main() {
   test('catalogue bone rotation keeps angular velocity below the snap band', () {
     final scene = CharacterScene(buildCatInSuitRig());
@@ -79,12 +77,10 @@ void main() {
       final speedup = kDanceRealTempoSpeedup;
       final speedupSquared = speedup * speedup;
 
-      // zanku hand.R, azonto hand.L, and pounce hand.L/hand.R currently fail
-      // this ceiling (worst real-tempo values approximately 3.4, 2.0, 8.0,
-      // 4.2 respectively against the 1.5 ceiling below), unchanged by the
-      // overshoot-and-settle pass — see the file doc comment above.
+      // azonto hand.L and pounce hand.L/hand.R currently fail this ceiling
+      // (worst real-tempo values approximately 2.0, 8.0, 4.2 respectively
+      // against the 1.5 ceiling below) — see the file doc comment above.
       const known = {
-        '${CatBones.handR}/zanku',
         '${CatBones.handL}/azonto',
         '${CatBones.handL}/pouncingCat',
         '${CatBones.handR}/pouncingCat',

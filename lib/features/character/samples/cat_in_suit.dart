@@ -5904,9 +5904,16 @@ class CatClips {
   ];
   static const _zankuHandRTargetKeys = [
     DanceIkTargetKey(0, x: 32, y: -4, tension: 0.6), // PUNCH down w/ stamp
-    DanceIkTargetKey(1, x: 34, y: -26),
-    DanceIkTargetKey(2, x: 36, y: -46), // rib guard
-    DanceIkTargetKey(3, x: 35, y: -40),
+    // Frames 1-3 sit in the same near-degenerate two-bone IK zone as zanku
+    // hand.L frame 30 (same lesson: see that fix's comment) — but here it's
+    // a sustained plateau (reach stayed ~12% of arm length across the whole
+    // guard hold, not a single-frame collision) against a shoulder that
+    // itself swings a lot during this beat (x 37->38->79 over these 3
+    // frames). A held guard well clear of that reach (~40-46%) needs to sit
+    // further out and lower than the original hugged-rib pose.
+    DanceIkTargetKey(1, x: 55, y: -10),
+    DanceIkTargetKey(2, x: 55, y: -10), // rib guard
+    DanceIkTargetKey(3, x: 55, y: -10),
     DanceIkTargetKey(4, x: 32, y: -4, tension: 0.6), // PUNCH
     DanceIkTargetKey(5, x: 34, y: -26),
     DanceIkTargetKey(6, x: 36, y: -46),
@@ -5923,15 +5930,20 @@ class CatClips {
     // Round 7: mirrors the hand.L bar-2 escalation fix above (see its
     // comment) — same literal-mirror complaint, mirrored keys.
     DanceIkTargetKey(16, x: 37, y: -10, tension: 0.6), // PUNCH, building
-    DanceIkTargetKey(17, x: 34, y: -26),
-    DanceIkTargetKey(18, x: 36, y: -46),
-    DanceIkTargetKey(19, x: 35, y: -40),
+    // Same held-guard-vs-swinging-shoulder issue as frames 1-3 — widened the
+    // same way (see that fix's comment).
+    DanceIkTargetKey(17, x: 55, y: -10),
+    DanceIkTargetKey(18, x: 55, y: -10),
+    DanceIkTargetKey(19, x: 55, y: -10),
     DanceIkTargetKey(20, x: 40, y: -16, tension: 0.6), // PUNCH, deeper
-    DanceIkTargetKey(21, x: 34, y: -26),
-    DanceIkTargetKey(22, x: 36, y: -46),
-    DanceIkTargetKey(23, x: 35, y: -40),
+    DanceIkTargetKey(21, x: 55, y: -10),
+    DanceIkTargetKey(22, x: 55, y: -10),
+    DanceIkTargetKey(23, x: 55, y: -10),
     DanceIkTargetKey(24, x: 43, y: -22, tension: 0.6), // PUNCH, deepest
-    DanceIkTargetKey(25, x: 37, y: -50), // high load behind the gbese
+    // Same near-degenerate-reach lesson as zanku hand.L frame 30 and hand.R
+    // frame 2: the torso sweeps the shoulder through this exact point during
+    // the gbese anticipation, collapsing reach to ~12% of arm length. Widened.
+    DanceIkTargetKey(25, x: 58, y: -20), // wide load behind the gbese
     DanceIkTargetKey(26, x: 26, y: 2, tension: 0.5), // FLING — fists slam down
     DanceIkTargetKey(27, x: 33, y: -30),
     DanceIkTargetKey(28, x: 32, y: -2, tension: 0.7), // landing stamp PUNCH
