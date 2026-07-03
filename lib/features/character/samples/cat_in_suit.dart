@@ -785,7 +785,7 @@ class CatClips {
           chestBoneId: CatBones.torso,
           tracks: [
             DanceBodyMotionTrack(
-              keys: _shakuGrooveCalm,
+              keys: _azontoGrooveCalm,
               chestRotationGain: 0.9,
             ),
             DanceBodyMotionTrack(keys: _danceBodyAccentKeys),
