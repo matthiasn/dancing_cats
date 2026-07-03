@@ -153,6 +153,7 @@ class DanceMoveDescriptor {
     this.supports = const [],
     this.rawContactSpans = const [],
     this.extraJointChannels = const {},
+    this.rawRoot,
     this.supportFootWorldAnchor,
     this.supportFootWorldAnchorStrength,
     this.danceHeadBobScale,
@@ -199,6 +200,12 @@ class DanceMoveDescriptor {
   /// sine-driven ear/tail follow-through) that don't fit the frame-key model.
   /// Overlaid last, so these win over any same-named [jointTracks] entry.
   final Map<String, JointChannel> extraJointChannels;
+
+  /// Escape hatch for a pre-built, non-frame-keyed root channel (e.g. a
+  /// one-shot phase-authored `KeyframeRootChannel` for a move with no
+  /// [bodyMotion] track). Takes priority over [bodyMotion]'s compiled root
+  /// and [baseClip]'s root when set.
+  final RootChannel? rawRoot;
 
   final bool? supportFootWorldAnchor;
   final double? supportFootWorldAnchorStrength;

@@ -74,10 +74,14 @@ void main() {
             extraChestLayers: [SineChannel(bias: 0.02)],
           ),
           limbTargetTracks: {
-            'hand.R': DanceIkTargetTrack([
-              DanceIkTargetKey(0, x: 10, y: 5),
-              DanceIkTargetKey(8, x: 12, y: 3),
-            ], cyclic: true, microFrames: 1),
+            'hand.R': DanceIkTargetTrack(
+              [
+                DanceIkTargetKey(0, x: 10, y: 5),
+                DanceIkTargetKey(8, x: 12, y: 3),
+              ],
+              cyclic: true,
+              microFrames: 1,
+            ),
           },
           supports: [
             DanceSupportSpan(
@@ -99,7 +103,12 @@ void main() {
           danceHeadBobScale: 0.4,
           danceHeadLevelClampMin: -1,
           zOrderSwaps: [
-            ZOrderSwapWindow(boneA: 'hand.L', boneB: 'hand.R', start: 0.4, end: 0.6),
+            ZOrderSwapWindow(
+              boneA: 'hand.L',
+              boneB: 'hand.R',
+              start: 0.4,
+              end: 0.6,
+            ),
           ],
         ),
       );
@@ -277,6 +286,34 @@ void main() {
         (clip.channels['chest']! as LayeredJointChannel).channels,
         hasLength(1),
       );
+    });
+
+    test('rawRoot overrides both bodyMotion and baseClip root', () {
+      final base = Clip(
+        name: _runtime('base'),
+        duration: 1,
+        channels: const {},
+        root: const SineRootChannel(bobAmplitude: 0.5),
+      );
+      final descriptor = DanceMoveDescriptor(
+        move: _move,
+        duration: 1,
+        rawRoot: const KeyframeRootChannel([RootKeyframe(p: 0, dy: 12)]),
+        bodyMotion: const DanceBodyMotion(
+          pelvisBoneId: 'pelvis',
+          chestBoneId: 'chest',
+          tracks: [
+            DanceBodyMotionTrack(keys: [DanceBodyKey(0, rootDy: 3)]),
+          ],
+        ),
+        baseClip: base,
+      );
+
+      final clip = assembleMoveClip(_phrase, descriptor);
+
+      final root = clip.root as KeyframeRootChannel;
+      expect(root.keys, hasLength(1));
+      expect(root.keys.single.dy, 12);
     });
 
     test('an empty descriptor with no base falls back to Clip defaults', () {
