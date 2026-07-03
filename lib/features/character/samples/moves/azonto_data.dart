@@ -196,13 +196,25 @@ const _azontoHandLTargetKeys = [
   // tune. See the panel digest for the specific critiques.
   DanceIkTargetKey(16, x: 33, y: -50, tension: 1), // JAB past the far line
   DanceIkTargetKey(17, x: 32, y: -48, tension: 1), // hold
-  DanceIkTargetKey(19, x: 10, y: -44, tension: 0.4), // recoil through guard
+  // R1: a y-only lift (-44 -> -58, keeping x on the SAME side as hand.R's
+  // simultaneous "loads" key) was tried and panel-rejected (3 reviewers,
+  // avg 4.3/10): raising y moved this hand further INTO the torso
+  // silhouette rather than out past it, since both hands stayed on the
+  // same x-side — a screen-space occlusion problem, not a raw-distance
+  // one. Fixed instead by swapping this key to hand.L's OWN (negative)
+  // side: x 10 -> -20, back near chamber's -26 rather than mid-crossover.
+  // Now this hand and hand.R's "loads" key (x +10, still on R's own side)
+  // sit on OPPOSITE sides of the tie at this beat instead of stacked on
+  // one side. Magnitude (|x|+|y| basis) stays well under the JAB key's
+  // already-validated near-max reachRatio (~0.97 at x33,y-50), so this
+  // doesn't reopen the reach-ceiling issue noted above.
+  DanceIkTargetKey(19, x: -20, y: -44, tension: 0.4), // recoil through guard
   DanceIkTargetKey(20, x: -26, y: -10, tension: 0.8), // chamber at the hip
   DanceIkTargetKey(22, x: -27, y: -12, tension: 0.5),
   DanceIkTargetKey(23, x: -10, y: -34, tension: 0.4), // loads
   DanceIkTargetKey(24, x: 33, y: -50, tension: 1), // JAB
   DanceIkTargetKey(25, x: 32, y: -48, tension: 1),
-  DanceIkTargetKey(27, x: 10, y: -44, tension: 0.4),
+  DanceIkTargetKey(27, x: -20, y: -44, tension: 0.4), // recoil through guard
   DanceIkTargetKey(28, x: -26, y: -10, tension: 0.8), // chamber
   DanceIkTargetKey(30, x: -24, y: 5, tension: 0.5),
   DanceIkTargetKey(31, x: -22, y: 15, tension: 0.6), // lifts to the wheel
@@ -229,7 +241,10 @@ const _azontoHandRTargetKeys = [
   DanceIkTargetKey(19, x: 10, y: -34, tension: 0.4), // loads
   DanceIkTargetKey(20, x: -33, y: -50, tension: 1), // JAB past the far line
   DanceIkTargetKey(21, x: -32, y: -48, tension: 1), // hold
-  DanceIkTargetKey(23, x: -10, y: -44, tension: 0.4), // recoil through guard
+  // Mirrors hand.L's opposite-side recoil fix above (see that comment):
+  // swapped to hand.R's OWN (positive) side so it doesn't stack with
+  // hand.L's simultaneous "loads" key (also on L's own, negative side).
+  DanceIkTargetKey(23, x: 20, y: -44, tension: 0.4), // recoil through guard
   DanceIkTargetKey(24, x: 26, y: -10, tension: 0.8), // chamber
   DanceIkTargetKey(26, x: 27, y: -12, tension: 0.5),
   DanceIkTargetKey(27, x: 10, y: -34, tension: 0.4),
