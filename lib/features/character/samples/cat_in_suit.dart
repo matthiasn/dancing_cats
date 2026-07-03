@@ -8700,12 +8700,16 @@ class CatClips {
     // frame 23): without it the smooth path between 22 and 24 dips close to
     // the shoulder, the two-bone solver's near-degenerate fold zone.
     DanceIkTargetKey(23, x: -12, y: -86),
-    // task #39: bar 2's swipe was a pixel-perfect L/R mirror of bar 1's
-    // (92,-54 <-> -92,-54) — panel called this "one bar played twice."
-    // Pushed bar 2's outer-lead reach further out/deeper than bar 1's so
-    // the second swipe reads as a genuine escalation, not just the same
-    // gesture on the other side.
-    DanceIkTargetKey(24, x: -96, y: -56, ease: Ease.easeOutBack),
+    // task #39 v2 (post panel-verify): the first attempt pushed BOTH hands
+    // further out in the SAME direction, which barely changed the GAP
+    // between them (a rigging probe found the rendered cross-arm span was
+    // 76px in bar2 vs 79px in bar1 — essentially identical, since the
+    // silhouette width is the DISTANCE between the two hands, not either
+    // hand's absolute reach). Pushed the outer-lead hand (this one)
+    // further out AND pulled hand.R's crossing x back toward center (see
+    // its own comment below) so the two moves in opposite directions,
+    // genuinely widening the cross instead of translating it sideways.
+    DanceIkTargetKey(24, x: -98, y: -58, ease: Ease.easeOutBack),
     DanceIkTargetKey(26, x: -73, y: -33),
     DanceIkTargetKey(28, x: -56, y: -26),
     DanceIkTargetKey(30, x: -62, y: -20),
@@ -8732,13 +8736,16 @@ class CatClips {
     // path between 22 and 24 dips within ~6 units of the shoulder, demanding
     // an impossible fold (the clipping meter flagged it).
     DanceIkTargetKey(23, x: 12, y: -86),
-    // task #39: matches hand.L frame-24's escalation above — bar 2's
-    // cross-body reach past the far ear now goes higher than bar 1's,
-    // so both hands of the second swipe read as more committed.
+    // task #39 v2 (post panel-verify): pulling this hand's x TOWARD centre
+    // (was -39, further from hand.L's frame-24 x than it looks, but not
+    // far enough — see hand.L's comment) while keeping/raising the y
+    // widens the actual cross-gap between the two hands, which is what a
+    // viewer reads as "how deep is the cross," not either hand's absolute
+    // reach.
     DanceIkTargetKey(
       24,
-      x: -39,
-      y: -93,
+      x: -30,
+      y: -95,
       tension: 0.6,
     ), // swipe apex past the far ear, deeper than bar 1
     DanceIkTargetKey(26, x: -45, y: -79, tension: 0.85), // releasing off the apex
