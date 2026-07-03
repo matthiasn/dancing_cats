@@ -1,0 +1,77 @@
+Panel round 12 — 2026-07-03
+Task wdjq4igtr / run wf_1ba2771b-bec, 27/30 raters at time of processing
+(5 experts x 6 moves; pouncingCat still short 3 raters — anatomy, movement,
+rigging — when this digest was written; processed early per owner request
+rather than waiting for the run to fully drain).
+
+Context: run after ONE narrow fix — buga's lateral-motion redistribution
+(the "lo3 hold -> explosive HIT" rise spread across three graduated
+segments instead of one cliff, ~38% down on velocity/acceleration/jerk).
+No other move touched this round. IMPORTANT: this round's buga render
+predates two FURTHER passes that have since landed and merged to main
+(PR #44, commit 00be6b5) — an even per-frame re-pace (a further ~11%, ~46%
+down cumulative) and a subtle hip "jiggle" texture (+3.6% jerk, still net
+~44% down). So buga's score below reflects the WEAKEST of the three states
+that now exist; the merged state is strictly smoother than what was judged
+here.
+
+SCORES (R11 -> R12, partial):
+  shaku       6.4 -> 6.5   (+0.1, flat)
+  zanku       6.8 -> 6.4   (-0.4, untouched — variance)
+  azonto      5.7 -> 5.8   (+0.1, flat, untouched)
+  sekem       5.3 -> 5.2   (-0.1, flat, untouched)
+  buga        6.4 -> 7.1   (+0.7, the only move touched this round)
+  pouncingCat 6.7 -> 6.5*  (*only 2/5 raters in — afrobeats 6.5, director
+                            6.5 — not a reliable mean yet)
+
+== The one thing this round was run to check: confirmed ==
+Every rater who touched buga this round independently confirmed the
+lateral-motion fix reads as real, without being prompted for that specific
+language:
+- anatomy (7.5): "The sink-to-hit cliff is genuinely fixed — the rise now
+  reads as a graduated, weighted build rather than a teleport."
+- rigging (7.5): "The sink-to-hit fix genuinely lands — a clean three-step
+  graduated crouch into a decisive accented rise, not a cliff."
+- director (7.0): "The sink-to-hit jerk fix genuinely worked — the drop
+  into the explosive pose now reads as a controlled glide instead of a
+  jolt."
+- afrobeats (7.0): "The sink-to-hit lands smoother and the peacock-arm hit
+  is now the right shape."
+- movement (6.5, most reserved): "The targeted fix worked — the sink-to-
+  hit now visibly graduates instead of snapping."
+This is a clean, unambiguous win for the kinematic-diagnostic approach
+(measure the actual translational jerk, fix the worst offender, verify
+against a fresh panel) — five independent professional lenses, no shared
+prompt language about "smoothness," all landed on the same read.
+
+Buga's remaining critiques this round are now ABOUT OTHER THINGS, not the
+fixed transition: no visible shoulder shrug on the hit (anatomy, movement,
+rigging all flag this independently — 3/5), locked-straight legs at the
+hit (anatomy), an elbow silhouette leak (rigging), and the lo-lo-lo build
+itself reading too flat/repeating (director, movement). None of these are
+lateral-motion-smoothness issues — the diagnostic gate did its one job.
+
+== Everything else: flat, as expected (untouched) ==
+Zanku's -0.4 and the other three moves' near-zero moves are ordinary
+round-to-round variance on unchanged clips — consistent with this session's
+own new panel-scoping decision (see below) to stop re-scoring untouched
+moves every round.
+
+Recurring, still-unaddressed findings worth carrying forward:
+- Azonto and sekem's core namesake gestures (wheel/jab mime; pump-and-swap)
+  are independently still called "frozen"/"static pose held for two bars"
+  by multiple raters — same open thread since R5/R9, unresolved.
+- "Bar 2 = bar 1" copy-paste complaints persist (zanku, sekem, pouncingCat)
+  — this is task #39 (approved, not yet started).
+- PouncingCat's "gliding base" is called out as pinned/static, not gliding,
+  by both raters received so far — worth confirming once the remaining 3
+  raters land.
+
+== Process note ==
+This was the LAST full 6-move/5-expert (30-agent) panel round run this
+way. Going forward (owner instruction, 2026-07-03): panels scope to ONE
+move/dance style at a time, with 3 experts (movement + rigging + one
+domain specialist matched to the live question) rather than the full
+fan-out. The next panel round should be a focused buga-only check (3
+experts) to verify the MERGED state (46% + jiggle) reads at least as well
+as this round's 38%-only state did.
