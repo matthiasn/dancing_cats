@@ -5319,8 +5319,13 @@ class CatClips {
     // frame), not a sweep. Pushed the low point down past the hip toward
     // the knee so the silhouette actually opens and drops before the lead
     // hand rises back out.
+    // R10: every rater independently called the flash "perfect mirror
+    // symmetry, like jazz hands" — at frame 12 itself both hands hit the
+    // SAME y (20), only diverging a frame later at 13. Made L (the lead
+    // hand) dip deeper than R AT frame 12 itself, not just at the next
+    // frame, so the asymmetry reads from the first instant of the flash.
     DanceIkTargetKey(11, x: 6, y: -50, tension: 0.8), // squeeze (anticipation)
-    DanceIkTargetKey(12, x: -62, y: 20, tension: 0.7), // scoop sweeps LOW
+    DanceIkTargetKey(12, x: -62, y: 24, tension: 0.7), // lead hand sweeps LOWEST
     DanceIkTargetKey(13, x: -76, y: -10, tension: 0.7), // lead hand rises out
     DanceIkTargetKey(14, x: -10, y: -42, tension: 0.5), // closing transit
     DanceIkTargetKey(15, x: 14, y: -58, tension: 0.8), // overcross lands
@@ -5351,7 +5356,7 @@ class CatClips {
     DanceIkTargetKey(8, x: -16, y: -46, tension: 1),
     // Round 6: mirrors the hand.L scoop-depth fix above (see its comment).
     DanceIkTargetKey(11, x: -3, y: -40, tension: 0.8), // squeeze
-    DanceIkTargetKey(12, x: 66, y: 20, tension: 0.7), // scoop sweeps LOW
+    DanceIkTargetKey(12, x: 66, y: 8, tension: 0.7), // trail hand stays shallow
     DanceIkTargetKey(13, x: 76, y: 14, tension: 0.7), // trail hand stays lower
     DanceIkTargetKey(14, x: 6, y: -34, tension: 0.5), // closing transit
     DanceIkTargetKey(15, x: -12, y: -46, tension: 0.8), // overcross lands
