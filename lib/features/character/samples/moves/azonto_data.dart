@@ -1,5 +1,51 @@
 part of '../cat_in_suit.dart';
 
+// Azonto-only damping of the SHARED `_shakuGrooveCalm` track, applied just to
+// bar 2's two jab windows (frames 14-20 and 22-28, one per punch pair — the
+// second window shows the exact same drift pattern on re-probe). Root-caused
+// via a direct world-space probe (`frame.world[CatBones.torso]`, not just
+// authored key values): the jab's IK-target anchor (`torso`) drags ~27 world
+// units opposite the jab's own reach direction across each window, because
+// torso's world position is driven by its ROOT/PELVIS ancestors' translation
+// and lever-arm rotation — a bone's OWN rotation never moves its own origin,
+// only an ancestor's does, same mechanism as the clavicle/socket anti-hinge.
+// Ablation (temporarily zeroing each `bodyMotion` track in turn and
+// re-probing) attributed this track's root+pelvis motion as the single
+// largest contributor (disabling it dropped the swing from ~27 to ~16 world
+// units, vs. azonto's own `_azontoPocketKeys` contributing only ~5 when
+// disabled alone) — and the composition is genuinely NONLINEAR (fully
+// zeroing both sources did not monotonically maximize the resulting jab/
+// chamber world-x gap at every frame; a partial 0.15 gain measured better
+// or equal at 3 of the 4 jab instants). Since this list is shared with
+// shaku/zanku's own grooves, damp a LOCAL copy rather than editing the
+// shared source — bar 1's wheel-mime and every other move's groove keep the
+// original swivel unchanged. Net result, probe-verified (world-x gap
+// between the jabbing and chambered hand at frames 16/20/24/28): baseline
+// ~1-1.5 world units (read as one merged blob) -> ~4.4/6.2/8.2/13.4 after
+// this fix, a real but MODEST improvement — the jab's local target is
+// already at its reach-limit ceiling (see `_azontoHandLTargetKeys`'s R10
+// note), so there is no further room to widen the local values themselves;
+// this is likely close to this lever's practical ceiling.
+List<DanceBodyKey> _azontoGrooveCalm = [
+  for (final k in _shakuGrooveCalm)
+    if (k.frame >= 14 && k.frame <= 30)
+      DanceBodyKey(
+        k.frame,
+        rootDx: k.rootDx == null ? null : k.rootDx! * 0.15,
+        rootDy: k.rootDy,
+        rootRotation: k.rootRotation == null ? null : k.rootRotation! * 0.15,
+        pelvisRotation: k.pelvisRotation == null
+            ? null
+            : k.pelvisRotation! * 0.15,
+        chestRotation: k.chestRotation,
+        chestScaleX: k.chestScaleX,
+        chestScaleY: k.chestScaleY,
+        ease: k.ease,
+      )
+    else
+      k,
+];
+
 // ─────────────────────────────────────────────────────────────────────────
 // Azonto (Ghana, ~2011) — a bent-knee, hip-swivel groove whose signature is
 // the expressive miming HAND gestures. Reuses the shaku bent-knee groove for
@@ -128,6 +174,26 @@ const _azontoHandLTargetKeys = [
   // (frames 14-20), which touches footwork/weight-commit timing shared
   // with other channels — left for a dedicated pass rather than risking
   // those here.
+  // R follow-up (panel post-PR#54): the anchor-drift damping fix measurably
+  // widened the jab/chamber world-x gap (probe numbers) but a direct render
+  // crop showed it still reads as a tight crossed guard — the panel was
+  // right that a few world units of anchor compensation doesn't survive
+  // down to a legible silhouette. TRIED widening the jab's local reach
+  // further (33,-50 -> 48,-60, then scaled attempts) on the theory that an
+  // elbow-bend-degrees probe (~90.8deg vs a 178deg ceiling) showed room —
+  // that theory was WRONG: the elbow-bend metric was measured against the
+  // wrong reference and looked permissive, but re-probing with the actual
+  // `MotionConstraintValidator.analyze()` (the same mechanism the "hard arm
+  // reach limit" test uses) shows the BASELINE (33,-50) already sits at
+  // reachRatio ~0.97 at its worst phase — essentially maxed out, not the
+  // ~80-85% every earlier round assumed. There is NO room to widen local
+  // reach further; the arm is already at its hard physical limit at
+  // baseline. Reverted the widen. The panel's OTHER suggested levers
+  // (elbow abduction independent of the wrist target, a forward shoulder
+  // roll, a post-strike recoil/rebound) are genuinely different mechanisms
+  // from "move the IK target further" and are the real next step — left
+  // for a dedicated pass since they need new authored motion, not a value
+  // tune. See the panel digest for the specific critiques.
   DanceIkTargetKey(16, x: 33, y: -50, tension: 1), // JAB past the far line
   DanceIkTargetKey(17, x: 32, y: -48, tension: 1), // hold
   DanceIkTargetKey(19, x: 10, y: -44, tension: 0.4), // recoil through guard
@@ -364,29 +430,39 @@ const _azontoPocketKeys = [
     chestScaleY: 0.905,
     chestScaleX: 1.07,
   ),
+  // R follow-up (azonto jab root-motion drift): pelvisRotation/rootDx at
+  // frames 16/18/20 damped ~60% — see `_azontoGrooveCalm`'s doc comment for
+  // the full root-cause probe. This track's own contribution to the torso-
+  // anchor drift was smaller than the shared groove's (~5 of ~27 world
+  // units, measured by ablation), but every bit matters since the jab's
+  // local target is already at its reach-limit ceiling with no room left to
+  // widen further. chestRotation/chestScaleX/Y are untouched — a bone's own
+  // rotation doesn't move its own world origin, so they don't affect the
+  // anchor drift and stay at their full authored value for the chest
+  // counter-rotation look.
   DanceBodyKey(
     16,
-    rootDx: -2.25,
+    rootDx: -0.9,
     rootDy: 24,
-    pelvisRotation: 0.16,
+    pelvisRotation: 0.064,
     chestRotation: -0.14,
     chestScaleY: 0.95,
     chestScaleX: 1.04,
   ),
   DanceBodyKey(
     18,
-    rootDx: -2.25,
+    rootDx: -0.9,
     rootDy: 12,
-    pelvisRotation: 0.06,
+    pelvisRotation: 0.024,
     chestRotation: -0.05,
     chestScaleY: 1.02,
     chestScaleX: 0.99,
   ),
   DanceBodyKey(
     20,
-    rootDx: 2.25,
+    rootDx: 0.9,
     rootDy: 30,
-    pelvisRotation: -0.18,
+    pelvisRotation: -0.072,
     chestRotation: 0.16,
     chestScaleY: 0.95,
     chestScaleX: 1.04,
@@ -400,11 +476,12 @@ const _azontoPocketKeys = [
     chestScaleY: 1.02,
     chestScaleX: 0.99,
   ),
+  // Same jab-window anchor-drift damping as frames 16/18/20 above.
   DanceBodyKey(
     24,
-    rootDx: -2.48,
+    rootDx: -0.99,
     rootDy: 26,
-    pelvisRotation: 0.18,
+    pelvisRotation: 0.072,
     chestRotation: -0.16,
     chestScaleY: 0.95,
     chestScaleX: 1.04,
@@ -420,9 +497,9 @@ const _azontoPocketKeys = [
   ),
   DanceBodyKey(
     28,
-    rootDx: 2.48,
+    rootDx: 0.99,
     rootDy: 32,
-    pelvisRotation: -0.19,
+    pelvisRotation: -0.076,
     chestRotation: 0.17,
     chestScaleY: 0.95,
     chestScaleX: 1.04,
