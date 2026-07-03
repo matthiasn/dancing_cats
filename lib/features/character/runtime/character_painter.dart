@@ -149,19 +149,23 @@ bool _isTrioDanceClip(Clip clip) =>
 /// not in a provider; this painter just turns `(clip, time, expression)` into
 /// pixels via the shared [CharacterRenderer].
 /// The static plane scale of a dance-trio lane: how large that lane's dancer
-/// renders relative to the shared cast scale, from its role scale (lead
-/// centred and bigger) times the hero staging (lead downstage, flankers
-/// upstage). This is the number rig construction needs so limb thickness can
-/// follow a dancer's PLANE — see `limbThicknessForPlaneScale` — instead of
-/// being hand-tuned per cast member. Time-varying formation breathing is
+/// renders relative to the shared cast scale, derived from its Z-axis stage
+/// depth (role depth plus, when requested, the hero-staging depth bonus) via
+/// the same perspective law [CharacterPainter._perspectiveScale] uses. This
+/// is the number rig construction needs so limb thickness can follow a
+/// dancer's PLANE — see `limbThicknessForPlaneScale` — instead of being
+/// hand-tuned per cast member. Time-varying formation breathing is
 /// deliberately excluded: depth staging is constant per lane.
 double danceLanePlaneScale(
   int index,
   int memberCount, {
   bool heroStaging = true,
-}) =>
-    CharacterPainter._roleScale(index, memberCount) *
-    (heroStaging ? CharacterPainter._heroStaging(index, memberCount).scale : 1);
+}) => CharacterPainter._perspectiveScale(
+  CharacterPainter._roleStageDepth(index, memberCount) +
+      (heroStaging
+          ? CharacterPainter._heroStaging(index, memberCount).depthBonus
+          : 0),
+);
 
 class CharacterPainter extends CustomPainter {
   CharacterPainter({
@@ -577,13 +581,11 @@ class CharacterPainter extends CustomPainter {
         // [bodyGrade] (colour) so it only moves geometry when asked.
         final heroStage = (leadCentreOrder && heroStaging)
             ? _heroStaging(i, members.length)
-            : (scale: 1.0, dy: 0.0, dx: 0.0);
+            : (depthBonus: 0.0, dy: 0.0, dx: 0.0);
+        final memberDepth =
+            _roleStageDepth(i, members.length) + heroStage.depthBonus;
         final memberScale =
-            drawScale *
-            _roleScale(i, members.length) *
-            formation.scale *
-            heroStage.scale;
-        final memberHorizontalScale = _roleHorizontalScale(i, members.length);
+            drawScale * _perspectiveScale(memberDepth) * formation.scale;
         final memberView = leadCentreOrder && danceViewProjection
             ? _danceMemberView(i, members.length)
             : null;
@@ -712,7 +714,6 @@ class CharacterPainter extends CustomPainter {
               expression: expressions[i],
               scale: memberScale,
               feetFraction: feetFraction,
-              horizontalScale: memberHorizontalScale,
               danceView: memberView,
             );
             canvas.restore();
@@ -769,7 +770,6 @@ class CharacterPainter extends CustomPainter {
           expression: expressions[i],
           scale: memberScale,
           feetFraction: feetFraction,
-          horizontalScale: memberHorizontalScale,
           danceView: memberView,
         );
         if (grade != null) {
@@ -1277,15 +1277,32 @@ class CharacterPainter extends CustomPainter {
   static double _spacing(int memberCount) =>
       memberCount >= 3 ? _trioSpacing : _pairSpacing;
 
-  static double _roleScale(int index, int memberCount) {
-    if (memberCount < 3) return 1;
-    return index == 1 ? 1.2 : 0.86;
+  /// Camera-to-stage focal distance used to derive every dancer's on-screen
+  /// SIZE from their Z-axis stage position via a real `focal / (focal +
+  /// depth)` perspective law, instead of hand-tuned per-role scale
+  /// multipliers. World units — chosen so [_roleStageDepth]'s lead/flanker
+  /// offsets land close to this rig's previously hand-tuned ~1.2/~0.86 scale
+  /// ratio, but as a CONSEQUENCE of where each dancer stands, not an
+  /// independent knob. Uniform (no separate X/Y factor): a non-uniform scale
+  /// on a bone hierarchy distorts the limb ribbon's curvature-based width
+  /// clamp (`limb_ribbon.dart`), which read as a spurious extra elbow-like
+  /// kink on a near-max-reach arm (e.g. buga's peacock bow) once the lead's
+  /// old 1.08x horizontal-only stretch pushed it into that regime.
+  static const double _kStageCameraFocal = 600;
+
+  /// Each role's Z-axis position on the shared stage plane, relative to the
+  /// reference plane at depth 0 (negative = closer to camera/downstage,
+  /// positive = further away/upstage). The lead stands downstage of the
+  /// flankers, so — via [_perspectiveScale] — it reads as bigger with no
+  /// separate scale knob: the size difference is purely a consequence of
+  /// stage position, the way an actual camera would render it.
+  static double _roleStageDepth(int index, int memberCount) {
+    if (memberCount < 3) return 0;
+    return index == 1 ? -100 : 98;
   }
 
-  static double _roleHorizontalScale(int index, int memberCount) {
-    if (memberCount < 3) return 1;
-    return index == 1 ? 1.08 : 1;
-  }
+  static double _perspectiveScale(double depth) =>
+      _kStageCameraFocal / (_kStageCameraFocal + depth);
 
   static double _roleFloorOffset(int index, int memberCount) {
     if (memberCount < 3) return 0;
@@ -1302,27 +1319,34 @@ class CharacterPainter extends CustomPainter {
   }
 
   /// Extra HERO STAGING applied only to the layered-scene concert player (keyed
-  /// off [bodyGrade] being present, not the shared trio). It pushes the lead a
-  /// touch bigger and downstage and the flankers smaller and upstage, so the row
-  /// reads with real depth and the lead owns the frame — a music-video hero
-  /// composition. Kept out of [_roleScale] / [_danceFormation] so the main dance
-  /// and the formation-depth tests (scale locked to 1, backup rows locked) are
-  /// untouched. Constant per role (no time term) — depth must not animate without
-  /// matching footwork.
-  static ({double scale, double dy, double dx}) _heroStaging(
+  /// off [bodyGrade] being present, not the shared trio). It pulls the lead
+  /// further downstage (closer to camera, so — via [_perspectiveScale] — bigger)
+  /// and pushes the flankers further upstage, so the row reads with real depth
+  /// and the lead owns the frame — a music-video hero composition. Its
+  /// `depthBonus` composes ADDITIVELY with [_roleStageDepth] (one Z position,
+  /// not a second scale multiplier stacked on the first — see
+  /// [_kStageCameraFocal]'s doc).
+  /// Kept out of [_roleStageDepth] / [_danceFormation] so the main dance and
+  /// the formation-depth tests (scale locked to 1, backup rows locked) are
+  /// untouched. Constant per role (no time term) — depth must not animate
+  /// without matching footwork.
+  static ({double depthBonus, double dy, double dx}) _heroStaging(
     int index,
     int memberCount,
   ) {
-    if (memberCount < 3) return (scale: 1, dy: 0, dx: 0);
-    // Lead: clearly bigger, owning the frame by SIZE. Only a small downstage dy
-    // on top of the role's own floor offset — pushing it further down clipped the
-    // hero's feet off the bottom edge once the dance camera tightened.
-    if (index == 1) return (scale: 1.18, dy: 4, dx: 0);
-    // Flankers: smaller and upstage (higher = further back), and pulled INWARD
-    // toward the lead (left lane → right, right lane → left) so the three read
-    // as a tight V-wedge with the hero at its point instead of an even row.
+    if (memberCount < 3) return (depthBonus: 0, dy: 0, dx: 0);
+    // Lead: clearly bigger, owning the frame by SIZE — pulled further
+    // downstage on top of the role's own reference depth. Only a small
+    // downstage dy on top of the role's own floor offset — pushing it
+    // further down clipped the hero's feet off the bottom edge once the
+    // dance camera tightened.
+    if (index == 1) return (depthBonus: -76, dy: 4, dx: 0);
+    // Flankers: pushed further upstage (smaller) and higher (further back),
+    // and pulled INWARD toward the lead (left lane → right, right lane →
+    // left) so the three read as a tight V-wedge with the hero at its point
+    // instead of an even row.
     final inward = index == 0 ? 1.0 : -1.0;
-    return (scale: 0.8, dy: -28, dx: inward * 30);
+    return (depthBonus: 174, dy: -28, dx: inward * 30);
   }
 
   static ({double dx, double dy, double scale}) _danceFormation(
@@ -1344,8 +1368,8 @@ class CharacterPainter extends CustomPainter {
     final ensembleHit = _pulse(p, 23 / 32, 27 / 32);
     final finishTriangle = _holdPulse(p, 27 / 32, 29 / 32, 31 / 32, 1);
     // Stage depth is locked. The dancers' apparent foreground/background row
-    // comes from _roleFloorOffset + _roleScale, not animated perspective motion
-    // that their in-place legwork cannot physically earn.
+    // comes from _roleFloorOffset + _roleStageDepth, not animated perspective
+    // motion that their in-place legwork cannot physically earn.
     return switch (index) {
       0 => (
         dx:
@@ -1807,20 +1831,12 @@ class CharacterPainter extends CustomPainter {
     required Expression expression,
     required double scale,
     required double feetFraction,
-    double horizontalScale = 1,
     ({double foreshortenX, double shearX, double depth, double facing})?
     danceView,
   }) {
     final viewTransform = danceView == null
-        ? Affine2D.scale(horizontalScale, 1)
-        : Affine2D(
-            danceView.foreshortenX,
-            0,
-            danceView.shearX,
-            1,
-            0,
-            0,
-          ).multiply(Affine2D.scale(horizontalScale, 1));
+        ? Affine2D.identity
+        : Affine2D(danceView.foreshortenX, 0, danceView.shearX, 1, 0, 0);
     final base = groundedBase(
       size,
       centreX: centreX,
