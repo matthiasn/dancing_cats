@@ -45,6 +45,11 @@ void main() {
   // doesn't clear the gate outright: the last segment MUST land exactly on
   // frame 12/28's test-pinned HIT value, which puts a hard floor under how
   // gentle that final approach can be given only 3 segments of runway.
+  // Third change: added a subtle secondary sine "jiggle" layer to buga's
+  // hips channel (owner asked whether hips had enough idle texture; every
+  // other catalogue clip already layers one, buga was the outlier). Cost is
+  // vel 16.1->16.08 (flat), accel 11.3->11.27 (flat), jerk 13.7->14.23
+  // (+3.6%) - deemed worth it for the added liveliness.
   // Left in `known` with the latest numbers; next step is a panel round to
   // confirm the improvement actually reads, not just the raw metric.
   const known = <String>{

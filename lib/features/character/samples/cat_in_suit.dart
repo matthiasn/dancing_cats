@@ -8100,11 +8100,29 @@ class CatClips {
       ]),
       channels: {
         ...base.channels,
+        // Owner: "wondering if hips are moving enough or need a little
+        // jiggle" — checked, and buga was the only catalogue clip whose
+        // hips carry ONLY the big lead-key motion with no secondary
+        // texture layered on top (shaku/others all add a subtle
+        // harmonic-24 micro-wobble). Added the same kind of tremor here —
+        // reads as "holding under strain" through the sink's held low
+        // points, not just dead between the big beats.
         CatBones.hips: LayeredJointChannel([
           _bodyPelvisLeadChannel(
             _bugaBodyKeys,
             smooth: true,
             microFrames: -0.15,
+          ),
+          const SineChannel(
+            harmonicAmplitude: 0.006,
+            harmonicPhase: 0.02,
+            harmonicMultiplier: 24,
+            scaleXAmplitude: 0.002,
+            scaleXPhase: 0.02,
+            scaleXHarmonic: 24,
+            scaleYAmplitude: -0.002,
+            scaleYPhase: 0.02,
+            scaleYHarmonic: 24,
           ),
         ]),
         CatBones.torso: LayeredJointChannel([
