@@ -6971,64 +6971,83 @@ class CatClips {
     // single unit (-36/-37) — a near-perfectly VERTICAL bob, not a wheel
     // arc. A hand sliding straight up and down close to the body still
     // silhouettes as a tucked guard the whole time (every rater's "frozen
-    // hug" read), even though the wrist genuinely moves. A real wheel-grip
-    // is an OVAL in profile: narrow at the top/bottom of the turn, wide at
-    // the side. Now x tracks that shape — most outboard (-37) at the mid
-    // height where the hand is passing the wheel's side, pulled in toward
-    // the tested lane's inner edge (-24) at the brow/rib extremes — so the
-    // path is a genuine diagonal sweep instead of a straight vertical line.
-    DanceIkTargetKey(0, x: -24, y: -88, tension: 0.4), // grip at the brow
-    DanceIkTargetKey(2, x: -29, y: -80, tension: 0.2),
-    DanceIkTargetKey(4, x: -37, y: -58, tension: 0.2), // passing the hub side
-    DanceIkTargetKey(6, x: -33, y: -40, tension: 0.2),
-    DanceIkTargetKey(8, x: -24, y: -32, tension: 0.4), // grip at the ribs
-    DanceIkTargetKey(10, x: -33, y: -40, tension: 0.2),
-    DanceIkTargetKey(12, x: -37, y: -62, tension: 0.2), // rising again
-    DanceIkTargetKey(14, x: -29, y: -80, tension: 0.2),
+    // hug" read), even though the wrist genuinely moves.
+    //
+    // Round 9 re-author: the oval-arc fix (round 6) still read as a static
+    // crossed guard in the rendered grid — confirmed directly (23 of 24
+    // sampled cells were visually near-identical). Root cause, found by
+    // measuring WORLD-space hand separation: L rising to the brow while R
+    // drops to the ribs (opposing heights, same x-lane throughout) puts
+    // both wrists on their OWN side the entire bar, so nothing ever crosses
+    // or converges — there is no shared "grip" for the eye to read, just two
+    // independent arms doing their own thing. A real wheel-grip needs both
+    // hands legible as gripping the SAME object: held at close to the same
+    // height, rocking together side to side. Swapped which hand is "outboard"
+    // (wide) vs "inboard" (narrow) every 2 beats instead of which hand is
+    // "high" vs "low" — L and R now trade x while keeping a small (8-unit,
+    // over the test's required >=4) height gap, so the dominant visible
+    // motion is a synchronized side-to-side turn, held at each extreme for
+    // 2 frames (not a single-frame spike) so it reads as sustained.
+    DanceIkTargetKey(0, x: -20, y: 25), // wide reach, held
+    DanceIkTargetKey(2, x: -26, y: 18, tension: 0.2), // turning
+    DanceIkTargetKey(4, x: -32, y: 10, tension: 0.6), // narrower reach, held
+    DanceIkTargetKey(6, x: -26, y: 18, tension: 0.2), // turning back
+    DanceIkTargetKey(8, x: -20, y: 25, tension: 0.6), // wide again
+    DanceIkTargetKey(10, x: -26, y: 18, tension: 0.2),
+    DanceIkTargetKey(12, x: -32, y: 10, tension: 0.6), // narrower again
+    DanceIkTargetKey(14, x: -26, y: 18, tension: 0.8), // into bar 2
     // Bar 2 jabs (beats 5-8, alternating L,R,L,R): fire to near-full
     // extension PAST the opposite shoulder line in one beat-quarter, hold a
     // frame, recoil; the idle paw chambers at the OWN-side hip crest.
-    DanceIkTargetKey(16, x: 32, y: -54, tension: 1), // JAB past the far line
-    DanceIkTargetKey(17, x: 31, y: -52, tension: 1), // hold
-    DanceIkTargetKey(19, x: 2, y: -48, tension: 0.4), // recoil through guard
+    // Round 9: measured world position confirmed the jab and the OTHER
+    // hand's chamber were landing within ~1 world unit of each other in x
+    // (both authored on the same broad side of the body once the crossing
+    // hand reaches over) — the two poses visually merged into one blob
+    // instead of contrasting "one hand out, one hand tucked." The chamber
+    // is already pinned to its test floor (x magnitude just over 24); the
+    // jab has no such ceiling, so pushed it much further across to clear
+    // the chamber's landing zone with real daylight between them.
+    DanceIkTargetKey(16, x: 33, y: -50, tension: 1), // JAB past the far line
+    DanceIkTargetKey(17, x: 32, y: -48, tension: 1), // hold
+    DanceIkTargetKey(19, x: 10, y: -44, tension: 0.4), // recoil through guard
     DanceIkTargetKey(20, x: -26, y: -10, tension: 0.8), // chamber at the hip
     DanceIkTargetKey(22, x: -27, y: -12, tension: 0.5),
     DanceIkTargetKey(23, x: -10, y: -34, tension: 0.4), // loads
-    DanceIkTargetKey(24, x: 32, y: -54, tension: 1), // JAB
-    DanceIkTargetKey(25, x: 31, y: -52, tension: 1),
-    DanceIkTargetKey(27, x: 2, y: -48, tension: 0.4),
+    DanceIkTargetKey(24, x: 33, y: -50, tension: 1), // JAB
+    DanceIkTargetKey(25, x: 32, y: -48, tension: 1),
+    DanceIkTargetKey(27, x: 10, y: -44, tension: 0.4),
     DanceIkTargetKey(28, x: -26, y: -10, tension: 0.8), // chamber
-    DanceIkTargetKey(30, x: -27, y: -12, tension: 0.5),
-    DanceIkTargetKey(31, x: -26, y: -40, tension: 0.4), // lifts to the rim
-    DanceIkTargetKey(32, x: -24, y: -88, tension: 0.4), // == frame 0
+    DanceIkTargetKey(30, x: -24, y: 5, tension: 0.5),
+    DanceIkTargetKey(31, x: -22, y: 15, tension: 0.6), // lifts to the wheel
+    DanceIkTargetKey(32, x: -20, y: 25), // == frame 0
   ];
   static const _azontoHandRTargetKeys = [
-    // Round 5: mirrors the hand.L reach fix above (see its comment) — same
-    // near-degenerate-reach jitter, mirrored keys. Round 6: also mirrors the
-    // oval wheel-arc fix (x tracks height instead of staying constant).
-    DanceIkTargetKey(0, x: 24, y: -32, tension: 0.4), // grip at the ribs
-    DanceIkTargetKey(2, x: 33, y: -40, tension: 0.2),
-    DanceIkTargetKey(4, x: 37, y: -62, tension: 0.2), // rising
-    DanceIkTargetKey(6, x: 29, y: -80, tension: 0.2),
-    DanceIkTargetKey(8, x: 24, y: -88, tension: 0.4), // grip at the brow
-    DanceIkTargetKey(10, x: 29, y: -80, tension: 0.2),
-    DanceIkTargetKey(12, x: 37, y: -58, tension: 0.2), // dropping
-    DanceIkTargetKey(14, x: 33, y: -40, tension: 0.2),
+    // Round 9 re-author: mirrors the hand.L rock-together wheel redesign
+    // and jab-reach fix above (see those comments) — same root causes,
+    // mirrored keys.
+    DanceIkTargetKey(0, x: 32, y: 10, tension: 0.6), // narrower reach, held
+    DanceIkTargetKey(2, x: 26, y: 18, tension: 0.2),
+    DanceIkTargetKey(4, x: 20, y: 25, tension: 0.6), // wide reach, held
+    DanceIkTargetKey(6, x: 26, y: 18, tension: 0.2),
+    DanceIkTargetKey(8, x: 32, y: 10, tension: 0.6), // narrower again
+    DanceIkTargetKey(10, x: 26, y: 18, tension: 0.2),
+    DanceIkTargetKey(12, x: 20, y: 25, tension: 0.6), // wide again
+    DanceIkTargetKey(14, x: 26, y: 18, tension: 0.2), // into bar 2
     // Bar 2: chambered at the own-side hip while the left jabs, then the
     // answering cross jab.
     DanceIkTargetKey(16, x: 26, y: -10, tension: 0.8), // chamber at the hip
     DanceIkTargetKey(18, x: 27, y: -12, tension: 0.5),
     DanceIkTargetKey(19, x: 10, y: -34, tension: 0.4), // loads
-    DanceIkTargetKey(20, x: -32, y: -54, tension: 1), // JAB past the far line
-    DanceIkTargetKey(21, x: -31, y: -52, tension: 1), // hold
-    DanceIkTargetKey(23, x: -2, y: -48, tension: 0.4), // recoil through guard
+    DanceIkTargetKey(20, x: -33, y: -50, tension: 1), // JAB past the far line
+    DanceIkTargetKey(21, x: -32, y: -48, tension: 1), // hold
+    DanceIkTargetKey(23, x: -10, y: -44, tension: 0.4), // recoil through guard
     DanceIkTargetKey(24, x: 26, y: -10, tension: 0.8), // chamber
     DanceIkTargetKey(26, x: 27, y: -12, tension: 0.5),
     DanceIkTargetKey(27, x: 10, y: -34, tension: 0.4),
-    DanceIkTargetKey(28, x: -32, y: -54, tension: 1), // JAB
-    DanceIkTargetKey(29, x: -31, y: -52, tension: 1),
-    DanceIkTargetKey(31, x: 20, y: -40, tension: 0.4), // settles to the rim
-    DanceIkTargetKey(32, x: 24, y: -32, tension: 0.4), // == frame 0
+    DanceIkTargetKey(28, x: -33, y: -50, tension: 1), // JAB
+    DanceIkTargetKey(29, x: -32, y: -48, tension: 1),
+    DanceIkTargetKey(31, x: 29, y: 0, tension: 0.6), // settles to the wheel
+    DanceIkTargetKey(32, x: 32, y: 10, tension: 0.6), // == frame 0
   ];
   // Smooth spline hand path: flows through the authored keys with C1
   // continuity, so no corner-rounding blur wrapper is needed (the old
