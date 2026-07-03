@@ -7,6 +7,7 @@ import 'package:dancing_cats/features/scenery/layers/drone_show_layer.dart'
 import 'package:dancing_cats/features/scenery/layers/jet_contrail.dart';
 import 'package:dancing_cats/features/scenery/model/scenery_assets.dart';
 import 'package:dancing_cats/features/scenery/runtime/scenery_geometry.dart';
+import 'package:dancing_cats/features/scenery/runtime/scenery_glow.dart';
 import 'package:dancing_cats/features/scenery/runtime/scenery_math.dart';
 
 /// Duration of the distant 747 pass.
@@ -451,34 +452,18 @@ void _paintLights(
   }) {
     if (intensity <= 0) return;
     final alpha = sample.opacity * intensity;
-    canvas
-      ..drawCircle(
-        c,
-        radius * bloom,
-        ui.Paint()
-          ..blendMode = ui.BlendMode.plus
-          ..shader = ui.Gradient.radial(
-            c,
-            radius * bloom,
-            [
-              color.withValues(alpha: alpha * 0.58),
-              color.withValues(alpha: alpha * 0.13),
-              color.withValues(alpha: 0),
-            ],
-            [0, 0.42, 1],
-          ),
-      )
-      ..drawCircle(
-        c,
-        radius,
-        ui.Paint()
-          ..blendMode = ui.BlendMode.plus
-          ..color = ui.Color.lerp(
-            color,
-            const ui.Color(0xFFFFFFFF),
-            0.38,
-          )!.withValues(alpha: alpha),
-      );
+    paintGlowPointLight(
+      canvas,
+      center: c,
+      color: color,
+      haloRadius: radius * bloom,
+      haloInnerAlpha: alpha * 0.58,
+      haloMidAlpha: alpha * 0.13,
+      haloMidStop: 0.42,
+      coreRadius: radius,
+      coreColor: ui.Color.lerp(color, const ui.Color(0xFFFFFFFF), 0.38)!,
+      coreAlpha: alpha,
+    );
   }
 
   final r = math.max(1.1, height * 0.05);

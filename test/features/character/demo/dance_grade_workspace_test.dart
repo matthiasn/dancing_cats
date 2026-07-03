@@ -13,6 +13,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
+import '../../../dance_store_test_utils.dart';
 import '../../../widget_test_utils.dart';
 
 const double _duration = 100;
@@ -100,8 +101,8 @@ void main() {
       dir = Directory.systemTemp.createTempSync('grade_ws_test');
       store = DanceGradeStore(
         path: p.join(dir.path, 't.grade.json'),
-        saveDebounce: const Duration(minutes: 1),
-        pollInterval: const Duration(minutes: 1),
+        saveDebounce: kTestStoreSaveDebounce,
+        pollInterval: kTestStorePollInterval,
       );
       await store.load();
       controller = DanceGradeController(
@@ -126,10 +127,7 @@ void main() {
       bool playing = false,
       double durationSec = _duration,
     }) async {
-      tester.view.physicalSize = const Size(1600, 900);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
+      setTestViewSize(tester, const Size(1600, 900));
       await tester.pumpWidget(
         makeTestableWidgetNoScroll(
           Scaffold(

@@ -6,6 +6,8 @@ import 'package:dancing_cats/features/scenery/model/grade_timeline.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
+import '../../../dance_store_test_utils.dart';
+
 GradeLook _sat(double saturation) => GradeLook(saturation: saturation);
 
 void main() {
@@ -17,8 +19,8 @@ void main() {
     dir = Directory.systemTemp.createTempSync('grade_controller_test');
     store = DanceGradeStore(
       path: p.join(dir.path, 't.grade.json'),
-      saveDebounce: const Duration(minutes: 1),
-      pollInterval: const Duration(minutes: 1),
+      saveDebounce: kTestStoreSaveDebounce,
+      pollInterval: kTestStorePollInterval,
     );
     await store.load();
     c = DanceGradeController(

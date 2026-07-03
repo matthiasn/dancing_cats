@@ -678,7 +678,7 @@ class CharacterScene {
   /// rotations or a support-foot anchor (below) can have nudged the chain
   /// during the first solve, so re-solving from the updated shoulder/elbow
   /// position lands the end effector closer to its control. The correction
-  /// is blended in via `_smoothUnit((weight - 0.9) / 0.1)` rather than
+  /// is blended in via `smoothstep((weight - 0.9) / 0.1)` rather than
   /// switched on at a hard `weight >= 0.98` gate, so an interpolated weight
   /// crossing that threshold doesn't step the end effector.
   ///
@@ -733,7 +733,7 @@ class CharacterScene {
       // FADES IN as the authored weight approaches full strength — the old
       // hard weight>=0.98 gate switched the extra solve on discretely as an
       // interpolated weight crossed it, stepping the end effector.
-      final refineBlend = _smoothUnit((weight - 0.9) / 0.1);
+      final refineBlend = smoothstep((weight - 0.9) / 0.1);
       if (refineBlend > 0 && target.anchorBoneId != target.upperBoneId) {
         final refined = _solveLimbTarget(
           target,
@@ -1019,7 +1019,7 @@ class CharacterScene {
     ClipTransitionPlan transition,
   ) {
     final p = _clipPhase(clip, timeSeconds);
-    final weight = _smoothUnit(transition.weight);
+    final weight = smoothstep(transition.weight);
     final dx =
         _supportBalanceRootDelta(
           source: transition.from,
@@ -1147,8 +1147,8 @@ class CharacterScene {
       shoulderY: shoulder.y,
       targetX: targetPoint.x,
       targetY: targetPoint.y,
-      upperLength: _pointDistance(shoulder, elbow),
-      lowerLength: _pointDistance(elbow, wrist),
+      upperLength: pointDistance(shoulder, elbow),
+      lowerLength: pointDistance(elbow, wrist),
       bendDirection: target.bendDirection.toDouble(),
     );
     if (solution == null) return null;
@@ -1206,12 +1206,6 @@ class CharacterScene {
   }
 
   double _localPivotAngle(Bone child) => math.atan2(child.pivotY, child.pivotX);
-
-  double _pointDistance(({double x, double y}) a, ({double x, double y}) b) {
-    final dx = a.x - b.x;
-    final dy = a.y - b.y;
-    return math.sqrt(dx * dx + dy * dy);
-  }
 
   double _lerpAngle(double from, double to, double weight) =>
       from + _shortestAngle(to - from) * weight;
@@ -1566,7 +1560,7 @@ class CharacterScene {
     ClipTransitionPlan transition,
   ) {
     final p = _clipPhase(clip, timeSeconds);
-    final weight = _smoothUnit(transition.weight);
+    final weight = smoothstep(transition.weight);
     final outgoing = _contactLockRootDelta(
       source: transition.from,
       phase: p,
@@ -1952,8 +1946,8 @@ class CharacterScene {
   ) {
     final spanLength = span.end - span.start;
     final fade = (spanLength * 0.24).clamp(0.05, 0.09);
-    final fadeIn = _smoothUnit((p - span.start) / fade);
-    final fadeOut = _smoothUnit((span.end - p) / fade);
+    final fadeIn = smoothstep((p - span.start) / fade);
+    final fadeOut = smoothstep((span.end - p) / fade);
     final edge = fadeIn < fadeOut ? fadeIn : fadeOut;
     return strength * edge;
   }
@@ -1972,8 +1966,8 @@ class CharacterScene {
   double _supportComBlend(Clip clip, GroundSpan span, double p) {
     final spanLength = span.end - span.start;
     final fade = (spanLength * 0.28).clamp(0.05, 0.1);
-    final fadeIn = _smoothUnit((p - span.start) / fade);
-    final fadeOut = _smoothUnit((span.end - p) / fade);
+    final fadeIn = smoothstep((p - span.start) / fade);
+    final fadeOut = smoothstep((span.end - p) / fade);
     final edge = fadeIn < fadeOut ? fadeIn : fadeOut;
     final base = spanLength <= 0.135
         ? 0.72
@@ -2015,15 +2009,10 @@ class CharacterScene {
     final fade = dance
         ? (spanLength * 0.24).clamp(0.044, 0.058)
         : (clip.loop ? (spanLength * 0.2).clamp(0.018, 0.035) : 0.08);
-    final fadeIn = _smoothUnit((p - span.start) / fade);
-    final fadeOut = _smoothUnit((span.end - p) / fade);
+    final fadeIn = smoothstep((p - span.start) / fade);
+    final fadeOut = smoothstep((span.end - p) / fade);
     final edge = fadeIn < fadeOut ? fadeIn : fadeOut;
     return (x: baseX * edge, y: baseY * edge);
-  }
-
-  double _smoothUnit(double t) {
-    final x = t.clamp(0.0, 1.0);
-    return x * x * (3 - 2 * x);
   }
 
   double _clampMagnitude(double value, double limit) =>

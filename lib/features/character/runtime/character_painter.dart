@@ -814,6 +814,32 @@ class CharacterPainter extends CustomPainter {
   /// ambient, a body seat + twilight wrap, a directional gel terminator and
   /// inner rim, and a floor-pool bounce up onto the shins. The single largest
   /// self-contained block of [paint], lifted out verbatim.
+  /// GRADES THE FLAT FILLS INTO THE PLATE. The cartoon cats are otherwise a
+  /// bright, saturated cutout over a deep blue-hour painting; these passes
+  /// (all masked `srcATop` to the just-drawn cat silhouette, so they touch
+  /// only the figure) seat the trio into the scene's exposure, in four
+  /// sequential sub-passes over the same [gradeBounds]:
+  ///
+  ///  1. [_paintFaceSeat] (above the collar) — a flat, uniform pull toward
+  ///     the scene ambient; knocks the bright warm muzzle's value +
+  ///     saturation down so it stops reading as the brightest sticker on
+  ///     screen.
+  ///  2. [_paintBodySeatAndTwilightWrap] (below the collar) — SEATS the body
+  ///     toward a dark plate-blue so the mid-grey suit crushes to the
+  ///     backdrop's shadow floor and the saturated tie/fur go neutral, then a
+  ///     vertical TWILIGHT WRAP (cool sky light up high → warm deck/city
+  ///     bounce down low).
+  ///  3. [_paintGelTerminatorAndRim] (only with a lane [glow]) — a
+  ///     directional GEL TERMINATOR that bleeds this lane's gel colour
+  ///     across the lit side of the now-seated fabric, plus a tight inner
+  ///     rim hugging the lamp-facing edge.
+  ///  4. [_paintFloorPoolBounce] (only with a lane [glow]) — the deck's
+  ///     colour pool kicking a light bounce back up onto the shins/feet.
+  ///
+  /// The seats + wrap are static; only the gel key (3) and the pool bounce
+  /// (4) carry the gentle beat breath (so no full-figure luminance pulse).
+  /// The collar split is the same line ([memberFloorY] − 0.20·height) the
+  /// body wrap used before this pass was split out.
   void _paintBodyGrade(
     Canvas canvas, {
     required ({Color skyWrap, Color deckWrap}) grade,
@@ -824,34 +850,60 @@ class CharacterPainter extends CustomPainter {
     required Offset rimDir,
     required Color? glow,
   }) {
-    // GRADE THE FLAT FILLS INTO THE PLATE. The cartoon cats are otherwise a
-    // bright, saturated cutout over a deep blue-hour painting; these passes
-    // (all masked `srcATop` to the just-drawn cat silhouette, so they touch
-    // only the figure) seat the trio into the scene's exposure:
-    //
-    //  • FACE (above the collar) — a flat, uniform pull toward the scene
-    //    ambient ([_kFaceSeat]); knocks the bright warm muzzle's value +
-    //    saturation down so it stops reading as the brightest sticker on
-    //    screen. FLAT, never a ramp — a directional gradient over the head
-    //    swims as it bobs (the "face is all off" failure).
-    //  • BODY (below the collar) — SEAT toward a dark plate-blue
-    //    ([_kBodySeat]) so the mid-grey suit crushes to the backdrop's
-    //    shadow floor and the saturated tie/fur go neutral, then a vertical
-    //    TWILIGHT WRAP (cool sky light up high → warm deck/city bounce down
-    //    low), then a directional GEL TERMINATOR that bleeds this lane's gel
-    //    colour across the lit side of the now-seated fabric — modelling the
-    //    form and carrying the stage colour ONTO the suit, not just an edge
-    //    outline.
-    //
-    // The seats + wrap are static; only the gel key carries the gentle beat
-    // breath (so no full-figure luminance pulse). The collar split is the
-    // same line ([memberFloorY] − 0.20·height) the body wrap used before.
     final collarY = memberFloorY - size.height * 0.20;
-    // FACE grade — above the collar. A SOFT warm-key→cool-fill split along
-    // this lane's gel direction: the key side keeps the warm muzzle tone the
-    // rim reads against, the shadow side cools toward the blue-hour ambient.
-    // Broad stops + low contrast so the break never resolves into a hard
-    // line that swims as the head bobs (the "face is all off" failure).
+    _paintFaceSeat(
+      canvas,
+      gradeBounds: gradeBounds,
+      collarY: collarY,
+      memberCentreX: memberCentreX,
+      memberFloorY: memberFloorY,
+      size: size,
+      rimDir: rimDir,
+    );
+    _paintBodySeatAndTwilightWrap(
+      canvas,
+      grade: grade,
+      gradeBounds: gradeBounds,
+      collarY: collarY,
+      memberCentreX: memberCentreX,
+      memberFloorY: memberFloorY,
+      size: size,
+    );
+    if (glow != null && glow.a > 0) {
+      _paintGelTerminatorAndRim(
+        canvas,
+        gradeBounds: gradeBounds,
+        memberCentreX: memberCentreX,
+        memberFloorY: memberFloorY,
+        size: size,
+        rimDir: rimDir,
+        glow: glow,
+      );
+      _paintFloorPoolBounce(
+        canvas,
+        gradeBounds: gradeBounds,
+        memberCentreX: memberCentreX,
+        memberFloorY: memberFloorY,
+        size: size,
+        glow: glow,
+      );
+    }
+  }
+
+  /// FACE grade — above the collar. A SOFT warm-key→cool-fill split along
+  /// this lane's gel direction: the key side keeps the warm muzzle tone the
+  /// rim reads against, the shadow side cools toward the blue-hour ambient.
+  /// Broad stops + low contrast so the break never resolves into a hard
+  /// line that swims as the head bobs (the "face is all off" failure).
+  void _paintFaceSeat(
+    Canvas canvas, {
+    required Rect gradeBounds,
+    required double collarY,
+    required double memberCentreX,
+    required double memberFloorY,
+    required Size size,
+    required Offset rimDir,
+  }) {
     final faceMid = Offset(
       memberCentreX,
       memberFloorY - size.height * 0.32,
@@ -878,8 +930,24 @@ class CharacterPainter extends CustomPainter {
             const [0.0, 0.5, 1.0],
           ),
       )
-      ..restore()
-      // BODY seat + twilight wrap — below the collar.
+      ..restore();
+  }
+
+  /// BODY seat + twilight wrap — below the collar. Seats the body DOWN
+  /// toward the plate's shadow floor (cool, desaturate, crush) — the
+  /// opposite of the old lift; the wrap + gel (see [_paintGelTerminatorAndRim])
+  /// model a lit side back onto the now-darker figure so it reads as volume,
+  /// not a flat black silhouette.
+  void _paintBodySeatAndTwilightWrap(
+    Canvas canvas, {
+    required ({Color skyWrap, Color deckWrap}) grade,
+    required Rect gradeBounds,
+    required double collarY,
+    required double memberCentreX,
+    required double memberFloorY,
+    required Size size,
+  }) {
+    canvas
       ..save()
       ..clipRect(
         Rect.fromLTRB(
@@ -889,10 +957,6 @@ class CharacterPainter extends CustomPainter {
           gradeBounds.bottom,
         ),
       )
-      // Seat the body DOWN toward the plate's shadow floor (cool, desaturate,
-      // crush) — the opposite of the old lift; the wrap + gel model a lit
-      // side back onto the now-darker figure so it reads as volume, not a
-      // flat black silhouette.
       ..drawRect(
         gradeBounds,
         Paint()
@@ -910,89 +974,109 @@ class CharacterPainter extends CustomPainter {
             const [0.0, 0.52, 1.0],
           ),
       );
-    if (glow != null && glow.a > 0) {
-      final mid = Offset(
-        memberCentreX,
-        memberFloorY - size.height * 0.28,
-      );
-      final reach = rimDir * (size.height * 0.32);
-      // GENTLE beat breath. The gel key is the SAME stage light that pulses
-      // the rim halo, whose alpha already rides the beat via [glow.a], so
-      // let it land a touch harder on the fabric on the beat instead of
-      // pinning it flat. Compressed into a narrow band (~0.52 at rest →
-      // ~0.62 at full beat for the hero) so it reads as a motivated swell,
-      // not a strobe: only this small, terminator-edge gel term moves — the
-      // seats + wrap stay STATIC — so the full-figure luminance never pulses
-      // anywhere near the photosensitivity threshold.
-      final gelKey = (0.82 + 0.20 * glow.a).clamp(0.82, 0.96);
-      canvas
-        ..drawRect(
-          gradeBounds,
-          Paint()
-            ..blendMode = BlendMode.srcATop
-            ..shader = ui.Gradient.linear(
-              mid + reach, // lit, source-facing side
-              mid - reach, // shadow side
-              [
-                glow.withValues(
-                  alpha: gelKey,
-                ), // gel key kicks onto the fabric (gentle beat breath)
-                const Color(0x00000000),
-                _kBodyShadowFloor, // cool ambient bounce, NOT a black crush
-              ],
-              // DIRECTIONAL terminator: the gel KEY commits to the
-              // source-facing side only (~0.40 of the axis), then breaks to
-              // a clear cool shadow core (down from a 0.74 wash that lit most
-              // of the body and read as a symmetric "amber column" with no
-              // lit-side/shadow-side modelling — a gaffer lens's blocker).
-              // The lit side reads as warm-keyed fabric; the camera-right
-              // side falls onto the deeper cool ambient floor, so the torso
-              // models as a volume lit from one direction, not a flat cutout.
-              const [0.0, 0.4, 0.82],
-            ),
-        )
-        // INNER RIM. A tight, hot gel band hugging the lamp-facing edge
-        // INSIDE the silhouette (`srcATop`), so the stage gel reads as light
-        // landing ON the cloth — the panel's "make the gel wrap into the
-        // material, not float around it". This on-body illumination is what
-        // lets the outer halo come down without the cat going dark.
-        ..drawRect(
-          gradeBounds,
-          Paint()
-            ..blendMode = BlendMode.srcATop
-            ..shader = ui.Gradient.linear(
-              mid + reach, // lit edge — hot
-              mid - reach, // shadow side — gone
-              [
-                glow.withValues(
-                  alpha: (0.72 + 0.22 * glow.a).clamp(0.72, 0.94),
-                ),
-                const Color(0x00000000),
-              ],
-              const [0.0, 0.22], // concentrated on the lamp-facing edge
-            ),
-        );
-      // FLOOR-POOL BOUNCE: the saturated colour pool on the deck kicks back
-      // UP onto the shins/feet, tying the figure to its own pool instead of
-      // letting the pool read as a separate decorative disc below floating
-      // legs. A short gel gradient rising from the soles, masked to the
-      // figure (`srcATop`), riding the same beat as the pool via [glow.a].
-      // Kept LIGHT: a stronger bounce washed the shins/feet up toward the
-      // warm-lit deck colour until they blended into it and read as
-      // translucent ghost-legs — a subtle kiss grounds without dissolving.
-      final bounce = (0.07 + 0.08 * glow.a).clamp(0.07, 0.15);
-      canvas.drawRect(
+  }
+
+  /// GENTLE beat breath. The gel key is the SAME stage light that pulses
+  /// the rim halo, whose alpha already rides the beat via [glow]'s alpha, so
+  /// let it land a touch harder on the fabric on the beat instead of
+  /// pinning it flat. Compressed into a narrow band (~0.52 at rest →
+  /// ~0.62 at full beat for the hero) so it reads as a motivated swell,
+  /// not a strobe: only this small, terminator-edge gel term moves — the
+  /// seats + wrap stay STATIC — so the full-figure luminance never pulses
+  /// anywhere near the photosensitivity threshold.
+  ///
+  /// Also draws the INNER RIM: a tight, hot gel band hugging the
+  /// lamp-facing edge INSIDE the silhouette (`srcATop`), so the stage gel
+  /// reads as light landing ON the cloth — the panel's "make the gel wrap
+  /// into the material, not float around it". This on-body illumination is
+  /// what lets the outer halo come down without the cat going dark.
+  void _paintGelTerminatorAndRim(
+    Canvas canvas, {
+    required Rect gradeBounds,
+    required double memberCentreX,
+    required double memberFloorY,
+    required Size size,
+    required Offset rimDir,
+    required Color glow,
+  }) {
+    final mid = Offset(
+      memberCentreX,
+      memberFloorY - size.height * 0.28,
+    );
+    final reach = rimDir * (size.height * 0.32);
+    final gelKey = (0.82 + 0.20 * glow.a).clamp(0.82, 0.96);
+    canvas
+      ..drawRect(
         gradeBounds,
         Paint()
           ..blendMode = BlendMode.srcATop
           ..shader = ui.Gradient.linear(
-            Offset(memberCentreX, memberFloorY),
-            Offset(memberCentreX, memberFloorY - size.height * 0.20),
-            [glow.withValues(alpha: bounce), const Color(0x00000000)],
-            const [0.0, 1.0],
+            mid + reach, // lit, source-facing side
+            mid - reach, // shadow side
+            [
+              glow.withValues(
+                alpha: gelKey,
+              ), // gel key kicks onto the fabric (gentle beat breath)
+              const Color(0x00000000),
+              _kBodyShadowFloor, // cool ambient bounce, NOT a black crush
+            ],
+            // DIRECTIONAL terminator: the gel KEY commits to the
+            // source-facing side only (~0.40 of the axis), then breaks to
+            // a clear cool shadow core (down from a 0.74 wash that lit most
+            // of the body and read as a symmetric "amber column" with no
+            // lit-side/shadow-side modelling — a gaffer lens's blocker).
+            // The lit side reads as warm-keyed fabric; the camera-right
+            // side falls onto the deeper cool ambient floor, so the torso
+            // models as a volume lit from one direction, not a flat cutout.
+            const [0.0, 0.4, 0.82],
+          ),
+      )
+      ..drawRect(
+        gradeBounds,
+        Paint()
+          ..blendMode = BlendMode.srcATop
+          ..shader = ui.Gradient.linear(
+            mid + reach, // lit edge — hot
+            mid - reach, // shadow side — gone
+            [
+              glow.withValues(
+                alpha: (0.72 + 0.22 * glow.a).clamp(0.72, 0.94),
+              ),
+              const Color(0x00000000),
+            ],
+            const [0.0, 0.22], // concentrated on the lamp-facing edge
           ),
       );
-    }
+  }
+
+  /// FLOOR-POOL BOUNCE: the saturated colour pool on the deck kicks back
+  /// UP onto the shins/feet, tying the figure to its own pool instead of
+  /// letting the pool read as a separate decorative disc below floating
+  /// legs. A short gel gradient rising from the soles, masked to the
+  /// figure (`srcATop`), riding the same beat as the pool via [glow]'s
+  /// alpha. Kept LIGHT: a stronger bounce washed the shins/feet up toward
+  /// the warm-lit deck colour until they blended into it and read as
+  /// translucent ghost-legs — a subtle kiss grounds without dissolving.
+  void _paintFloorPoolBounce(
+    Canvas canvas, {
+    required Rect gradeBounds,
+    required double memberCentreX,
+    required double memberFloorY,
+    required Size size,
+    required Color glow,
+  }) {
+    final bounce = (0.07 + 0.08 * glow.a).clamp(0.07, 0.15);
+    canvas.drawRect(
+      gradeBounds,
+      Paint()
+        ..blendMode = BlendMode.srcATop
+        ..shader = ui.Gradient.linear(
+          Offset(memberCentreX, memberFloorY),
+          Offset(memberCentreX, memberFloorY - size.height * 0.20),
+          [glow.withValues(alpha: bounce), const Color(0x00000000)],
+          const [0.0, 1.0],
+        ),
+    );
   }
 
   /// The clamped pan for a camera / parallax move at [size]: dx is rescaled from
@@ -1063,8 +1147,9 @@ class CharacterPainter extends CustomPainter {
 
   /// Reduces a scene camera to the gentler backdrop parallax (it lags the
   /// foreground so the scene reads as deeper). The legacy single-plane factor
-  /// used for the built-in keyframe path ([danceParallaxTransform]); the layered
-  /// scene uses [_parallaxCameraAtDepth] for a per-plane depth ladder instead.
+  /// used by [_applyParallaxCamera] for the in-painter waterfront backdrop
+  /// path; the layered scene uses [_parallaxCameraAtDepth] for a per-plane
+  /// depth ladder instead.
   static ({double zoom, double dx, double dy}) _parallaxCamera(
     ({double zoom, double dx, double dy}) camera,
   ) {
@@ -1119,35 +1204,6 @@ class CharacterPainter extends CustomPainter {
     final dx = _softKnee(camera.dx, _kParallaxPanKnee * farness);
     final dy = _softKnee(camera.dy, _kParallaxPanKnee * farness);
     return (zoom: 1 + zoomDelta * depth, dx: dx * depth, dy: dy * depth);
-  }
-
-  /// The reduced parallax transform a *separate* backdrop widget (e.g. the
-  /// layered scenery backdrop drawn behind the dancers in a `Stack`) should
-  /// apply so it drifts with the dance camera, matching the legacy in-painter
-  /// waterfront parallax. Returns the identity matrix when the dance camera is
-  /// inactive. [active] should mirror this painter's gate — the performing trio
-  /// on the `dance` clip.
-  static Matrix4 danceParallaxTransform({
-    required double timeSeconds,
-    required double clipDuration,
-    required Size size,
-    double danceCameraStrength = 1,
-    bool active = true,
-  }) {
-    if (!active || clipDuration <= 0 || size.isEmpty) {
-      return Matrix4.identity();
-    }
-    final raw = danceCameraShot(timeSeconds, clipDuration);
-    final scene = (
-      zoom: 1 + (raw.zoom - 1) * danceCameraStrength,
-      dx: raw.dx * danceCameraStrength,
-      dy: raw.dy * danceCameraStrength,
-    );
-    return _parallaxMatrix(
-      _parallaxCamera(scene),
-      size,
-      _builtInDancePivotFraction,
-    );
   }
 
   /// The parallax transform a single background layer at [depth] applies for an

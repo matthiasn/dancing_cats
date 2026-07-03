@@ -7,6 +7,8 @@ import 'package:dancing_cats/features/character/demo/dance_lip_sync_doc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
+import '../../../dance_store_test_utils.dart';
+
 /// Four contiguous 1-second cues covering 0..4s: X, B, C, D.
 LipSyncDoc _seedDoc() => const LipSyncDoc(
   cues: [
@@ -26,8 +28,8 @@ void main() {
     dir = Directory.systemTemp.createTempSync('lip_sync_controller_test');
     store = DanceCuesStore(
       path: p.join(dir.path, 't.cues.json'),
-      saveDebounce: const Duration(minutes: 1),
-      pollInterval: const Duration(minutes: 1),
+      saveDebounce: kTestStoreSaveDebounce,
+      pollInterval: kTestStorePollInterval,
     );
     await store.load();
     store.update(_seedDoc());
