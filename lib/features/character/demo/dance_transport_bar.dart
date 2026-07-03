@@ -38,6 +38,7 @@ class DanceTransportBar extends StatelessWidget {
     this.onToggleGrade,
     this.lipSyncOpen = false,
     this.onToggleLipSync,
+    this.onInspectMove,
     this.showTimeline = true,
     this.barsBeats,
     super.key,
@@ -93,6 +94,12 @@ class DanceTransportBar extends StatelessWidget {
   /// Shows/hides the lip-sync workspace. Null hides the toggle entirely (e.g.
   /// export chrome, or a track with no cue file loaded).
   final VoidCallback? onToggleLipSync;
+
+  /// Opens the keyframe/onion-skin inspector for one dancer's current move,
+  /// given its index into [moveLabels]. Null while playing (or when no
+  /// handler is wired) — the readout stays plain diagnostic text, unchanged
+  /// from before this affordance existed.
+  final ValueChanged<int>? onInspectMove;
 
   /// False while the grade or lip-sync workspace is open: the workspace's
   /// shared zoomable timeline replaces this bar's compact one (one seek
@@ -410,17 +417,28 @@ class DanceTransportBar extends StatelessWidget {
     );
   }
 
-  /// Current dancer clips, left-to-right on screen. Kept as plain diagnostic
-  /// text so screenshots reveal which authored move produced a questionable
-  /// pose without making the labels look interactive.
+  /// Current dancer clips, left-to-right on screen. Plain diagnostic text
+  /// while playing; once paused (and [onInspectMove] is wired) EACH name
+  /// becomes individually tappable — the inspector shows one dancer's
+  /// keyframes at a time (frame-grid + onion-skin), and different dancers
+  /// can be dancing different moves (canon sections), so the readout can't
+  /// collapse to a single click target for the whole joined string.
   Widget _moveReadout() {
+    final names = moveLabels.map(_displayMoveName).toList();
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 380),
-      child: Text.rich(
-        TextSpan(
+      // Horizontally scrollable rather than ellipsized: with each dancer's
+      // name now its own tap target, a name that doesn't fit must still be
+      // reachable by dragging, not silently clipped past reach.
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
           children: [
-            const TextSpan(
-              text: 'MOVES ',
+            const Text(
+              'MOVES ',
               style: TextStyle(
                 color: _Chrome.textLow,
                 fontSize: 9,
@@ -428,18 +446,46 @@ class DanceTransportBar extends StatelessWidget {
                 letterSpacing: 1,
               ),
             ),
-            TextSpan(
-              text: moveLabels.map(_displayMoveName).join('  /  '),
-              style: const TextStyle(
-                color: _Chrome.textMid,
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.2,
-              ),
-            ),
+            for (var i = 0; i < names.length; i++) ...[
+              if (i > 0)
+                const Text(
+                  '  /  ',
+                  style: TextStyle(
+                    color: _Chrome.textMid,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              _moveNameLabel(names[i], i),
+            ],
           ],
         ),
-        overflow: TextOverflow.ellipsis,
+      ),
+    );
+  }
+
+  Widget _moveNameLabel(String name, int index) {
+    const baseStyle = TextStyle(
+      fontSize: 13,
+      fontWeight: FontWeight.w700,
+      letterSpacing: 0.2,
+    );
+    final onInspect = onInspectMove;
+    if (onInspect == null) {
+      return Text(name, style: baseStyle.copyWith(color: _Chrome.textMid));
+    }
+    return _InteractiveMoveReadout(
+      targetKey: Key('moveReadoutInspectTarget_$index'),
+      tooltip: "Inspect $name's keyframes",
+      onTap: () => onInspect(index),
+      builder: (hovering) => Text(
+        name,
+        style: baseStyle.copyWith(
+          color: hovering ? _Chrome.accent : _Chrome.textMid,
+          decoration: TextDecoration.underline,
+          decorationColor: _Chrome.textLow,
+          decorationStyle: TextDecorationStyle.dotted,
+        ),
       ),
     );
   }
@@ -662,6 +708,52 @@ String _displayMoveName(String name) => switch (name) {
   'pouncing-cat' => 'pounce',
   _ => name,
 };
+
+/// Wraps a single dancer's move name with a click affordance once inspecting
+/// is available: a pointer cursor, a per-move tooltip, and hover-brightened
+/// text — no ripple/box background, so each name still reads as underlined
+/// text rather than a pressable chip (this file's existing "no button-like
+/// boxes for static readouts" principle). [builder] receives the current
+/// hover state so the caller can retint its own text style.
+class _InteractiveMoveReadout extends StatefulWidget {
+  const _InteractiveMoveReadout({
+    required this.targetKey,
+    required this.tooltip,
+    required this.onTap,
+    required this.builder,
+  });
+
+  final Key targetKey;
+  final String tooltip;
+  final VoidCallback onTap;
+  // ignore: avoid_positional_boolean_parameters
+  final Widget Function(bool hovering) builder;
+
+  @override
+  State<_InteractiveMoveReadout> createState() =>
+      _InteractiveMoveReadoutState();
+}
+
+class _InteractiveMoveReadoutState extends State<_InteractiveMoveReadout> {
+  bool _hovering = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: widget.tooltip,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _hovering = true),
+        onExit: (_) => setState(() => _hovering = false),
+        child: GestureDetector(
+          key: widget.targetKey,
+          onTap: widget.onTap,
+          child: widget.builder(_hovering),
+        ),
+      ),
+    );
+  }
+}
 
 /// A thin hairline vertical rule used between the metadata readouts.
 class _VRule extends StatelessWidget {

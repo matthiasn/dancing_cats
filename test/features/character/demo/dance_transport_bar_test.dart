@@ -13,6 +13,7 @@ class _Recorder {
   int mute = 0;
   int grade = 0;
   int lipSync = 0;
+  List<int> inspectMoveCalls = [];
   double? seek;
 }
 
@@ -48,6 +49,7 @@ Future<_Recorder> _pump(
   bool gradeToggleAvailable = true,
   bool lipSyncOpen = false,
   bool lipSyncToggleAvailable = false,
+  bool inspectMoveAvailable = false,
   bool showTimeline = true,
   Size size = const Size(1280, 800),
 }) async {
@@ -92,6 +94,9 @@ Future<_Recorder> _pump(
               lipSyncOpen: lipSyncOpen,
               onToggleLipSync: lipSyncToggleAvailable
                   ? () => rec.lipSync++
+                  : null,
+              onInspectMove: inspectMoveAvailable
+                  ? (i) => rec.inspectMoveCalls.add(i)
                   : null,
               showTimeline: showTimeline,
             ),
@@ -145,12 +150,12 @@ void main() {
       // BPM readout and the now-playing section name (uppercased).
       expect(find.textContaining('120', findRichText: true), findsOneWidget);
       expect(find.text('B'), findsOneWidget);
-      // Move names are shown left-to-right so screenshots identify the active
-      // choreography for each dancer.
-      expect(
-        find.textContaining('shaku  /  zanku  /  buga', findRichText: true),
-        findsOneWidget,
-      );
+      // Move names are shown left-to-right, each as its own text widget (so
+      // screenshots identify the active choreography for each dancer, and —
+      // while paused — each name is its own inspector click target).
+      expect(find.text('shaku'), findsOneWidget);
+      expect(find.text('zanku'), findsOneWidget);
+      expect(find.text('buga'), findsOneWidget);
     });
 
     testWidgets('loading hides metadata and disables play', (tester) async {
@@ -359,6 +364,72 @@ void main() {
         lipSyncOpen: true,
       );
       expect(find.byKey(const Key('lipSyncWorkspaceToggle')), findsOneWidget);
+    });
+  });
+
+  group('move inspector affordance', () {
+    testWidgets(
+      'no move name is tappable while playing / no handler is wired',
+      (tester) async {
+        await _pump(tester);
+        for (var i = 0; i < 3; i++) {
+          expect(
+            find.byKey(Key('moveReadoutInspectTarget_$i')),
+            findsNothing,
+          );
+        }
+      },
+    );
+
+    testWidgets(
+      'each dancer name is individually tappable and reports its own index',
+      (tester) async {
+        final rec = await _pump(tester, inspectMoveAvailable: true);
+        for (var i = 0; i < 3; i++) {
+          expect(
+            find.byKey(Key('moveReadoutInspectTarget_$i')),
+            findsOneWidget,
+          );
+        }
+
+        // The readout is a horizontally-scrollable strip (it can be narrower
+        // than all three names): scroll each target into view before tapping
+        // it, rather than assuming it's already reachable at its current
+        // scroll offset.
+        final scrollable = find.byType(Scrollable).first;
+        await tester.scrollUntilVisible(
+          find.byKey(const Key('moveReadoutInspectTarget_1')),
+          50,
+          scrollable: scrollable,
+        );
+        await tester.tap(find.byKey(const Key('moveReadoutInspectTarget_1')));
+        await tester.pump();
+        expect(rec.inspectMoveCalls, [1]);
+
+        await tester.scrollUntilVisible(
+          find.byKey(const Key('moveReadoutInspectTarget_0')),
+          -50,
+          scrollable: scrollable,
+        );
+        await tester.tap(find.byKey(const Key('moveReadoutInspectTarget_0')));
+        await tester.pump();
+        expect(rec.inspectMoveCalls, [1, 0]);
+      },
+    );
+
+    testWidgets('the affordance reports the cursor as clickable', (
+      tester,
+    ) async {
+      await _pump(tester, inspectMoveAvailable: true);
+      final region = tester.widget<MouseRegion>(
+        find
+            .ancestor(
+              of: find.byKey(const Key('moveReadoutInspectTarget_0')),
+              matching: find.byType(MouseRegion),
+            )
+            .first,
+      );
+      expect(region.cursor, SystemMouseCursors.click);
     });
   });
 }

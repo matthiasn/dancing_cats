@@ -14,6 +14,7 @@ import 'package:dancing_cats/features/character/demo/dance_grade_workspace.dart'
 import 'package:dancing_cats/features/character/demo/dance_lip_sync_controller.dart';
 import 'package:dancing_cats/features/character/demo/dance_lip_sync_workspace.dart';
 import 'package:dancing_cats/features/character/demo/dance_loaders.dart';
+import 'package:dancing_cats/features/character/demo/dance_move_inspector.dart';
 import 'package:dancing_cats/features/character/demo/dance_performance.dart';
 import 'package:dancing_cats/features/character/demo/dance_playback_stepper.dart';
 import 'package:dancing_cats/features/character/demo/dance_stage_view.dart';
@@ -727,6 +728,32 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
     if (mounted) setState(() {});
   }
 
+  /// Opens the keyframe/onion-skin inspector for one dancer's current move,
+  /// picked by tapping that dancer's name in the transport bar. Only
+  /// reachable while paused (see the `onInspectMove` wiring below); [stage]
+  /// is captured from that paused build, so it's exactly the frozen
+  /// move/pose the user is looking at. [index] mirrors `moveLabels`' order
+  /// (`stage.ensemble`: index 0 is the lead, matching `DanceStageView`'s
+  /// `scene: cast.lead` / `ensembleScenes: [cast.left, cast.right]` mapping.
+  void _openMoveInspector(DanceStage stage, int index) {
+    final scene = switch (index) {
+      1 => _cast.left,
+      2 => _cast.right,
+      _ => _cast.lead,
+    };
+    final clip = index < stage.ensemble.length
+        ? stage.ensemble[index]
+        : stage.lead;
+    unawaited(
+      showDanceMoveInspector(
+        context,
+        scene: scene,
+        clip: clip,
+        clipTimeSeconds: stage.seconds,
+      ),
+    );
+  }
+
   Future<void> _loadBackdrop() async {
     final images = await Future.wait([
       _loadUiImage(kCharacterWaterfrontBackdropAsset),
@@ -955,6 +982,9 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
                           _lipSyncOpen = !_lipSyncOpen;
                           if (_lipSyncOpen) _gradeOpen = false;
                         }),
+                  onInspectMove: _player.state.playing
+                      ? null
+                      : (i) => _openMoveInspector(stage, i),
                   showTimeline: !_gradeOpen && !_lipSyncOpen,
                 ),
                 if (_gradeOpen && controller != null)
