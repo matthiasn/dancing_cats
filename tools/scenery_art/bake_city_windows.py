@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""Bake a REGISTERED city-window field from the painted master plate.
+"""Bake a REGISTERED city-window field from the painted base plate.
 
-The blue-hour master (`assets/scenery/blue_hour_master.webp`) already paints every
-building with its real window grid. Rather than ship a second skyline render whose
-windows never line up (the discarded `city_bridge.webp`), we DETECT the painted
-windows in the master itself, so the runtime glow lands exactly on them by
-construction.
+The blue-hour base plate (`assets/scenery/blue_hour_cloudless.webp`) already paints
+every building with its real window grid. Rather than ship a second skyline render
+whose windows never line up (the discarded `city_bridge.webp`), we DETECT the
+painted windows in the base plate itself, so the runtime glow lands exactly on them
+by construction.
 
-Pipeline (all in the master's own pixel space, so output is pixel-registered):
-  1. luminance L of the master
+Pipeline (all in the base plate's own pixel space, so output is pixel-registered):
+  1. luminance L of the base plate
   2. high-pass  detail = L - GaussianBlur(L, 2.5)   -> isolates the fine window
      grid from the smooth facade/sky gradients
   3. wmag = |detail|                                -> window-edge magnitude
@@ -54,7 +54,7 @@ import numpy as np
 from PIL import Image, ImageFilter
 
 REPO = Path(__file__).resolve().parents[2]
-MASTER = REPO / "assets/scenery/blue_hour_master.webp"
+BASE_PLATE = REPO / "assets/scenery/blue_hour_cloudless.webp"
 FOREGROUND = REPO / "assets/scenery/foreground.webp"
 YACHT = REPO / "assets/scenery/yacht.webp"
 # HAND-CUT lit-window layer (opaque ONLY on the window glass,
@@ -74,7 +74,7 @@ BAND_BOTTOM = 0.515
 # cannot distinguish from high-rise windows; if they enter the R channel, the
 # shader's water-reflection pass mirrors them into fake pylons/blocks in the
 # lagoon. Keep this conservative: dynamic city lights belong to the high-rises;
-# the low waterfront remains baked into the master plate.
+# the low waterfront remains baked into the base plate.
 WINDOW_FIELD_BOTTOM = 0.405
 
 # Normalized art-x span of the cable-stayed bridge (left approach + piers + tower
@@ -107,13 +107,13 @@ def _bright_within(lum: np.ndarray, lo: int, hi: int, thresh: float) -> np.ndarr
 
 
 def main() -> int:
-    master = Image.open(MASTER).convert("RGB")
-    w, h = master.size
-    lum = np.asarray(master.convert("L"), dtype=np.float64)
+    base = Image.open(BASE_PLATE).convert("RGB")
+    w, h = base.size
+    lum = np.asarray(base.convert("L"), dtype=np.float64)
 
     # High-pass: the painted window grid vs. the smooth facade gradient.
     blur = np.asarray(
-        master.convert("L").filter(ImageFilter.GaussianBlur(2.5)),
+        base.convert("L").filter(ImageFilter.GaussianBlur(2.5)),
         dtype=np.float64,
     )
     wmag = np.abs(lum - blur)
@@ -170,7 +170,7 @@ def main() -> int:
     # building, but a bridge has NO lit windows — if the field marks it, the
     # runtime lights it like a tower full of windows (and the occupancy churn then
     # blinks them, which reads as a malfunction). A bridge's only night lighting
-    # is the deck streetlights PAINTED into the master plate (static) and the red
+    # is the deck streetlights PAINTED into the base plate (static) and the red
     # aircraft beacons (drawn by the canvas layer), both untouched here. We zero a
     # solid x-band over the span, soft-edged so the nearest real highrise just to
     # its left (ending ~0.527) stays fully lit.

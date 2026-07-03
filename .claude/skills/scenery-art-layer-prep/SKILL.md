@@ -37,7 +37,7 @@ feeds `lib/features/scenery/`.
 
    ```bash
    python3 tools/scenery_art/layer_from_masks.py \
-     --master assets/scenery/blue_hour_master.png \
+     --master assets/scenery/blue_hour_cloudless.webp \
      --out-dir assets/scenery \
      --preview-dir tmp/scenery_work \
      --layer city_bridge=tools/scenery_art/scenes/blue_hour_waterfront/masks/city_bridge.png \
@@ -45,16 +45,34 @@ feeds `lib/features/scenery/`.
      --layer foreground=tools/scenery_art/scenes/blue_hour_waterfront/masks/foreground.png
    ```
 
-4. **Extract moving atmosphere.** For the current blue-hour scene, use OpenCV:
+   For the current blue-hour scene the base plate
+   (`assets/scenery/blue_hour_cloudless.webp`) is already cloudless and already
+   has the foreground-duplicated elements (e.g. palms) baked out of it, so this
+   is the only regeneration step needed; run it with:
+
+   ```bash
+   make -C tools/scenery_art blue-hour
+   ```
+
+4. **Extract moving atmosphere — only for a NEW scene.** If starting a fresh
+   plate that still has clouds painted in, use OpenCV to split it into a
+   cloudless base plus movable cloud layers:
 
    ```bash
    python3 -m venv /tmp/lotti-scenery-opencv
    /tmp/lotti-scenery-opencv/bin/python -m pip install -r tools/scenery_art/requirements.txt
-   make -C tools/scenery_art PYTHON=/tmp/lotti-scenery-opencv/bin/python blue-hour
+   /tmp/lotti-scenery-opencv/bin/python tools/scenery_art/isolate_clouds.py \
+     --master <new-scene-master>.png \
+     --city-bridge assets/scenery/city_bridge.webp \
+     --yacht assets/scenery/yacht.webp \
+     --foreground assets/scenery/foreground.webp \
+     --out-dir assets/scenery \
+     --preview-dir tmp/scenery_work
    ```
 
-   This generates `blue_hour_cloudless.png`, `clouds_far.png`,
-   `clouds_mid.png`, and `clouds_near.png`.
+   This generates `blue_hour_cloudless.webp`, `clouds_far.webp`,
+   `clouds_mid.webp`, and `clouds_near.webp`. It is not part of the `blue-hour`
+   make target because the current base plate has no clouds left to extract.
 
 5. **Validate layer order.** Runtime order should usually be:
 

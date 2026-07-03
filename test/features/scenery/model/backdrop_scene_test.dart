@@ -37,7 +37,6 @@ void main() {
         scene.imageAssets,
         containsAll(<String>[
           SceneryAssets.cloudlessPlate,
-          SceneryAssets.masterPlate,
           SceneryAssets.cloudsFar,
           SceneryAssets.cloudsMid,
           SceneryAssets.cloudsNear,
