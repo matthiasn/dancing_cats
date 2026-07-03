@@ -385,7 +385,6 @@ class LimbRibbonSpec {
     this.shadeGroup,
     this.inkOverFill = false,
     this.inkStartFraction = 0,
-    this.girdleLeverGain = 1,
   }) : assert(
          jointTensions == null || jointTensions.length == jointBoneIds.length,
          'jointTensions must match jointBoneIds',
@@ -460,20 +459,6 @@ class LimbRibbonSpec {
   /// enclose the shoulder — otherwise the limb reads as a pinned-on cut-out
   /// with its own outline all the way around.
   final double inkStartFraction;
-
-  /// Amplifies the visual displacement of the SECOND spine joint (the
-  /// girdle/socket point) away from the first (the root/clavicle), for
-  /// RENDERING purposes only — it extrapolates the existing root→socket
-  /// vector by this factor when building the ribbon's spine, it does not
-  /// move the actual bone. Exists because the anti-hinge rig deliberately
-  /// keeps that bone-to-bone distance short (a tested invariant — the
-  /// deltoid must stay welded to the yoke, not swing on a long rivet arm),
-  /// which is correct for silhouette weld but means a real, authored
-  /// clavicle rotation (a shoulder roll/dig) only displaces the socket by
-  /// a few world units regardless of how large the rotation is — measured
-  /// root-caused: 0.42rad only moved the socket ~4 world units at a 10-unit
-  /// radius. 1 (default) is the raw anti-hinge distance, unchanged.
-  final double girdleLeverGain;
 }
 
 /// A broad skinned surface made from weighted vertices.

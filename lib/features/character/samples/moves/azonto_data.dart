@@ -347,9 +347,8 @@ const _azontoHandRKeys = [
 // clavicle rolls forward through the strike and relaxes back on the chamber
 // beat, mirrored for the opposite side. Magnitude matched to zanku's own
 // clavicle-roll channel (`_zankuClavicleRKeys`/`LKeys`) — that one already
-// reads clearly, per panel feedback, and this rig's `girdleLeverGain`
-// (PR #51) already amplifies clavicle rotation's visual displacement at the
-// ribbon mesh, so this channel should read without needing a bigger number.
+// reads clearly, per panel feedback, so this channel should read at the same
+// magnitude without needing a bigger number.
 // Bar 1 (the wheel-mime) is left neutral — not in scope for this pass.
 //
 // CAVEAT, probe-verified post-merge: the channel genuinely solves (probed
