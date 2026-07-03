@@ -5850,11 +5850,23 @@ class CatClips {
     // line together (tension hit) and recover — arm punctuation synced to
     // the support-foot plant. The gbese fling (f26) throws the fists down
     // hardest while the kick flies.
-    DanceIkTargetKey(0, x: -32, y: -4, tension: 0.6), // PUNCH down w/ stamp
+    // R10: every rater still called the pump "elbows parked at the hip the
+    // whole loop." A world-space probe showed the punch (old x:-32,y:-4)
+    // and the guard (x:-36,y:-46) actually DO swing ~50-80 world units in
+    // Y — the accent itself just wasn't legible as one, because x barely
+    // moved (-32 to -36, a 4-unit band) so the elbow's SIDE-TO-SIDE
+    // silhouette — the "elbows-OUT" half of "elbows-out arm pump" — never
+    // changed at all; only the fist bobbed vertically inside a fixed-width
+    // guard. Pulled the punch's x IN (elbow tucks tight on the down-drive)
+    // to contrast against the guard's elbow-out width, and pushed y further
+    // past the hip (reach-ratio probed clear of the elbow-straightening
+    // ceiling found this round) so the strike reads as a driven low punch,
+    // not a return to a neutral hang.
+    DanceIkTargetKey(0, x: -26, y: 10, tension: 0.6), // PUNCH down w/ stamp
     DanceIkTargetKey(1, x: -34, y: -26), // recovering
     DanceIkTargetKey(2, x: -36, y: -46), // rib guard
     DanceIkTargetKey(3, x: -35, y: -40), // loads
-    DanceIkTargetKey(4, x: -32, y: -4, tension: 0.6), // PUNCH
+    DanceIkTargetKey(4, x: -26, y: 10, tension: 0.6), // PUNCH
     DanceIkTargetKey(5, x: -34, y: -26),
     DanceIkTargetKey(6, x: -36, y: -46),
     DanceIkTargetKey(7, x: -35, y: -40),
@@ -5863,13 +5875,13 @@ class CatClips {
     // frames 0-7 and 8-15 as a near-literal repeat ("half the loop is a
     // literal repeat, which reads as a GIF loop"); footwork is untouched
     // (each stamp still lands on its own beat), only the arm accent varies.
-    DanceIkTargetKey(8, x: -32, y: -4, tension: 0.6), // PUNCH (stamp 3)
+    DanceIkTargetKey(8, x: -26, y: 10, tension: 0.6), // PUNCH (stamp 3)
     DanceIkTargetKey(9, x: -33, y: -18), // shallow recover
-    DanceIkTargetKey(10, x: -32, y: -4, tension: 0.7), // second pump
+    DanceIkTargetKey(10, x: -26, y: 10, tension: 0.7), // second pump
     DanceIkTargetKey(11, x: -35, y: -40), // load into stamp 4
-    DanceIkTargetKey(12, x: -32, y: -4, tension: 0.6), // PUNCH (stamp 4)
+    DanceIkTargetKey(12, x: -26, y: 10, tension: 0.6), // PUNCH (stamp 4)
     DanceIkTargetKey(13, x: -33, y: -18), // shallow recover
-    DanceIkTargetKey(14, x: -32, y: -4, tension: 0.7), // second pump
+    DanceIkTargetKey(14, x: -26, y: 10, tension: 0.7), // second pump
     DanceIkTargetKey(15, x: -35, y: -40), // load into bar 2
     // Round 7: every rater called bar 2 a literal mirror of bar 1 — frames
     // 16/20/24 punched to the exact same (x,y) as frames 0/4/8, so nothing
@@ -5900,10 +5912,10 @@ class CatClips {
     DanceIkTargetKey(29, x: -33, y: -20), // bridges the landing recovery
     DanceIkTargetKey(30, x: -37, y: -46),
     DanceIkTargetKey(31, x: -35, y: -40),
-    DanceIkTargetKey(32, x: -32, y: -4, tension: 0.6), // == frame 0
+    DanceIkTargetKey(32, x: -26, y: 10, tension: 0.6), // == frame 0
   ];
   static const _zankuHandRTargetKeys = [
-    DanceIkTargetKey(0, x: 32, y: -4, tension: 0.6), // PUNCH down w/ stamp
+    DanceIkTargetKey(0, x: 26, y: 10, tension: 0.6), // PUNCH down w/ stamp
     // Frames 1-3 sit in the same near-degenerate two-bone IK zone as zanku
     // hand.L frame 30 (same lesson: see that fix's comment) — but here it's
     // a sustained plateau (reach stayed ~12% of arm length across the whole
@@ -5914,18 +5926,18 @@ class CatClips {
     DanceIkTargetKey(1, x: 55, y: -10),
     DanceIkTargetKey(2, x: 55, y: -10), // rib guard
     DanceIkTargetKey(3, x: 55, y: -10),
-    DanceIkTargetKey(4, x: 32, y: -4, tension: 0.6), // PUNCH
+    DanceIkTargetKey(4, x: 26, y: 10, tension: 0.6), // PUNCH
     DanceIkTargetKey(5, x: 34, y: -26),
     DanceIkTargetKey(6, x: 36, y: -46),
     DanceIkTargetKey(7, x: 35, y: -40),
     // Beats 3-4 double pump — see the L hand's comment.
-    DanceIkTargetKey(8, x: 32, y: -4, tension: 0.6), // PUNCH (stamp 3)
+    DanceIkTargetKey(8, x: 26, y: 10, tension: 0.6), // PUNCH (stamp 3)
     DanceIkTargetKey(9, x: 33, y: -18), // shallow recover
-    DanceIkTargetKey(10, x: 32, y: -4, tension: 0.7), // second pump
+    DanceIkTargetKey(10, x: 26, y: 10, tension: 0.7), // second pump
     DanceIkTargetKey(11, x: 35, y: -40), // load into stamp 4
-    DanceIkTargetKey(12, x: 32, y: -4, tension: 0.6), // PUNCH (stamp 4)
+    DanceIkTargetKey(12, x: 26, y: 10, tension: 0.6), // PUNCH (stamp 4)
     DanceIkTargetKey(13, x: 33, y: -18), // shallow recover
-    DanceIkTargetKey(14, x: 32, y: -4, tension: 0.7), // second pump
+    DanceIkTargetKey(14, x: 26, y: 10, tension: 0.7), // second pump
     DanceIkTargetKey(15, x: 35, y: -40), // load into bar 2
     // Round 7: mirrors the hand.L bar-2 escalation fix above (see its
     // comment) — same literal-mirror complaint, mirrored keys.
@@ -5949,7 +5961,7 @@ class CatClips {
     DanceIkTargetKey(28, x: 32, y: -2, tension: 0.7), // landing stamp PUNCH
     DanceIkTargetKey(30, x: 36, y: -46),
     DanceIkTargetKey(31, x: 35, y: -40),
-    DanceIkTargetKey(32, x: 32, y: -4, tension: 0.6), // == frame 0
+    DanceIkTargetKey(32, x: 26, y: 10, tension: 0.6), // == frame 0
   ];
   // Smooth spline hand path: flows through the authored keys with C1
   // continuity, so no corner-rounding blur wrapper is needed (the old
