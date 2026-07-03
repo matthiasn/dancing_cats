@@ -804,6 +804,14 @@ class CatClips {
             _azontoHandRKeys,
             smooth: true,
           ),
+          CatBones.clavicleL: const DanceJointTrack(
+            _azontoClavicleLKeys,
+            smooth: true,
+          ),
+          CatBones.clavicleR: const DanceJointTrack(
+            _azontoClavicleRKeys,
+            smooth: true,
+          ),
         },
         bodyMotion: DanceBodyMotion(
           pelvisBoneId: CatBones.hips,
