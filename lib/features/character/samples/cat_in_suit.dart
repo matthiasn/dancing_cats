@@ -8234,7 +8234,7 @@ class CatClips {
   static const _pounceHandLTargetKeys = [
     DanceIkTargetKey(0, x: -42, y: -8),
     DanceIkTargetKey(4, x: -52, y: -24),
-    DanceIkTargetKey(6, x: -44, y: -54),
+    DanceIkTargetKey(6, x: -50, y: -60, tension: 1),
     // Mirrored cross-body guide — see the right hand's frame-23 key.
     DanceIkTargetKey(7, x: -12, y: -86),
     DanceIkTargetKey(
@@ -8249,6 +8249,10 @@ class CatClips {
     DanceIkTargetKey(16, x: -48, y: -24),
     DanceIkTargetKey(20, x: -18, y: -24),
     DanceIkTargetKey(22, x: 44, y: -54),
+    // Same guide as the frame-7 key above (and the mirrored one on hand.R at
+    // frame 23): without it the smooth path between 22 and 24 dips close to
+    // the shoulder, the two-bone solver's near-degenerate fold zone.
+    DanceIkTargetKey(23, x: -12, y: -86),
     DanceIkTargetKey(24, x: -92, y: -54, ease: Ease.easeOutBack),
     DanceIkTargetKey(26, x: -70, y: -32),
     DanceIkTargetKey(28, x: -56, y: -26),
@@ -8265,7 +8269,11 @@ class CatClips {
     DanceIkTargetKey(14, x: 68, y: -20),
     DanceIkTargetKey(16, x: 48, y: -24),
     DanceIkTargetKey(20, x: 52, y: -24),
-    DanceIkTargetKey(22, x: 44, y: -54),
+    // Mirrors hand.L frame 6's fix: reach dips to ~12% of arm length
+    // approaching the guide below (same near-degenerate zone). Full tension
+    // damps the tangent through this point; the small widen keeps clear of
+    // the zone once damped.
+    DanceIkTargetKey(22, x: 54, y: -64, tension: 1),
     // Guide the cross-body sweep OVER the chest: without this key the smooth
     // path between 22 and 24 dips within ~6 units of the shoulder, demanding
     // an impossible fold (the clipping meter flagged it).
@@ -8276,7 +8284,7 @@ class CatClips {
       y: -92,
       tension: 0.6,
     ), // swipe apex past the far ear
-    DanceIkTargetKey(26, x: -44, y: -78), // releasing off the apex
+    DanceIkTargetKey(26, x: -44, y: -78, tension: 0.85), // releasing off the apex
     DanceIkTargetKey(28, x: 52, y: -34),
     DanceIkTargetKey(30, x: 34, y: -38),
     DanceIkTargetKey(32, x: 42, y: -8),

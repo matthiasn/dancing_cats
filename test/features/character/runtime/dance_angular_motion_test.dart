@@ -15,27 +15,36 @@ import 'package:flutter_test/flutter_test.dart';
 ///
 /// Thresholds are calibrated against sekem (this session's un-complained-about
 /// reference clip) with roughly 3-4x headroom, not reverse-engineered to only
-/// catch one clip. At these thresholds azonto's wheel-mime and pounce's swipe
-/// currently exceed the acceleration ceiling — real findings, not test bugs.
+/// catch one clip.
 ///
-/// zanku's hand.R punch-guard used to fail this ceiling too (worst ~3.4):
-/// root-caused to the guard hold sitting at ~12% of arm reach (the two-bone
-/// solver's near-degenerate fold zone) against a shoulder that itself swings
-/// widely during that beat. The overshoot-and-settle pass alone didn't fix
-/// it — none of these failures are a clean "decelerate then hold" pattern on
-/// the rotation channel, they're the IK reach geometry itself. Widening the
-/// guard's reach at every occurrence (bars 1 and 2) fixed it outright.
+/// None of these failures were a clean "decelerate then hold" pattern the
+/// overshoot-and-settle pass targets — they were all the two-bone IK
+/// solver's near-degenerate reach zone (arm folded close to the shoulder),
+/// the same root cause diagnosed for azonto/sekem earlier this session.
+/// zanku's hand.R punch-guard and pouncingCat's cross-body swipe (both
+/// hands) fixed outright by widening reach at the offending keys — for
+/// pouncingCat specifically, full Kochanek-Bartels tension at the dip-
+/// adjacent key plus a small widen, since position changes alone rippled
+/// through the smooth spline and made adjacent segments worse rather than
+/// better.
+///
+/// azonto hand.L's frame 30->31 transition (hip chamber sweeping up past the
+/// shoulder toward the wheel-grip) resisted the same fix: every attempted
+/// reposition (widening frame 31 alone, both endpoints together, a wide-arc
+/// via-point at frame 30.5) made the measured acceleration WORSE, up to
+/// 3-4x. The target angle relative to the shoulder sweeps ~117 degrees in
+/// half a frame here because the shoulder itself is also swinging fast and
+/// the two paths cross — repositioning the hand just shifts where in that
+/// crossing the near-degenerate moment lands. Fixing this for real likely
+/// means damping the shoulder's own swing through that beat, not the hand
+/// target; tracked as separate follow-up work, not further reach tuning.
 void main() {
   test('catalogue bone rotation keeps angular velocity below the snap band', () {
     final scene = CharacterScene(buildCatInSuitRig());
     final analyzer = TemporalMotionAnalyzer(scene);
     final speedup = kDanceRealTempoSpeedup;
 
-    // pouncingCat hand.L's swipe currently measures ~4.5 against the 2.5
-    // ceiling below - this gate never existed before, so that's a newly
-    // surfaced finding rather than a regression. Tracked as an open item
-    // alongside the acceleration exclusions in the test below.
-    const known = {'${CatBones.handL}/pouncingCat'};
+    const known = <String>{};
 
     for (final clip in [
       CatClips.shaku,
@@ -77,14 +86,10 @@ void main() {
       final speedup = kDanceRealTempoSpeedup;
       final speedupSquared = speedup * speedup;
 
-      // azonto hand.L and pounce hand.L/hand.R currently fail this ceiling
-      // (worst real-tempo values approximately 2.0, 8.0, 4.2 respectively
-      // against the 1.5 ceiling below) — see the file doc comment above.
-      const known = {
-        '${CatBones.handL}/azonto',
-        '${CatBones.handL}/pouncingCat',
-        '${CatBones.handR}/pouncingCat',
-      };
+      // azonto hand.L currently fails this ceiling (worst real-tempo value
+      // approximately 2.0 against the 1.5 ceiling below) — see the file doc
+      // comment above.
+      const known = {'${CatBones.handL}/azonto'};
 
       for (final clip in [
         CatClips.shaku,
