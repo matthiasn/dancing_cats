@@ -8924,18 +8924,25 @@ class CatClips {
       chestRotation: -0.08,
       chestScaleY: 1,
     ),
-    // task #39: bar 2's four weight commits (16/20/24/28) used to be a flat
-    // repeat of bar 1 for the first two beats, with only the last two beats
-    // (24/28) carrying a small pre-existing escalation — panel called this
-    // "legs/pelvis never move at all across the full 2-bar loop." Made the
-    // whole bar a genuine ramp instead: each commit digs a little deeper
-    // than the last, so bar 2 reads as one continuous build toward its own
-    // deepest commit (28), not bar 1's pattern repeated then bumped at the
-    // very end.
+    // task #39 v2 (post panel-verify): the first attempt at bar-2 escalation
+    // (rootDy 40->41->42->44->46 across the four commits) was VERIFIED
+    // BROKEN by a focused panel round — three independent raters pixel-
+    // measured near-identical geometry frame16≈frame0 etc. Root cause: this
+    // channel runs through _scaledBodyKeys' gain multipliers (rootDyGain
+    // 0.9, rootDxGain 0.78) before reaching the render, so a 1-2 raw-unit
+    // bump becomes a sub-pixel change. This is the render-scale amplitude
+    // lesson this project already learned once (author in PIXELS, not
+    // raw authored units) — re-applying it here. Escalates hip-sink DEPTH
+    // (rootDy) specifically, per the panel's own numeric ask (movement:
+    // "roughly 8/14/20/28px of extra hip-drop across the four bar-2
+    // commits"), not rotation — rootDx/rootDy are the documented-safe
+    // channel (the comment above notes translation "reads correctly," only
+    // pelvis/chest ROTATION was ever the free-foot-side-kick risk), so
+    // pelvisRotation/chestRotation/chestScaleY escalate only modestly.
     DanceBodyKey(
       16,
-      rootDx: -29,
-      rootDy: 41,
+      rootDx: -30,
+      rootDy: 48,
       pelvisRotation: -0.37,
       chestRotation: 0.37,
       chestScaleY: 0.83,
@@ -8950,8 +8957,8 @@ class CatClips {
     ),
     DanceBodyKey(
       20,
-      rootDx: 29,
-      rootDy: 42,
+      rootDx: 31,
+      rootDy: 54,
       pelvisRotation: 0.37,
       chestRotation: -0.37,
       chestScaleY: 0.82,
@@ -8966,8 +8973,8 @@ class CatClips {
     ),
     DanceBodyKey(
       24,
-      rootDx: -31,
-      rootDy: 44,
+      rootDx: -32,
+      rootDy: 60,
       pelvisRotation: -0.4,
       chestRotation: 0.4,
       chestScaleY: 0.8,
@@ -8982,8 +8989,8 @@ class CatClips {
     ),
     DanceBodyKey(
       28,
-      rootDx: 32,
-      rootDy: 46,
+      rootDx: 33,
+      rootDy: 68,
       pelvisRotation: 0.42,
       chestRotation: -0.42,
       chestScaleY: 0.78,
