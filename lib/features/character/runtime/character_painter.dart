@@ -374,6 +374,23 @@ class CharacterPainter extends CustomPainter {
   /// should be felt, not seen — immersive, not obvious. (Was 0.9.)
   static const double _flankParallaxDepth = 0.95;
 
+  /// Soft-knee threshold (zoom-delta units) below which [_softKnee] damps a
+  /// plane's zoom response, at depth 0 (the knee shrinks toward 0 as depth ->
+  /// 1). Sized to roughly the calm establish's own baseline push (zoom 1.06,
+  /// see `dance_camera_director.dart`'s `_establish`), so that framing's
+  /// breathe sits inside the soft region while any deliberate push (chorus,
+  /// pre-chorus, tight two-shots, all >= 1.18) clears it and passes at full
+  /// strength. See [_parallaxCameraAtDepth].
+  static const double _kParallaxZoomKnee = 0.06;
+
+  /// Soft-knee threshold (2560-ref px) below which [_softKnee] damps a
+  /// plane's pan response, at depth 0. Sized to roughly the calm establish's
+  /// drift amplitude (`kCalmDriftRef = 35` in `dance_camera_director.dart`),
+  /// so that drift sits inside the soft region while a deliberate dolly (the
+  /// verse truck, bridge traverse, both >= 260px) clears it and passes at
+  /// full strength. See [_parallaxCameraAtDepth].
+  static const double _kParallaxPanKnee = 60;
+
   @override
   void paint(Canvas canvas, Size size) {
     final floorY = size.height * feetFraction;
@@ -1058,21 +1075,50 @@ class CharacterPainter extends CustomPainter {
     );
   }
 
+  /// Soft-knee gain on a raw camera delta [x]: below [knee] the response rides
+  /// a smoothstep ramp (~quadratic near 0) instead of tracking [x] 1:1, so a
+  /// subtle move (the calm establish's breathe/drift, a small sway) reads as
+  /// less motion than a deliberate one; at and beyond [knee] the gain is
+  /// exactly 1 with matching slope (C1-continuous join), so it never touches
+  /// the big anticipated dollies (verse truck, bridge traverse) already tuned
+  /// against the review panel. `knee <= 0` is a no-op (full pass), which is
+  /// what a depth-1 (foreground) plane gets.
+  static double _softKnee(double x, double knee) {
+    if (knee <= 0) return x;
+    final t = (x.abs() / knee).clamp(0.0, 1.0);
+    return x * t * t * (3 - 2 * t);
+  }
+
   /// Scales a scene [camera] to the fraction of its motion a plane at [depth]
   /// receives: `0` locks the plane at infinity (no drift), `1` moves it fully
   /// with the dancers (the foreground camera). Applied uniformly to zoom, pan
   /// and crane so a monotonic depth ladder (far → near) reads as stacked planes
   /// drifting against one another. Zoom stays >= 1 for any depth (the layer only
   /// ever grows about the pivot), so a plane never reveals its edges.
+  ///
+  /// Small deltas are additionally run through [_softKnee] before the depth
+  /// scale, with a knee that WIDENS for farther planes (`knee = k * (1 -
+  /// depth)`, so depth 1 is knee-free). Motion-parallax/vection research
+  /// finds low-disparity background motion reads as MORE objectionable per
+  /// pixel than the same fractional motion up close, not less — so a small
+  /// dolly (a calm breathe/drift, a subtle sway) should be damped harder on a
+  /// distant plane than on the near stage deck, while a deliberate dolly
+  /// (verse truck, bridge traverse) should still read fully everywhere. Since
+  /// `knee(depth)` only shrinks as `depth` grows, the softened contribution
+  /// stays monotonic non-decreasing in depth exactly like the un-softened one
+  /// (a farther plane never out-travels a nearer one).
   static ({double zoom, double dx, double dy}) _parallaxCameraAtDepth(
     ({double zoom, double dx, double dy}) camera,
     double depth,
   ) {
-    return (
-      zoom: 1 + (camera.zoom - 1) * depth,
-      dx: camera.dx * depth,
-      dy: camera.dy * depth,
+    final farness = (1 - depth).clamp(0.0, 1.0);
+    final zoomDelta = _softKnee(
+      camera.zoom - 1,
+      _kParallaxZoomKnee * farness,
     );
+    final dx = _softKnee(camera.dx, _kParallaxPanKnee * farness);
+    final dy = _softKnee(camera.dy, _kParallaxPanKnee * farness);
+    return (zoom: 1 + zoomDelta * depth, dx: dx * depth, dy: dy * depth);
   }
 
   /// The reduced parallax transform a *separate* backdrop widget (e.g. the
