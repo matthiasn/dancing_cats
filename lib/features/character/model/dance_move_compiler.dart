@@ -28,23 +28,29 @@ Clip assembleMoveClip(
 
   final channels = <String, JointChannel>{...?base?.channels};
 
-  descriptor.jointTracks.forEach((boneId, keys) {
-    channels[boneId] = phrase.jointChannel(keys);
+  descriptor.jointTracks.forEach((boneId, track) {
+    final compiled = phrase.jointChannel(track.keys, smooth: track.smooth);
+    channels[boneId] = track.layerOnBase
+        ? LayeredJointChannel([channels[boneId]!, compiled])
+        : compiled;
   });
 
   var root = base?.root ?? const SineRootChannel();
   final bodyMotion = descriptor.bodyMotion;
   if (bodyMotion != null) {
-    final rootChannel = phrase.bodyRootChannel(
+    root = phrase.bodyRootChannel(
       _reKeyedBodyKeys(bodyMotion.keys, microFrames: bodyMotion.rootMicroFrames),
       smooth: bodyMotion.smooth,
     );
-    root = LayeredRootChannel([root, rootChannel]);
 
-    channels[bodyMotion.pelvisBoneId] = phrase.bodyPelvisChannel(
+    final pelvisChannel = phrase.bodyPelvisChannel(
       _reKeyedBodyKeys(bodyMotion.keys, microFrames: bodyMotion.pelvisMicroFrames),
       smooth: bodyMotion.smooth,
     );
+    channels[bodyMotion.pelvisBoneId] = switch (bodyMotion.pelvisTexture) {
+      null => pelvisChannel,
+      final texture => LayeredJointChannel([pelvisChannel, texture]),
+    };
     channels[bodyMotion.chestBoneId] = phrase.bodyChestChannel(
       _dampedChestKeys(
         bodyMotion.keys,
@@ -58,8 +64,14 @@ Clip assembleMoveClip(
 
   final limbTargets = [
     for (final limb in rigLimbTargets)
-      if (descriptor.limbTargetTracks[limb.endBoneId] case final keys?)
-        limb.withChannel(phrase.ikTargetChannel(keys, smooth: true))
+      if (descriptor.limbTargetTracks[limb.endBoneId] case final track?)
+        limb.withChannel(
+          phrase.ikTargetChannel(
+            track.keys,
+            smooth: track.smooth,
+            cyclic: track.cyclic,
+          ),
+        )
       else
         limb,
   ];

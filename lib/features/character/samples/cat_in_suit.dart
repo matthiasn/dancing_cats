@@ -9,8 +9,11 @@ library;
 
 import 'dart:math' as math;
 
+import 'package:dancing_cats/features/character/model/afrobeats_move.dart';
 import 'package:dancing_cats/features/character/model/bone.dart';
 import 'package:dancing_cats/features/character/model/clip.dart';
+import 'package:dancing_cats/features/character/model/dance_move_compiler.dart';
+import 'package:dancing_cats/features/character/model/dance_move_descriptor.dart';
 import 'package:dancing_cats/features/character/model/dance_phrase.dart';
 import 'package:dancing_cats/features/character/model/easing.dart';
 import 'package:dancing_cats/features/character/model/face.dart';
@@ -8172,6 +8175,203 @@ class CatClips {
         // whips behind the big presenting arm instead of reading stiff.
         ..._tailFollowThrough(amplitude: 0.13, phase: 0.09),
       },
+    );
+  }
+
+  /// Validation-only reproduction of [buga] assembled through
+  /// `assembleMoveClip` (`dance_move_compiler.dart`), reusing the exact same
+  /// private key data (`_bugaBodyKeys`, `_bugaLegLowerKeys`, ...) so there is
+  /// zero risk of transcription drift between the two. **Not** part of
+  /// [CatClips.all] — do not wire this into the stage/move picker; it exists
+  /// purely to prove parity between the hand-assembled clip and the
+  /// data-driven infra before any real migration.
+  static Clip get bugaDataDrivenPreview {
+    final base = _danceBase;
+    return assembleMoveClip(
+      _dancePhrase,
+      DanceMoveDescriptor(
+        // Must be exactly 'buga': CharacterScene._isDanceFamily gates several
+        // dance-only runtime passes (support-foot stabilization among them)
+        // on a literal clip-name match, not on clip structure. A different
+        // name here would silently skip those passes and break the parity
+        // this getter exists to prove.
+        move: const AfrobeatsMove(
+          name: 'buga',
+          feel: DanceFeel.onBeat,
+          featuredRegion: BodyRegion.arms,
+        ),
+        duration: base.duration,
+        contactPinning: base.contactPinning,
+        supportFootWorldAnchor: true,
+        supportFootWorldAnchorStrength: 0.9,
+        baseClip: base,
+        jointTracks: {
+          CatBones.clavicleR: const DanceJointTrack(
+            _bugaClavicleRKeys,
+            smooth: true,
+            layerOnBase: true,
+          ),
+          CatBones.clavicleL: const DanceJointTrack(
+            _bugaClavicleLKeys,
+            smooth: true,
+            layerOnBase: true,
+          ),
+          CatBones.shoulderSocketR: const DanceJointTrack(
+            _bugaShoulderSocketRKeys,
+            smooth: true,
+          ),
+          CatBones.shoulderSocketL: const DanceJointTrack(
+            _bugaShoulderSocketLKeys,
+            smooth: true,
+          ),
+          CatBones.armBicepR: const DanceJointTrack(_bugaBicepKeys, smooth: true),
+          CatBones.armBicepL: const DanceJointTrack(_bugaBicepKeys, smooth: true),
+          CatBones.legLowerL: const DanceJointTrack(
+            _bugaLegLowerKeys,
+            smooth: true,
+          ),
+          CatBones.legLowerR: const DanceJointTrack(
+            _bugaLegLowerKeys,
+            smooth: true,
+          ),
+        },
+        bodyMotion: const DanceBodyMotionTrack(
+          keys: _bugaBodyKeys,
+          pelvisBoneId: CatBones.hips,
+          chestBoneId: CatBones.torso,
+          rootMicroFrames: -0.1,
+          pelvisMicroFrames: -0.15,
+          chestMicroFrames: 0.75,
+          chestRotationGain: 0.94,
+          chestScaleGain: 0.98,
+          pelvisTexture: SineChannel(
+            harmonicAmplitude: 0.006,
+            harmonicPhase: 0.02,
+            harmonicMultiplier: 24,
+            scaleXAmplitude: 0.002,
+            scaleXPhase: 0.02,
+            scaleXHarmonic: 24,
+            scaleYAmplitude: -0.002,
+            scaleYPhase: 0.02,
+            scaleYHarmonic: 24,
+          ),
+        ),
+        limbTargetTracks: {
+          CatBones.handL: const DanceIkTargetTrack(
+            _bugaHandLTargetKeys,
+            cyclic: true,
+          ),
+          CatBones.handR: const DanceIkTargetTrack(
+            _bugaHandRTargetKeys,
+            cyclic: true,
+          ),
+          CatBones.footL: const DanceIkTargetTrack(_bugaFootLTargetKeys),
+          CatBones.footR: const DanceIkTargetTrack(_bugaFootRTargetKeys),
+        },
+        // Matches _bugaContactSpans' raw phase literals (0/0.25/0.375/0.5/
+        // 0.75/0.875/1 over a 32-frame phrase = frames 0/8/12/16/24/28/32),
+        // routed through the declarative DanceSupportSpan.toGroundSpan path
+        // instead. loadFrame/releaseFrame/maxPelvisDistance/pocketScaleY are
+        // all dropped by toGroundSpan, so placeholder values are fine here.
+        supports: const [
+          DanceSupportSpan(
+            footBoneId: CatBones.footR,
+            freeFootBoneId: CatBones.footL,
+            startFrame: 0,
+            endFrame: 8,
+            loadFrame: 0,
+            releaseFrame: 7,
+            maxPelvisDistance: 1,
+            pocketScaleY: 1,
+            label: 'buga reproduction R1',
+          ),
+          DanceSupportSpan(
+            footBoneId: CatBones.footL,
+            freeFootBoneId: CatBones.footR,
+            startFrame: 8,
+            endFrame: 12,
+            loadFrame: 8,
+            releaseFrame: 11,
+            maxPelvisDistance: 1,
+            pocketScaleY: 1,
+            label: 'buga reproduction L1',
+          ),
+          DanceSupportSpan(
+            footBoneId: CatBones.footR,
+            freeFootBoneId: CatBones.footL,
+            startFrame: 12,
+            endFrame: 16,
+            loadFrame: 12,
+            releaseFrame: 15,
+            maxPelvisDistance: 1,
+            pocketScaleY: 1,
+            label: 'buga reproduction R2',
+          ),
+          DanceSupportSpan(
+            footBoneId: CatBones.footL,
+            freeFootBoneId: CatBones.footR,
+            startFrame: 16,
+            endFrame: 24,
+            loadFrame: 16,
+            releaseFrame: 23,
+            maxPelvisDistance: 1,
+            pocketScaleY: 1,
+            label: 'buga reproduction L2',
+          ),
+          DanceSupportSpan(
+            footBoneId: CatBones.footR,
+            freeFootBoneId: CatBones.footL,
+            startFrame: 24,
+            endFrame: 28,
+            loadFrame: 24,
+            releaseFrame: 27,
+            maxPelvisDistance: 1,
+            pocketScaleY: 1,
+            label: 'buga reproduction R3',
+          ),
+          DanceSupportSpan(
+            footBoneId: CatBones.footL,
+            freeFootBoneId: CatBones.footR,
+            startFrame: 28,
+            endFrame: 32,
+            loadFrame: 28,
+            releaseFrame: 31,
+            maxPelvisDistance: 1,
+            pocketScaleY: 1,
+            label: 'buga reproduction L3',
+          ),
+        ],
+        extraJointChannels: {
+          CatBones.earL: _earFollow(side: 1, amplitude: 0.026),
+          CatBones.earR: _earFollow(side: -1, amplitude: 0.026, phase: 0.55),
+          ..._tailFollowThrough(amplitude: 0.13, phase: 0.09),
+        },
+      ),
+      // Hand bend directions here are buga's own choreographic choice — the
+      // inverse of _danceLimbTargets' shared groove defaults (see real
+      // buga's _bugaLimbTargets) — so fresh entries are supplied rather than
+      // reusing the shared rig constant for the hands. Feet DO reuse the
+      // shared rig entries directly, exactly like real buga's
+      // _danceLimbTargets[2]/[3].withChannel(...).
+      rigLimbTargets: [
+        const LimbIkTarget(
+          upperBoneId: CatBones.armUpperL,
+          lowerBoneId: CatBones.armLowerL,
+          endBoneId: CatBones.handL,
+          anchorBoneId: CatBones.torso,
+          channel: KeyframeIkTargetChannel([]),
+        ),
+        const LimbIkTarget(
+          upperBoneId: CatBones.armUpperR,
+          lowerBoneId: CatBones.armLowerR,
+          endBoneId: CatBones.handR,
+          anchorBoneId: CatBones.torso,
+          channel: KeyframeIkTargetChannel([]),
+          bendDirection: -1,
+        ),
+        _danceLimbTargets[2],
+        _danceLimbTargets[3],
+      ],
     );
   }
 

@@ -25,6 +25,7 @@ class DanceBodyMotionTrack {
     this.chestRotationGain = 0.88,
     this.chestScaleGain = 0.92,
     this.smooth = true,
+    this.pelvisTexture,
   });
 
   final List<DanceBodyKey> keys;
@@ -46,6 +47,42 @@ class DanceBodyMotionTrack {
   /// `1` leaves it unchanged, `0` flattens it to no scale change.
   final double chestScaleGain;
   final bool smooth;
+
+  /// Optional procedural texture (e.g. a small `SineChannel` micro-wobble)
+  /// layered on top of the compiled pelvis channel, matching the
+  /// texture-on-top-of-lead-motion pattern shared moves already use on
+  /// their hips/torso channels.
+  final JointChannel? pelvisTexture;
+}
+
+/// Dense per-bone keyframe data for one bone, compiled via
+/// `DancePhrase.jointChannel`.
+///
+/// [layerOnBase] additively layers the compiled channel on top of the
+/// matching bone's channel from `DanceMoveDescriptor.baseClip` (via
+/// `LayeredJointChannel`) instead of replacing it outright — for a move that
+/// adds a small accent on top of a shared base's procedural motion for that
+/// bone rather than owning the bone's channel entirely.
+class DanceJointTrack {
+  const DanceJointTrack(
+    this.keys, {
+    this.smooth = false,
+    this.layerOnBase = false,
+  });
+
+  final List<DanceJointKey> keys;
+  final bool smooth;
+  final bool layerOnBase;
+}
+
+/// IK target path data for one limb, compiled via
+/// `DancePhrase.ikTargetChannel`.
+class DanceIkTargetTrack {
+  const DanceIkTargetTrack(this.keys, {this.smooth = true, this.cyclic = false});
+
+  final List<DanceIkTargetKey> keys;
+  final bool smooth;
+  final bool cyclic;
 }
 
 /// Full data needed to assemble a [Clip] for one move: an [AfrobeatsMove] for
@@ -89,9 +126,8 @@ class DanceMoveDescriptor {
   final double? locomotionSpeed;
   final ContactPinning? contactPinning;
 
-  /// Dense per-bone keyframe data, keyed by bone id. Each entry compiles to
-  /// one `KeyframeChannel` via `DancePhrase.jointChannel`.
-  final Map<String, List<DanceJointKey>> jointTracks;
+  /// Dense per-bone keyframe data, keyed by bone id.
+  final Map<String, DanceJointTrack> jointTracks;
 
   /// Optional body lead/lag styling track (root/pelvis/chest).
   final DanceBodyMotionTrack? bodyMotion;
@@ -100,7 +136,7 @@ class DanceMoveDescriptor {
   /// foot bone id). Each entry compiles to a `KeyframeIkTargetChannel` and is
   /// bound onto the matching entry of the rig's limb list at assembly time
   /// (see `assembleMoveClip`'s `rigLimbTargets` parameter).
-  final Map<String, List<DanceIkTargetKey>> limbTargetTracks;
+  final Map<String, DanceIkTargetTrack> limbTargetTracks;
 
   /// Declared support-foot windows, converted to `Clip.contactSpans` via the
   /// existing `DanceSupportSpan.toGroundSpan`.
