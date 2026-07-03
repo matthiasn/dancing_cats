@@ -183,7 +183,7 @@ const _sekemBodyKeysRaw = [
 // near-straight knee... march/cheer step-touch" critique. Translation
 // (rootDx/rootDy) is untouched: that IS the weight commit onto the support
 // foot and reads correctly; only the rotation was amplifying into a kick.
-final List<DanceBodyKey> _sekemBodyKeys = CatClips._scaledBodyKeys(
+final List<DanceBodyKey> _sekemBodyKeys = _scaledBodyKeys(
   _sekemBodyKeysRaw,
   rootDxGain: 0.78,
   rootDyGain: 0.9,

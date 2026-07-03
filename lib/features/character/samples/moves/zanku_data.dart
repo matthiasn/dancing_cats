@@ -611,7 +611,7 @@ const _zankuCommitKeysRaw = [
   ),
 ];
 
-final List<DanceBodyKey> _zankuCommitKeys = CatClips._scaledBodyKeys(
+final List<DanceBodyKey> _zankuCommitKeys = _scaledBodyKeys(
   _zankuCommitKeysRaw,
   rootDxGain: 0.82,
   rootDyGain: 0.9,
@@ -909,7 +909,7 @@ const _zankuSupportLoadKeysRaw = [
   ),
 ];
 
-final List<DanceBodyKey> _zankuSupportLoadKeys = CatClips._scaledBodyKeys(
+final List<DanceBodyKey> _zankuSupportLoadKeys = _scaledBodyKeys(
   _zankuSupportLoadKeysRaw,
   rootDxGain: 0.78,
   rootDyGain: 0.96,
