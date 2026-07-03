@@ -5889,7 +5889,16 @@ class CatClips {
     DanceIkTargetKey(26, x: -26, y: 2, tension: 0.5), // FLING — fists slam down
     DanceIkTargetKey(27, x: -33, y: -30),
     DanceIkTargetKey(28, x: -32, y: -2, tension: 0.7), // landing stamp PUNCH
-    DanceIkTargetKey(30, x: -36, y: -46),
+    // Frame 30's rib guard sits at the same (x,y) used at frames 2/6/18/22,
+    // but here it lands while the torso is still swinging fast out of the
+    // gbese landing recovery — the shoulder sweeps through this exact point,
+    // collapsing shoulder-to-hand reach to ~12% of the arm's total length
+    // (deep in the two-bone solver's near-degenerate fold zone, same
+    // elbow-hypersensitivity class as the earlier azonto/sekem fix). Widened
+    // just this key so reach stays well clear of that zone during the fast
+    // recovery, instead of changing the shared rib-guard pose everywhere.
+    DanceIkTargetKey(29, x: -33, y: -20), // bridges the landing recovery
+    DanceIkTargetKey(30, x: -37, y: -46),
     DanceIkTargetKey(31, x: -35, y: -40),
     DanceIkTargetKey(32, x: -32, y: -4, tension: 0.6), // == frame 0
   ];
