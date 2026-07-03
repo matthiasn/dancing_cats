@@ -7774,18 +7774,27 @@ class CatClips {
   // punch toward the ears exactly ON the hit frame and visibly release two
   // frames later while the bowed arms still hold, so the flaunt breathes
   // instead of freezing as a mannequin.
+  // R10: the movement rater measured the arms staying "locked" through the
+  // 3-count sink (only legs/torso animate the build) — the reach targets
+  // are already near their anatomical ceiling (~96% reach, documented
+  // above) so there's no room to push position further. Amplified the
+  // shoulder's OWN response instead — small deltas per count (0.04 rad
+  // steps) were too subtle to register, same "small delta near an
+  // existing value reads as unchanged" lesson as elsewhere this session.
+  // Kept well under the frame-13/29 hit's own -0.36 shrug spike so the
+  // sink's response doesn't compete with the hit's accent.
   static const _bugaClavicleRKeys = [
     DanceJointKey(0, rotation: -0.04),
-    DanceJointKey(4, rotation: -0.05),
-    DanceJointKey(8, rotation: -0.08),
-    DanceJointKey(11, rotation: -0.06),
+    DanceJointKey(4, rotation: -0.09),
+    DanceJointKey(8, rotation: -0.16),
+    DanceJointKey(11, rotation: -0.12),
     DanceJointKey(12, rotation: -0.36),
     DanceJointKey(13, rotation: -0.3),
     DanceJointKey(14, rotation: -0.1),
     DanceJointKey(16, rotation: 0.02),
-    DanceJointKey(20, rotation: -0.05),
-    DanceJointKey(24, rotation: -0.08),
-    DanceJointKey(27, rotation: -0.06),
+    DanceJointKey(20, rotation: -0.1),
+    DanceJointKey(24, rotation: -0.18),
+    DanceJointKey(27, rotation: -0.14),
     DanceJointKey(28, rotation: -0.36),
     DanceJointKey(29, rotation: -0.3),
     DanceJointKey(30, rotation: -0.1),
@@ -7793,16 +7802,16 @@ class CatClips {
   ];
   static const _bugaClavicleLKeys = [
     DanceJointKey(0, rotation: 0.04),
-    DanceJointKey(4, rotation: 0.05),
-    DanceJointKey(8, rotation: 0.08),
-    DanceJointKey(11, rotation: 0.06),
+    DanceJointKey(4, rotation: 0.09),
+    DanceJointKey(8, rotation: 0.16),
+    DanceJointKey(11, rotation: 0.12),
     DanceJointKey(12, rotation: 0.36),
     DanceJointKey(13, rotation: 0.3),
     DanceJointKey(14, rotation: 0.1),
     DanceJointKey(16, rotation: -0.02),
-    DanceJointKey(20, rotation: 0.05),
-    DanceJointKey(24, rotation: 0.08),
-    DanceJointKey(27, rotation: 0.06),
+    DanceJointKey(20, rotation: 0.1),
+    DanceJointKey(24, rotation: 0.18),
+    DanceJointKey(27, rotation: 0.14),
     DanceJointKey(28, rotation: 0.36),
     DanceJointKey(29, rotation: 0.3),
     DanceJointKey(30, rotation: 0.1),
