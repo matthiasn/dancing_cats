@@ -34,18 +34,19 @@ void main() {
   // buga vel=29.9/accel=21.0/jerk=25.3 (the worst offender by far),
   // pouncingCat vel=9.4/accel=9.1/jerk=14.7.
   //
-  // Buga first pass (this change): redistributed the "lo3 hold -> HIT"
+  // Buga, two passes so far: first redistributed the "lo3 hold -> HIT"
   // transition (previously a single ~90-unit rootDy jump concentrated into
   // one frame-to-frame step, both bars) across three graduated segments
-  // instead of one cliff. Real, verified improvement — vel 29.9->18.6,
-  // accel 21.0->13.0, jerk 25.3->15.4 (all ~38% down) — but doesn't clear
-  // the gate outright yet: the "explosive hit" needs to cover the same
-  // total distance in the same small number of authored frames (frame
-  // 12/28 is test-pinned as the HIT, so there's a hard ceiling on how much
-  // runway is available to spread the rise across). Left in `known` with
-  // its improved numbers rather than chasing the last stretch blindly;
-  // next step is a panel round to confirm the improvement actually reads,
-  // not just the raw metric.
+  // instead of one cliff (vel 29.9->18.6, accel 21.0->13.0, jerk 25.3->
+  // 15.4, ~38% down). Second pass re-paced those three segments to an even
+  // per-frame rate (removing a shallow-hold-then-cliff unevenness the
+  // first pass still had): vel 18.6->16.1, accel 13.0->11.3, jerk 15.4->
+  // 13.7 (a further ~11%, ~46% down cumulative from the original). Still
+  // doesn't clear the gate outright: the last segment MUST land exactly on
+  // frame 12/28's test-pinned HIT value, which puts a hard floor under how
+  // gentle that final approach can be given only 3 segments of runway.
+  // Left in `known` with the latest numbers; next step is a panel round to
+  // confirm the improvement actually reads, not just the raw metric.
   const known = <String>{
     'torso/zanku',
     'hips/zanku',

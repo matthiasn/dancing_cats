@@ -7588,20 +7588,20 @@ class CatClips {
     DanceBodyKey(
       10,
       rootDx: -7,
-      rootDy: 78,
-      chestRotation: -0.23,
-      chestScaleY: 0.86,
-    ), // holds low, easing off the very bottom
+      rootDy: 45,
+      chestRotation: -0.19,
+      chestScaleY: 0.93,
+    ), // rise begins — evenly-paced ramp from here to the hit (see below)
     DanceBodyKey(
       11,
       rootDx: -7,
-      rootDy: 40,
+      rootDy: 24,
       pelvisRotation: 0,
-      chestRotation: -0.15,
-      chestScaleY: 1,
-    ), // rise continues — spreads the explosive rise over three segments
-    // (8->10->11->12) instead of concentrating the whole ~90-unit rootDy
-    // change into one frame-to-frame jump
+      chestRotation: -0.12,
+      chestScaleY: 1.05,
+    ), // rise continues at the SAME per-frame rate as 8->10 and 10->11,
+    // instead of a shallow hold followed by a steep cliff — spreads the
+    // whole ~90-unit rootDy change over three EVEN segments (8->10->11->12)
     DanceBodyKey(
       12,
       rootDx: -6,
@@ -7699,19 +7699,18 @@ class CatClips {
     DanceBodyKey(
       26,
       rootDx: 7,
-      rootDy: 66,
-      chestRotation: 0.25,
-      chestScaleY: 0.88,
-    ), // holds low, easing off the very bottom — mirrors frame 10's fix
-    // (deeper ease than bar 1's since bar 2's sink is itself deeper)
+      rootDy: 50,
+      chestRotation: 0.2,
+      chestScaleY: 0.95,
+    ), // rise begins — evenly-paced ramp, mirrors frame 10's fix above
     DanceBodyKey(
       27,
       rootDx: 7,
-      rootDy: 40,
+      rootDy: 26,
       pelvisRotation: 0,
-      chestRotation: 0.16,
-      chestScaleY: 0.99,
-    ), // rise continues — mirrors frame 11's fix above
+      chestRotation: 0.13,
+      chestScaleY: 1.06,
+    ), // rise continues at the same per-frame rate — mirrors frame 11
     DanceBodyKey(
       28,
       rootDx: 6,
