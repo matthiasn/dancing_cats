@@ -303,20 +303,29 @@ class _DanceMoveInspectorDialogState extends State<_DanceMoveInspectorDialog>
             ),
             const SizedBox(width: 6),
           ],
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
+          // A hairline rule (matching the dividers used throughout this
+          // dialog) plus a plain, unbordered ghost icon — deliberately NOT
+          // styled like the frame-count chips beside it, so close reads as
+          // an unrelated dismiss action rather than a possible 4th option
+          // in that segmented control.
+          const SizedBox(
+            height: 20,
+            child: ColoredBox(
+              color: _Chrome.hairline,
+              child: SizedBox(width: 1),
+            ),
+          ),
+          const SizedBox(width: 12),
           Tooltip(
             message: 'Close',
             child: InkWell(
               key: const Key('moveInspectorCloseButton'),
               onTap: () => Navigator.of(context).pop(),
-              borderRadius: BorderRadius.circular(6),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: _Chrome.hairline),
-                ),
-                padding: const EdgeInsets.all(6),
-                child: const Icon(
+              customBorder: const CircleBorder(),
+              child: const Padding(
+                padding: EdgeInsets.all(6),
+                child: Icon(
                   Icons.close_rounded,
                   size: 20,
                   color: _Chrome.textMid,
@@ -538,8 +547,22 @@ class _DanceMoveInspectorDialogState extends State<_DanceMoveInspectorDialog>
           // Matches the STAGE panel's reserved transport-row height (its
           // play button + scrub bar) so both monitor cards compute to the
           // same final size, not just the same aspect ratio — twin
-          // instrument panes should share one centerline.
-          const SizedBox(height: _panelFooterH),
+          // instrument panes should share one centerline. Filled with a
+          // static readout (not left blank) so the two "twin monitor"
+          // panels carry the same bottom-row information density.
+          SizedBox(
+            height: _panelFooterH,
+            child: Center(
+              child: Text(
+                '$_frameCount samples · ${widget.clip.duration.toStringAsFixed(2)}s loop',
+                style: const TextStyle(
+                  color: _Chrome.textLow,
+                  fontSize: 11,
+                  fontFeatures: [FontFeature.tabularFigures()],
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -617,6 +640,7 @@ class _DanceMoveInspectorDialogState extends State<_DanceMoveInspectorDialog>
       fontSize: 11,
       fontWeight: FontWeight.w800,
       letterSpacing: 1,
+      fontFeatures: [FontFeature.tabularFigures()],
     ),
   );
 }
