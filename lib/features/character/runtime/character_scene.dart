@@ -103,6 +103,15 @@ class CharacterScene {
             _limbTargetedPose(context.clip, context.timeSeconds, pose),
       ),
       PoseModifierPass(
+        id: 'overshoot-settle',
+        description:
+            'Add a decaying rotational settle after a hard authored stop on '
+            'arm/torso channels, scaled to how fast the incoming motion was '
+            'moving. Runs before joint-limits so the clamp remains the final '
+            'safety net.',
+        modifier: _overshootSettledPose,
+      ),
+      PoseModifierPass(
         id: 'joint-limits',
         description:
             'Clamp every limited joint into its anatomical range of motion, '
@@ -746,6 +755,189 @@ class CharacterScene {
     }
 
     return currentPose;
+  }
+
+  /// Natural rate of the settle response, in rad/s — how fast the follow-
+  /// through bump rises and falls back to zero; see [_overshootSettledPose].
+  /// Tuned empirically (not derived from frame duration): high enough that
+  /// the bump is basically spent by the next keyframe so the taper below
+  /// never has to cut off a still-significant residual, low enough that the
+  /// bump itself reads as a gentle follow-through rather than a fast wiggle
+  /// that is itself a new snap.
+  static const double _kOvershootOmegaN = 11;
+
+  /// Minimum incoming angular speed (rad/s, raw clip clock) at a keyframe
+  /// boundary before a settle is considered at all — well above ordinary
+  /// authored motion, so smooth channels (e.g. sekem's) never trigger this.
+  static const double _kOvershootMinIncomingSpeed = 6;
+
+  /// A boundary counts as a "hard stop" when the outgoing speed drops to at
+  /// most this fraction of the incoming speed.
+  static const double _kOvershootMaxOutgoingRatio = 0.4;
+
+  /// Above this speed (rad/s), a finite-difference reading is treated as
+  /// two-bone-IK solver noise (a near-degenerate elbow flip snapping the
+  /// solved bend angle between frames) rather than genuine authored motion,
+  /// and skipped rather than turned into a settle. No authored choreography
+  /// swings an arm this fast; a reading past this ceiling means the probe
+  /// landed on a solver discontinuity, and amplifying it would manufacture a
+  /// far worse snap than the one this pass exists to remove.
+  static const double _kOvershootMaxPlausibleSpeed = 25;
+
+  /// Small probe step (seconds) used to finite-difference the pre-overshoot
+  /// pose's angular velocity either side of an authored keyframe boundary.
+  static const double _kOvershootProbeEpsilon = 1 / 480;
+
+  /// Adds a decaying rotational settle after a hard authored stop on arm and
+  /// torso rotation channels.
+  ///
+  /// The dance phrase is a fixed 32-frame grid (see `_spineDistributedPose`'s
+  /// `clip.duration / 32` lag, the same convention), so the most recent
+  /// authored keyframe boundary `t0` and the time since it (`dt`) are pure
+  /// functions of `timeSeconds` — no search, no per-frame state. The incoming
+  /// angular velocity `v0` at `t0` is estimated from the PRE-overshoot pose
+  /// (the pose this same pass would see, via `stopBefore: 'overshoot-settle'`)
+  /// at `t0` and `t0 - epsilon`; the outgoing velocity `v1` the same way just
+  /// after `t0`. A hard stop (`v1` much smaller than `v0`) injects the
+  /// closed-form CRITICALLY DAMPED free response to an initial velocity —
+  /// deliberately not the lightly-damped oscillating form: a single rise-
+  /// and-decay hump (one overshoot, no ringing) is both closer to what "the
+  /// deceleration overshoots, then settles" means physically, and avoids the
+  /// oscillation itself becoming a second, higher-frequency snap:
+  /// `dTheta(t) = v0 * t * e^(-omegaN*t)`.
+  ///
+  /// A linear taper forces this term to exactly zero at the NEXT keyframe
+  /// boundary regardless of how the spring parameter is tuned — the non-
+  /// regression property every exact-frame test in `cat_in_suit_test.dart`
+  /// depends on: the settle only ever perturbs the INTERPOLATED region between
+  /// authored keys, never an authored instant itself. [_kOvershootOmegaN] is
+  /// chosen so the hump has already decayed to a small fraction of its peak
+  /// by the time the taper engages, so that hard zeroing does not itself
+  /// introduce a new velocity discontinuity.
+  Pose _overshootSettledPose(PoseModifierContext context, Pose pose) {
+    final clip = context.clip;
+    final timeSeconds = context.timeSeconds;
+    if (!_isDanceFamily(clip) || clip.duration <= 0) return pose;
+
+    final targets = _overshootTargetBoneIds(clip);
+    if (targets.isEmpty) return pose;
+
+    const frameCount = 32;
+    final frameDuration = clip.duration / frameCount;
+    const epsilon = _kOvershootProbeEpsilon;
+    if (frameDuration <= epsilon * 2) return pose;
+
+    final frameIndex = (timeSeconds / frameDuration).floor();
+    final t0 = frameIndex * frameDuration;
+    final dt = timeSeconds - t0;
+    if (dt <= 1e-9) return pose;
+    final taper = 1 - dt / frameDuration;
+    if (taper <= 0) return pose;
+
+    final before = _preOvershootPoseAt(context, t0 - epsilon);
+    final at = _preOvershootPoseAt(context, t0);
+    final after = _preOvershootPoseAt(context, t0 + epsilon);
+
+    Map<String, JointPose>? joints;
+    for (final boneId in targets) {
+      // Two-bone IK angles come from atan2 internally, so a raw rotation
+      // difference can spuriously read as a near-2*pi spike if the true
+      // value crosses the +/-pi branch cut between samples. Wrapping through
+      // the shortest-angle delta (the same trick `_lerpAngle` uses) keeps the
+      // finite difference honest.
+      final v0 =
+          _shortestAngle(
+            at.jointOf(boneId).rotation - before.jointOf(boneId).rotation,
+          ) /
+          epsilon;
+      if (v0.abs() < _kOvershootMinIncomingSpeed ||
+          v0.abs() > _kOvershootMaxPlausibleSpeed) {
+        continue;
+      }
+      final v1 =
+          _shortestAngle(
+            after.jointOf(boneId).rotation - at.jointOf(boneId).rotation,
+          ) /
+          epsilon;
+      if (v1.abs() > v0.abs() * _kOvershootMaxOutgoingRatio) continue;
+
+      final settle = v0 * dt * math.exp(-_kOvershootOmegaN * dt) * taper;
+      if (settle.abs() < 1e-6) continue;
+
+      joints ??= Map<String, JointPose>.of(pose.joints);
+      final current = joints[boneId] ?? pose.jointOf(boneId);
+      joints[boneId] = JointPose(
+        rotation: current.rotation + settle,
+        scaleX: current.scaleX,
+        scaleY: current.scaleY,
+      );
+    }
+    if (joints == null) return pose;
+    return Pose(
+      joints: joints,
+      rootDx: pose.rootDx,
+      rootDy: pose.rootDy,
+      rootRotation: pose.rootRotation,
+    );
+  }
+
+  /// Re-evaluates the pose modifier chain up to (not including) the
+  /// overshoot-settle pass itself at [timeSeconds], reusing [context]'s
+  /// autonomic signals. This is what "pre-overshoot" means: still a pure
+  /// function of [timeSeconds], so probing a neighbouring instant costs an
+  /// extra evaluation but never breaks the clip+time -> pose determinism
+  /// guarantee the rest of this pipeline relies on.
+  Pose _preOvershootPoseAt(PoseModifierContext context, double timeSeconds) {
+    final rawPose = evaluator.evaluate(context.clip, timeSeconds);
+    final subContext = PoseModifierContext(
+      clip: context.clip,
+      timeSeconds: timeSeconds,
+      breath: context.breath,
+      earTwitchLeft: context.earTwitchLeft,
+      earTwitchRight: context.earTwitchRight,
+    );
+    return _poseModifierStack.apply(
+      subContext,
+      rawPose,
+      stopBefore: 'overshoot-settle',
+    );
+  }
+
+  /// Arm (upper + lower) and torso rotation channels eligible for overshoot,
+  /// generically derived from the clip/rig rather than any sample-catalogue
+  /// bone-id list: every [LimbIkTarget] whose end effector is NOT a declared
+  /// ground/contact bone (i.e. a hand, not a support foot) contributes its
+  /// upper and lower bones, plus the torso bone (parent of [_chestBoneId]) if
+  /// the rig declares one. Feet are excluded explicitly per the coupled
+  /// arm-fold / planted-contact lesson: softening a support foot's arrival
+  /// reads as sliding into contact rather than landing.
+  ///
+  /// The lower arm bone (elbow/forearm) is the two-bone IK solver's most
+  /// volatile output near a near-degenerate reach (the same elbow-position
+  /// hypersensitivity this session already traced for azonto/sekem) — its
+  /// frame-to-frame rotation can carry a genuine solver artifact rather than
+  /// authored motion, which is exactly what
+  /// [_kOvershootMaxPlausibleSpeed] in [_overshootSettledPose] guards
+  /// against so a spurious reading gets skipped instead of amplified into a
+  /// worse snap.
+  Set<String> _overshootTargetBoneIds(Clip clip) {
+    final feet = <String>{
+      for (final span in clip.groundSpans) span.bone,
+      for (final span in clip.contactSpans) span.bone,
+    };
+    final targets = <String>{};
+    for (final target in clip.limbTargets) {
+      if (feet.contains(target.endBoneId)) continue;
+      targets
+        ..add(target.upperBoneId)
+        ..add(target.lowerBoneId);
+    }
+    final chestId = _chestBoneId;
+    if (chestId != null) {
+      final torsoId = rig.bone(chestId)?.parent;
+      if (torsoId != null) targets.add(torsoId);
+    }
+    return targets;
   }
 
   /// Pulls the pelvis back inside a plausible support envelope before foot IK.

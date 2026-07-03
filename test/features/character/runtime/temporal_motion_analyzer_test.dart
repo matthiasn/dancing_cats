@@ -258,6 +258,9 @@ void main() {
         segments: [],
         accelerations: [],
         jerks: [],
+        angularSegments: [],
+        angularAccelerations: [],
+        angularJerks: [],
       );
 
       expect(
@@ -348,6 +351,9 @@ void main() {
         segments: [],
         accelerations: [],
         jerks: [],
+        angularSegments: [],
+        angularAccelerations: [],
+        angularJerks: [],
       );
 
       expect(
@@ -432,6 +438,9 @@ void main() {
         segments: [],
         accelerations: [],
         jerks: [],
+        angularSegments: [],
+        angularAccelerations: [],
+        angularJerks: [],
       );
 
       expect(
@@ -516,6 +525,9 @@ void main() {
         segments: [],
         accelerations: [],
         jerks: [],
+        angularSegments: [],
+        angularAccelerations: [],
+        angularJerks: [],
       );
 
       expect(
@@ -541,6 +553,9 @@ void main() {
           segments: [],
           accelerations: [],
           jerks: [],
+          angularSegments: [],
+          angularAccelerations: [],
+          angularJerks: [],
         );
 
         expect(() => report.worstDisplacement, throwsStateError);

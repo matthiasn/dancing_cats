@@ -5889,15 +5889,31 @@ class CatClips {
     DanceIkTargetKey(26, x: -26, y: 2, tension: 0.5), // FLING — fists slam down
     DanceIkTargetKey(27, x: -33, y: -30),
     DanceIkTargetKey(28, x: -32, y: -2, tension: 0.7), // landing stamp PUNCH
-    DanceIkTargetKey(30, x: -36, y: -46),
+    // Frame 30's rib guard sits at the same (x,y) used at frames 2/6/18/22,
+    // but here it lands while the torso is still swinging fast out of the
+    // gbese landing recovery — the shoulder sweeps through this exact point,
+    // collapsing shoulder-to-hand reach to ~12% of the arm's total length
+    // (deep in the two-bone solver's near-degenerate fold zone, same
+    // elbow-hypersensitivity class as the earlier azonto/sekem fix). Widened
+    // just this key so reach stays well clear of that zone during the fast
+    // recovery, instead of changing the shared rib-guard pose everywhere.
+    DanceIkTargetKey(29, x: -33, y: -20), // bridges the landing recovery
+    DanceIkTargetKey(30, x: -37, y: -46),
     DanceIkTargetKey(31, x: -35, y: -40),
     DanceIkTargetKey(32, x: -32, y: -4, tension: 0.6), // == frame 0
   ];
   static const _zankuHandRTargetKeys = [
     DanceIkTargetKey(0, x: 32, y: -4, tension: 0.6), // PUNCH down w/ stamp
-    DanceIkTargetKey(1, x: 34, y: -26),
-    DanceIkTargetKey(2, x: 36, y: -46), // rib guard
-    DanceIkTargetKey(3, x: 35, y: -40),
+    // Frames 1-3 sit in the same near-degenerate two-bone IK zone as zanku
+    // hand.L frame 30 (same lesson: see that fix's comment) — but here it's
+    // a sustained plateau (reach stayed ~12% of arm length across the whole
+    // guard hold, not a single-frame collision) against a shoulder that
+    // itself swings a lot during this beat (x 37->38->79 over these 3
+    // frames). A held guard well clear of that reach (~40-46%) needs to sit
+    // further out and lower than the original hugged-rib pose.
+    DanceIkTargetKey(1, x: 55, y: -10),
+    DanceIkTargetKey(2, x: 55, y: -10), // rib guard
+    DanceIkTargetKey(3, x: 55, y: -10),
     DanceIkTargetKey(4, x: 32, y: -4, tension: 0.6), // PUNCH
     DanceIkTargetKey(5, x: 34, y: -26),
     DanceIkTargetKey(6, x: 36, y: -46),
@@ -5914,15 +5930,20 @@ class CatClips {
     // Round 7: mirrors the hand.L bar-2 escalation fix above (see its
     // comment) — same literal-mirror complaint, mirrored keys.
     DanceIkTargetKey(16, x: 37, y: -10, tension: 0.6), // PUNCH, building
-    DanceIkTargetKey(17, x: 34, y: -26),
-    DanceIkTargetKey(18, x: 36, y: -46),
-    DanceIkTargetKey(19, x: 35, y: -40),
+    // Same held-guard-vs-swinging-shoulder issue as frames 1-3 — widened the
+    // same way (see that fix's comment).
+    DanceIkTargetKey(17, x: 55, y: -10),
+    DanceIkTargetKey(18, x: 55, y: -10),
+    DanceIkTargetKey(19, x: 55, y: -10),
     DanceIkTargetKey(20, x: 40, y: -16, tension: 0.6), // PUNCH, deeper
-    DanceIkTargetKey(21, x: 34, y: -26),
-    DanceIkTargetKey(22, x: 36, y: -46),
-    DanceIkTargetKey(23, x: 35, y: -40),
+    DanceIkTargetKey(21, x: 55, y: -10),
+    DanceIkTargetKey(22, x: 55, y: -10),
+    DanceIkTargetKey(23, x: 55, y: -10),
     DanceIkTargetKey(24, x: 43, y: -22, tension: 0.6), // PUNCH, deepest
-    DanceIkTargetKey(25, x: 37, y: -50), // high load behind the gbese
+    // Same near-degenerate-reach lesson as zanku hand.L frame 30 and hand.R
+    // frame 2: the torso sweeps the shoulder through this exact point during
+    // the gbese anticipation, collapsing reach to ~12% of arm length. Widened.
+    DanceIkTargetKey(25, x: 58, y: -20), // wide load behind the gbese
     DanceIkTargetKey(26, x: 26, y: 2, tension: 0.5), // FLING — fists slam down
     DanceIkTargetKey(27, x: 33, y: -30),
     DanceIkTargetKey(28, x: 32, y: -2, tension: 0.7), // landing stamp PUNCH
@@ -8213,7 +8234,7 @@ class CatClips {
   static const _pounceHandLTargetKeys = [
     DanceIkTargetKey(0, x: -42, y: -8),
     DanceIkTargetKey(4, x: -52, y: -24),
-    DanceIkTargetKey(6, x: -44, y: -54),
+    DanceIkTargetKey(6, x: -50, y: -60, tension: 1),
     // Mirrored cross-body guide — see the right hand's frame-23 key.
     DanceIkTargetKey(7, x: -12, y: -86),
     DanceIkTargetKey(
@@ -8228,6 +8249,10 @@ class CatClips {
     DanceIkTargetKey(16, x: -48, y: -24),
     DanceIkTargetKey(20, x: -18, y: -24),
     DanceIkTargetKey(22, x: 44, y: -54),
+    // Same guide as the frame-7 key above (and the mirrored one on hand.R at
+    // frame 23): without it the smooth path between 22 and 24 dips close to
+    // the shoulder, the two-bone solver's near-degenerate fold zone.
+    DanceIkTargetKey(23, x: -12, y: -86),
     DanceIkTargetKey(24, x: -92, y: -54, ease: Ease.easeOutBack),
     DanceIkTargetKey(26, x: -70, y: -32),
     DanceIkTargetKey(28, x: -56, y: -26),
@@ -8244,7 +8269,11 @@ class CatClips {
     DanceIkTargetKey(14, x: 68, y: -20),
     DanceIkTargetKey(16, x: 48, y: -24),
     DanceIkTargetKey(20, x: 52, y: -24),
-    DanceIkTargetKey(22, x: 44, y: -54),
+    // Mirrors hand.L frame 6's fix: reach dips to ~12% of arm length
+    // approaching the guide below (same near-degenerate zone). Full tension
+    // damps the tangent through this point; the small widen keeps clear of
+    // the zone once damped.
+    DanceIkTargetKey(22, x: 54, y: -64, tension: 1),
     // Guide the cross-body sweep OVER the chest: without this key the smooth
     // path between 22 and 24 dips within ~6 units of the shoulder, demanding
     // an impossible fold (the clipping meter flagged it).
@@ -8255,7 +8284,7 @@ class CatClips {
       y: -92,
       tension: 0.6,
     ), // swipe apex past the far ear
-    DanceIkTargetKey(26, x: -44, y: -78), // releasing off the apex
+    DanceIkTargetKey(26, x: -44, y: -78, tension: 0.85), // releasing off the apex
     DanceIkTargetKey(28, x: 52, y: -34),
     DanceIkTargetKey(30, x: 34, y: -38),
     DanceIkTargetKey(32, x: 42, y: -8),
