@@ -36,6 +36,8 @@ class DanceTransportBar extends StatelessWidget {
     this.gradeOpen = false,
     this.gradeActive = false,
     this.onToggleGrade,
+    this.lipSyncOpen = false,
+    this.onToggleLipSync,
     this.showTimeline = true,
     this.barsBeats,
     super.key,
@@ -85,8 +87,16 @@ class DanceTransportBar extends StatelessWidget {
   /// export chrome).
   final VoidCallback? onToggleGrade;
 
-  /// False while the grade workspace is open: the workspace's shared zoomable
-  /// timeline replaces this bar's compact one (one seek surface at a time).
+  /// Whether the lip-sync cue workspace is expanded below the bar.
+  final bool lipSyncOpen;
+
+  /// Shows/hides the lip-sync workspace. Null hides the toggle entirely (e.g.
+  /// export chrome, or a track with no cue file loaded).
+  final VoidCallback? onToggleLipSync;
+
+  /// False while the grade or lip-sync workspace is open: the workspace's
+  /// shared zoomable timeline replaces this bar's compact one (one seek
+  /// surface at a time).
   final bool showTimeline;
 
   /// Musical position ("bar.beat.sixteenth") computed from the DETECTED beat
@@ -280,6 +290,19 @@ class DanceTransportBar extends StatelessWidget {
               // closed; the badge keeps that state visible (never a mystery
               // "why is my scene dim?").
               badge: gradeActive && !gradeOpen,
+            ),
+          ],
+          if (onToggleLipSync != null) ...[
+            const _VRule(height: 40),
+            _toggle(
+              key: const Key('lipSyncWorkspaceToggle'),
+              icon: lipSyncOpen ? Icons.mic_rounded : Icons.mic_none_rounded,
+              active: lipSyncOpen,
+              enabled: true,
+              tooltip: lipSyncOpen
+                  ? 'Close the lip-sync editor'
+                  : 'Open the lip-sync editor',
+              onTap: onToggleLipSync!,
             ),
           ],
         ],

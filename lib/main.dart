@@ -6,11 +6,13 @@ import 'dart:ui' as ui;
 
 import 'package:dancing_cats/features/character/demo/color_grade_panel.dart';
 import 'package:dancing_cats/features/character/demo/dance_app_frame_exporter.dart';
+import 'package:dancing_cats/features/character/demo/dance_cues_store.dart';
 import 'package:dancing_cats/features/character/demo/dance_ffmpeg_encoder.dart';
 import 'package:dancing_cats/features/character/demo/dance_grade_controller.dart';
 import 'package:dancing_cats/features/character/demo/dance_grade_store.dart';
 import 'package:dancing_cats/features/character/demo/dance_grade_workspace.dart';
-import 'package:dancing_cats/features/character/demo/dance_lip_sync.dart';
+import 'package:dancing_cats/features/character/demo/dance_lip_sync_controller.dart';
+import 'package:dancing_cats/features/character/demo/dance_lip_sync_workspace.dart';
 import 'package:dancing_cats/features/character/demo/dance_loaders.dart';
 import 'package:dancing_cats/features/character/demo/dance_performance.dart';
 import 'package:dancing_cats/features/character/demo/dance_playback_stepper.dart';
@@ -271,7 +273,6 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
   // per-word section tags; the virtual director reads the section label, progress
   // within it, and bar-from-its-downbeat here. Empty without a lyrics file.
   List<DanceSectionSpan> _sectionSpans = const [];
-  List<DanceCue> _cues = const []; // Rhubarb lip-sync cues (optional)
   double _trackDurationSec = 0;
   double _bpm = 0;
   bool _loop = true;
@@ -291,6 +292,15 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
   DanceGradeController? _gradeController;
   bool _gradeOpen = false;
   bool _bypass = false;
+
+  // The lip-sync cue editor: the store persists and watches
+  // <track>.cues.json, the controller owns editing state, and the workspace
+  // below the transport renders both when the mic toggle is on. A sibling of
+  // the grade timeline above, adapted to span-based cues instead of point
+  // keyframes.
+  DanceCuesStore? _cuesStore;
+  DanceLipSyncController? _lipSyncController;
+  bool _lipSyncOpen = false;
 
   // Image-derived RGB parade: a tiny snapshot of the graded stage, sampled a few
   // times a second, so the grade panel can show where the actual pixels land
@@ -407,7 +417,7 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
   }
 
   void _advancePerformance({required double pos, required double dt}) {
-    _stepper.advance(_perf, _cues, pos, dt);
+    _stepper.advance(_perf, _lipSyncController?.cues ?? const [], pos, dt);
   }
 
   Future<void> _load() async {
@@ -450,7 +460,6 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
               .toList() ??
           const <double>[];
       final words = await loadDanceWords(kDanceWordsPath);
-      final cues = await loadDanceCues(kDanceCuesPath);
       // The single source of truth for the per-frame derivation, assembled
       // through the same factory the offline composer uses so its renders match
       // this player.
@@ -479,9 +488,23 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
       );
       if (!kDanceRenderOnly && !kDanceAppExport) gradeStore.startWatching();
 
+      // The lip-sync cue track (Rhubarb, via tools/dance_audio/lipsync.py):
+      // loaded the same way as the grade timeline, so a track without a cue
+      // file simply loads an empty document (no mouth motion), and the
+      // watcher lets the in-app editor and a re-run of Rhubarb coexist.
+      final cuesStore = DanceCuesStore(path: kDanceCuesPath);
+      await cuesStore.load();
+      final lipSyncController = DanceLipSyncController(
+        store: cuesStore,
+        beatTimesSec: map.beatTimesSec,
+      );
+      if (!kDanceRenderOnly && !kDanceAppExport) cuesStore.startWatching();
+
       if (!mounted) {
         gradeController.dispose();
         gradeStore.dispose();
+        lipSyncController.dispose();
+        cuesStore.dispose();
         return;
       }
       setState(() {
@@ -493,9 +516,10 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
         _waveformSections = sections;
         _words = words;
         _sectionSpans = perf.sectionSpans;
-        _cues = cues;
         _gradeStore = gradeStore;
         _gradeController = gradeController;
+        _cuesStore = cuesStore;
+        _lipSyncController = lipSyncController;
       });
       if (kDanceAppExport) unawaited(_exportFramesFromApp());
     } on Object catch (e, st) {
@@ -741,6 +765,11 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
       // Land any pending debounced save before tearing the store down.
       unawaited(store.flush().whenComplete(store.dispose));
     }
+    final cuesStore = _cuesStore;
+    _lipSyncController?.dispose();
+    if (cuesStore != null) {
+      unawaited(cuesStore.flush().whenComplete(cuesStore.dispose));
+    }
     _backdrop?.dispose();
     _clouds?.dispose();
     _waves?.dispose();
@@ -779,6 +808,7 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
     // the clean plate while the console keeps the dialled look.
     final exporting = kDanceRenderOnly || kDanceAppExport;
     final controller = _gradeController;
+    final lipSyncController = _lipSyncController;
     final grades = controller == null
         ? const <String, BackdropGrade>{}
         : exporting
@@ -914,8 +944,18 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
                   gradeActive: _gradeStore?.doc.isActive ?? false,
                   onToggleGrade: controller == null
                       ? null
-                      : () => setState(() => _gradeOpen = !_gradeOpen),
-                  showTimeline: !_gradeOpen,
+                      : () => setState(() {
+                          _gradeOpen = !_gradeOpen;
+                          if (_gradeOpen) _lipSyncOpen = false;
+                        }),
+                  lipSyncOpen: _lipSyncOpen,
+                  onToggleLipSync: lipSyncController == null
+                      ? null
+                      : () => setState(() {
+                          _lipSyncOpen = !_lipSyncOpen;
+                          if (_lipSyncOpen) _gradeOpen = false;
+                        }),
+                  showTimeline: !_gradeOpen && !_lipSyncOpen,
                 ),
                 if (_gradeOpen && controller != null)
                   SizedBox(
@@ -939,6 +979,21 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
                       onSeek: _seekToTime,
                       // The pillarbox dock mirrors the scopes at full size.
                       showScopes: false,
+                    ),
+                  ),
+                if (_lipSyncOpen && lipSyncController != null)
+                  SizedBox(
+                    height: math.min(
+                      470,
+                      MediaQuery.sizeOf(context).height * 0.46,
+                    ),
+                    child: DanceLipSyncWorkspace(
+                      controller: lipSyncController,
+                      positionSec: posSec,
+                      durationSec: _trackDurationSec,
+                      playing: _player.state.playing,
+                      sections: _waveformSections,
+                      onSeek: _seekToTime,
                     ),
                   ),
               ],
