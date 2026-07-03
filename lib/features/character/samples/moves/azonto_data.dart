@@ -194,6 +194,12 @@ const _azontoHandLTargetKeys = [
   // from "move the IK target further" and are the real next step — left
   // for a dedicated pass since they need new authored motion, not a value
   // tune. See the panel digest for the specific critiques.
+  // R follow-up (panel post-PR#54, task #45 part 1): the movement rater
+  // flagged the jab as "arrives and freezes" — no rebound after peak
+  // extension. `Ease.easeOutBack` on the recoil key makes the transition
+  // INTO it overshoot past (10,-44) then settle back, the same
+  // anticipation/overshoot pattern already used on the wheel's OUT-point
+  // keys elsewhere in this file — a real spring-back instead of a dead stop.
   DanceIkTargetKey(16, x: 33, y: -50, tension: 1), // JAB past the far line
   DanceIkTargetKey(17, x: 32, y: -48, tension: 1), // hold
   // R1: a y-only lift (-44 -> -58, keeping x on the SAME side as hand.R's
@@ -208,13 +214,29 @@ const _azontoHandLTargetKeys = [
   // one side. Magnitude (|x|+|y| basis) stays well under the JAB key's
   // already-validated near-max reachRatio (~0.97 at x33,y-50), so this
   // doesn't reopen the reach-ceiling issue noted above.
-  DanceIkTargetKey(19, x: -20, y: -44, tension: 0.4), // recoil through guard
+  // R2 (task #45): added `Ease.easeOutBack` on top of the opposite-side fix
+  // above so the transition into this recoil overshoots past it and
+  // settles back, instead of arriving dead — the two fixes are orthogonal
+  // (one is WHERE the key sits, the other is HOW the arm arrives there).
+  DanceIkTargetKey(
+    19,
+    x: -20,
+    y: -44,
+    tension: 0.4,
+    ease: Ease.easeOutBack,
+  ), // recoil through guard, opposite side + spring-back overshoot
   DanceIkTargetKey(20, x: -26, y: -10, tension: 0.8), // chamber at the hip
   DanceIkTargetKey(22, x: -27, y: -12, tension: 0.5),
   DanceIkTargetKey(23, x: -10, y: -34, tension: 0.4), // loads
   DanceIkTargetKey(24, x: 33, y: -50, tension: 1), // JAB
   DanceIkTargetKey(25, x: 32, y: -48, tension: 1),
-  DanceIkTargetKey(27, x: -20, y: -44, tension: 0.4), // recoil through guard
+  DanceIkTargetKey(
+    27,
+    x: -20,
+    y: -44,
+    tension: 0.4,
+    ease: Ease.easeOutBack,
+  ), // recoil through guard, opposite side + spring-back overshoot
   DanceIkTargetKey(28, x: -26, y: -10, tension: 0.8), // chamber
   DanceIkTargetKey(30, x: -24, y: 5, tension: 0.5),
   DanceIkTargetKey(31, x: -22, y: 15, tension: 0.6), // lifts to the wheel
@@ -244,7 +266,14 @@ const _azontoHandRTargetKeys = [
   // Mirrors hand.L's opposite-side recoil fix above (see that comment):
   // swapped to hand.R's OWN (positive) side so it doesn't stack with
   // hand.L's simultaneous "loads" key (also on L's own, negative side).
-  DanceIkTargetKey(23, x: 20, y: -44, tension: 0.4), // recoil through guard
+  // Also carries the same `Ease.easeOutBack` spring-back overshoot.
+  DanceIkTargetKey(
+    23,
+    x: 20,
+    y: -44,
+    tension: 0.4,
+    ease: Ease.easeOutBack,
+  ), // recoil through guard, opposite side + spring-back overshoot
   DanceIkTargetKey(24, x: 26, y: -10, tension: 0.8), // chamber
   DanceIkTargetKey(26, x: 27, y: -12, tension: 0.5),
   DanceIkTargetKey(27, x: 10, y: -34, tension: 0.4),
@@ -309,6 +338,58 @@ const _azontoHandRKeys = [
   DanceJointKey(29, rotation: 0.32),
   DanceJointKey(31, rotation: 0.1), // settles toward the wheel
   DanceJointKey(32, rotation: -0.28), // == frame 0
+];
+// R follow-up (panel post-PR#54, task #45 part 2): the panel wanted the
+// punch to read as thrown "from the shoulder," not just a wrist relocating —
+// azonto never had a clavicle rotation channel at all (unlike shaku/sekem/
+// zanku, which all drive a shoulder roll timed to their own accents), so the
+// jab had no shoulder-girdle motion behind it. Added one: the JABBING side's
+// clavicle rolls forward through the strike and relaxes back on the chamber
+// beat, mirrored for the opposite side. Magnitude matched to zanku's own
+// clavicle-roll channel (`_zankuClavicleRKeys`/`LKeys`) — that one already
+// reads clearly, per panel feedback, and this rig's `girdleLeverGain`
+// (PR #51) already amplifies clavicle rotation's visual displacement at the
+// ribbon mesh, so this channel should read without needing a bigger number.
+// Bar 1 (the wheel-mime) is left neutral — not in scope for this pass.
+//
+// CAVEAT, probe-verified post-merge: the channel genuinely solves (probed
+// `frame.world[CatBones.clavicleL/R]`, `atan2(b,a)`) — a real ~13deg swing
+// at frame 16, comparable to zanku's own working channel — but a direct
+// same-frame before/after render crop is pixel-near-identical; the
+// silhouette is dominated by the tightly crossed arms, and a shoulder roll
+// this size doesn't read against that. This is NOT the "solved rotation
+// doesn't render" mesh bug from PR #51 (the data->render path itself is
+// fine, confirmed by probe) — it's that a subtle secondary motion can't
+// compete with the crossed-arms silhouette itself. Real fix is the elbow-
+// abduction/pole-vector work (task #46), not a bigger shoulder-roll number.
+const _azontoClavicleLKeys = [
+  DanceJointKey(0),
+  DanceJointKey(14), // into bar 2
+  DanceJointKey(16, rotation: 0.22), // L JABS — shoulder drives forward
+  DanceJointKey(17, rotation: 0.18), // hold
+  DanceJointKey(19, rotation: 0.05), // recoil
+  DanceJointKey(20, rotation: -0.05), // L chambers while R jabs
+  DanceJointKey(23, rotation: 0.02),
+  DanceJointKey(24, rotation: 0.22), // L JABS again
+  DanceJointKey(25, rotation: 0.18),
+  DanceJointKey(27, rotation: 0.05),
+  DanceJointKey(28, rotation: -0.05), // L chambers
+  DanceJointKey(32), // == frame 0
+];
+const _azontoClavicleRKeys = [
+  DanceJointKey(0),
+  DanceJointKey(14),
+  DanceJointKey(16, rotation: -0.05), // R chambers while L jabs
+  DanceJointKey(19, rotation: 0.02),
+  DanceJointKey(20, rotation: 0.22), // R JABS — shoulder drives forward
+  DanceJointKey(21, rotation: 0.18), // hold
+  DanceJointKey(23, rotation: 0.05), // recoil
+  DanceJointKey(24, rotation: -0.05), // R chambers
+  DanceJointKey(27, rotation: 0.02),
+  DanceJointKey(28, rotation: 0.22), // R JABS again
+  DanceJointKey(29, rotation: 0.18),
+  DanceJointKey(31, rotation: 0.05),
+  DanceJointKey(32), // == frame 0
 ];
 const _azontoFootLTargetKeys = [
   DanceIkTargetKey(0, x: -56, y: 103),
