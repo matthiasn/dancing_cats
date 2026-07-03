@@ -8403,7 +8403,10 @@ class CatClips {
       tension: 0.6,
     ), // swipe apex past the far ear
     DanceIkTargetKey(10, x: 44, y: -78), // releasing off the apex
-    DanceIkTargetKey(12, x: -52, y: -34),
+    // R10: the director called the rebound "a closed flinch, not a punch-
+    // out" — both hands landed at a similar, fairly tucked height/reach.
+    // Opened it wider so the rebound reads as a release, not a guard.
+    DanceIkTargetKey(12, x: -60, y: -30),
     DanceIkTargetKey(14, x: -34, y: -38),
     DanceIkTargetKey(16, x: -48, y: -24),
     DanceIkTargetKey(20, x: -18, y: -24),
@@ -8424,7 +8427,9 @@ class CatClips {
     DanceIkTargetKey(6, x: 72, y: -42),
     DanceIkTargetKey(8, x: 92, y: -54, ease: Ease.easeOutBack),
     DanceIkTargetKey(10, x: 76, y: -28),
-    DanceIkTargetKey(12, x: 54, y: -26),
+    // R10: opened to match hand.L's wider, more released rebound (see its
+    // comment) — was a tucked flinch, now a real open punch-out.
+    DanceIkTargetKey(12, x: 68, y: -18),
     DanceIkTargetKey(14, x: 68, y: -20),
     DanceIkTargetKey(16, x: 48, y: -24),
     DanceIkTargetKey(20, x: 52, y: -24),
@@ -8501,6 +8506,17 @@ class CatClips {
       // is already flat, so with the nod gone the skull rides level while the
       // base glides laterally.
       danceHeadBobScale: 0,
+      // R10: the anatomist measured a real ~35-40px head sag through the
+      // compress despite the above — danceHeadBobScale only maximizes the
+      // shared vertical counter's FRACTION, but that counter is separately
+      // clamped to [-2, 4] world units (deliberately tiny everywhere else,
+      // so a groove extreme never visibly lifts the skull off the neck).
+      // PouncingCat's own rootDy swings ~34 units through the compress —
+      // far more than that clamp allows to cancel. Opted into a much wider
+      // floor here specifically, since "head stays level through a big
+      // compress" IS this clip's whole premise, unlike every other clip's
+      // "head rides the bob a little" intent.
+      danceHeadLevelClampMin: -20,
       // The dwelling lateral creep now lives in _pounceBodyKeys' rootDx (no sine
       // sway — that read as a side-to-side pendulum, worse in unison).
       root: LayeredRootChannel([
