@@ -795,8 +795,6 @@ const _danceLeadMoveSignatures = [
   ),
 ];
 
-final List<GroundSpan> _danceContactSpans = _dancePhrase.contactSpans();
-
 // The broad Shaku-family phrase places the right foot on the floor at frame
 // 16, but the pelvis does not actually finish transferring weight until the
 // low-20s. Keep the support solver on the left through that double-support

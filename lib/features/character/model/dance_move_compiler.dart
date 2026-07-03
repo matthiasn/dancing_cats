@@ -69,6 +69,9 @@ Clip assembleMoveClip(
       ...bodyMotion.extraChestLayers,
     ]);
   }
+  if (descriptor.rawRoot != null) {
+    root = descriptor.rawRoot!;
+  }
 
   final limbTargets = [
     for (final limb in rigLimbTargets)
@@ -93,8 +96,7 @@ Clip assembleMoveClip(
     channels: channels,
     loop: descriptor.loop,
     root: root,
-    locomotionSpeed:
-        descriptor.locomotionSpeed ?? base?.locomotionSpeed ?? 0,
+    locomotionSpeed: descriptor.locomotionSpeed ?? base?.locomotionSpeed ?? 0,
     contactSpans: [
       for (final support in descriptor.supports) support.toGroundSpan(phrase),
       ...descriptor.rawContactSpans,
@@ -115,9 +117,7 @@ Clip assembleMoveClip(
     danceHeadBobScale:
         descriptor.danceHeadBobScale ?? base?.danceHeadBobScale ?? 1,
     danceHeadLevelClampMin:
-        descriptor.danceHeadLevelClampMin ??
-        base?.danceHeadLevelClampMin ??
-        -2,
+        descriptor.danceHeadLevelClampMin ?? base?.danceHeadLevelClampMin ?? -2,
     transitionPlan: descriptor.transitionPlan ?? base?.transitionPlan,
     zOrderSwaps: descriptor.zOrderSwaps.isNotEmpty
         ? descriptor.zOrderSwaps
