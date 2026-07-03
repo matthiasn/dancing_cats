@@ -17,10 +17,16 @@ import 'package:flutter_test/flutter_test.dart';
 /// reference clip) with roughly 3-4x headroom, not reverse-engineered to only
 /// catch one clip. At these thresholds zanku's punch accents and azonto's
 /// wheel-mime currently exceed the acceleration ceiling, and pounce's swipe
-/// exceeds both ceilings — these are real findings, not test bugs. zanku and
-/// azonto are expected to clear this gate once the overshoot-and-settle pass
-/// lands; pounce's swipe was never reviewed against a rotation-rate gate
-/// before and may need its own look.
+/// exceeds both ceilings — these are real findings, not test bugs.
+///
+/// The overshoot-and-settle pass measurably improves zanku hand.L's raw
+/// position jerk (see `dance_smoothness_test.dart`), but the exclusions below
+/// are unchanged from before that pass landed: none of these specific
+/// worst-case acceleration/velocity readings currently drop under ceiling as
+/// a result of it. The settle only fires where a clean hard-stop pattern is
+/// detected on the arm-rotation channel; these worst-case readings apparently
+/// come from elsewhere (IK target geometry/timing, not a simple decelerate-
+/// then-hold on rotation) and remain open work.
 void main() {
   test('catalogue bone rotation keeps angular velocity below the snap band', () {
     final scene = CharacterScene(buildCatInSuitRig());
@@ -74,11 +80,9 @@ void main() {
       final speedupSquared = speedup * speedup;
 
       // zanku hand.R, azonto hand.L, and pounce hand.L/hand.R currently fail
-      // this ceiling (worst real-tempo values approximately 5.0, 3.0, 11.9,
-      // 6.3 respectively against the 1.5 ceiling below) - tracked as the
-      // baseline the overshoot-and-settle pass must bring down, and as an
-      // open question for pounce's swipe which this gate did not cover
-      // before.
+      // this ceiling (worst real-tempo values approximately 3.4, 2.0, 8.0,
+      // 4.2 respectively against the 1.5 ceiling below), unchanged by the
+      // overshoot-and-settle pass — see the file doc comment above.
       const known = {
         '${CatBones.handR}/zanku',
         '${CatBones.handL}/azonto',
