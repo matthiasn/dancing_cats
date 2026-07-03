@@ -668,6 +668,24 @@ class CharacterScene {
     );
   }
 
+  /// The `limb-ik` pipeline stage: bends each [Clip.limbTargets] two-bone
+  /// limb (shoulder→elbow→wrist or hip→knee→ankle) toward its authored
+  /// world-space target via [_solveLimbTarget], committing joints one target
+  /// at a time so a later target in the same pass sees an already-IK'd pose.
+  ///
+  /// A target near full authored `weight` (choreographic, not a soft hint)
+  /// gets a second corrective solve from the just-committed pose — parent
+  /// rotations or a support-foot anchor (below) can have nudged the chain
+  /// during the first solve, so re-solving from the updated shoulder/elbow
+  /// position lands the end effector closer to its control. The correction
+  /// is blended in via `_smoothUnit((weight - 0.9) / 0.1)` rather than
+  /// switched on at a hard `weight >= 0.98` gate, so an interpolated weight
+  /// crossing that threshold doesn't step the end effector.
+  ///
+  /// [Clip.supportFootWorldAnchor] opts a clip's active support foot into a
+  /// blended world-space hold (see [_supportFootWorldAnchor]) so the leg
+  /// bends to absorb the body's groove while the foot stays planted, instead
+  /// of dragging with the hips.
   Pose _limbTargetedPose(Clip clip, double timeSeconds, Pose pose) {
     if (clip.limbTargets.isEmpty) return pose;
 
@@ -1062,6 +1080,20 @@ class CharacterScene {
     return (targetDelta - delta) * blend;
   }
 
+  /// Solves [target]'s two-bone limb toward [sample]'s world-space point
+  /// (optionally blended toward [worldAnchor], see [_limbTargetedPose]),
+  /// then converts the solved WORLD angles back into LOCAL [JointPose]
+  /// rotations — subtracting the parent's current world rotation, the
+  /// bone's rest rotation and its local pivot angle, the inverse of how
+  /// [SkeletonSolver] composes them going forward — so the result re-enters
+  /// the pose exactly as if a clip channel had authored it, and flows
+  /// through the same FK path as everything else. `weight` blends the
+  /// result toward the pose's current rotation via [_lerpAngle] (an
+  /// authored IK-target weight, not a separate easing pass), so a soft
+  /// target only nudges the limb rather than fully committing to the IK
+  /// solve. Returns null when the rig is missing a bone the target names,
+  /// the bone chain isn't the expected upper→lower→end parentage, or the
+  /// underlying [solveTwoBoneIk] itself returns null (a degenerate limb).
   ({JointPose upper, JointPose lower})? _solveLimbTarget(
     LimbIkTarget target,
     IkTargetPose sample,
