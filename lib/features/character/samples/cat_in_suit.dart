@@ -7617,32 +7617,46 @@ class CatClips {
       chestRotation: -0.05,
       chestScaleY: 0.98,
     ),
+    // R10: the director still called the whole 2-bar phrase "a 2-beat unit
+    // copy-pasted four times" despite this bar-2 escalation — the old
+    // +2/+4/+8 rootDy gap over bar 1 (30->32, 58->62, 88->96, ~7% deeper)
+    // was too small to register at render scale, the same "small delta
+    // near an existing value reads as unchanged" lesson found repeatedly
+    // this session for other moves. Nothing here is test-pinned (only the
+    // HIT frames 12/28 and hand-target frames are), so widened the gap
+    // (30->33, 58->64, 88->97, ~10-15% deeper). Deepening further hit a
+    // real ceiling fast: the overshoot-and-settle pass scales its rebound
+    // with incoming velocity, so a deeper bar-2 sink also throws a bigger
+    // overshoot into the frame-28 hit — pushed past ~97 on lo3 and the
+    // hit's own rootDy briefly went negative (above the planted feet),
+    // failing the "second hit stays similarly planted" test. This is the
+    // practical ceiling for this specific escalation lever.
     DanceBodyKey(
       16,
       rootDx: 5,
-      rootDy: 32,
+      rootDy: 33,
       pelvisRotation: 0.06,
       chestRotation: 0.12,
       chestScaleY: 0.96,
-    ), // bar 2 lo1 — arrives a hair deeper than bar 1
+    ), // bar 2 lo1 — arrives noticeably deeper than bar 1
     DanceBodyKey(
       18,
       rootDx: 6,
-      rootDy: 32,
+      rootDy: 33,
       chestRotation: 0.12,
       chestScaleY: 0.96,
     ), // lo1 HOLDS
     DanceBodyKey(
       19,
       rootDx: 5,
-      rootDy: 24,
+      rootDy: 25,
       chestRotation: 0.1,
       chestScaleY: 0.98,
     ), // rebound
     DanceBodyKey(
       20,
       rootDx: -5,
-      rootDy: 62,
+      rootDy: 64,
       pelvisRotation: -0.07,
       chestRotation: 0.18,
       chestScaleY: 0.9,
@@ -7650,21 +7664,21 @@ class CatClips {
     DanceBodyKey(
       22,
       rootDx: -6,
-      rootDy: 62,
+      rootDy: 64,
       chestRotation: 0.18,
       chestScaleY: 0.9,
     ), // lo2 HOLDS
     DanceBodyKey(
       23,
       rootDx: -5,
-      rootDy: 54,
+      rootDy: 55,
       chestRotation: 0.16,
       chestScaleY: 0.92,
     ), // rebound
     DanceBodyKey(
       24,
       rootDx: 6,
-      rootDy: 96,
+      rootDy: 97,
       pelvisRotation: 0.11,
       chestRotation: 0.26,
       chestScaleY: 0.83,
@@ -7672,7 +7686,7 @@ class CatClips {
     DanceBodyKey(
       26,
       rootDx: 7,
-      rootDy: 96,
+      rootDy: 97,
       chestRotation: 0.25,
       chestScaleY: 0.83,
     ), // HOLDS low
