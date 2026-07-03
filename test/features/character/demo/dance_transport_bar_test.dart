@@ -12,6 +12,7 @@ class _Recorder {
   int backdrop = 0;
   int mute = 0;
   int grade = 0;
+  int lipSync = 0;
   double? seek;
 }
 
@@ -45,6 +46,8 @@ Future<_Recorder> _pump(
   bool gradeOpen = false,
   bool gradeActive = false,
   bool gradeToggleAvailable = true,
+  bool lipSyncOpen = false,
+  bool lipSyncToggleAvailable = false,
   bool showTimeline = true,
   Size size = const Size(1280, 800),
 }) async {
@@ -86,6 +89,10 @@ Future<_Recorder> _pump(
               gradeOpen: gradeOpen,
               gradeActive: gradeActive,
               onToggleGrade: gradeToggleAvailable ? () => rec.grade++ : null,
+              lipSyncOpen: lipSyncOpen,
+              onToggleLipSync: lipSyncToggleAvailable
+                  ? () => rec.lipSync++
+                  : null,
               showTimeline: showTimeline,
             ),
           ],
@@ -327,6 +334,31 @@ void main() {
       // One seek surface at a time: the workspace's shared timeline replaces
       // the bar's strip entirely.
       expect(find.byKey(const Key('danceTimeline')), findsNothing);
+    });
+  });
+
+  group('lip-sync workspace toggle', () {
+    testWidgets('tapping the mic toggle reports the intent', (tester) async {
+      final rec = await _pump(tester, lipSyncToggleAvailable: true);
+      await tester.tap(find.byKey(const Key('lipSyncWorkspaceToggle')));
+      await tester.pump();
+      expect(rec.lipSync, 1);
+    });
+
+    testWidgets('the toggle is absent without a handler', (tester) async {
+      await _pump(tester);
+      expect(find.byKey(const Key('lipSyncWorkspaceToggle')), findsNothing);
+    });
+
+    testWidgets('the mic glyph fills when the workspace is open', (
+      tester,
+    ) async {
+      await _pump(
+        tester,
+        lipSyncToggleAvailable: true,
+        lipSyncOpen: true,
+      );
+      expect(find.byKey(const Key('lipSyncWorkspaceToggle')), findsOneWidget);
     });
   });
 }
