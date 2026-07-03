@@ -5857,6 +5857,165 @@ class CatClips {
     );
   }
 
+  /// Validation-only reproduction of [shaku] assembled through
+  /// `assembleMoveClip` — see [bugaDataDrivenPreview]'s doc comment for the
+  /// pattern and rationale. NOT part of [CatClips.all].
+  static Clip get shakuDataDrivenPreview {
+    final base = _danceBase;
+    return assembleMoveClip(
+      _dancePhrase,
+      DanceMoveDescriptor(
+        move: const AfrobeatsMove(
+          name: 'shaku',
+          feel: DanceFeel.onBeat,
+          featuredRegion: BodyRegion.legs,
+        ),
+        duration: base.duration,
+        contactPinning: base.contactPinning,
+        supportFootWorldAnchor: true,
+        supportFootWorldAnchorStrength: 0.86,
+        danceHeadBobScale: 0.8,
+        baseClip: base,
+        zOrderSwaps: const [
+          ZOrderSwapWindow(
+            boneA: CatBones.handL,
+            boneB: CatBones.handR,
+            start: 0.5,
+            end: 1,
+          ),
+        ],
+        jointTracks: {
+          CatBones.legLowerL: const DanceJointTrack(
+            _shakuLegLowerLKeys,
+            smooth: true,
+          ),
+          CatBones.legLowerR: const DanceJointTrack(
+            _shakuLegLowerRKeys,
+            smooth: true,
+          ),
+          CatBones.footL: const DanceJointTrack(_shakuFootLKeys, smooth: true),
+          CatBones.footR: const DanceJointTrack(_shakuFootRKeys, smooth: true),
+          CatBones.handL: const DanceJointTrack(_shakuHandLKeys, smooth: true),
+          CatBones.handR: const DanceJointTrack(_shakuHandRKeys, smooth: true),
+        },
+        bodyMotion: DanceBodyMotion(
+          pelvisBoneId: CatBones.hips,
+          chestBoneId: CatBones.torso,
+          tracks: [
+            DanceBodyMotionTrack(
+              keys: _shakuGrooveCalm,
+              rootMicroFrames: 0,
+              pelvisMicroFrames: -0.3,
+              chestMicroFrames: 0.25,
+              chestRotationGain: 0.68,
+            ),
+            DanceBodyMotionTrack(
+              keys: _danceBodyAccentKeys,
+              rootMicroFrames: 0,
+              pelvisMicroFrames: -0.3,
+              chestMicroFrames: 0.25,
+            ),
+            const DanceBodyMotionTrack(
+              keys: _shakuDabBodyKeys,
+              rootMicroFrames: 0,
+              pelvisMicroFrames: -0.3,
+              chestMicroFrames: 0.25,
+              chestRotationGain: 0.68,
+            ),
+            const DanceBodyMotionTrack(
+              keys: _shakuPanelBodyKeys,
+              rootMicroFrames: 0,
+              pelvisMicroFrames: -0.3,
+              chestMicroFrames: 0.25,
+              chestRotationGain: 0.68,
+            ),
+          ],
+          extraRootLayers: const [
+            SineRootChannel(swayAmplitude: -2, leanAmplitude: -0.04),
+            SineRootChannel(
+              bobAmplitude: -10,
+              bobPhase: 0.09375,
+              bobHarmonic: 8,
+              leanAmplitude: 0.015,
+              leanHarmonic: 8,
+            ),
+            SineRootChannel(
+              bobAmplitude: -3.5,
+              bobPhase: 0.02,
+              bobHarmonic: 16,
+              leanAmplitude: 0.006,
+              leanPhase: 0.03,
+              leanHarmonic: 16,
+            ),
+          ],
+          extraPelvisLayers: const [
+            SineChannel(
+              harmonicAmplitude: 0.004,
+              harmonicPhase: 0.015,
+              harmonicMultiplier: 24,
+              scaleXAmplitude: 0.0015,
+              scaleXPhase: 0.015,
+              scaleXHarmonic: 24,
+              scaleYAmplitude: -0.0015,
+              scaleYPhase: 0.015,
+              scaleYHarmonic: 24,
+            ),
+          ],
+          extraChestLayers: const [
+            SineChannel(
+              harmonicAmplitude: 0.003,
+              harmonicPhase: 0.04,
+              harmonicMultiplier: 24,
+              scaleXAmplitude: -0.002,
+              scaleXPhase: 0.04,
+              scaleXHarmonic: 24,
+              scaleYAmplitude: 0.002,
+              scaleYPhase: 0.04,
+              scaleYHarmonic: 24,
+            ),
+            SineChannel(amplitude: 0.115),
+          ],
+        ),
+        limbTargetTracks: {
+          CatBones.handL: const DanceIkTargetTrack(
+            _shakuHandLTargetKeys,
+            cyclic: true,
+          ),
+          CatBones.handR: const DanceIkTargetTrack(
+            _shakuHandRTargetKeys,
+            cyclic: true,
+          ),
+          CatBones.footL: const DanceIkTargetTrack(_shakuFootLTargetKeys),
+          CatBones.footR: const DanceIkTargetTrack(_shakuFootRTargetKeys),
+        },
+        rawContactSpans: _shakuContactSpans,
+        extraJointChannels: const {
+          CatBones.earL: KeyframeChannel(_shakuEarLKeys, smooth: true),
+          CatBones.earR: KeyframeChannel(_shakuEarRKeys, smooth: true),
+        },
+      ),
+      rigLimbTargets: [
+        const LimbIkTarget(
+          upperBoneId: CatBones.armUpperL,
+          lowerBoneId: CatBones.armLowerL,
+          endBoneId: CatBones.handL,
+          anchorBoneId: CatBones.torso,
+          channel: KeyframeIkTargetChannel([]),
+        ),
+        const LimbIkTarget(
+          upperBoneId: CatBones.armUpperR,
+          lowerBoneId: CatBones.armLowerR,
+          endBoneId: CatBones.handR,
+          anchorBoneId: CatBones.torso,
+          channel: KeyframeIkTargetChannel([]),
+          bendDirection: -1,
+        ),
+        _danceLimbTargets[2],
+        _danceLimbTargets[3],
+      ],
+    );
+  }
+
   // ─────────────────────────────────────────────────────────────────────────
   // Zanku / Legwork (Zlatan, NG 2018) — the lead's LEG-dominant hero move. The
   // signature is low tap-dig-pop-stomp footwork: the free shoe knocks heel-toe
@@ -6971,6 +7130,126 @@ class CatClips {
     );
   }
 
+  /// Validation-only reproduction of [zanku] assembled through
+  /// `assembleMoveClip` — see [bugaDataDrivenPreview]'s doc comment for the
+  /// pattern and rationale. NOT part of [CatClips.all].
+  static Clip get zankuDataDrivenPreview {
+    final base = _danceBase;
+    return assembleMoveClip(
+      _dancePhrase,
+      DanceMoveDescriptor(
+        move: const AfrobeatsMove(
+          name: 'zanku',
+          feel: DanceFeel.offBeat,
+          featuredRegion: BodyRegion.legs,
+        ),
+        duration: base.duration,
+        contactPinning: base.contactPinning,
+        supportFootWorldAnchor: true,
+        supportFootWorldAnchorStrength: 0.9,
+        danceHeadBobScale: 0.75,
+        baseClip: base,
+        jointTracks: {
+          CatBones.footL: const DanceJointTrack(_zankuFootLKeys, smooth: true),
+          CatBones.footR: const DanceJointTrack(_zankuFootRKeys, smooth: true),
+          CatBones.handL: const DanceJointTrack(_zankuHandLKeys, smooth: true),
+          CatBones.handR: const DanceJointTrack(_zankuHandRKeys, smooth: true),
+          CatBones.clavicleR: const DanceJointTrack(
+            _zankuClavicleRKeys,
+            smooth: true,
+            layerOnBase: true,
+          ),
+          CatBones.clavicleL: const DanceJointTrack(
+            _zankuClavicleLKeys,
+            smooth: true,
+            layerOnBase: true,
+          ),
+        },
+        bodyMotion: DanceBodyMotion(
+          pelvisBoneId: CatBones.hips,
+          chestBoneId: CatBones.torso,
+          tracks: [
+            DanceBodyMotionTrack(keys: _danceBodyAccentKeys),
+            const DanceBodyMotionTrack(
+              keys: _zankuGbeseAccentKeys,
+              chestMicroFrames: 0.3,
+            ),
+            DanceBodyMotionTrack(
+              keys: _zankuCommitKeys,
+              pelvisMicroFrames: -0.95,
+              chestMicroFrames: 0.9,
+              chestRotationGain: 0.72,
+            ),
+            const DanceBodyMotionTrack(
+              keys: _zankuPocketBoostKeys,
+              rootMicroFrames: -0.3,
+              pelvisMicroFrames: -1.05,
+              chestMicroFrames: 1.05,
+              chestRotationGain: 0.7,
+              chestScaleGain: 0.86,
+            ),
+            DanceBodyMotionTrack(
+              keys: _zankuSupportLoadKeys,
+              rootMicroFrames: -0.45,
+              pelvisMicroFrames: -1.15,
+              chestMicroFrames: 1.15,
+              chestRotationGain: 0.62,
+              chestScaleGain: 0.84,
+            ),
+          ],
+          extraRootLayers: const [
+            SineRootChannel(bobAmplitude: -8, bobPhase: 0.09375, bobHarmonic: 8),
+          ],
+          extraChestLayers: const [
+            SineChannel(bias: 0.17),
+            SineChannel(
+              harmonicAmplitude: 0.055,
+              harmonicMultiplier: 4,
+              harmonicPhase: 0.0825,
+            ),
+          ],
+        ),
+        limbTargetTracks: {
+          CatBones.handL: const DanceIkTargetTrack(
+            _zankuHandLTargetKeys,
+            cyclic: true,
+          ),
+          CatBones.handR: const DanceIkTargetTrack(
+            _zankuHandRTargetKeys,
+            cyclic: true,
+          ),
+          CatBones.footL: const DanceIkTargetTrack(_zankuFootLTargetKeys),
+          CatBones.footR: const DanceIkTargetTrack(_zankuFootRTargetKeys),
+        },
+        rawContactSpans: _zankuContactSpans,
+        extraJointChannels: {
+          CatBones.earL: _earFollow(side: 1, amplitude: 0.022, phase: 0.1),
+          CatBones.earR: _earFollow(side: -1, amplitude: 0.022, phase: 0.57),
+          ..._tailFollowThrough(amplitude: 0.095, phase: 0.06),
+        },
+      ),
+      rigLimbTargets: [
+        const LimbIkTarget(
+          upperBoneId: CatBones.armUpperL,
+          lowerBoneId: CatBones.armLowerL,
+          endBoneId: CatBones.handL,
+          anchorBoneId: CatBones.torso,
+          channel: KeyframeIkTargetChannel([]),
+        ),
+        const LimbIkTarget(
+          upperBoneId: CatBones.armUpperR,
+          lowerBoneId: CatBones.armLowerR,
+          endBoneId: CatBones.handR,
+          anchorBoneId: CatBones.torso,
+          channel: KeyframeIkTargetChannel([]),
+          bendDirection: -1,
+        ),
+        _danceLimbTargets[2],
+        _danceLimbTargets[3],
+      ],
+    );
+  }
+
   // ─────────────────────────────────────────────────────────────────────────
   // Azonto (Ghana, ~2011) — a bent-knee, hip-swivel groove whose signature is
   // the expressive miming HAND gestures. Reuses the shaku bent-knee groove for
@@ -7548,6 +7827,116 @@ class CatClips {
         ),
         ..._tailFollowThrough(amplitude: 0.09, phase: 0.08),
       },
+    );
+  }
+
+  /// Validation-only reproduction of [azonto] assembled through
+  /// `assembleMoveClip` — see [bugaDataDrivenPreview]'s doc comment for the
+  /// pattern and rationale. NOT part of [CatClips.all].
+  static Clip get azontoDataDrivenPreview {
+    final base = _danceBase;
+    return assembleMoveClip(
+      _dancePhrase,
+      DanceMoveDescriptor(
+        move: const AfrobeatsMove(
+          name: 'azonto',
+          feel: DanceFeel.offBeat,
+          featuredRegion: BodyRegion.arms,
+        ),
+        duration: base.duration,
+        contactPinning: base.contactPinning,
+        supportFootWorldAnchor: true,
+        supportFootWorldAnchorStrength: 0.86,
+        danceHeadBobScale: 0.7,
+        baseClip: base,
+        jointTracks: {
+          CatBones.handL: const DanceJointTrack(
+            _azontoHandLKeys,
+            smooth: true,
+          ),
+          CatBones.handR: const DanceJointTrack(
+            _azontoHandRKeys,
+            smooth: true,
+          ),
+        },
+        bodyMotion: DanceBodyMotion(
+          pelvisBoneId: CatBones.hips,
+          chestBoneId: CatBones.torso,
+          tracks: [
+            DanceBodyMotionTrack(
+              keys: _shakuGrooveCalm,
+              chestRotationGain: 0.9,
+            ),
+            DanceBodyMotionTrack(keys: _danceBodyAccentKeys),
+            const DanceBodyMotionTrack(
+              keys: _azontoPocketKeys,
+              rootMicroFrames: -0.1,
+              pelvisMicroFrames: -0.15,
+              chestMicroFrames: 1.2,
+              chestRotationGain: 0.68,
+              chestScaleGain: 0.88,
+            ),
+          ],
+          extraRootLayers: const [
+            SineRootChannel(
+              bobAmplitude: -0.04,
+              bobPhase: 0.125,
+              bobHarmonic: 8,
+            ),
+            SineRootChannel(swayAmplitude: -4, swayHarmonic: 2),
+          ],
+          extraPelvisLayers: const [SineChannel(harmonicAmplitude: 0.17)],
+          extraChestLayers: const [
+            SineChannel(harmonicAmplitude: -0.11, harmonicPhase: 0.02),
+          ],
+        ),
+        limbTargetTracks: {
+          CatBones.handL: const DanceIkTargetTrack(
+            _azontoHandLTargetKeys,
+            cyclic: true,
+          ),
+          CatBones.handR: const DanceIkTargetTrack(
+            _azontoHandRTargetKeys,
+            cyclic: true,
+          ),
+          // Unlike every other move's feet, azonto's foot IK path is NOT
+          // smooth (matches `_azontoFootLTarget`/`RTarget`'s real
+          // construction, which omits `smooth: true`).
+          CatBones.footL: const DanceIkTargetTrack(
+            _azontoFootLTargetKeys,
+            smooth: false,
+          ),
+          CatBones.footR: const DanceIkTargetTrack(
+            _azontoFootRTargetKeys,
+            smooth: false,
+          ),
+        },
+        rawContactSpans: _azontoContactSpans,
+        extraJointChannels: {
+          CatBones.earL: _earFollow(side: 1, amplitude: 0.022, phase: 0.12),
+          CatBones.earR: _earFollow(side: -1, amplitude: 0.022, phase: 0.59),
+          ..._tailFollowThrough(amplitude: 0.09, phase: 0.08),
+        },
+      ),
+      rigLimbTargets: [
+        const LimbIkTarget(
+          upperBoneId: CatBones.armUpperL,
+          lowerBoneId: CatBones.armLowerL,
+          endBoneId: CatBones.handL,
+          anchorBoneId: CatBones.torso,
+          channel: KeyframeIkTargetChannel([]),
+        ),
+        const LimbIkTarget(
+          upperBoneId: CatBones.armUpperR,
+          lowerBoneId: CatBones.armLowerR,
+          endBoneId: CatBones.handR,
+          anchorBoneId: CatBones.torso,
+          channel: KeyframeIkTargetChannel([]),
+          bendDirection: -1,
+        ),
+        _danceLimbTargets[2],
+        _danceLimbTargets[3],
+      ],
     );
   }
 
@@ -8268,26 +8657,32 @@ class CatClips {
             smooth: true,
           ),
         },
-        bodyMotion: const DanceBodyMotionTrack(
-          keys: _bugaBodyKeys,
+        bodyMotion: const DanceBodyMotion(
           pelvisBoneId: CatBones.hips,
           chestBoneId: CatBones.torso,
-          rootMicroFrames: -0.1,
-          pelvisMicroFrames: -0.15,
-          chestMicroFrames: 0.75,
-          chestRotationGain: 0.94,
-          chestScaleGain: 0.98,
-          pelvisTexture: SineChannel(
-            harmonicAmplitude: 0.006,
-            harmonicPhase: 0.02,
-            harmonicMultiplier: 24,
-            scaleXAmplitude: 0.002,
-            scaleXPhase: 0.02,
-            scaleXHarmonic: 24,
-            scaleYAmplitude: -0.002,
-            scaleYPhase: 0.02,
-            scaleYHarmonic: 24,
-          ),
+          tracks: [
+            DanceBodyMotionTrack(
+              keys: _bugaBodyKeys,
+              rootMicroFrames: -0.1,
+              pelvisMicroFrames: -0.15,
+              chestMicroFrames: 0.75,
+              chestRotationGain: 0.94,
+              chestScaleGain: 0.98,
+            ),
+          ],
+          extraPelvisLayers: [
+            SineChannel(
+              harmonicAmplitude: 0.006,
+              harmonicPhase: 0.02,
+              harmonicMultiplier: 24,
+              scaleXAmplitude: 0.002,
+              scaleXPhase: 0.02,
+              scaleXHarmonic: 24,
+              scaleYAmplitude: -0.002,
+              scaleYPhase: 0.02,
+              scaleYHarmonic: 24,
+            ),
+          ],
         ),
         limbTargetTracks: {
           CatBones.handL: const DanceIkTargetTrack(
@@ -8860,6 +9255,80 @@ class CatClips {
         CatBones.earR: _earFollow(side: -1, amplitude: 0.02, phase: 0.61),
         ..._tailFollowThrough(amplitude: 0.085, phase: 0.14),
       },
+    );
+  }
+
+  /// Validation-only reproduction of [pouncingCat] assembled through
+  /// `assembleMoveClip` — see [bugaDataDrivenPreview]'s doc comment for the
+  /// pattern and rationale. NOT part of [CatClips.all].
+  static Clip get pouncingCatDataDrivenPreview {
+    final base = _danceBase;
+    return assembleMoveClip(
+      _dancePhrase,
+      DanceMoveDescriptor(
+        move: const AfrobeatsMove(
+          name: 'pouncingCat',
+          feel: DanceFeel.halfTime,
+          featuredRegion: BodyRegion.full,
+        ),
+        duration: base.duration,
+        contactPinning: base.contactPinning,
+        supportFootWorldAnchor: true,
+        supportFootWorldAnchorStrength: 0.88,
+        danceHeadBobScale: 0,
+        danceHeadLevelClampMin: -20,
+        baseClip: base,
+        bodyMotion: const DanceBodyMotion(
+          pelvisBoneId: CatBones.hips,
+          chestBoneId: CatBones.torso,
+          tracks: [
+            DanceBodyMotionTrack(
+              keys: _pounceBodyKeys,
+              pelvisSmooth: false,
+              chestSmooth: false,
+            ),
+            DanceBodyMotionTrack(keys: _pounceGrooveKeys),
+          ],
+          extraChestLayers: [
+            SineChannel(harmonicAmplitude: -0.04, harmonicPhase: 0.02),
+          ],
+        ),
+        limbTargetTracks: {
+          CatBones.handL: const DanceIkTargetTrack(_pounceHandLTargetKeys),
+          CatBones.handR: const DanceIkTargetTrack(_pounceHandRTargetKeys),
+          CatBones.footL: const DanceIkTargetTrack(_pounceFootLTargetKeys),
+          CatBones.footR: const DanceIkTargetTrack(_pounceFootRTargetKeys),
+        },
+        rawContactSpans: _pounceContactSpans,
+        extraJointChannels: {
+          // Neck/head held flat (no inherited dance nod) so the head stays
+          // level — see the real getter's comment on danceHeadBobScale.
+          CatBones.neck: const SineChannel(),
+          CatBones.head: const SineChannel(),
+          CatBones.earL: _earFollow(side: 1, amplitude: 0.02, phase: 0.16),
+          CatBones.earR: _earFollow(side: -1, amplitude: 0.02, phase: 0.61),
+          ..._tailFollowThrough(amplitude: 0.085, phase: 0.14),
+        },
+      ),
+      rigLimbTargets: [
+        const LimbIkTarget(
+          upperBoneId: CatBones.armUpperL,
+          lowerBoneId: CatBones.armLowerL,
+          endBoneId: CatBones.handL,
+          anchorBoneId: CatBones.torso,
+          channel: KeyframeIkTargetChannel([]),
+        ),
+        const LimbIkTarget(
+          upperBoneId: CatBones.armUpperR,
+          lowerBoneId: CatBones.armLowerR,
+          endBoneId: CatBones.handR,
+          anchorBoneId: CatBones.torso,
+          channel: KeyframeIkTargetChannel([]),
+          bendDirection: -1,
+        ),
+        _danceLimbTargets[2],
+        _danceLimbTargets[3],
+      ],
     );
   }
 
@@ -9819,6 +10288,159 @@ class CatClips {
         CatBones.earR: _earFollow(side: -1, phase: 0.55),
         ..._tailFollowThrough(amplitude: 0.1, phase: 0.07),
       },
+    );
+  }
+
+  /// Validation-only reproduction of [sekem] assembled through
+  /// `assembleMoveClip` — see [bugaDataDrivenPreview]'s doc comment for the
+  /// pattern and rationale. NOT part of [CatClips.all].
+  static Clip get sekemDataDrivenPreview {
+    final base = _danceBase;
+    return assembleMoveClip(
+      _dancePhrase,
+      DanceMoveDescriptor(
+        move: const AfrobeatsMove(
+          name: 'sekem',
+          feel: DanceFeel.onBeat,
+          featuredRegion: BodyRegion.chest,
+        ),
+        duration: base.duration,
+        contactPinning: base.contactPinning,
+        supportFootWorldAnchor: true,
+        supportFootWorldAnchorStrength: 0.9,
+        danceHeadBobScale: 0.75,
+        baseClip: base,
+        jointTracks: {
+          CatBones.footL: const DanceJointTrack(_sekemFootLKeys, smooth: true),
+          CatBones.footR: const DanceJointTrack(_sekemFootRKeys, smooth: true),
+          CatBones.handL: const DanceJointTrack(_sekemHandLKeys, smooth: true),
+          CatBones.handR: const DanceJointTrack(_sekemHandRKeys, smooth: true),
+          CatBones.clavicleR: const DanceJointTrack(
+            _sekemClavicleRKeys,
+            smooth: true,
+            layerOnBase: true,
+          ),
+          CatBones.clavicleL: const DanceJointTrack(
+            _sekemClavicleLKeys,
+            smooth: true,
+            layerOnBase: true,
+          ),
+          CatBones.shoulderSocketR: const DanceJointTrack(
+            _sekemShoulderSocketRKeys,
+            smooth: true,
+          ),
+          CatBones.shoulderSocketL: const DanceJointTrack(
+            _sekemShoulderSocketLKeys,
+            smooth: true,
+          ),
+        },
+        bodyMotion: DanceBodyMotion(
+          pelvisBoneId: CatBones.hips,
+          chestBoneId: CatBones.torso,
+          tracks: [
+            DanceBodyMotionTrack(
+              keys: _sekemBodyKeys,
+              pelvisMicroFrames: -0.1,
+              chestMicroFrames: 0.9,
+              chestRotationGain: 0.74,
+              chestScaleGain: 0.86,
+              pelvisSmooth: false,
+              chestSmooth: false,
+            ),
+            const DanceBodyMotionTrack(
+              keys: _sekemPocketBoostKeys,
+              rootMicroFrames: -0.3,
+              pelvisMicroFrames: -0.2,
+              chestMicroFrames: 1.05,
+              chestRotationGain: 0.68,
+              chestScaleGain: 0.84,
+            ),
+            const DanceBodyMotionTrack(
+              keys: _sekemSettleKeys,
+              rootMicroFrames: -0.15,
+              pelvisMicroFrames: -0.1,
+              chestMicroFrames: 0.95,
+              chestRotationGain: 0.42,
+              chestScaleGain: 0.68,
+            ),
+          ],
+          extraRootLayers: const [
+            SineRootChannel(
+              swayAmplitude: 1.55,
+              swayHarmonic: 8,
+              swayPhase: -0.035,
+              leanAmplitude: 0.0012,
+              leanHarmonic: 8,
+              leanPhase: -0.02,
+            ),
+          ],
+          extraPelvisLayers: const [
+            SineChannel(
+              harmonicAmplitude: 0.042,
+              harmonicMultiplier: 8,
+              harmonicPhase: -0.025,
+              scaleXAmplitude: 0.012,
+              scaleXHarmonic: 8,
+              scaleXPhase: -0.025,
+              scaleYAmplitude: -0.01,
+              scaleYHarmonic: 8,
+              scaleYPhase: -0.025,
+            ),
+          ],
+          extraChestLayers: const [
+            SineChannel(
+              harmonicAmplitude: -0.026,
+              harmonicMultiplier: 8,
+              harmonicPhase: 0.03,
+              scaleXAmplitude: -0.007,
+              scaleXHarmonic: 8,
+              scaleXPhase: 0.03,
+              scaleYAmplitude: 0.006,
+              scaleYHarmonic: 8,
+              scaleYPhase: 0.03,
+            ),
+          ],
+        ),
+        limbTargetTracks: {
+          CatBones.handL: const DanceIkTargetTrack(
+            _sekemHandLTargetKeys,
+            cyclic: true,
+            microFrames: 0.1,
+          ),
+          CatBones.handR: const DanceIkTargetTrack(
+            _sekemHandRTargetKeys,
+            cyclic: true,
+            microFrames: 0.1,
+          ),
+          CatBones.footL: const DanceIkTargetTrack(_sekemFootLTargetKeys),
+          CatBones.footR: const DanceIkTargetTrack(_sekemFootRTargetKeys),
+        },
+        rawContactSpans: _sekemContactSpans,
+        extraJointChannels: {
+          CatBones.earL: _earFollow(side: 1),
+          CatBones.earR: _earFollow(side: -1, phase: 0.55),
+          ..._tailFollowThrough(amplitude: 0.1, phase: 0.07),
+        },
+      ),
+      rigLimbTargets: [
+        const LimbIkTarget(
+          upperBoneId: CatBones.armUpperL,
+          lowerBoneId: CatBones.armLowerL,
+          endBoneId: CatBones.handL,
+          anchorBoneId: CatBones.torso,
+          channel: KeyframeIkTargetChannel([]),
+        ),
+        const LimbIkTarget(
+          upperBoneId: CatBones.armUpperR,
+          lowerBoneId: CatBones.armLowerR,
+          endBoneId: CatBones.handR,
+          anchorBoneId: CatBones.torso,
+          channel: KeyframeIkTargetChannel([]),
+          bendDirection: -1,
+        ),
+        _danceLimbTargets[2],
+        _danceLimbTargets[3],
+      ],
     );
   }
 

@@ -14,27 +14,25 @@ import 'package:dancing_cats/features/character/model/dance_phrase.dart';
 /// [chestMicroFrames] while its rotation/scale are damped by
 /// [chestRotationGain]/[chestScaleGain] so the follow-through reads softer
 /// than the initiating root/pelvis snap.
+///
+/// A move typically layers SEVERAL of these (one per authored key set — a
+/// base groove, a signature accent, a per-move pocket boost, ...) via
+/// [DanceBodyMotion.tracks]; each track keeps its own timing/gain so the
+/// layers can lead/lag independently before being summed.
 class DanceBodyMotionTrack {
   const DanceBodyMotionTrack({
     required this.keys,
-    required this.pelvisBoneId,
-    required this.chestBoneId,
     this.rootMicroFrames = -0.35,
     this.pelvisMicroFrames = -0.55,
     this.chestMicroFrames = 0.55,
     this.chestRotationGain = 0.88,
     this.chestScaleGain = 0.92,
-    this.smooth = true,
-    this.pelvisTexture,
+    this.rootSmooth = true,
+    this.pelvisSmooth = true,
+    this.chestSmooth = true,
   });
 
   final List<DanceBodyKey> keys;
-
-  /// Rig bone id the pelvis channel is written to.
-  final String pelvisBoneId;
-
-  /// Rig bone id the chest channel is written to.
-  final String chestBoneId;
   final double rootMicroFrames;
   final double pelvisMicroFrames;
   final double chestMicroFrames;
@@ -46,13 +44,52 @@ class DanceBodyMotionTrack {
   /// Damping applied to chest `scaleX`/`scaleY` around their neutral `1`:
   /// `1` leaves it unchanged, `0` flattens it to no scale change.
   final double chestScaleGain;
-  final bool smooth;
 
-  /// Optional procedural texture (e.g. a small `SineChannel` micro-wobble)
-  /// layered on top of the compiled pelvis channel, matching the
-  /// texture-on-top-of-lead-motion pattern shared moves already use on
-  /// their hips/torso channels.
-  final JointChannel? pelvisTexture;
+  /// Each channel's `smooth` is independent, matching the private
+  /// `_bodyRootLeadChannel`/`_bodyPelvisLeadChannel`/`_bodyChestFollowChannel`
+  /// helpers, which are three separate calls each with their own `smooth`.
+  final bool rootSmooth;
+  final bool pelvisSmooth;
+  final bool chestSmooth;
+}
+
+/// A move's full body-groove composition: one or more independently-timed
+/// [DanceBodyMotionTrack]s (each an authored `DanceBodyKey` set, e.g. a base
+/// groove plus a signature accent plus a per-move pocket boost) summed
+/// together, optionally topped with pure-procedural texture layers that
+/// carry no authored key data (e.g. a small always-on `SineChannel`
+/// micro-wobble) — mirroring how every shipped move stacks N key-driven
+/// layers followed by M texture-only layers on root/hips/torso via
+/// `LayeredRootChannel`/`LayeredJointChannel`.
+class DanceBodyMotion {
+  const DanceBodyMotion({
+    required this.tracks,
+    required this.pelvisBoneId,
+    required this.chestBoneId,
+    this.extraRootLayers = const [],
+    this.extraPelvisLayers = const [],
+    this.extraChestLayers = const [],
+  });
+
+  final List<DanceBodyMotionTrack> tracks;
+
+  /// Rig bone id the pelvis channel is written to.
+  final String pelvisBoneId;
+
+  /// Rig bone id the chest channel is written to.
+  final String chestBoneId;
+
+  /// Pure-procedural root layers (no authored key data), appended after
+  /// every [tracks] entry's compiled root channel.
+  final List<RootChannel> extraRootLayers;
+
+  /// Pure-procedural pelvis layers, appended after every [tracks] entry's
+  /// compiled pelvis channel.
+  final List<JointChannel> extraPelvisLayers;
+
+  /// Pure-procedural chest layers, appended after every [tracks] entry's
+  /// compiled chest channel.
+  final List<JointChannel> extraChestLayers;
 }
 
 /// Dense per-bone keyframe data for one bone, compiled via
@@ -78,11 +115,20 @@ class DanceJointTrack {
 /// IK target path data for one limb, compiled via
 /// `DancePhrase.ikTargetChannel`.
 class DanceIkTargetTrack {
-  const DanceIkTargetTrack(this.keys, {this.smooth = true, this.cyclic = false});
+  const DanceIkTargetTrack(
+    this.keys, {
+    this.smooth = true,
+    this.cyclic = false,
+    this.microFrames = 0,
+  });
 
   final List<DanceIkTargetKey> keys;
   final bool smooth;
   final bool cyclic;
+
+  /// Whole-channel sub-frame timing offset, passed straight through to
+  /// `DancePhrase.ikTargetChannel`'s own `microFrames` parameter.
+  final double microFrames;
 }
 
 /// Full data needed to assemble a [Clip] for one move: an [AfrobeatsMove] for
@@ -92,7 +138,9 @@ class DanceIkTargetTrack {
 /// the per-clip engine levers).
 ///
 /// This is compiled by `assembleMoveClip` (`dance_move_compiler.dart`). It is
-/// purely additive infrastructure — no shipped move constructs or consumes a
+/// purely additive infrastructure: `<move>DataDrivenPreview` getters
+/// (e.g. `CatClips.bugaDataDrivenPreview`) prove parity against the shipped
+/// moves, but no shipped move getter itself constructs or consumes a
 /// [DanceMoveDescriptor] yet.
 class DanceMoveDescriptor {
   const DanceMoveDescriptor({
@@ -105,6 +153,7 @@ class DanceMoveDescriptor {
     this.bodyMotion,
     this.limbTargetTracks = const {},
     this.supports = const [],
+    this.rawContactSpans = const [],
     this.extraJointChannels = const {},
     this.supportFootWorldAnchor,
     this.supportFootWorldAnchorStrength,
@@ -129,8 +178,8 @@ class DanceMoveDescriptor {
   /// Dense per-bone keyframe data, keyed by bone id.
   final Map<String, DanceJointTrack> jointTracks;
 
-  /// Optional body lead/lag styling track (root/pelvis/chest).
-  final DanceBodyMotionTrack? bodyMotion;
+  /// Optional body lead/lag styling composition (root/pelvis/chest).
+  final DanceBodyMotion? bodyMotion;
 
   /// IK target path data, keyed by the limb's `endBoneId` (e.g. a hand or
   /// foot bone id). Each entry compiles to a `KeyframeIkTargetChannel` and is
@@ -141,6 +190,12 @@ class DanceMoveDescriptor {
   /// Declared support-foot windows, converted to `Clip.contactSpans` via the
   /// existing `DanceSupportSpan.toGroundSpan`.
   final List<DanceSupportSpan> supports;
+
+  /// Escape hatch for contact spans authored directly in phase units, when a
+  /// span boundary needs sub-frame precision `DanceSupportSpan`'s integer
+  /// `startFrame`/`endFrame` can't express (e.g. a boundary at frame 30.125).
+  /// Appended after [supports]' converted spans.
+  final List<GroundSpan> rawContactSpans;
 
   /// Escape hatch for bespoke, non-frame-keyed channels (e.g. a procedural
   /// sine-driven ear/tail follow-through) that don't fit the frame-key model.
