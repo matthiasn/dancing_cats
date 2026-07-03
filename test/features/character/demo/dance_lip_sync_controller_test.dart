@@ -55,6 +55,16 @@ void main() {
       expect(c.selectedIndex, isNull);
     });
 
+    test('clearSelection clears an existing selection and notifies', () {
+      c.selectCue(2);
+      var notified = 0;
+      c
+        ..addListener(() => notified++)
+        ..clearSelection();
+      expect(c.selectedIndex, isNull);
+      expect(notified, 1);
+    });
+
     test('clearSelection is a no-op with nothing selected', () {
       var notified = 0;
       c
