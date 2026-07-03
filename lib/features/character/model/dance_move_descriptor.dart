@@ -132,16 +132,14 @@ class DanceIkTargetTrack {
 }
 
 /// Full data needed to assemble a [Clip] for one move: an [AfrobeatsMove] for
-/// feel/dynamics/styling, plus every lower-level construct the shipped moves
-/// in `cat_in_suit.dart` currently hand-assemble (dense per-bone keyframes,
-/// body lead/lag styling, IK limb target paths, support/contact spans, and
-/// the per-clip engine levers).
+/// feel/dynamics/styling, plus every lower-level construct a move needs
+/// (dense per-bone keyframes, body lead/lag styling, IK limb target paths,
+/// support/contact spans, and the per-clip engine levers).
 ///
-/// This is compiled by `assembleMoveClip` (`dance_move_compiler.dart`). It is
-/// purely additive infrastructure: `<move>DataDrivenPreview` getters
-/// (e.g. `CatClips.bugaDataDrivenPreview`) prove parity against the shipped
-/// moves, but no shipped move getter itself constructs or consumes a
-/// [DanceMoveDescriptor] yet.
+/// This is compiled by `assembleMoveClip` (`dance_move_compiler.dart`). All 6
+/// catalog moves in `cat_in_suit.dart` (`buga`, `shaku`, `zanku`, `azonto`,
+/// `pouncingCat`, `sekem`) are assembled this way, from their own authored
+/// key data.
 class DanceMoveDescriptor {
   const DanceMoveDescriptor({
     required this.move,
