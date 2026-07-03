@@ -1754,14 +1754,58 @@ void main() {
       expect(at((zoom: 1.0, dx: 0.0, dy: 0.0), 1), Matrix4.identity());
     });
 
-    test('depth scales the zoom linearly toward the full foreground push', () {
-      // zoom entry = 1 + (shot.zoom - 1) * depth: a far plane (0.1) barely grows;
-      // depth 1 matches the foreground camera exactly.
-      const shot = (zoom: 2.10, dx: 0.0, dy: 0.0);
-      expect(at(shot, 0.1).entry(0, 0), moreOrLessEquals(1.11, epsilon: 1e-9));
-      expect(at(shot, 0.5).entry(0, 0), moreOrLessEquals(1.55, epsilon: 1e-9));
-      expect(at(shot, 1).entry(0, 0), moreOrLessEquals(2.10, epsilon: 1e-9));
-    });
+    test(
+      'depth scales the zoom linearly toward the full foreground push, '
+      'for a deliberate push well clear of the small-move soft knee',
+      () {
+        // zoom entry = 1 + (shot.zoom - 1) * depth: a far plane (0.1) barely
+        // grows; depth 1 matches the foreground camera exactly. The 1.10 zoom
+        // delta clears _kParallaxZoomKnee at every depth here, so the soft
+        // knee is a no-op and this is exactly the un-softened linear ladder.
+        const shot = (zoom: 2.10, dx: 0.0, dy: 0.0);
+        expect(
+          at(shot, 0.1).entry(0, 0),
+          moreOrLessEquals(1.11, epsilon: 1e-9),
+        );
+        expect(
+          at(shot, 0.5).entry(0, 0),
+          moreOrLessEquals(1.55, epsilon: 1e-9),
+        );
+        expect(at(shot, 1).entry(0, 0), moreOrLessEquals(2.10, epsilon: 1e-9));
+      },
+    );
+
+    test(
+      'a small move is damped harder on a far plane than on a near one '
+      '(the soft knee)',
+      () {
+        // A 0.04 zoom delta sits BETWEEN the two planes' knees (far plane
+        // knee at depth 0.12 is 0.06*0.88=0.0528; near plane knee at depth
+        // 0.5 is 0.06*0.5=0.03), so the near plane already clears its knee
+        // (full linear pass) while the far plane is still inside its softened
+        // region: the ratio of actual growth to what pure linear scaling
+        // would give is lower far than near.
+        const shot = (zoom: 1.04, dx: 0.0, dy: 0.0);
+        final far = at(shot, 0.12).entry(0, 0) - 1;
+        final near = at(shot, 0.5).entry(0, 0) - 1;
+        const farLinear = 0.04 * 0.12;
+        const nearLinear = 0.04 * 0.5;
+        expect(far / farLinear, lessThan(near / nearLinear));
+        expect(near / nearLinear, moreOrLessEquals(1, epsilon: 1e-9));
+
+        // A deliberate push (chorus-scale, 0.32 delta) clears the knee at
+        // both depths and rides the plain linear ladder.
+        const bigShot = (zoom: 1.32, dx: 0.0, dy: 0.0);
+        expect(
+          at(bigShot, 0.12).entry(0, 0) - 1,
+          moreOrLessEquals(0.32 * 0.12, epsilon: 1e-9),
+        );
+        expect(
+          at(bigShot, 0.5).entry(0, 0) - 1,
+          moreOrLessEquals(0.32 * 0.5, epsilon: 1e-9),
+        );
+      },
+    );
 
     test('scales about the feet-planted director pivot at any depth', () {
       // Under a pure zoom the pivot is the one point that maps to itself; the
