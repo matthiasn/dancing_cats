@@ -633,6 +633,20 @@ class KeyframeIkTargetChannel extends IkTargetChannel {
   ) => _periodicCatmullRom(keys, (k) => k.p, f, (k) => k.tension, i, local, dp);
 }
 
+/// Binds a two-bone limb chain ([upperBoneId] → [lowerBoneId] → [endBoneId])
+/// to a target-based IK channel, so choreography can author "the hand goes
+/// here" instead of hand-tuning shoulder/elbow rotations frame by frame.
+///
+/// [channel] samples an [IkTargetPose] per phase (position + [anchorBoneId]-
+/// relative coordinates + weight); `CharacterScene._solveLimbTarget` resolves
+/// it against the live rig via the analytic two-bone solver
+/// (`solveTwoBoneIk`), then converts the result back into ordinary local
+/// joint rotations so it re-enters the pose the same way an authored FK key
+/// would. A clip's [Clip.limbTargets] list is also what
+/// `CharacterScene._overshootTargetBoneIds` walks to find which arm/torso
+/// bones are eligible for the overshoot-settle pass, and what a support-foot
+/// target's [endBoneId] is checked against for the world-anchor blend (see
+/// [Clip.supportFootWorldAnchor]).
 class LimbIkTarget {
   const LimbIkTarget({
     required this.upperBoneId,
