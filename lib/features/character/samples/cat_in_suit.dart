@@ -6030,14 +6030,21 @@ class CatClips {
     // shin/knee height" — the authored apex (y:52) sat at the shallow end
     // of the tested band (40..52, "hip-to-waist height" per the test's own
     // reason string), not the deep end. Pushed to the tested ceiling.
-    DanceIkTargetKey(25, x: 34, y: 68), // knee already driving up
+    // Round 9: even at the tested apex, raters called this "afrobeats-
+    // adjacent footwork" rather than a real air-kick — measured world reach
+    // from the hip confirmed why: at the exact apex the leg is only ~47% of
+    // its max reach (a tucked knee raise), while the untested approach/
+    // release frames reach 63-74%. Swept 25/27 further outboard so the leg
+    // is already extending OUT before/after the apex, reading as one
+    // continuous kicking arc instead of a knee tucking up and back.
+    DanceIkTargetKey(25, x: 48, y: 64), // extending out into the kick
     DanceIkTargetKey(
       26,
       x: 32,
       y: 46,
       tension: 0.8,
     ), // GBESE apex — knee/waist height
-    DanceIkTargetKey(27, x: 40, y: 80), // whip back down, still high
+    DanceIkTargetKey(27, x: 52, y: 76), // whip continues out, still high
     DanceIkTargetKey(28, x: 64, y: 126, tension: 1), // SLAM landing stamp
     DanceIkTargetKey(30, x: 64, y: 125, tension: 0.6), // held support for loop
     DanceIkTargetKey(32, x: 50, y: 123), // == frame 0
