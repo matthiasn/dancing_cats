@@ -5393,19 +5393,6 @@ class CatClips {
     DanceIkTargetKey(31, x: -12, y: -46, tension: 0.8), // re-crosses
     DanceIkTargetKey(32, x: -16, y: -46, tension: 1), // == frame 0
   ];
-  // Plain smooth channels: per-key tension shapes the held X and the crisp
-  // open flashes; the old Softened blur wrapper would smear exactly those
-  // accents (the same reason the wrappers were retired everywhere else).
-  static final IkTargetChannel _shakuHandLTarget = _dancePhrase.ikTargetChannel(
-    _shakuHandLTargetKeys,
-    smooth: true,
-    cyclic: true,
-  );
-  static final IkTargetChannel _shakuHandRTarget = _dancePhrase.ikTargetChannel(
-    _shakuHandRTargetKeys,
-    smooth: true,
-    cyclic: true,
-  );
   static const _shakuFootLTargetKeys = [
     // The support phase is ONE constant plant — the round-3 rigging rater
     // pixel-measured the old ±3-unit authored wander as ice-skating. The
@@ -5440,10 +5427,6 @@ class CatClips {
     DanceIkTargetKey(30, x: 58, y: 97), // toe-led lift begins
     DanceIkTargetKey(32, x: 52, y: 96),
   ];
-  static final KeyframeIkTargetChannel _shakuFootLTarget = _dancePhrase
-      .ikTargetChannel(_shakuFootLTargetKeys, smooth: true);
-  static final KeyframeIkTargetChannel _shakuFootRTarget = _dancePhrase
-      .ikTargetChannel(_shakuFootRTargetKeys, smooth: true);
   static const _shakuFootLKeys = [
     DanceJointKey(0, rotation: 0.3),
     DanceJointKey(1, rotation: 0.82),
@@ -5515,30 +5498,6 @@ class CatClips {
     DanceJointKey(29, rotation: 0.44),
     DanceJointKey(31, rotation: -0.22),
     DanceJointKey(32, rotation: 0.12),
-  ];
-
-  // Reuse the dance foot targets; the HANDS get the crossed-X channels with
-  // elbows on their natural OUTBOARD side. The old flip folded the elbows
-  // inboard of the shoulders while the forearms broke outboard-below — the
-  // anatomically impossible "broken W" the owner flagged on screen.
-  static final List<LimbIkTarget> _shakuLimbTargets = [
-    LimbIkTarget(
-      upperBoneId: CatBones.armUpperL,
-      lowerBoneId: CatBones.armLowerL,
-      endBoneId: CatBones.handL,
-      anchorBoneId: CatBones.torso,
-      channel: _shakuHandLTarget,
-    ),
-    LimbIkTarget(
-      upperBoneId: CatBones.armUpperR,
-      lowerBoneId: CatBones.armLowerR,
-      endBoneId: CatBones.handR,
-      anchorBoneId: CatBones.torso,
-      channel: _shakuHandRTarget,
-      bendDirection: -1,
-    ),
-    _danceLimbTargets[2].withChannel(_shakuFootLTarget),
-    _danceLimbTargets[3].withChannel(_shakuFootRTarget),
   ];
 
   // Calmer ears for Shaku: enough delayed flop to avoid a fixed skull silhouette,
@@ -5664,203 +5623,10 @@ class CatClips {
   /// that does NOT translate the root, so it never drags the free foot into the
   /// planted one). The crossed-X hand IK uses a hit-and-hold square wave with
   /// `easeOutBack` overshoot; the forearm reads via the shared sleeve band.
+  ///
+  /// Assembled through `assembleMoveClip` (`dance_move_compiler.dart`) from
+  /// its authored key data below.
   static Clip get shaku {
-    final base = _danceBase;
-    return Clip(
-      name: 'shaku',
-      duration: base.duration,
-      contactSpans: _shakuContactSpans,
-      contactPinning: base.contactPinning,
-      limbTargets: _shakuLimbTargets,
-      supportFootWorldAnchor: true,
-      supportFootWorldAnchorStrength: 0.86,
-      // Panel round 1: the fixed bright smile through the deepest pocket read
-      // as a dead head. Enough presence for the chin-drop bop toward the X
-      // to register, still shy of the old ear-fan.
-      danceHeadBobScale: 0.8,
-      // Round 6: hand.L always renders in front (fixed rig z 18 vs 17) even
-      // though the choreography's own comments call for the top wrist to
-      // alternate every bar ("bar-2 X — R takes TOP"). Bar 2 (phase 0.5..1)
-      // now actually swaps which hand paints on top to match.
-      zOrderSwaps: const [
-        ZOrderSwapWindow(
-          boneA: CatBones.handL,
-          boneB: CatBones.handR,
-          start: 0.5,
-          end: 1,
-        ),
-      ],
-      root: LayeredRootChannel([
-        _bodyRootLeadChannel(
-          _shakuGrooveCalm,
-          smooth: true,
-          microFrames: 0,
-        ),
-        _bodyRootLeadChannel(
-          _danceBodyAccentKeys,
-          smooth: true,
-          microFrames: 0,
-        ),
-        _bodyRootLeadChannel(
-          _shakuDabBodyKeys,
-          smooth: true,
-          microFrames: 0,
-        ),
-        _bodyRootLeadChannel(
-          _shakuPanelBodyKeys,
-          smooth: true,
-          microFrames: 0,
-        ),
-        // Per-BAR pelvis/COM travel — a small lateral shift (harmonic 1) that
-        // stacks the body OVER the support foot (left bar 1, right bar 2). Safe
-        // now the support foot is world-anchored: it holds while the body slides
-        // over it (only the lifting swing foot follows), so this reads as a
-        // committed weight transfer rather than the whole trio sliding.
-        // Deepened so the COM clearly commits over the planted foot each bar.
-        // Round 6: leanAmplitude was left at its old near-zero placeholder
-        // (0.001-0.0001 rad, under a tenth of a degree) — every one of 5
-        // panel raters called the torso "bolt upright"/"never banks" despite
-        // the move's own brief calling for off-axis lean. Paired here with
-        // the sway so the ribcage banks toward the weighted foot for the
-        // whole bar, not a per-beat wobble.
-        const SineRootChannel(
-          swayAmplitude: -2,
-          leanAmplitude: -0.04,
-        ),
-        // The GALLOP: a per-beat root drop the round-3 movement rater measured
-        // as absent (head bobbed ~2% of body height; the skip read as a
-        // floor-glide). Harmonic 8 = one load per count; the half-beat
-        // harmonic-16 layer is the skip in between. Knee pulses below absorb
-        // the drop so the support foot never unplants.
-        const SineRootChannel(
-          bobAmplitude: -10,
-          // sin(8*2pi*(p+phase)) bottoms at p = 0.09375-phase+k/8: phase
-          // 0.09375 lands the load exactly ON each count frame (0,4,8...).
-          bobPhase: 0.09375,
-          bobHarmonic: 8,
-          leanAmplitude: 0.015,
-          leanHarmonic: 8,
-        ),
-        const SineRootChannel(
-          bobAmplitude: -3.5,
-          bobPhase: 0.02,
-          bobHarmonic: 16,
-          leanAmplitude: 0.006,
-          leanPhase: 0.03,
-          leanHarmonic: 16,
-        ),
-      ]),
-      channels: {
-        ...base.channels,
-        CatBones.hips: LayeredJointChannel([
-          _bodyPelvisLeadChannel(
-            _shakuGrooveCalm,
-            smooth: true,
-            microFrames: -0.3,
-          ),
-          _bodyPelvisLeadChannel(
-            _danceBodyAccentKeys,
-            smooth: true,
-            microFrames: -0.3,
-          ),
-          _bodyPelvisLeadChannel(
-            _shakuDabBodyKeys,
-            smooth: true,
-            microFrames: -0.3,
-          ),
-          _bodyPelvisLeadChannel(
-            _shakuPanelBodyKeys,
-            smooth: true,
-            microFrames: -0.3,
-          ),
-          const SineChannel(
-            harmonicAmplitude: 0.004,
-            harmonicPhase: 0.015,
-            harmonicMultiplier: 24,
-            scaleXAmplitude: 0.0015,
-            scaleXPhase: 0.015,
-            scaleXHarmonic: 24,
-            scaleYAmplitude: -0.0015,
-            scaleYPhase: 0.015,
-            scaleYHarmonic: 24,
-          ),
-        ]),
-        CatBones.torso: LayeredJointChannel([
-          _bodyChestFollowChannel(
-            _shakuGrooveCalm,
-            smooth: true,
-            microFrames: 0.25,
-            rotationGain: 0.68,
-          ),
-          _bodyChestFollowChannel(
-            _danceBodyAccentKeys,
-            smooth: true,
-            microFrames: 0.25,
-          ),
-          _bodyChestFollowChannel(
-            _shakuDabBodyKeys,
-            smooth: true,
-            microFrames: 0.25,
-            rotationGain: 0.68,
-          ),
-          _bodyChestFollowChannel(
-            _shakuPanelBodyKeys,
-            smooth: true,
-            microFrames: 0.25,
-            rotationGain: 0.68,
-          ),
-          const SineChannel(
-            harmonicAmplitude: 0.003,
-            harmonicPhase: 0.04,
-            harmonicMultiplier: 24,
-            scaleXAmplitude: -0.002,
-            scaleXPhase: 0.04,
-            scaleXHarmonic: 24,
-            scaleYAmplitude: 0.002,
-            scaleYPhase: 0.04,
-            scaleYHarmonic: 24,
-          ),
-          // Per-BAR weight-commit BANK (harmonic 1): the chest tips toward the
-          // support foot — one way through bar 1, the other through bar 2. The
-          // round-3 director measured the old 2-degree tilt as "ramrod
-          // vertical"; this is a real 6-7 degree bank that swaps sides each
-          // bar, with the head counter riding via the follow channel.
-          const SineChannel(amplitude: 0.115),
-        ]),
-        CatBones.legLowerL: _dancePhrase.jointChannel(
-          _shakuLegLowerLKeys,
-          smooth: true,
-        ),
-        CatBones.legLowerR: _dancePhrase.jointChannel(
-          _shakuLegLowerRKeys,
-          smooth: true,
-        ),
-        CatBones.footL: _dancePhrase.jointChannel(
-          _shakuFootLKeys,
-          smooth: true,
-        ),
-        CatBones.footR: _dancePhrase.jointChannel(
-          _shakuFootRKeys,
-          smooth: true,
-        ),
-        CatBones.handL: _dancePhrase.jointChannel(
-          _shakuHandLKeys,
-          smooth: true,
-        ),
-        CatBones.handR: _dancePhrase.jointChannel(
-          _shakuHandRKeys,
-          smooth: true,
-        ),
-        CatBones.earL: const KeyframeChannel(_shakuEarLKeys, smooth: true),
-        CatBones.earR: const KeyframeChannel(_shakuEarRKeys, smooth: true),
-      },
-    );
-  }
-
-  /// Validation-only reproduction of [shaku] assembled through
-  /// `assembleMoveClip` — see [bugaDataDrivenPreview]'s doc comment for the
-  /// pattern and rationale. NOT part of [CatClips.all].
-  static Clip get shakuDataDrivenPreview {
     final base = _danceBase;
     return assembleMoveClip(
       _dancePhrase,
@@ -5994,6 +5760,11 @@ class CatClips {
           CatBones.earR: KeyframeChannel(_shakuEarRKeys, smooth: true),
         },
       ),
+      // Reuse the dance foot targets; the HANDS get the crossed-X channels
+      // with elbows on their natural OUTBOARD side. The old flip folded the
+      // elbows inboard of the shoulders while the forearms broke
+      // outboard-below — the anatomically impossible "broken W" the owner
+      // flagged on screen.
       rigLimbTargets: [
         const LimbIkTarget(
           upperBoneId: CatBones.armUpperL,
@@ -6155,23 +5926,6 @@ class CatClips {
     DanceIkTargetKey(31, x: 35, y: -40),
     DanceIkTargetKey(32, x: 26, y: 10, tension: 0.6), // == frame 0
   ];
-  // Smooth spline hand path: flows through the authored keys with C1
-  // continuity, so no corner-rounding blur wrapper is needed (the old
-  // SoftenedIkTargetChannel blunted accent hits and shifted key poses).
-  static final IkTargetChannel _zankuHandLTarget = _dancePhrase.ikTargetChannel(
-    _zankuHandLTargetKeys,
-    smooth: true,
-    cyclic: true,
-  );
-  // Smooth spline hand path: flows through the authored keys with C1
-  // continuity, so no corner-rounding blur wrapper is needed (the old
-  // SoftenedIkTargetChannel blunted accent hits and shifted key poses).
-  static final IkTargetChannel _zankuHandRTarget = _dancePhrase.ikTargetChannel(
-    _zankuHandRTargetKeys,
-    smooth: true,
-    cyclic: true,
-  );
-
   // Low tap-dig-pop-stomp Zanku legwork. The visible story is SHOE ROTATION and
   // COM drop, not a lateral leg extension: the foot stays under the hips, knocks
   // heel-toe a few pixels outward, scrapes back, then stamps. The panel kept
@@ -6272,14 +6026,6 @@ class CatClips {
     GroundSpan(CatBones.footL, 0.75, 0.875), // beat 7
     GroundSpan(CatBones.footR, 0.875, 1), // beat 8
   ];
-  // Smooth + per-key tension: the path FLOWS between counts and arrives DEAD
-  // on each stamp (tension 1 zeroes the spline tangent at that key) — the
-  // attack that per-segment easing used to buy at the cost of stop-go
-  // everywhere.
-  static final KeyframeIkTargetChannel _zankuFootLTarget = _dancePhrase
-      .ikTargetChannel(_zankuFootLTargetKeys, smooth: true);
-  static final KeyframeIkTargetChannel _zankuFootRTarget = _dancePhrase
-      .ikTargetChannel(_zankuFootRTargetKeys, smooth: true);
   static const _zankuFootLKeys = [
     DanceJointKey(0, rotation: 0.1),
     DanceJointKey(4, rotation: -0.28),
@@ -6412,30 +6158,6 @@ class CatClips {
     DanceJointKey(28, rotation: 0.2),
     DanceJointKey(30, rotation: 0.06),
     DanceJointKey(32, rotation: -0.36),
-  ];
-
-  // Zanku's pumping hands live far OUTBOARD all clip, so the elbows must
-  // break outboard too (like Shaku's fix): the inherited inboard bends folded
-  // the elbow across the ribs on the inward swing while the paw stayed out —
-  // the contralateral fold the anti-fold clamp now forbids.
-  static final List<LimbIkTarget> _zankuLimbTargets = [
-    LimbIkTarget(
-      upperBoneId: CatBones.armUpperL,
-      lowerBoneId: CatBones.armLowerL,
-      endBoneId: CatBones.handL,
-      anchorBoneId: CatBones.torso,
-      channel: _zankuHandLTarget,
-    ),
-    LimbIkTarget(
-      upperBoneId: CatBones.armUpperR,
-      lowerBoneId: CatBones.armLowerR,
-      endBoneId: CatBones.handR,
-      anchorBoneId: CatBones.torso,
-      channel: _zankuHandRTarget,
-      bendDirection: -1,
-    ),
-    _danceLimbTargets[2].withChannel(_zankuFootLTarget),
-    _danceLimbTargets[3].withChannel(_zankuFootRTarget),
   ];
 
   // Per-beat weight commit that DWELLS over the stamping foot. Stomp frames drop
@@ -6989,151 +6711,10 @@ class CatClips {
   /// chest dip on the stomp.
   /// Current review target: legibility is improving, but the kick frames still
   /// need anatomical support and heavier stomp/drop before this reaches 9/10.
+  ///
+  /// Assembled through `assembleMoveClip` (`dance_move_compiler.dart`) from
+  /// its authored key data below.
   static Clip get zanku {
-    final base = _danceBase;
-    return Clip(
-      name: 'zanku',
-      duration: base.duration,
-      contactSpans: _zankuContactSpans,
-      contactPinning: base.contactPinning,
-      limbTargets: _zankuLimbTargets,
-      supportFootWorldAnchor: true,
-      supportFootWorldAnchorStrength: 0.9,
-      // Round 3: unlock the chin-down attitude — the camera-locked grin
-      // through the stamps read as a tourist posture.
-      danceHeadBobScale: 0.75,
-      root: LayeredRootChannel([
-        _bodyRootLeadChannel(_danceBodyAccentKeys, smooth: true),
-        _bodyRootLeadChannel(_zankuGbeseAccentKeys, smooth: true),
-        // Per-BEAT weight commit that DWELLS over the stamping foot (replaces the
-        // sine sway that just passed through centre). The root starts the drop
-        // just ahead of the beat; hips arrive first, chest answers behind them.
-        _bodyRootLeadChannel(
-          _zankuCommitKeys,
-          smooth: true,
-        ),
-        _bodyRootLeadChannel(
-          _zankuPocketBoostKeys,
-          smooth: true,
-          microFrames: -0.3,
-        ),
-        _bodyRootLeadChannel(
-          _zankuSupportLoadKeys,
-          smooth: true,
-          microFrames: -0.45,
-        ),
-        const SineRootChannel(
-          // The level contract (panel round 3: "the whole loop plays at one
-          // head height"): the pelvis drops INTO each stamp and recovers on
-          // the off-beat. Bottoms land exactly ON the stamp frames (see the
-          // shaku phase note); the knees absorb via the leg IK so the move
-          // stays grounded, not airborne.
-          bobAmplitude: -8,
-          bobPhase: 0.09375,
-          bobHarmonic: 8,
-        ),
-      ]),
-      channels: {
-        ...base.channels,
-        CatBones.hips: LayeredJointChannel([
-          _bodyPelvisLeadChannel(_danceBodyAccentKeys, smooth: true),
-          _bodyPelvisLeadChannel(
-            _zankuCommitKeys,
-            smooth: true,
-            microFrames: -0.95,
-          ),
-          _bodyPelvisLeadChannel(
-            _zankuPocketBoostKeys,
-            smooth: true,
-            microFrames: -1.05,
-          ),
-          _bodyPelvisLeadChannel(
-            _zankuSupportLoadKeys,
-            smooth: true,
-            microFrames: -1.15,
-          ),
-        ]),
-        CatBones.torso: LayeredJointChannel([
-          _bodyChestFollowChannel(_danceBodyAccentKeys, smooth: true),
-          _bodyChestFollowChannel(
-            _zankuGbeseAccentKeys,
-            smooth: true,
-            microFrames: 0.3,
-          ),
-          _bodyChestFollowChannel(
-            _zankuCommitKeys,
-            smooth: true,
-            microFrames: 0.9,
-            rotationGain: 0.72,
-          ),
-          _bodyChestFollowChannel(
-            _zankuPocketBoostKeys,
-            smooth: true,
-            microFrames: 1.05,
-            rotationGain: 0.7,
-            scaleGain: 0.86,
-          ),
-          _bodyChestFollowChannel(
-            _zankuSupportLoadKeys,
-            smooth: true,
-            microFrames: 1.15,
-            rotationGain: 0.62,
-            scaleGain: 0.84,
-          ),
-          // Forward-FOLDED street carriage (round 3: "torso vertical, chest
-          // tall, chin up — the posture IS the attitude and its absence is
-          // the first thing any Lagos audience notices"). Doubled from 0.08:
-          // a held forward spine fold for the whole phrase, released only by
-          // the kick-apex lean-back keyed in the commit set.
-          const SineChannel(bias: 0.17),
-          // Per-BEAT counter-tilt (harmonic 4) toward the stamping foot, in step
-          // with the COM sway, so the upper mass offsets the kicking leg each
-          // beat instead of toppling toward the kick.
-          const SineChannel(
-            harmonicAmplitude: 0.055,
-            harmonicMultiplier: 4,
-            harmonicPhase: 0.0825,
-          ),
-        ]),
-        // The feet are driven by the Zanku foot IK targets (legwork), which
-        // override the FK leg-lower channels — so no leg-lower override here.
-        CatBones.footL: _dancePhrase.jointChannel(
-          _zankuFootLKeys,
-          smooth: true,
-        ),
-        CatBones.footR: _dancePhrase.jointChannel(
-          _zankuFootRKeys,
-          smooth: true,
-        ),
-        CatBones.handL: _dancePhrase.jointChannel(
-          _zankuHandLKeys,
-          smooth: true,
-        ),
-        CatBones.handR: _dancePhrase.jointChannel(
-          _zankuHandRKeys,
-          smooth: true,
-        ),
-        // Shoulder rolls behind the stamps, contralateral to the striking
-        // foot, layered over the base girdle groove.
-        CatBones.clavicleR: LayeredJointChannel([
-          base.channels[CatBones.clavicleR]!,
-          _dancePhrase.jointChannel(_zankuClavicleRKeys, smooth: true),
-        ]),
-        CatBones.clavicleL: LayeredJointChannel([
-          base.channels[CatBones.clavicleL]!,
-          _dancePhrase.jointChannel(_zankuClavicleLKeys, smooth: true),
-        ]),
-        CatBones.earL: _earFollow(side: 1, amplitude: 0.022, phase: 0.1),
-        CatBones.earR: _earFollow(side: -1, amplitude: 0.022, phase: 0.57),
-        ..._tailFollowThrough(amplitude: 0.095, phase: 0.06),
-      },
-    );
-  }
-
-  /// Validation-only reproduction of [zanku] assembled through
-  /// `assembleMoveClip` — see [bugaDataDrivenPreview]'s doc comment for the
-  /// pattern and rationale. NOT part of [CatClips.all].
-  static Clip get zankuDataDrivenPreview {
     final base = _danceBase;
     return assembleMoveClip(
       _dancePhrase,
@@ -7228,6 +6809,10 @@ class CatClips {
           ..._tailFollowThrough(amplitude: 0.095, phase: 0.06),
         },
       ),
+      // Zanku's pumping hands live far OUTBOARD all clip, so the elbows must
+      // break outboard too (like Shaku's fix): the inherited inboard bends
+      // folded the elbow across the ribs on the inward swing while the paw
+      // stayed out — the contralateral fold the anti-fold clamp now forbids.
       rigLimbTargets: [
         const LimbIkTarget(
           upperBoneId: CatBones.armUpperL,
@@ -7422,24 +7007,6 @@ class CatClips {
     DanceIkTargetKey(31, x: 29, y: 0, tension: 0.6), // settles to the wheel
     DanceIkTargetKey(32, x: 32, y: 10, tension: 0.6), // == frame 0
   ];
-  // Smooth spline hand path: flows through the authored keys with C1
-  // continuity, so no corner-rounding blur wrapper is needed (the old
-  // SoftenedIkTargetChannel blunted accent hits and shifted key poses).
-  static final IkTargetChannel _azontoHandLTarget = _dancePhrase
-      .ikTargetChannel(
-        _azontoHandLTargetKeys,
-        smooth: true,
-        cyclic: true,
-      );
-  // Smooth spline hand path: flows through the authored keys with C1
-  // continuity, so no corner-rounding blur wrapper is needed (the old
-  // SoftenedIkTargetChannel blunted accent hits and shifted key poses).
-  static final IkTargetChannel _azontoHandRTarget = _dancePhrase
-      .ikTargetChannel(
-        _azontoHandRTargetKeys,
-        smooth: true,
-        cyclic: true,
-      );
   // R10: every rater independently called the re-positioned wheel-mime and
   // jab "legible but frozen holds" — right reach zone, no gesture motion of
   // their own. The rigging rater measured the SOLVED arm rotation and found
@@ -7544,33 +7111,6 @@ class CatClips {
     DanceIkTargetKey(28, x: 52, y: 102),
     DanceIkTargetKey(30, x: 52, y: 102), // planted through right support
     DanceIkTargetKey(32, x: 54, y: 102),
-  ];
-  static final KeyframeIkTargetChannel _azontoFootLTarget = _dancePhrase
-      .ikTargetChannel(_azontoFootLTargetKeys);
-  static final KeyframeIkTargetChannel _azontoFootRTarget = _dancePhrase
-      .ikTargetChannel(_azontoFootRTargetKeys);
-  // Outboard elbow bends: the wheel grips sit close in front of the chest
-  // and the jabs cross the midline, both of which need the elbow trailing
-  // outboard (a crossing jab leads with the fist, elbow behind it) — the
-  // inherited inboard bends produced the pinched-elbow fold.
-  static final List<LimbIkTarget> _azontoLimbTargets = [
-    LimbIkTarget(
-      upperBoneId: CatBones.armUpperL,
-      lowerBoneId: CatBones.armLowerL,
-      endBoneId: CatBones.handL,
-      anchorBoneId: CatBones.torso,
-      channel: _azontoHandLTarget,
-    ),
-    LimbIkTarget(
-      upperBoneId: CatBones.armUpperR,
-      lowerBoneId: CatBones.armLowerR,
-      endBoneId: CatBones.handR,
-      anchorBoneId: CatBones.torso,
-      channel: _azontoHandRTarget,
-      bendDirection: -1,
-    ),
-    _danceLimbTargets[2].withChannel(_azontoFootLTarget),
-    _danceLimbTargets[3].withChannel(_azontoFootRTarget),
   ];
   static const _azontoPocketKeys = [
     // Bar 1 (frames 0-16, the wheel mime): the rootDx/pelvis/chest fields
@@ -7749,91 +7289,10 @@ class CatClips {
   /// + the committed lateral weight-drop + the point-out arms (`easeOutBack`
   /// overshoot). Still under panel review: the side/quarter pass needs the
   /// support foot to match where the pelvis actually dwells.
+  ///
+  /// Assembled through `assembleMoveClip` (`dance_move_compiler.dart`) from
+  /// its authored key data below.
   static Clip get azonto {
-    final base = _danceBase;
-    return Clip(
-      name: 'azonto',
-      duration: base.duration,
-      contactSpans: _azontoContactSpans,
-      contactPinning: base.contactPinning,
-      limbTargets: _azontoLimbTargets,
-      supportFootWorldAnchor: true,
-      supportFootWorldAnchorStrength: 0.86,
-      // The head answers the mime (panel: the azonto head never turns): most
-      // of the nod presence back, lateral lag still counters the groove dip.
-      danceHeadBobScale: 0.7,
-      root: LayeredRootChannel([
-        _bodyRootLeadChannel(_shakuGrooveCalm, smooth: true),
-        _bodyRootLeadChannel(_danceBodyAccentKeys, smooth: true),
-        _bodyRootLeadChannel(
-          _azontoPocketKeys,
-          smooth: true,
-          microFrames: -0.1,
-        ),
-        const SineRootChannel(
-          bobAmplitude: -0.04,
-          bobPhase: 0.125,
-          bobHarmonic: 8,
-        ),
-        // Weight transfer in step with the waist swivel (harmonic 2): the COM
-        // rides foot-to-foot so the swivel commits weight instead of twisting
-        // in place over a world-anchored foot. Deepened so the side-to-side
-        // shift reads as a committed weight drop, not a lean.
-        const SineRootChannel(swayAmplitude: -4, swayHarmonic: 2),
-      ]),
-      channels: {
-        ...base.channels,
-        CatBones.hips: LayeredJointChannel([
-          _bodyPelvisLeadChannel(_shakuGrooveCalm, smooth: true),
-          _bodyPelvisLeadChannel(_danceBodyAccentKeys, smooth: true),
-          _bodyPelvisLeadChannel(
-            _azontoPocketKeys,
-            smooth: true,
-            microFrames: -0.15,
-          ),
-          // Azonto waist swivel — the hips roll side to side, twice per phrase
-          // (harmonicMultiplier defaults to 2). Sharpened so the pelvis snap
-          // reads as an isolated swivel, not a whole-body turn.
-          const SineChannel(harmonicAmplitude: 0.17),
-        ]),
-        CatBones.torso: LayeredJointChannel([
-          _bodyChestFollowChannel(
-            _shakuGrooveCalm,
-            smooth: true,
-            rotationGain: 0.9,
-          ),
-          _bodyChestFollowChannel(_danceBodyAccentKeys, smooth: true),
-          _bodyChestFollowChannel(
-            _azontoPocketKeys,
-            smooth: true,
-            microFrames: 1.2,
-            rotationGain: 0.68,
-            scaleGain: 0.88,
-          ),
-          // Chest counters the hip swivel — the Azonto torso/hip opposition.
-          // Stronger counter so the shoulders hold while the pelvis snaps under
-          // them (hip-vs-shoulder isolation).
-          const SineChannel(harmonicAmplitude: -0.11, harmonicPhase: 0.02),
-        ]),
-        CatBones.earL: _earFollow(side: 1, amplitude: 0.022, phase: 0.12),
-        CatBones.earR: _earFollow(side: -1, amplitude: 0.022, phase: 0.59),
-        CatBones.handL: _dancePhrase.jointChannel(
-          _azontoHandLKeys,
-          smooth: true,
-        ),
-        CatBones.handR: _dancePhrase.jointChannel(
-          _azontoHandRKeys,
-          smooth: true,
-        ),
-        ..._tailFollowThrough(amplitude: 0.09, phase: 0.08),
-      },
-    );
-  }
-
-  /// Validation-only reproduction of [azonto] assembled through
-  /// `assembleMoveClip` — see [bugaDataDrivenPreview]'s doc comment for the
-  /// pattern and rationale. NOT part of [CatClips.all].
-  static Clip get azontoDataDrivenPreview {
     final base = _danceBase;
     return assembleMoveClip(
       _dancePhrase,
@@ -7918,6 +7377,10 @@ class CatClips {
           ..._tailFollowThrough(amplitude: 0.09, phase: 0.08),
         },
       ),
+      // Outboard elbow bends: the wheel grips sit close in front of the
+      // chest and the jabs cross the midline, both of which need the elbow
+      // trailing outboard (a crossing jab leads with the fist, elbow behind
+      // it) — the inherited inboard bends produced the pinched-elbow fold.
       rigLimbTargets: [
         const LimbIkTarget(
           upperBoneId: CatBones.armUpperL,
@@ -8364,22 +7827,6 @@ class CatClips {
     DanceIkTargetKey(31, x: -68, y: 12, tension: 0.4),
     DanceIkTargetKey(32, x: -40, y: 16, tension: 0.6),
   ];
-  // Smooth spline hand path: flows through the authored keys with C1
-  // continuity, so no corner-rounding blur wrapper is needed (the old
-  // SoftenedIkTargetChannel blunted accent hits and shifted key poses).
-  static final IkTargetChannel _bugaHandLTarget = _dancePhrase.ikTargetChannel(
-    _bugaHandLTargetKeys,
-    smooth: true,
-    cyclic: true,
-  );
-  // Smooth spline hand path: flows through the authored keys with C1
-  // continuity, so no corner-rounding blur wrapper is needed (the old
-  // SoftenedIkTargetChannel blunted accent hits and shifted key poses).
-  static final IkTargetChannel _bugaHandRTarget = _dancePhrase.ikTargetChannel(
-    _bugaHandRTargetKeys,
-    smooth: true,
-    cyclic: true,
-  );
   // The widening step-out lives in the TRANSIT (f10-f11 / f26-f27) so both
   // feet are planted wide with even weight for the whole held present — the
   // round-3 panel read the late-arriving step as a balletic lifted leg.
@@ -8451,163 +7898,16 @@ class CatClips {
     DanceIkTargetKey(30, x: 102, y: 104),
     DanceIkTargetKey(32, x: 62, y: 101),
   ];
-  static final KeyframeIkTargetChannel _bugaFootLTarget = _dancePhrase
-      .ikTargetChannel(_bugaFootLTargetKeys, smooth: true);
-  static final KeyframeIkTargetChannel _bugaFootRTarget = _dancePhrase
-      .ikTargetChannel(_bugaFootRTargetKeys, smooth: true);
-  // Span boundaries land ON the hits (f12/f28): the contact stack re-plants
-  // the support foot against the pose at the span START, so the body can
-  // never rise far above its span-anchor level — a span anchored at the
-  // deepest lo3 frame was dragging the hit back down by ~50 world units
-  // (probe: raw rootDy -7 rendered as hips +52). Anchoring a fresh span at
-  // the tall hit lets the explosion up actually happen, and the following
-  // descent is always leg-absorbable.
-  static const _bugaContactSpans = [
-    GroundSpan(CatBones.footR, 0, 0.25),
-    GroundSpan(CatBones.footL, 0.25, 0.375),
-    GroundSpan(CatBones.footR, 0.375, 0.5),
-    GroundSpan(CatBones.footL, 0.5, 0.75),
-    GroundSpan(CatBones.footR, 0.75, 0.875),
-    GroundSpan(CatBones.footL, 0.875, 1),
-  ];
-  // Outboard elbow bends, and the targets make them safe: on the vertical
-  // thigh-hang the elbow bows naturally OUTWARD (inboard tucked it against
-  // the belly — a mild contralateral fold the anti-fold clamp caught), and
-  // on the wide extended hit the high reach shrinks the elbow offset enough
-  // that the wing sits right on the shoulder line instead of finning above
-  // it. Bend sign and target reach are one design decision, per clip.
-  static final List<LimbIkTarget> _bugaLimbTargets = [
-    LimbIkTarget(
-      upperBoneId: CatBones.armUpperL,
-      lowerBoneId: CatBones.armLowerL,
-      endBoneId: CatBones.handL,
-      anchorBoneId: CatBones.torso,
-      channel: _bugaHandLTarget,
-    ),
-    LimbIkTarget(
-      upperBoneId: CatBones.armUpperR,
-      lowerBoneId: CatBones.armLowerR,
-      endBoneId: CatBones.handR,
-      anchorBoneId: CatBones.torso,
-      channel: _bugaHandRTarget,
-      bendDirection: -1,
-    ),
-    _danceLimbTargets[2].withChannel(_bugaFootLTarget),
-    _danceLimbTargets[3].withChannel(_bugaFootRTarget),
-  ];
-
   /// Standalone "Buga" catalog move — the unison-hit show-off move: three prep
   /// knee-dips loading at the chest, then a leg-DRIVEN full-height RISE (knees
   /// flex deep through the dips, extend on the hit) with a chest pop and BOTH
   /// arms snapping open into the peacock bow with a double shoulder shrug on
   /// each hit (frames 12 and 28) — the researched 2022 signature; the old
   /// one-arm overhead present was the audit's top authenticity finding.
+  ///
+  /// Assembled through `assembleMoveClip` (`dance_move_compiler.dart`) from
+  /// its authored key data below.
   static Clip get buga {
-    final base = _danceBase;
-    return Clip(
-      name: 'buga',
-      duration: base.duration,
-      contactSpans: _bugaContactSpans,
-      contactPinning: base.contactPinning,
-      limbTargets: _bugaLimbTargets,
-      supportFootWorldAnchor: true,
-      supportFootWorldAnchorStrength: 0.9,
-      root: LayeredRootChannel([
-        // Near-zero micro-lead: the stepped floors must LAND on their counts.
-        // The old -0.55 lead put every key half a frame early, so integer
-        // count frames sampled mid-transition and the movement expert
-        // measured extremes arriving a 16th early and rebounding on the beat.
-        _bodyRootLeadChannel(
-          _bugaBodyKeys,
-          smooth: true,
-          microFrames: -0.1,
-        ),
-      ]),
-      channels: {
-        ...base.channels,
-        // Owner: "wondering if hips are moving enough or need a little
-        // jiggle" — checked, and buga was the only catalogue clip whose
-        // hips carry ONLY the big lead-key motion with no secondary
-        // texture layered on top (shaku/others all add a subtle
-        // harmonic-24 micro-wobble). Added the same kind of tremor here —
-        // reads as "holding under strain" through the sink's held low
-        // points, not just dead between the big beats.
-        CatBones.hips: LayeredJointChannel([
-          _bodyPelvisLeadChannel(
-            _bugaBodyKeys,
-            smooth: true,
-            microFrames: -0.15,
-          ),
-          const SineChannel(
-            harmonicAmplitude: 0.006,
-            harmonicPhase: 0.02,
-            harmonicMultiplier: 24,
-            scaleXAmplitude: 0.002,
-            scaleXPhase: 0.02,
-            scaleXHarmonic: 24,
-            scaleYAmplitude: -0.002,
-            scaleYPhase: 0.02,
-            scaleYHarmonic: 24,
-          ),
-        ]),
-        CatBones.torso: LayeredJointChannel([
-          _bodyChestFollowChannel(
-            _bugaBodyKeys,
-            smooth: true,
-            microFrames: 0.75,
-            rotationGain: 0.94,
-            scaleGain: 0.98,
-          ),
-        ]),
-        CatBones.clavicleR: LayeredJointChannel([
-          base.channels[CatBones.clavicleR]!,
-          _dancePhrase.jointChannel(_bugaClavicleRKeys, smooth: true),
-        ]),
-        CatBones.clavicleL: LayeredJointChannel([
-          base.channels[CatBones.clavicleL]!,
-          _dancePhrase.jointChannel(_bugaClavicleLKeys, smooth: true),
-        ]),
-        CatBones.shoulderSocketR: _dancePhrase.jointChannel(
-          _bugaShoulderSocketRKeys,
-          smooth: true,
-        ),
-        CatBones.shoulderSocketL: _dancePhrase.jointChannel(
-          _bugaShoulderSocketLKeys,
-          smooth: true,
-        ),
-        CatBones.armBicepR: _dancePhrase.jointChannel(
-          _bugaBicepKeys,
-          smooth: true,
-        ),
-        CatBones.armBicepL: _dancePhrase.jointChannel(
-          _bugaBicepKeys,
-          smooth: true,
-        ),
-        CatBones.legLowerL: _dancePhrase.jointChannel(
-          _bugaLegLowerKeys,
-          smooth: true,
-        ),
-        CatBones.legLowerR: _dancePhrase.jointChannel(
-          _bugaLegLowerKeys,
-          smooth: true,
-        ),
-        CatBones.earL: _earFollow(side: 1, amplitude: 0.026),
-        CatBones.earR: _earFollow(side: -1, amplitude: 0.026, phase: 0.55),
-        // Tail carries the follow-through off the rise — boosted so it lags and
-        // whips behind the big presenting arm instead of reading stiff.
-        ..._tailFollowThrough(amplitude: 0.13, phase: 0.09),
-      },
-    );
-  }
-
-  /// Validation-only reproduction of [buga] assembled through
-  /// `assembleMoveClip` (`dance_move_compiler.dart`), reusing the exact same
-  /// private key data (`_bugaBodyKeys`, `_bugaLegLowerKeys`, ...) so there is
-  /// zero risk of transcription drift between the two. **Not** part of
-  /// [CatClips.all] — do not wire this into the stage/move picker; it exists
-  /// purely to prove parity between the hand-assembled clip and the
-  /// data-driven infra before any real migration.
-  static Clip get bugaDataDrivenPreview {
     final base = _danceBase;
     return assembleMoveClip(
       _dancePhrase,
@@ -8696,11 +7996,15 @@ class CatClips {
           CatBones.footL: const DanceIkTargetTrack(_bugaFootLTargetKeys),
           CatBones.footR: const DanceIkTargetTrack(_bugaFootRTargetKeys),
         },
-        // Matches _bugaContactSpans' raw phase literals (0/0.25/0.375/0.5/
-        // 0.75/0.875/1 over a 32-frame phrase = frames 0/8/12/16/24/28/32),
-        // routed through the declarative DanceSupportSpan.toGroundSpan path
-        // instead. loadFrame/releaseFrame/maxPelvisDistance/pocketScaleY are
-        // all dropped by toGroundSpan, so placeholder values are fine here.
+        // Span boundaries land ON the hits (f12/f28, phase 0.375/0.875): the
+        // contact stack re-plants the support foot against the pose at the
+        // span START, so the body can never rise far above its span-anchor
+        // level — anchoring a fresh span at the tall hit lets the explosion
+        // up actually happen, and the following descent is always
+        // leg-absorbable. Authored as phase literals routed through the
+        // declarative DanceSupportSpan.toGroundSpan path;
+        // loadFrame/releaseFrame/maxPelvisDistance/pocketScaleY are all
+        // dropped by toGroundSpan, so placeholder values are fine here.
         supports: const [
           DanceSupportSpan(
             footBoneId: CatBones.footR,
@@ -8775,12 +8079,16 @@ class CatClips {
           ..._tailFollowThrough(amplitude: 0.13, phase: 0.09),
         },
       ),
-      // Hand bend directions here are buga's own choreographic choice — the
-      // inverse of _danceLimbTargets' shared groove defaults (see real
-      // buga's _bugaLimbTargets) — so fresh entries are supplied rather than
-      // reusing the shared rig constant for the hands. Feet DO reuse the
-      // shared rig entries directly, exactly like real buga's
-      // _danceLimbTargets[2]/[3].withChannel(...).
+      // Outboard elbow bends, and the targets make them safe: on the
+      // vertical thigh-hang the elbow bows naturally OUTWARD (inboard
+      // tucked it against the belly — a mild contralateral fold the
+      // anti-fold clamp caught), and on the wide extended hit the high
+      // reach shrinks the elbow offset enough that the wing sits right on
+      // the shoulder line instead of finning above it. Bend sign and
+      // target reach are buga's own choreographic choice — the inverse of
+      // the shared rig's groove defaults — so fresh hand entries are
+      // supplied here rather than reusing the shared rig constant. Feet DO
+      // reuse the shared rig entries directly.
       rigLimbTargets: [
         const LimbIkTarget(
           upperBoneId: CatBones.armUpperL,
@@ -9166,102 +8474,14 @@ class CatClips {
     DanceIkTargetKey(30, x: 34, y: -38),
     DanceIkTargetKey(32, x: 42, y: -8),
   ];
-  static final KeyframeIkTargetChannel _pounceFootLTarget = _dancePhrase
-      .ikTargetChannel(_pounceFootLTargetKeys, smooth: true);
-  static final KeyframeIkTargetChannel _pounceFootRTarget = _dancePhrase
-      .ikTargetChannel(_pounceFootRTargetKeys, smooth: true);
-  static final KeyframeIkTargetChannel _pounceHandLTarget = _dancePhrase
-      .ikTargetChannel(_pounceHandLTargetKeys, smooth: true);
-  static final KeyframeIkTargetChannel _pounceHandRTarget = _dancePhrase
-      .ikTargetChannel(_pounceHandRTargetKeys, smooth: true);
-  // Outboard elbow bends: the cross-body swipes lead with the PAW while the
-  // elbow trails outboard (a cat swipe, not a chicken wing), and the return
-  // to the own-side guard needs the same sign. The inherited inboard bends
-  // left the elbow folded across the sternum while the paw exited — the
-  // worst contralateral fold in the catalogue (3.0 rad asked).
-  static final List<LimbIkTarget> _pounceLimbTargets = [
-    LimbIkTarget(
-      upperBoneId: CatBones.armUpperL,
-      lowerBoneId: CatBones.armLowerL,
-      endBoneId: CatBones.handL,
-      anchorBoneId: CatBones.torso,
-      channel: _pounceHandLTarget,
-    ),
-    LimbIkTarget(
-      upperBoneId: CatBones.armUpperR,
-      lowerBoneId: CatBones.armLowerR,
-      endBoneId: CatBones.handR,
-      anchorBoneId: CatBones.torso,
-      channel: _pounceHandRTarget,
-      bendDirection: -1,
-    ),
-    _danceLimbTargets[2].withChannel(_pounceFootLTarget),
-    _danceLimbTargets[3].withChannel(_pounceFootRTarget),
-  ];
-
   /// Standalone "Pouncing Cat" catalog move — a cat-character contrast phrase:
   /// compress, push, land, and rebound through a shoulder/hip pocket. The old
   /// leap/pounce version was legible but not Afrobeats; this version keeps the
   /// pounce readable while making the paws compact and rhythmic.
+  ///
+  /// Assembled through `assembleMoveClip` (`dance_move_compiler.dart`) from
+  /// its authored key data below.
   static Clip get pouncingCat {
-    final base = _danceBase;
-    return Clip(
-      name: 'pouncingCat',
-      duration: base.duration,
-      contactSpans: _pounceContactSpans,
-      contactPinning: base.contactPinning,
-      limbTargets: _pounceLimbTargets,
-      supportFootWorldAnchor: true,
-      supportFootWorldAnchorStrength: 0.88,
-      // The head must stay DEAD-LEVEL over the gliding base (the signature
-      // Amapiano contrast). Kill the engine's dance head-nod attitude (scale 0)
-      // and the inherited dance neck/head nod channels below — the body's rootDy
-      // is already flat, so with the nod gone the skull rides level while the
-      // base glides laterally.
-      danceHeadBobScale: 0,
-      // R10: the anatomist measured a real ~35-40px head sag through the
-      // compress despite the above — danceHeadBobScale only maximizes the
-      // shared vertical counter's FRACTION, but that counter is separately
-      // clamped to [-2, 4] world units (deliberately tiny everywhere else,
-      // so a groove extreme never visibly lifts the skull off the neck).
-      // PouncingCat's own rootDy swings ~34 units through the compress —
-      // far more than that clamp allows to cancel. Opted into a much wider
-      // floor here specifically, since "head stays level through a big
-      // compress" IS this clip's whole premise, unlike every other clip's
-      // "head rides the bob a little" intent.
-      danceHeadLevelClampMin: -20,
-      // The dwelling lateral creep now lives in _pounceBodyKeys' rootDx (no sine
-      // sway — that read as a side-to-side pendulum, worse in unison).
-      root: LayeredRootChannel([
-        _bodyRootLeadChannel(_pounceBodyKeys, smooth: true),
-        _bodyRootLeadChannel(_pounceGrooveKeys, smooth: true),
-      ]),
-      channels: {
-        ...base.channels,
-        CatBones.hips: LayeredJointChannel([
-          _bodyPelvisLeadChannel(_pounceBodyKeys),
-          _bodyPelvisLeadChannel(_pounceGrooveKeys, smooth: true),
-        ]),
-        CatBones.torso: LayeredJointChannel([
-          _bodyChestFollowChannel(_pounceBodyKeys),
-          _bodyChestFollowChannel(_pounceGrooveKeys, smooth: true),
-          // Slight counter-lean against the slide (harmonic 2, opposed).
-          const SineChannel(harmonicAmplitude: -0.04, harmonicPhase: 0.02),
-        ]),
-        // Neck/head held flat (no inherited dance nod) so the head stays level.
-        CatBones.neck: const SineChannel(),
-        CatBones.head: const SineChannel(),
-        CatBones.earL: _earFollow(side: 1, amplitude: 0.02, phase: 0.16),
-        CatBones.earR: _earFollow(side: -1, amplitude: 0.02, phase: 0.61),
-        ..._tailFollowThrough(amplitude: 0.085, phase: 0.14),
-      },
-    );
-  }
-
-  /// Validation-only reproduction of [pouncingCat] assembled through
-  /// `assembleMoveClip` — see [bugaDataDrivenPreview]'s doc comment for the
-  /// pattern and rationale. NOT part of [CatClips.all].
-  static Clip get pouncingCatDataDrivenPreview {
     final base = _danceBase;
     return assembleMoveClip(
       _dancePhrase,
@@ -9310,6 +8530,12 @@ class CatClips {
           ..._tailFollowThrough(amplitude: 0.085, phase: 0.14),
         },
       ),
+      // Outboard elbow bends: the cross-body swipes lead with the PAW while
+      // the elbow trails outboard (a cat swipe, not a chicken wing), and the
+      // return to the own-side guard needs the same sign. The inherited
+      // inboard bends left the elbow folded across the sternum while the
+      // paw exited — the worst contralateral fold in the catalogue (3.0 rad
+      // asked).
       rigLimbTargets: [
         const LimbIkTarget(
           upperBoneId: CatBones.armUpperL,
@@ -10096,205 +9322,14 @@ class CatClips {
   // Ease.easeIn (accelerate into the floor) for a hard-stop strike in the live
   // 60fps app, instead of the smooth path's symmetric ease that glided the foot
   // into contact between keys.
-  // Smooth + per-key tension — see the zanku foot channels: dead-on-arrival
-  // plants at the counts, flow in between.
-  static final KeyframeIkTargetChannel _sekemFootLTarget = _dancePhrase
-      .ikTargetChannel(_sekemFootLTargetKeys, smooth: true);
-  static final KeyframeIkTargetChannel _sekemFootRTarget = _dancePhrase
-      .ikTargetChannel(_sekemFootRTargetKeys, smooth: true);
-  // Smooth spline hand path: flows through the authored keys with C1
-  // continuity, so no corner-rounding blur wrapper is needed (the old
-  // SoftenedIkTargetChannel blunted accent hits and shifted key poses).
-  static final IkTargetChannel _sekemHandLTarget = _dancePhrase.ikTargetChannel(
-    _sekemHandLTargetKeys,
-    smooth: true,
-    microFrames: 0.1,
-    cyclic: true,
-  );
-  // Smooth spline hand path: flows through the authored keys with C1
-  // continuity, so no corner-rounding blur wrapper is needed (the old
-  // SoftenedIkTargetChannel blunted accent hits and shifted key poses).
-  static final IkTargetChannel _sekemHandRTarget = _dancePhrase.ikTargetChannel(
-    _sekemHandRTargetKeys,
-    smooth: true,
-    microFrames: 0.1,
-    cyclic: true,
-  );
-  static final List<LimbIkTarget> _sekemLimbTargets = [
-    // Sekem is own-side paddles, not a crossed-arm pose. Use explicit OUTSIDE
-    // elbow bends so the sleeve ribbon stays on the same anatomical side as the
-    // paw; inheriting the generic dance bends let the upper arms fold through
-    // the chest while the paws stayed low, which produced an impossible X.
-    LimbIkTarget(
-      upperBoneId: CatBones.armUpperL,
-      lowerBoneId: CatBones.armLowerL,
-      endBoneId: CatBones.handL,
-      anchorBoneId: CatBones.torso,
-      channel: _sekemHandLTarget,
-    ),
-    LimbIkTarget(
-      upperBoneId: CatBones.armUpperR,
-      lowerBoneId: CatBones.armLowerR,
-      endBoneId: CatBones.handR,
-      anchorBoneId: CatBones.torso,
-      channel: _sekemHandRTarget,
-      bendDirection: -1,
-    ),
-    _danceLimbTargets[2].withChannel(_sekemFootLTarget),
-    _danceLimbTargets[3].withChannel(_sekemFootRTarget),
-  ];
-
   /// Standalone "Sekem" catalog move — the grounded-stomp contrast: a free foot
   /// per beat does a pick-up → coil → SLAM (one hard low plant per beat, L,R,L,R)
   /// with a deep on-beat body squash, widened stance, and low hand paddles that
   /// follow the torso with a one-frame elbow/wrist lag.
+  ///
+  /// Assembled through `assembleMoveClip` (`dance_move_compiler.dart`) from
+  /// its authored key data below.
   static Clip get sekem {
-    final base = _danceBase;
-    return Clip(
-      name: 'sekem',
-      duration: base.duration,
-      contactSpans: _sekemContactSpans,
-      contactPinning: base.contactPinning,
-      limbTargets: _sekemLimbTargets,
-      supportFootWorldAnchor: true,
-      supportFootWorldAnchorStrength: 0.9,
-      // Round 3: the bolt-vertical camera-locked grin deleted the nod-and-tilt
-      // attitude layer — unlock the head to ride the dig pump.
-      danceHeadBobScale: 0.75,
-      // The dwelling weight commit now lives in _sekemBodyKeys' rootDx (no sine
-      // sway — that just passed through centre).
-      root: LayeredRootChannel([
-        _bodyRootLeadChannel(
-          _sekemBodyKeys,
-          smooth: true,
-        ),
-        _bodyRootLeadChannel(
-          _sekemPocketBoostKeys,
-          smooth: true,
-          microFrames: -0.3,
-        ),
-        _bodyRootLeadChannel(
-          _sekemSettleKeys,
-          smooth: true,
-          microFrames: -0.15,
-        ),
-        const SineRootChannel(
-          swayAmplitude: 1.55,
-          swayHarmonic: 8,
-          swayPhase: -0.035,
-          leanAmplitude: 0.0012,
-          leanHarmonic: 8,
-          leanPhase: -0.02,
-        ),
-      ]),
-      channels: {
-        ...base.channels,
-        CatBones.hips: LayeredJointChannel([
-          // Round 3: the movement rater measured every commit landing a 16th
-          // EARLY (deepest on frame 3 mod 4) — the old -0.8/-0.95 micro-leads
-          // were nearly a full frame. The down now lands ON the count.
-          _bodyPelvisLeadChannel(_sekemBodyKeys, microFrames: -0.1),
-          _bodyPelvisLeadChannel(
-            _sekemPocketBoostKeys,
-            smooth: true,
-            microFrames: -0.2,
-          ),
-          _bodyPelvisLeadChannel(
-            _sekemSettleKeys,
-            smooth: true,
-            microFrames: -0.1,
-          ),
-          const SineChannel(
-            harmonicAmplitude: 0.042,
-            harmonicMultiplier: 8,
-            harmonicPhase: -0.025,
-            scaleXAmplitude: 0.012,
-            scaleXHarmonic: 8,
-            scaleXPhase: -0.025,
-            scaleYAmplitude: -0.01,
-            scaleYHarmonic: 8,
-            scaleYPhase: -0.025,
-          ),
-        ]),
-        CatBones.torso: LayeredJointChannel([
-          _bodyChestFollowChannel(
-            _sekemBodyKeys,
-            microFrames: 0.9,
-            rotationGain: 0.74,
-            scaleGain: 0.86,
-          ),
-          _bodyChestFollowChannel(
-            _sekemPocketBoostKeys,
-            smooth: true,
-            microFrames: 1.05,
-            rotationGain: 0.68,
-            scaleGain: 0.84,
-          ),
-          _bodyChestFollowChannel(
-            _sekemSettleKeys,
-            smooth: true,
-            microFrames: 0.95,
-            rotationGain: 0.42,
-            scaleGain: 0.68,
-          ),
-          const SineChannel(
-            harmonicAmplitude: -0.026,
-            harmonicMultiplier: 8,
-            harmonicPhase: 0.03,
-            scaleXAmplitude: -0.007,
-            scaleXHarmonic: 8,
-            scaleXPhase: 0.03,
-            scaleYAmplitude: 0.006,
-            scaleYHarmonic: 8,
-            scaleYPhase: 0.03,
-          ),
-        ]),
-        CatBones.footL: _dancePhrase.jointChannel(
-          _sekemFootLKeys,
-          smooth: true,
-        ),
-        CatBones.footR: _dancePhrase.jointChannel(
-          _sekemFootRKeys,
-          smooth: true,
-        ),
-        CatBones.handL: _dancePhrase.jointChannel(
-          _sekemHandLKeys,
-          smooth: true,
-        ),
-        CatBones.handR: _dancePhrase.jointChannel(
-          _sekemHandRKeys,
-          smooth: true,
-        ),
-        // The shoulder-led dig pump: alternating clavicle digs on every count,
-        // layered over the base girdle groove, with the socket/deltoid mass
-        // responding so the pump reads as flesh at render scale.
-        CatBones.clavicleR: LayeredJointChannel([
-          base.channels[CatBones.clavicleR]!,
-          _dancePhrase.jointChannel(_sekemClavicleRKeys, smooth: true),
-        ]),
-        CatBones.clavicleL: LayeredJointChannel([
-          base.channels[CatBones.clavicleL]!,
-          _dancePhrase.jointChannel(_sekemClavicleLKeys, smooth: true),
-        ]),
-        CatBones.shoulderSocketR: _dancePhrase.jointChannel(
-          _sekemShoulderSocketRKeys,
-          smooth: true,
-        ),
-        CatBones.shoulderSocketL: _dancePhrase.jointChannel(
-          _sekemShoulderSocketLKeys,
-          smooth: true,
-        ),
-        CatBones.earL: _earFollow(side: 1),
-        CatBones.earR: _earFollow(side: -1, phase: 0.55),
-        ..._tailFollowThrough(amplitude: 0.1, phase: 0.07),
-      },
-    );
-  }
-
-  /// Validation-only reproduction of [sekem] assembled through
-  /// `assembleMoveClip` — see [bugaDataDrivenPreview]'s doc comment for the
-  /// pattern and rationale. NOT part of [CatClips.all].
-  static Clip get sekemDataDrivenPreview {
     final base = _danceBase;
     return assembleMoveClip(
       _dancePhrase,
@@ -10422,6 +9457,11 @@ class CatClips {
           ..._tailFollowThrough(amplitude: 0.1, phase: 0.07),
         },
       ),
+      // Sekem is own-side paddles, not a crossed-arm pose. Use explicit
+      // OUTSIDE elbow bends so the sleeve ribbon stays on the same
+      // anatomical side as the paw; inheriting the generic dance bends let
+      // the upper arms fold through the chest while the paws stayed low,
+      // which produced an impossible X.
       rigLimbTargets: [
         const LimbIkTarget(
           upperBoneId: CatBones.armUpperL,

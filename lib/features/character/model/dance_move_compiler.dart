@@ -8,9 +8,9 @@ import 'package:dancing_cats/features/character/model/dance_phrase.dart';
 /// This is the move-level counterpart to `DancePhrase`'s lower-level channel
 /// builders (`jointChannel`, `bodyRootChannel`, `ikTargetChannel`, ...): where
 /// those turn one list of keys into one channel, this turns a whole move
-/// descriptor into a complete, playable [Clip] — the step every shipped move
-/// in `cat_in_suit.dart` currently does by hand, mixing phrase-builder calls
-/// with raw engine primitives inline in its own getter.
+/// descriptor into a complete, playable [Clip]. Every catalog move getter in
+/// `cat_in_suit.dart` calls this to assemble its `Clip` from its own
+/// authored key data.
 ///
 /// [rigLimbTargets] supplies the rig's bone-chain bindings (upper/lower/end/
 /// anchor bone ids + bend direction) for each limb, since those are rig
