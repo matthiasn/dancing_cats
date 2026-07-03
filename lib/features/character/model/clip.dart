@@ -1156,6 +1156,7 @@ class Clip {
     this.supportFootWorldAnchor = false,
     this.supportFootWorldAnchorStrength = 0.6,
     this.danceHeadBobScale = 1.0,
+    this.danceHeadLevelClampMin = -2.0,
     this.transitionPlan,
     this.zOrderSwaps = const [],
   }) : assert(
@@ -1178,6 +1179,17 @@ class Clip {
   /// the head laterally tightens it. Near-`0` holds the head almost level (the
   /// Pouncing Cat glide). Opt-in per clip.
   final double danceHeadBobScale;
+
+  /// Floor for the vertical head-position counter's clamp (see
+  /// `CharacterScene._danceHeadVerticalCounter`), in world units. The shared
+  /// default (-2) deliberately caps the counter tiny so a groove extreme
+  /// never visibly lifts the skull off the neck — correct for clips whose
+  /// intent is "the head rides the bob" but wrong for a clip whose whole
+  /// premise is a head that stays level THROUGH a big compress (e.g.
+  /// pouncingCat's Amapiano contrast): `danceHeadBobScale: 0` alone doesn't
+  /// achieve that, since this clamp still caps the correction regardless.
+  /// Opt-in per clip; more negative allows a bigger upward correction.
+  final double danceHeadLevelClampMin;
 
   /// When true, the active SUPPORT foot (per [contactSpans]) is held toward its
   /// world position via leg IK during its stance, so an in-place performance
@@ -1323,6 +1335,11 @@ Clip blendedClip({
     danceHeadBobScale: _lerp(
       from.danceHeadBobScale,
       to.danceHeadBobScale,
+      rootWeight,
+    ),
+    danceHeadLevelClampMin: _lerp(
+      from.danceHeadLevelClampMin,
+      to.danceHeadLevelClampMin,
       rootWeight,
     ),
     transitionPlan: ClipTransitionPlan(from: from, to: to, weight: weight),

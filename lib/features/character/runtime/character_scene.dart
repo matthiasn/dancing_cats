@@ -1296,7 +1296,11 @@ class CharacterScene {
             (_danceHeadHorizontalCounter(rootDx, clip.danceHeadBobScale) +
                     headDxFollow) *
                 baseScale,
-            _danceHeadVerticalCounter(rootDy, clip.danceHeadBobScale) *
+            _danceHeadVerticalCounter(
+                  rootDy,
+                  clip.danceHeadBobScale,
+                  clip.danceHeadLevelClampMin,
+                ) *
                 baseScale,
           )
         : Affine2D.identity;
@@ -1310,7 +1314,11 @@ class CharacterScene {
     return shifted;
   }
 
-  double _danceHeadVerticalCounter(double rootDy, double headBobScale) {
+  double _danceHeadVerticalCounter(
+    double rootDy,
+    double headBobScale,
+    double clampMin,
+  ) {
     // The dance phrase gets its level change from knees/hips/torso. The head
     // must RIDE that level change with the collar, not hold still above it: the
     // old counter reached ~0.82 of the bob for a low-bob clip (shaku at scale
@@ -1326,7 +1334,7 @@ class CharacterScene {
     // Negative = head rises (the float direction): bound it hard so the join
     // can never gap. Downward (head settling INTO the collar) is harmless, so
     // it is allowed a little more room.
-    return counter.clamp(-2.0, 4.0);
+    return counter.clamp(clampMin, 4.0);
   }
 
   double _danceHeadHorizontalCounter(double rootDx, double headBobScale) {
