@@ -1642,15 +1642,6 @@ RigSpec buildCatInSuitRig({
       // clipped to actual body overlap at render time, so its ends land ON
       // the silhouette rather than floating mid-cloth.
       inkStartFraction: 0.2,
-      // A real clavicle roll/dig (zanku's shoulder roll, sekem's shoulder
-      // dig) only displaced the socket bone a few world units at the
-      // anti-hinge's short 10-unit radius, regardless of how large the
-      // authored rotation got — root-caused via direct measurement
-      // (0.42rad -> ~4 world units). Amplifies the MESH's read of that
-      // same rotation without moving the actual bone (see
-      // girdleLeverGain's doc comment) — the tested bone-to-bone weld
-      // distance is unaffected.
-      girdleLeverGain: 2.5,
     ),
     LimbRibbonSpec(
       id: 'arm.L.ribbon',
@@ -1694,15 +1685,6 @@ RigSpec buildCatInSuitRig({
       // clipped to actual body overlap at render time, so its ends land ON
       // the silhouette rather than floating mid-cloth.
       inkStartFraction: 0.2,
-      // A real clavicle roll/dig (zanku's shoulder roll, sekem's shoulder
-      // dig) only displaced the socket bone a few world units at the
-      // anti-hinge's short 10-unit radius, regardless of how large the
-      // authored rotation got — root-caused via direct measurement
-      // (0.42rad -> ~4 world units). Amplifies the MESH's read of that
-      // same rotation without moving the actual bone (see
-      // girdleLeverGain's doc comment) — the tested bone-to-bone weld
-      // distance is unaffected.
-      girdleLeverGain: 2.5,
     ),
   ];
 
