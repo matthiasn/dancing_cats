@@ -6988,14 +6988,21 @@ class CatClips {
     // over the test's required >=4) height gap, so the dominant visible
     // motion is a synchronized side-to-side turn, held at each extreme for
     // 2 frames (not a single-frame spike) so it reads as sustained.
-    DanceIkTargetKey(0, x: -20, y: 25), // wide reach, held
-    DanceIkTargetKey(2, x: -26, y: 18, tension: 0.2), // turning
-    DanceIkTargetKey(4, x: -32, y: 10, tension: 0.6), // narrower reach, held
-    DanceIkTargetKey(6, x: -26, y: 18, tension: 0.2), // turning back
-    DanceIkTargetKey(8, x: -20, y: 25, tension: 0.6), // wide again
-    DanceIkTargetKey(10, x: -26, y: 18, tension: 0.2),
-    DanceIkTargetKey(12, x: -32, y: 10, tension: 0.6), // narrower again
-    DanceIkTargetKey(14, x: -26, y: 18, tension: 0.8), // into bar 2
+    // R10 follow-up: widened the swing itself (not just added rotation) —
+    // a reach-ratio probe showed the old wide/narrow pair sat at ~0.75/0.58
+    // (span 0.17); pushing toward the lane's actual edges gave more room,
+    // but the very edge (ratio ~0.80) straightened the elbow to 180 degrees
+    // and broke the elbow-bend validator — backed off to ~0.78/0.55 (span
+    // ~0.23), still a real ~35% bigger visible excursion than before while
+    // clearing both the near-degenerate zone and the straight-elbow ceiling.
+    DanceIkTargetKey(0, x: -20, y: 28), // wide reach, held
+    DanceIkTargetKey(2, x: -27, y: 18, tension: 0.2), // turning
+    DanceIkTargetKey(4, x: -36, y: 5, tension: 0.6), // narrower reach, held
+    DanceIkTargetKey(6, x: -27, y: 18, tension: 0.2), // turning back
+    DanceIkTargetKey(8, x: -20, y: 28, tension: 0.6), // wide again
+    DanceIkTargetKey(10, x: -27, y: 18, tension: 0.2),
+    DanceIkTargetKey(12, x: -36, y: 5, tension: 0.6), // narrower again
+    DanceIkTargetKey(14, x: -27, y: 18, tension: 0.8), // into bar 2
     // Bar 2 jabs (beats 5-8, alternating L,R,L,R): fire to near-full
     // extension PAST the opposite shoulder line in one beat-quarter, hold a
     // frame, recoil; the idle paw chambers at the OWN-side hip crest.
@@ -7007,6 +7014,32 @@ class CatClips {
     // is already pinned to its test floor (x magnitude just over 24); the
     // jab has no such ceiling, so pushed it much further across to clear
     // the chamber's landing zone with real daylight between them.
+    //
+    // R10 follow-up: EVERY rater still calls the jab a static crossed hold
+    // that "never extends." Root-caused with a world-space probe (anchor
+    // basis vectors at the target's own frame, not just position sampling):
+    // the anchor (`torso`) DRIFTS ~24 world units to the left across frames
+    // 14-20 as the step-touch weight shifts — exactly opposing the jab's
+    // rightward local reach, so a big local-space cross-body reach still
+    // lands only slightly right of center in world space (target (33,-50)
+    // resolves to world x~25 at frame 16, barely past the chamber hand's
+    // own ~24). This is a DIFFERENT bug than the reach-zone/rotation issues
+    // fixed elsewhere this round: the target IS being tracked accurately
+    // (no fold-clamp, no IK error) and the local values ARE past every
+    // tested floor — the anchor itself is moving against the gesture.
+    // Tried widening further to compensate (33->38, -50->-55): a follow-up
+    // reach-ratio probe against the ACTUAL shoulder position (not just the
+    // anchor's linear basis) showed the ORIGINAL values already sit at
+    // ratio ~0.81-0.85 — this move's jab was already pushed to near the
+    // hard reach ceiling in an earlier round (matches the old "reach-
+    // limited" note below), so there is no further room in local-target
+    // space to counteract the anchor drift; widening past this breaks the
+    // hard reach-limit validator outright. Reverted the widen. The actual
+    // fix needs the root-motion side: taming how far the pocket keys'
+    // weight-shift drifts the torso specifically during the jab beats
+    // (frames 14-20), which touches footwork/weight-commit timing shared
+    // with other channels — left for a dedicated pass rather than risking
+    // those here.
     DanceIkTargetKey(16, x: 33, y: -50, tension: 1), // JAB past the far line
     DanceIkTargetKey(17, x: 32, y: -48, tension: 1), // hold
     DanceIkTargetKey(19, x: 10, y: -44, tension: 0.4), // recoil through guard
@@ -7025,14 +7058,16 @@ class CatClips {
     // Round 9 re-author: mirrors the hand.L rock-together wheel redesign
     // and jab-reach fix above (see those comments) — same root causes,
     // mirrored keys.
-    DanceIkTargetKey(0, x: 32, y: 10, tension: 0.6), // narrower reach, held
-    DanceIkTargetKey(2, x: 26, y: 18, tension: 0.2),
-    DanceIkTargetKey(4, x: 20, y: 25, tension: 0.6), // wide reach, held
-    DanceIkTargetKey(6, x: 26, y: 18, tension: 0.2),
-    DanceIkTargetKey(8, x: 32, y: 10, tension: 0.6), // narrower again
-    DanceIkTargetKey(10, x: 26, y: 18, tension: 0.2),
-    DanceIkTargetKey(12, x: 20, y: 25, tension: 0.6), // wide again
-    DanceIkTargetKey(14, x: 26, y: 18, tension: 0.2), // into bar 2
+    // R10 follow-up: widened to match hand.L's bigger reach-ratio swing
+    // (see that comment above) — same mirrored values.
+    DanceIkTargetKey(0, x: 36, y: 5, tension: 0.6), // narrower reach, held
+    DanceIkTargetKey(2, x: 27, y: 18, tension: 0.2),
+    DanceIkTargetKey(4, x: 20, y: 28, tension: 0.6), // wide reach, held
+    DanceIkTargetKey(6, x: 27, y: 18, tension: 0.2),
+    DanceIkTargetKey(8, x: 36, y: 5, tension: 0.6), // narrower again
+    DanceIkTargetKey(10, x: 27, y: 18, tension: 0.2),
+    DanceIkTargetKey(12, x: 20, y: 28, tension: 0.6), // wide again
+    DanceIkTargetKey(14, x: 27, y: 18, tension: 0.2), // into bar 2
     // Bar 2: chambered at the own-side hip while the left jabs, then the
     // answering cross jab.
     DanceIkTargetKey(16, x: 26, y: -10, tension: 0.8), // chamber at the hip
@@ -7067,6 +7102,63 @@ class CatClips {
         smooth: true,
         cyclic: true,
       );
+  // R10: every rater independently called the re-positioned wheel-mime and
+  // jab "legible but frozen holds" — right reach zone, no gesture motion of
+  // their own. The rigging rater measured the SOLVED arm rotation and found
+  // real but small swings (10-15deg) that read as static at this compact,
+  // hip-hugging reach — the same "small delta near the body reads as no
+  // motion" lesson from the reach-zone investigations, just one layer up.
+  // Crucially, azonto never had a hand ROTATION channel at all (unlike
+  // shaku/sekem/zanku's hands, which all key CatBones.handL/R directly) —
+  // only the IK target's position ever moved, so the paw itself never
+  // twists. Added an explicit paw-twist channel so the wheel visibly
+  // "grips and turns" (both hands share the same rotation, since they're
+  // gripping one shared rim — L and R are exact opposites at every frame
+  // because the position keys already put them on opposite sides of the
+  // rim: whichever hand is wide, its twist is positive) and the jab gets a
+  // real punch-snap (positive rotation on the strike, relaxed negative on
+  // the chamber) instead of a static crossed hold. Magnitude matched to
+  // zanku's hand-rotation channel (its punch/pump already reads clearly).
+  static const _azontoHandLKeys = [
+    DanceJointKey(0, rotation: 0.28), // wide grip
+    DanceJointKey(4, rotation: -0.28), // narrow grip — wheel turns
+    DanceJointKey(8, rotation: 0.28),
+    DanceJointKey(12, rotation: -0.28),
+    DanceJointKey(14, rotation: -0.1), // settle before the jab
+    DanceJointKey(16, rotation: 0.4), // JAB snap
+    DanceJointKey(17, rotation: 0.32), // hold
+    DanceJointKey(19, rotation: 0.05), // recoil
+    DanceJointKey(20, rotation: -0.15), // chamber, relaxed
+    DanceJointKey(22, rotation: -0.12),
+    DanceJointKey(23, rotation: 0.05), // loads
+    DanceJointKey(24, rotation: 0.4), // JAB
+    DanceJointKey(25, rotation: 0.32),
+    DanceJointKey(27, rotation: 0.05),
+    DanceJointKey(28, rotation: -0.15), // chamber
+    DanceJointKey(30, rotation: -0.05),
+    DanceJointKey(31, rotation: 0.1), // lifts back to the wheel
+    DanceJointKey(32, rotation: 0.28), // == frame 0
+  ];
+  static const _azontoHandRKeys = [
+    DanceJointKey(0, rotation: -0.28), // narrow grip
+    DanceJointKey(4, rotation: 0.28), // wide grip — wheel turns
+    DanceJointKey(8, rotation: -0.28),
+    DanceJointKey(12, rotation: 0.28),
+    DanceJointKey(14, rotation: 0.1),
+    DanceJointKey(16, rotation: -0.15), // chamber, relaxed
+    DanceJointKey(18, rotation: -0.12),
+    DanceJointKey(19, rotation: 0.05), // loads
+    DanceJointKey(20, rotation: 0.4), // JAB snap
+    DanceJointKey(21, rotation: 0.32), // hold
+    DanceJointKey(23, rotation: 0.05), // recoil
+    DanceJointKey(24, rotation: -0.15), // chamber
+    DanceJointKey(26, rotation: -0.12),
+    DanceJointKey(27, rotation: 0.05),
+    DanceJointKey(28, rotation: 0.4), // JAB
+    DanceJointKey(29, rotation: 0.32),
+    DanceJointKey(31, rotation: 0.1), // settles toward the wheel
+    DanceJointKey(32, rotation: -0.28), // == frame 0
+  ];
   static const _azontoFootLTargetKeys = [
     DanceIkTargetKey(0, x: -56, y: 103),
     DanceIkTargetKey(2, x: -56, y: 103), // planted through left support
@@ -7387,6 +7479,14 @@ class CatClips {
         ]),
         CatBones.earL: _earFollow(side: 1, amplitude: 0.022, phase: 0.12),
         CatBones.earR: _earFollow(side: -1, amplitude: 0.022, phase: 0.59),
+        CatBones.handL: _dancePhrase.jointChannel(
+          _azontoHandLKeys,
+          smooth: true,
+        ),
+        CatBones.handR: _dancePhrase.jointChannel(
+          _azontoHandRKeys,
+          smooth: true,
+        ),
         ..._tailFollowThrough(amplitude: 0.09, phase: 0.08),
       },
     );

@@ -1,0 +1,82 @@
+Panel round 10 — 2026-07-03
+Task wc5fjcpel / run wf_63be9130-3e2, 30/30 raters (5 experts x 6 moves)
+
+Context: run right after three targeted re-authoring fixes merged since round 9 —
+azonto's wheel-mime + jab fully repositioned to the correct hip/belly reach zone
+(PR #25), sekem's free-arm pump reshaped into a continuous per-beat arc (PR #27),
+zanku's gbese kick approach/release swept outboard into a wider arc (PR #24).
+Fresh film strips rendered before this run (GRID_SCALE=0.55, all 6 clips).
+
+SCORES (R9 -> R10):
+  shaku       6.9 -> 7.0   (+0.1)
+  zanku       6.6 -> 6.8   (+0.2)
+  azonto      5.8 -> 5.7   (-0.1)
+  sekem       5.6 -> 6.3   (+0.7)  <- biggest mover
+  buga        7.0 -> 6.7   (-0.3, untouched this round; director alone gave 4.5)
+  pouncingCat 6.8 -> 6.8   (flat, untouched this round)
+
+No move is yet at the 8/10 target. Full per-rater scores and critiques are in the
+raw workflow output; key findings below.
+
+== Sekem (+0.7, the clearest win) ==
+All 5 raters now agree the parked-hand problem is fixed — the free arm visibly
+moves the whole bar instead of holding a static pose (rigging: "the free arm now
+moves continuously all bar"). Three NEW critiques, none about smoothness:
+1. The pinned/free arm role NEVER SWAPS between bar 1 and bar 2 — every rater
+   flagged this independently. The move's own brief says "sides swap per bar"
+   but the same arm stays pinned and the same arm stays free both bars. This
+   looks like a real choreography bug, not a critique of taste — worth checking
+   whether the swap is even authored, since the rigging rater says the swap
+   partially happens but a beat late (frame 20 instead of frame 16).
+2. The new arc's low point still doesn't clear the hip visibly enough — multiple
+   raters say it reads as "a small forearm bounce" rather than a shoulder dig
+   past the hip. This is the amplitude-vs-validator-ceiling tradeoff already
+   documented in memory (y=26-32 clears both the elbow-bend and reach-limit
+   validators; deeper breaks them) — likely not fixable without revisiting the
+   validator bounds themselves.
+3. Shoulder stays level; the dig reads as elbow-only, not "shoulder-led."
+
+== Azonto (-0.1, re-author didn't move the needle) ==
+Reach-zone reposition worked exactly as intended (rigging: "no jitter,
+interpenetration"; movement: "moved to hip/belly height as intended") but EVERY
+rater says both mimes are now legible-but-frozen HOLDS, not mimes: the wheel
+never turns (no rotation/reaching arc, just a static fisted stance) and the jab
+never extends (arms stay crossed at the chest the whole bar, no punch-out arc).
+This is a different failure mode than the one just fixed — position was wrong
+before, now position is right but there's no GESTURE motion layered on top of
+the position. The rigging rater's critique is unusually direct: plotted the
+SOLVED local rotation across bar 1 and bar 2 and says it's flat/pinned, "consistent
+with a joint-angle solve pinned at a constant local value... rather than a
+deliberate held pose" — i.e. probe this the same way sekem's rotation was probed
+before its round-9 fix, to confirm whether an actual rotation channel exists on
+these arms at all or whether only the (static) IK target position was ever moved.
+Also new: a real loop-seam tail-visibility pop (frame 31 tail out vs frame 0 tail
+tucked) and a hard un-eased pose snap at the bar-1/bar-2 boundary (frame 15->16).
+
+== Zanku (+0.2, kick complaint persists) ==
+The afrobeats rater still calls the gbese kick unconvincing, but for a NEW reason
+than before ("shin height" is gone) — now it's "zero torso lean-back," i.e. the
+kick's positional arc is fine but there's no counter-rotation selling the release
+as explosive. Multiple raters (movement, director) independently flag that the
+elbows-out arm pump never actually pumps — arms sit in a fixed fists-on-hips
+silhouette through the whole loop while only the legs animate; director explicitly
+suggests reusing "the way the Sekem fix reshaped its arm into a full swing arc"
+as the template. This is likely the next zanku lever if picked up.
+
+== Shaku, buga, pouncingCat (untouched this round) ==
+Normal inter-round variance — buga's -0.3 is driven by one rater (director, 4.5,
+"repeating two-beat hip-crouch loop, sink never progresses") against four raters
+in the 6.5-8 range; not a signal anything regressed, since nothing was touched.
+Recurring cross-move pattern worth noting: at least three moves this round
+(shaku, azonto's held-X analog, pouncingCat) were independently flagged for the
+identical "fists tuck together into one guard blob at the recovery peak" shape —
+suggests a shared authoring habit (recovery poses defaulting toward center) that
+might be worth a single systemic look rather than one-off fixes per move.
+
+Overall pattern: the panel's focus has now shifted almost entirely from
+smoothness/snap (this session's earlier angular-diagnostics work) to two
+categories — (a) whether a named gesture has its OWN motion arc independent of
+position (azonto's frozen mimes, zanku's frozen arm pump, sekem's now-partially-
+fixed pump), and (b) structural/choreographic completeness (sekem's missing bar
+swap, zanku/buga/pouncingCat's "same 2-beat cell repeated 4x" complaint). Neither
+category is a keyframe-nudge fix; both are re-authoring scope.
