@@ -255,12 +255,33 @@ List<_Sample> _sampleCentreline(
   return out;
 }
 
+/// Below this fraction of a side's AUTHORED half-width, the curvature clamp
+/// stops shrinking further. Without a floor, a sharp-enough bend (shaku's
+/// held-X elbow measured collapsing to ~3% of its authored width) pinches
+/// the fold to a near-zero sliver — geometrically anti-self-intersection-
+/// correct, but too thin to read as a bend at render scale ("flat, nearly-
+/// straight paddle arm" despite a real ~39deg elbow angle). 0.28 trades a
+/// small, usually-imperceptible amount of self-overlap on the tightest
+/// folds for a crease that stays visually legible.
+const double _kCreaseLegibilityFloor = 0.28;
+
+/// Below this fraction of authored half-width, the fold is severe enough
+/// that a drawn ink line would trace a floating scratch inside the cloth
+/// mass rather than a real seam, so the ink lifts. Set safely below
+/// [_kCreaseLegibilityFloor] so a sample that hit the floor (the common
+/// case on any real elbow/knee bend) still gets its defining line — the
+/// floor fixed the FILL geometry being too thin to read; without also
+/// relaxing this threshold, the line that would actually sell the crease
+/// stayed suppressed at the old, much stricter 0.7 cutoff regardless.
+const double _kCreaseInkSuppressionThreshold = 0.2;
+
 /// Prevents self-intersection on tight folds: where the centreline's radius
 /// of curvature drops below a side's half-width, offsetting the full width
 /// on the INSIDE of the bend folds the edge back across itself (the
 /// crossed-wrist X read as a wire). Clamp that side's offset to ~90% of the
-/// local radius; the outer side is untouched, so the fold keeps its mass and
-/// gains a crease.
+/// local radius (floored — see [_kCreaseLegibilityFloor] — so the clamp
+/// itself doesn't erase the fold it's supposed to render); the outer side
+/// is untouched, so the fold keeps its mass and gains a crease.
 void _clampInnerEdgeToCurvature(List<_Sample> samples) {
   for (var i = 1; i < samples.length - 1; i++) {
     final prev = samples[i - 1];
@@ -284,17 +305,28 @@ void _clampInnerEdgeToCurvature(List<_Sample> samples) {
     if (turn > 0) {
       // Curving toward +normal: the +normal (front) side is the inside.
       if (here.halfWidth > maxInnerOffset) {
-        // A cut below ~70% of the authored width means this sample sits deep
-        // inside a fold — flag it so the ink line lifts over the crease.
+        final clamped = math.max(
+          maxInnerOffset,
+          here.halfWidth * _kCreaseLegibilityFloor,
+        );
+        // A cut below the ink-suppression threshold means this sample sits
+        // deep inside a fold even after the legibility floor — flag it so
+        // the ink line lifts over the crease.
         here
-          ..creaseFront = maxInnerOffset < here.halfWidth * 0.7
-          ..halfWidth = maxInnerOffset;
+          ..creaseFront =
+              clamped < here.halfWidth * _kCreaseInkSuppressionThreshold
+          ..halfWidth = clamped;
       }
     } else {
       if (here.backHalfWidth > maxInnerOffset) {
+        final clamped = math.max(
+          maxInnerOffset,
+          here.backHalfWidth * _kCreaseLegibilityFloor,
+        );
         here
-          ..creaseBack = maxInnerOffset < here.backHalfWidth * 0.7
-          ..backHalfWidth = maxInnerOffset;
+          ..creaseBack =
+              clamped < here.backHalfWidth * _kCreaseInkSuppressionThreshold
+          ..backHalfWidth = clamped;
       }
     }
   }
