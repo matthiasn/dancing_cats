@@ -7956,18 +7956,40 @@ class CatClips {
   // The widening step-out lives in the TRANSIT (f10-f11 / f26-f27) so both
   // feet are planted wide with even weight for the whole held present — the
   // round-3 panel read the late-arriving step as a balletic lifted leg.
+  // R11 (owner asked to keep digging on the "hop-and-shrink" glitch):
+  // root-caused via dense sub-frame sampling of the SOLVED foot position
+  // (not just integer frames) — the curve is perfectly smooth, there is no
+  // discontinuity. The "pop" is real motion, not a numeric glitch: footL
+  // is anchored to `hips` and FREE (not yet the support foot) through
+  // frames 0-8, so its near-constant authored y (~102, meant to read as
+  // "on the ground") gets carried through the hip's OWN big vertical
+  // sink almost 1:1 (hips.y swings ~59 world units by frame 8; footL's
+  // SOLVED y swings ~63) — the free foot's target never compensates for
+  // the anchor sinking further away from it. It then gets yanked back
+  // toward the real ground once footL becomes the support foot at
+  // exactly frame 8 and the world-anchor blend engages — except the
+  // blend is MATHEMATICALLY ZERO at the exact instant a span starts
+  // (`_supportFootAnchorBlend`'s fade-in is 0 at p=span.start), so the
+  // uncorrected oversink renders fully exposed for one frame before the
+  // correction ramps up — that's the pop. Fixed at the source: pulled
+  // frames 4/8's authored y up (less positive = less sink) to roughly
+  // cancel the hip's own drift at those frames, so the free foot's
+  // target already sits near true ground BEFORE the anchor has to yank
+  // it there.
   static const _bugaFootLTargetKeys = [
     DanceIkTargetKey(0, x: -58, y: 101),
-    DanceIkTargetKey(4, x: -72, y: 102),
-    DanceIkTargetKey(8, x: -60, y: 102),
+    DanceIkTargetKey(4, x: -72, y: 87),
+    DanceIkTargetKey(8, x: -60, y: 66),
     DanceIkTargetKey(10, x: -80, y: 103),
     DanceIkTargetKey(11, x: -94, y: 104),
     DanceIkTargetKey(12, x: -98, y: 104),
     DanceIkTargetKey(13, x: -98, y: 104),
     DanceIkTargetKey(14, x: -98, y: 104),
+    // R11: mirrors footR's frame-20/24 anti-sink compensation below — same
+    // mechanism, bar-2's own (deeper) hip drift.
     DanceIkTargetKey(16, x: -58, y: 101),
-    DanceIkTargetKey(20, x: -72, y: 102),
-    DanceIkTargetKey(24, x: -62, y: 102),
+    DanceIkTargetKey(20, x: -72, y: 86),
+    DanceIkTargetKey(24, x: -62, y: 62),
     DanceIkTargetKey(26, x: -82, y: 103),
     DanceIkTargetKey(27, x: -96, y: 104),
     DanceIkTargetKey(28, x: -100, y: 104),
@@ -7976,17 +7998,25 @@ class CatClips {
     DanceIkTargetKey(32, x: -58, y: 101),
   ];
   static const _bugaFootRTargetKeys = [
+    // R11: same anti-sink compensation as hand.L's frame 4/8 above — footR
+    // is the nominal SUPPORT foot through frames 0-8, but the world-anchor
+    // blend alone didn't fully protect it either (still measured a ~50
+    // unit oversink at f8 before this), so the raw target needs the same
+    // fix regardless of support/free role.
     DanceIkTargetKey(0, x: 62, y: 101),
-    DanceIkTargetKey(4, x: 76, y: 102),
-    DanceIkTargetKey(8, x: 62, y: 102),
+    DanceIkTargetKey(4, x: 76, y: 87),
+    DanceIkTargetKey(8, x: 62, y: 66),
     DanceIkTargetKey(10, x: 82, y: 103),
     DanceIkTargetKey(11, x: 96, y: 104),
     DanceIkTargetKey(12, x: 100, y: 104),
     DanceIkTargetKey(13, x: 100, y: 104),
     DanceIkTargetKey(14, x: 100, y: 104),
+    // R11: mirrors hand.L's frame-4/8 anti-sink compensation above (see
+    // that comment) — same mechanism, bar-2's own (deeper, since this
+    // session's escalation fix widened it) hip drift.
     DanceIkTargetKey(16, x: 62, y: 101),
-    DanceIkTargetKey(20, x: 76, y: 102),
-    DanceIkTargetKey(24, x: 64, y: 102),
+    DanceIkTargetKey(20, x: 76, y: 86),
+    DanceIkTargetKey(24, x: 64, y: 62),
     DanceIkTargetKey(26, x: 84, y: 103),
     DanceIkTargetKey(27, x: 98, y: 104),
     DanceIkTargetKey(28, x: 102, y: 104),
