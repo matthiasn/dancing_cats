@@ -17,7 +17,6 @@ void main() {
     ];
 
     const fullFrameAssets = [
-      SceneryAssets.masterPlate,
       SceneryAssets.cloudlessPlate,
       SceneryAssets.cloudsFar,
       SceneryAssets.cloudsMid,
@@ -86,20 +85,17 @@ void main() {
     test(
       'base plate and derived layers share one full-frame coordinate space',
       () async {
-        final master = await _readImage('assets/scenery/blue_hour_master.webp');
         final cloudless = await _readImage(
           'assets/scenery/blue_hour_cloudless.webp',
         );
-        expect(master.width, 2560);
-        expect(master.height, 1440);
-        expect(cloudless.width, master.width);
-        expect(cloudless.height, master.height);
+        expect(cloudless.width, 2560);
+        expect(cloudless.height, 1440);
         expect(_alphaStats(cloudless).transparent, 0);
 
         for (final name in layerNames) {
           final layer = await _readImage('assets/scenery/$name.webp');
-          expect(layer.width, master.width, reason: name);
-          expect(layer.height, master.height, reason: name);
+          expect(layer.width, cloudless.width, reason: name);
+          expect(layer.height, cloudless.height, reason: name);
           expect(
             _alphaStats(layer),
             isA<_AlphaStats>()

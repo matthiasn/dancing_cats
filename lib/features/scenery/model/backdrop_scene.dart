@@ -237,7 +237,6 @@ class BackdropScene {
       foregroundLayers: [_target('vignette', const VignetteLayer(dim: 0.12))],
       imageAssets: const [
         SceneryAssets.cloudlessPlate,
-        SceneryAssets.masterPlate,
         SceneryAssets.cloudsFar,
         SceneryAssets.cloudsMid,
         SceneryAssets.cloudsNear,

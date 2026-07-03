@@ -100,7 +100,7 @@ void main() {
       );
       await tester.pump();
 
-      expect(requested, contains(SceneryAssets.masterPlate));
+      expect(requested, contains(SceneryAssets.cloudlessPlate));
       expect(tester.takeException(), isNull);
       // The widget owns and disposes the decoded image on teardown.
     });

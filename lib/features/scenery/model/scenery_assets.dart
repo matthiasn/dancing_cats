@@ -7,17 +7,16 @@ const Size kSceneryCanvasSize = Size(2560, 1440);
 
 /// Asset paths for the painted blue-hour waterfront layers.
 ///
-/// `blue_hour_master.webp` is the immutable source plate. The runtime base is
-/// [cloudlessPlate], with exact master-derived cloud pixels reintroduced through
+/// [cloudlessPlate] is the immutable full-frame base plate (no clouds, no
+/// duplicated foreground palms). Cloud pixels are reintroduced through
 /// [cloudsFar], [cloudsMid] and [cloudsNear] so they can drift independently.
-/// [cityWindows] is a registered window field baked FROM the master (see
+/// [cityWindows] is a registered window field baked FROM the base plate (see
 /// `tools/scenery_art/bake_city_windows.py`) — the city-lights shader lights its
 /// painted windows directly. [cityBridge], [yacht] and [foreground] are
 /// alpha-cut structure/occluder layers re-drawn over animated atmosphere/water
 /// so moving effects stay behind solid painted objects. [lufthansa747] is a
 /// cropped transparent overlay asset used by the distant-jet layer.
 abstract final class SceneryAssets {
-  static const masterPlate = 'assets/scenery/blue_hour_master.webp';
   static const cloudlessPlate = 'assets/scenery/blue_hour_cloudless.webp';
   static const cloudsFar = 'assets/scenery/clouds_far.webp';
   static const cloudsMid = 'assets/scenery/clouds_mid.webp';

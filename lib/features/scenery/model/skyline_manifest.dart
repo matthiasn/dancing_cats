@@ -47,7 +47,7 @@ class SkylineManifest {
 /// A coarse stand-in until the Codex-generated, art-matched manifest replaces
 /// it. Values are plausible but not tied to any real artwork.
 const SkylineManifest kPlaceholderSkylineManifest = SkylineManifest(
-  // Measured against assets/scenery/blue_hour_master.webp — the tallest hi-rise
+  // Measured against assets/scenery/blue_hour_cloudless.webp — the tallest hi-rise
   // tops, left→right: left tower, spired tower (on the spire), peaked-roof
   // tower, dark flat-top tower, slim tall tower.
   buildingTops: [

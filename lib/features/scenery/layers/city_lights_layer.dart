@@ -10,14 +10,14 @@ import 'package:dancing_cats/features/scenery/runtime/scenery_shaders.dart';
 import 'package:flutter/rendering.dart';
 
 /// Additive night-lights layer drawn over the painted plate: lit building
-/// windows (read from the master-derived `city_windows` field so each glow lands
-/// on a real painted window) and warm yacht cabin windows (confined by the
+/// windows (read from the base-plate-derived `city_windows` field so each glow
+/// lands on a real painted window) and warm yacht cabin windows (confined by the
 /// `yacht` mask) via the city-lights shader, plus blinking red aircraft warning
 /// beacons on the tallest towers and bridge pylons (canvas, from
 /// [SkylineManifest] anchors).
 ///
 /// Both the shader's mask sampling and the beacon positions are placed through
-/// the SAME cover-fit mapping the master plate uses ([coverFit]), so every light
+/// the SAME cover-fit mapping the base plate uses ([coverFit]), so every light
 /// lands exactly on its painted structure at any viewport aspect ratio.
 /// Everything blends with [BlendMode.plus] so it only adds glow.
 class CityLightsLayer implements BackdropLayer {
@@ -102,11 +102,11 @@ class CityLightsLayer implements BackdropLayer {
     final program = ctx.cityLightsProgram;
     final windowField = ctx.images[SceneryAssets.cityWindows];
     final yachtMask = ctx.images[SceneryAssets.yacht];
-    final master = ctx.images[SceneryAssets.masterPlate];
+    final basePlate = ctx.images[SceneryAssets.cloudlessPlate];
     if (program == null ||
         windowField == null ||
         yachtMask == null ||
-        master == null) {
+        basePlate == null) {
       return;
     }
     final p = ctx.palette;
@@ -127,7 +127,7 @@ class CityLightsLayer implements BackdropLayer {
     shader
       ..setImageSampler(0, windowField)
       ..setImageSampler(1, yachtMask)
-      ..setImageSampler(2, master);
+      ..setImageSampler(2, basePlate);
     canvas.drawRect(
       Offset.zero & ctx.size,
       Paint()

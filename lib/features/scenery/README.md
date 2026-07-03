@@ -106,11 +106,11 @@ than the centre.
 
 `SceneryAssets` names the runtime assets:
 
-- `blue_hour_master.webp`: immutable full-frame source plate.
-- `blue_hour_cloudless.webp`: source plate with selected cloud pixels removed or
-  blended toward sky color.
+- `blue_hour_cloudless.webp`: immutable full-frame base plate — already
+  cloudless, with the foreground palms baked out so they never duplicate
+  against the independently animated `foreground.webp` parallax layer.
 - `clouds_far.webp`, `clouds_mid.webp`, `clouds_near.webp`: exact-size transparent
-  cloud plates derived from the master. They are not cropped.
+  cloud plates. They are not cropped.
 - `city_bridge.webp`, `yacht.webp`, `foreground.webp`: structure/occluder layers
   cut from same-size masks.
 - `city_windows.webp`: sampled window field used by `CityLightsLayer`.
@@ -254,27 +254,28 @@ The generated WebP stack lives under `assets/scenery/`; the tooling lives under
 
 ```mermaid
 flowchart LR
-  master[blue_hour_master.webp] --> masks[layer masks]
+  base[blue_hour_cloudless.webp] --> masks[layer masks]
   masks --> layerer[layer_from_masks.py]
   layerer --> city[city_bridge.webp]
   layerer --> yacht[yacht.webp]
   layerer --> fg[foreground.webp]
-  master --> clouds[isolate_clouds.py]
-  city --> clouds
-  yacht --> clouds
-  fg --> clouds
-  clouds --> base[blue_hour_cloudless.webp]
-  clouds --> far[clouds_far.webp]
-  clouds --> mid[clouds_mid.webp]
-  clouds --> near[clouds_near.webp]
+  base --> bake[bake_city_windows.py]
+  city --> bake
+  yacht --> bake
+  fg --> bake
+  bake --> windows[city_windows.webp]
 ```
+
+`blue_hour_cloudless.webp` is the immutable base plate — already cloudless,
+with the foreground palms baked out so they never duplicate against the
+independently animated `foreground.webp` layer. `clouds_far/mid/near.webp` are
+frozen assets from an earlier master-era cloud extraction and are not part of
+this regeneration path (see `tools/scenery_art/README.md`).
 
 Regenerate with:
 
 ```bash
-python3 -m venv /tmp/dancing-cats-scenery-opencv
-/tmp/dancing-cats-scenery-opencv/bin/python -m pip install -r tools/scenery_art/requirements.txt
-make -C tools/scenery_art PYTHON=/tmp/dancing-cats-scenery-opencv/bin/python blue-hour
+make -C tools/scenery_art blue-hour
 ```
 
 Preview/debug outputs go to `tmp/scenery_work/` and are not runtime assets. See

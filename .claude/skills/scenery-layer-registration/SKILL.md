@@ -26,7 +26,7 @@ cropped, and aligned by coordinates alone.
 
 1. Identify the master plate and every derived layer/mask involved.
    For the current scene:
-   - `assets/scenery/blue_hour_master.webp`
+   - `assets/scenery/blue_hour_cloudless.webp`
    - `tools/scenery_art/scenes/blue_hour_waterfront/masks/*.png`
    - `assets/scenery/*.webp`
 
@@ -34,7 +34,7 @@ cropped, and aligned by coordinates alone.
 
    ```sh
    python3 .claude/skills/scenery-layer-registration/scripts/registration_probe.py \
-     --master assets/scenery/blue_hour_master.webp \
+     --master assets/scenery/blue_hour_cloudless.webp \
      --layer assets/scenery/city_bridge.webp \
      --mask tools/scenery_art/scenes/blue_hour_waterfront/masks/city_bridge.png \
      --crop 430,260,700,440 \
@@ -63,7 +63,7 @@ cropped, and aligned by coordinates alone.
 
    ```sh
    python3 tools/scenery_art/layer_from_masks.py \
-     --master assets/scenery/blue_hour_master.webp \
+     --master assets/scenery/blue_hour_cloudless.webp \
      --out-dir assets/scenery \
      --preview-dir tmp/scenery_work \
      --layer city_bridge=tools/scenery_art/scenes/blue_hour_waterfront/masks/city_bridge.png \
@@ -73,12 +73,11 @@ cropped, and aligned by coordinates alone.
    python3 tools/scenery_art/inspect_layers.py
    ```
 
-   If cloud assets depend on the structure masks, rerun the full blue-hour
-   target with the OpenCV Python:
+   Or just rerun the full blue-hour target (same steps, no OpenCV needed — the
+   base plate is already cloudless, so `isolate_clouds.py` is not part of it):
 
    ```sh
-   make -C tools/scenery_art \
-     PYTHON=/tmp/lotti-scenery-opencv/bin/python blue-hour
+   make -C tools/scenery_art blue-hour
    ```
 
 5. Render the exact problem timestamp, not a nearby approximation. For the dance
