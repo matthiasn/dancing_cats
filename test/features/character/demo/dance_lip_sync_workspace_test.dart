@@ -357,6 +357,26 @@ void main() {
       },
     );
 
+    testWidgets('the overview strip jumps and drags the view window', (
+      tester,
+    ) async {
+      await pump(tester);
+      await zoomIn(tester); // narrower window, room to jump/drag
+      final ov = tester.getRect(find.byKey(const Key('lipSyncOverview')));
+      // A tap re-centres the window on the tapped song position…
+      await tester.tapAt(Offset(ov.left + ov.width * 0.1, ov.center.dy));
+      await tester.pump();
+      expect(await viewStart(tester), closeTo(0, 2)); // centreOn(4) clamps
+      // …and dragging the brush slides it continuously.
+      await tester.dragFrom(
+        Offset(ov.left + ov.width * 0.5, ov.center.dy),
+        Offset(ov.width * 0.3, 0),
+      );
+      await tester.pump();
+      expect(await viewStart(tester), greaterThan(0));
+      await drain(tester);
+    });
+
     testWidgets('Ctrl+scroll zooms; FIT resets', (tester) async {
       await pump(tester);
       await zoomIn(tester);

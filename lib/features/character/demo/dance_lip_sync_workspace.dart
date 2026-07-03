@@ -305,6 +305,11 @@ class _DanceLipSyncWorkspaceState extends State<DanceLipSyncWorkspace> {
                   children: [
                     _toolbar(),
                     _row(
+                      height: 14,
+                      header: const SizedBox.shrink(),
+                      child: _overview(width),
+                    ),
+                    _row(
                       height: 24,
                       header: _headerLabel('TIME'),
                       child: _ruler(width),
@@ -560,6 +565,34 @@ class _DanceLipSyncWorkspaceState extends State<DanceLipSyncWorkspace> {
 
   // ── ruler / lane / palette ───────────────────────────────────────────────
 
+  Widget _overview(double width) {
+    return GestureDetector(
+      key: const Key('lipSyncOverview'),
+      behavior: HitTestBehavior.opaque,
+      onTapDown: (d) => setState(() {
+        _view = _view.centreOn(
+          d.localPosition.dx / width * widget.durationSec,
+        );
+        _follow = false;
+      }),
+      onHorizontalDragUpdate: (d) => setState(() {
+        _view = _view.centreOn(
+          d.localPosition.dx / width * widget.durationSec,
+        );
+        _follow = false;
+      }),
+      child: CustomPaint(
+        size: Size(width, 14),
+        painter: _OverviewPainter(
+          cues: _c.cues,
+          durationSec: widget.durationSec,
+          view: _view,
+          positionSec: widget.positionSec,
+        ),
+      ),
+    );
+  }
+
   Widget _ruler(double width) {
     return GestureDetector(
       key: const Key('lipSyncRuler'),
@@ -660,7 +693,9 @@ class _DanceLipSyncWorkspaceState extends State<DanceLipSyncWorkspace> {
           height: 26,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: color.withValues(alpha: enabled ? (active ? 0.9 : 0.35) : 0.12),
+            color: color.withValues(
+              alpha: enabled ? (active ? 0.9 : 0.35) : 0.12,
+            ),
             borderRadius: BorderRadius.circular(4),
             border: Border.all(
               color: active ? _Ls.accent : _Ls.edge,
@@ -777,6 +812,87 @@ class _RulerPainter extends CustomPainter {
       !identical(old.sections, sections);
 }
 
+/// Whole-track minimap: every cue condensed into its viseme colour, with the
+/// visible-window brush on top — a DAW-style "you are here" so zooming into
+/// a readable segment never loses the rest of the track.
+class _OverviewPainter extends CustomPainter {
+  _OverviewPainter({
+    required this.cues,
+    required this.durationSec,
+    required this.view,
+    required this.positionSec,
+  });
+
+  final List<DanceCue> cues;
+  final double durationSec;
+  final GradeTimelineViewport view;
+  final double positionSec;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawRect(
+      Offset.zero & size,
+      Paint()..color = const Color(0xFF0B0E12),
+    );
+    if (durationSec > 0) {
+      for (final c in cues) {
+        final x0 = (c.start / durationSec * size.width).clamp(0, size.width);
+        final x1 = (c.end / durationSec * size.width).clamp(0, size.width);
+        if (x1 <= x0) continue;
+        canvas.drawRect(
+          Rect.fromLTWH(x0.toDouble(), 0, (x1 - x0).toDouble(), size.height),
+          Paint()
+            ..color = (kVisemeColor[c.shape] ?? _Ls.textLow).withValues(
+              alpha: 0.55,
+            ),
+        );
+      }
+      // The brush: the visible window — a bold "you are here" box, not a
+      // faint tint, since this is glanced at while watching the stage.
+      final left = view.startSec / durationSec * size.width;
+      final w = view.visibleSec / durationSec * size.width;
+      canvas
+        ..drawRect(
+          Rect.fromLTWH(left, 0, w, size.height),
+          Paint()..color = _Ls.accent.withValues(alpha: 0.32),
+        )
+        ..drawRect(
+          Rect.fromLTWH(left, 0, w, size.height),
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.5
+            ..color = _Ls.accent.withValues(alpha: 0.95),
+        )
+        // Grab handles at both edges of the brush — solid regardless of how
+        // wide the window is, so it always reads as a draggable scrubber,
+        // not just a border that vanishes when the window spans the strip.
+        ..drawRect(
+          Rect.fromLTWH(left - 1, 0, 2.5, size.height),
+          Paint()..color = _Ls.accent,
+        )
+        ..drawRect(
+          Rect.fromLTWH(left + w - 1.5, 0, 2.5, size.height),
+          Paint()..color = _Ls.accent,
+        )
+        ..drawRect(
+          Rect.fromLTWH(
+            positionSec / durationSec * size.width,
+            0,
+            1.5,
+            size.height,
+          ),
+          Paint()..color = _Ls.accent,
+        );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_OverviewPainter old) =>
+      old.view != view ||
+      old.positionSec != positionSec ||
+      !identical(old.cues, cues);
+}
+
 /// One block per cue, coloured by viseme, with a seam at every boundary and
 /// an accent outline on the selected cue.
 class _CueLanePainter extends CustomPainter {
@@ -808,11 +924,21 @@ class _CueLanePainter extends CustomPainter {
       if (right <= left) continue;
       final selected = i == selectedIndex;
       final color = kVisemeColor[c.shape] ?? _Ls.textLow;
-      final rect = Rect.fromLTWH(left + 1, 4, right - left - 2, size.height - 8);
-      final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(3));
+      // Below ~6px the 1px inset + 4px vertical margin would swallow the
+      // whole block (negative width) — a song's-worth of Rhubarb cues at
+      // FIT zoom are routinely sub-pixel, so fill edge-to-edge with no
+      // inset there instead of vanishing into the background.
+      final raw = right - left;
+      final rect = raw > 6
+          ? Rect.fromLTWH(left + 1, 4, raw - 2, size.height - 8)
+          : Rect.fromLTWH(left, 0, math.max(0.6, raw), size.height);
+      final rrect = RRect.fromRectAndRadius(
+        rect,
+        raw > 6 ? const Radius.circular(3) : Radius.zero,
+      );
       canvas.drawRRect(
         rrect,
-        Paint()..color = color.withValues(alpha: selected ? 0.85 : 0.5),
+        Paint()..color = color.withValues(alpha: selected ? 0.92 : 0.85),
       );
       if (selected) {
         canvas.drawRRect(
@@ -844,7 +970,11 @@ class _CueLanePainter extends CustomPainter {
           ),
         );
       }
-      if (i > 0) {
+      // At high density a seam every couple of pixels reads as a grid
+      // lattice that drowns out the fill colour entirely — only draw it
+      // once cues are wide enough for a seam to read as a boundary rather
+      // than as the dominant texture.
+      if (i > 0 && raw > 6) {
         canvas.drawRect(
           Rect.fromLTWH(x0 - 0.75, 0, 1.5, size.height),
           Paint()..color = const Color(0x33000000),

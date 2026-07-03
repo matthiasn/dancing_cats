@@ -983,9 +983,13 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
                   ),
                 if (_lipSyncOpen && lipSyncController != null)
                   SizedBox(
+                    // Unlike the grade console (whose height the wheel/scope
+                    // panel drives), lip-sync is one cue lane over a shape
+                    // palette — a fraction of the grade workspace's footprint
+                    // covers it with room to spare.
                     height: math.min(
-                      470,
-                      MediaQuery.sizeOf(context).height * 0.46,
+                      200,
+                      MediaQuery.sizeOf(context).height * 0.22,
                     ),
                     child: DanceLipSyncWorkspace(
                       controller: lipSyncController,
