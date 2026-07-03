@@ -171,22 +171,20 @@ void main() {
     });
 
     test('falls back to baseClip for every unset field/track', () {
-      final base = _runtime(
-        Clip(
-          name: 'base',
-          duration: 2,
-          channels: const {'chest': SineChannel(amplitude: 0.01)},
-          root: const SineRootChannel(bobAmplitude: 0.02),
-          locomotionSpeed: 1.1,
-          contactPinning: ContactPinning.lowestContact,
-          supportFootWorldAnchor: true,
-          supportFootWorldAnchorStrength: 0.7,
-          danceHeadBobScale: 0.5,
-          danceHeadLevelClampMin: -3,
-          zOrderSwaps: const [
-            ZOrderSwapWindow(boneA: 'a', boneB: 'b', start: 0, end: 0.5),
-          ],
-        ),
+      final base = Clip(
+        name: _runtime('base'),
+        duration: 2,
+        channels: const {'chest': SineChannel(amplitude: 0.01)},
+        root: const SineRootChannel(bobAmplitude: 0.02),
+        locomotionSpeed: 1.1,
+        contactPinning: ContactPinning.lowestContact,
+        supportFootWorldAnchor: true,
+        supportFootWorldAnchorStrength: 0.7,
+        danceHeadBobScale: 0.5,
+        danceHeadLevelClampMin: -3,
+        zOrderSwaps: const [
+          ZOrderSwapWindow(boneA: 'a', boneB: 'b', start: 0, end: 0.5),
+        ],
       );
       final withBase = DanceMoveDescriptor(
         move: _move,
