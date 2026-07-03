@@ -8196,16 +8196,23 @@ class CatClips {
       chestScaleY: 0.88,
       chestScaleX: 1.08,
     ),
+    // R10: the director called the 2-bar phrase "the same 2-beat cycle
+    // looped four times" — bar 2's crouch/push (frames 20/24) were LITERAL
+    // copies of bar 1's (frame 4/8), differentiated only by the L/R sign
+    // flip. Root-motion samples are inequality/range-tested, not exact-
+    // pinned, so there was room to escalate: deepened the second crouch
+    // and sharpened the second push beyond bar 1's, so bar 2 reads as a
+    // bigger second rep instead of a mirrored copy.
     DanceBodyKey(18, rootDx: 10, rootDy: 54, pelvisRotation: 0.2),
     DanceBodyKey(
       20,
-      rootDx: 18,
-      rootDy: 80,
+      rootDx: 19,
+      rootDy: 88,
       rootRotation: -0.006,
-      pelvisRotation: 0.3,
-      chestRotation: -0.28,
-      chestScaleY: 0.64,
-      chestScaleX: 1.26,
+      pelvisRotation: 0.32,
+      chestRotation: -0.3,
+      chestScaleY: 0.6,
+      chestScaleX: 1.3,
     ),
     DanceBodyKey(
       22,
@@ -8218,12 +8225,12 @@ class CatClips {
     ),
     DanceBodyKey(
       24,
-      rootDx: -14,
-      rootDy: 10,
-      pelvisRotation: -0.2,
-      chestRotation: 0.34,
-      chestScaleY: 1.14,
-      chestScaleX: 0.94,
+      rootDx: -15,
+      rootDy: 4,
+      pelvisRotation: -0.22,
+      chestRotation: 0.36,
+      chestScaleY: 1.18,
+      chestScaleX: 0.9,
     ),
     DanceBodyKey(
       26,
