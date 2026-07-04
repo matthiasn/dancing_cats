@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:dancing_cats/features/character/demo/motion_trace_panel.dart';
 import 'package:dancing_cats/features/character/model/affine2d.dart';
 import 'package:dancing_cats/features/character/model/clip.dart';
 import 'package:dancing_cats/features/character/model/face.dart';
@@ -129,6 +130,10 @@ class _DanceMoveInspectorDialogState extends State<_DanceMoveInspectorDialog>
     with SingleTickerProviderStateMixin {
   static const _frameCountOptions = [12, 16, 24];
   int _frameCount = 16;
+
+  /// Bottom section view: the keyframe contact grid, or the measured
+  /// motion traces (pocket/sway/head/feet) sampled from the same scene.
+  bool _showTraces = false;
 
   late final Ticker _ticker;
   Duration _lastTick = Duration.zero;
@@ -580,56 +585,89 @@ class _DanceMoveInspectorDialogState extends State<_DanceMoveInspectorDialog>
             textBaseline: TextBaseline.alphabetic,
             children: [
               _sectionLabel(
-                'KEYFRAMES ($_frameCount, ${clip.loop ? "loop" : "one-shot"})',
+                _showTraces
+                    ? 'MOTION TRACES — measured from the resolved scene'
+                    : 'KEYFRAMES ($_frameCount, ${clip.loop ? "loop" : "one-shot"})',
               ),
               const SizedBox(width: 10),
-              const Text(
-                'tap a frame to preview it on stage',
-                style: TextStyle(
+              Text(
+                _showTraces
+                    ? 'pocket bounce · weight sway · head ride · sole height'
+                    : 'tap a frame to preview it on stage',
+                style: const TextStyle(
                   color: _Chrome.textLow,
                   fontSize: 10,
                   fontStyle: FontStyle.italic,
                 ),
               ),
+              const Spacer(),
+              _ViewToggleChip(
+                label: 'FRAMES',
+                selected: !_showTraces,
+                onTap: () => setState(() => _showTraces = false),
+              ),
+              const SizedBox(width: 6),
+              _ViewToggleChip(
+                label: 'TRACES',
+                selected: _showTraces,
+                onTap: () => setState(() => _showTraces = true),
+              ),
             ],
           ),
           const SizedBox(height: 8),
           Expanded(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final cols = _columnsFor(constraints.maxWidth, _frameCount);
-                return GridView.builder(
-                  padding: const EdgeInsets.all(4),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: cols,
-                    mainAxisSpacing: 10,
-                    crossAxisSpacing: 10,
-                    childAspectRatio: _cellW / _cellH,
-                  ),
-                  itemCount: _frameCount,
-                  itemBuilder: (context, i) => RepaintBoundary(
-                    key: ValueKey('moveFrameCell_$i'),
-                    child: GestureDetector(
-                      onTap: () =>
-                          _seekStage(_sampleTime(clip, i, _frameCount)),
-                      child: CustomPaint(
-                        painter: _MoveFramePainter(
-                          scene: widget.scene,
-                          clip: clip,
-                          frameIndex: i,
-                          frameCount: _frameCount,
-                          expression: widget.expression,
-                          highlighted: i == _nearestIndex,
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
+            child: _showTraces ? _tracesBody(clip) : _framesBody(clip),
           ),
         ],
       ),
+    );
+  }
+
+  /// Sampled lazily on first TRACES view and cached: 97 resolved frames is
+  /// noticeable work, and the traces only change when the clip does.
+  List<MotionTrace>? _traceCache;
+
+  Widget _tracesBody(Clip clip) {
+    final traces = _traceCache ??= sampleMotionTraces(widget.scene, clip);
+    return RepaintBoundary(
+      child: CustomPaint(
+        painter: MotionTracePainter(traces),
+        size: Size.infinite,
+      ),
+    );
+  }
+
+  Widget _framesBody(Clip clip) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cols = _columnsFor(constraints.maxWidth, _frameCount);
+        return GridView.builder(
+          padding: const EdgeInsets.all(4),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: cols,
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 10,
+            childAspectRatio: _cellW / _cellH,
+          ),
+          itemCount: _frameCount,
+          itemBuilder: (context, i) => RepaintBoundary(
+            key: ValueKey('moveFrameCell_$i'),
+            child: GestureDetector(
+              onTap: () => _seekStage(_sampleTime(clip, i, _frameCount)),
+              child: CustomPaint(
+                painter: _MoveFramePainter(
+                  scene: widget.scene,
+                  clip: clip,
+                  frameIndex: i,
+                  frameCount: _frameCount,
+                  expression: widget.expression,
+                  highlighted: i == _nearestIndex,
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -643,6 +681,45 @@ class _DanceMoveInspectorDialogState extends State<_DanceMoveInspectorDialog>
       fontFeatures: [FontFeature.tabularFigures()],
     ),
   );
+}
+
+class _ViewToggleChip extends StatelessWidget {
+  const _ViewToggleChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      key: Key('moveInspectorView$label'),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: selected ? _Chrome.accent : _Chrome.hairline,
+          ),
+          color: selected ? const Color(0x1A4DD6C0) : Colors.transparent,
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? _Chrome.textHi : _Chrome.textMid,
+            fontSize: 10,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 1,
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _FrameCountChip extends StatelessWidget {

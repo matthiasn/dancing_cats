@@ -1,7 +1,7 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:dancing_cats/features/character/demo/motion_trace_panel.dart';
 import 'package:dancing_cats/features/character/engine/autonomic.dart';
 import 'package:dancing_cats/features/character/model/affine2d.dart';
 import 'package:dancing_cats/features/character/model/bone.dart';
@@ -13,6 +13,7 @@ import 'package:dancing_cats/features/character/runtime/character_renderer.dart'
 import 'package:dancing_cats/features/character/runtime/character_scene.dart';
 import 'package:dancing_cats/features/character/samples/cat_in_suit.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Controllable per-frame **contact-sheet** capture for motion review.
@@ -181,6 +182,14 @@ void main() {
 
   setUpAll(() async {
     outputDir.createSync(recursive: true);
+    // Load a real font so the motion-trace labels render as readable glyphs
+    // (the test engine otherwise paints text as boxes).
+    await (FontLoader('Inter')..addFont(
+          rootBundle.load(
+            'assets/fonts/Inter/Inter-VariableFont_opsz,wght.ttf',
+          ),
+        ))
+        .load();
     if (live) {
       waterfrontBackdropImage = await _imageFromFile(
         kCharacterWaterfrontBackdropAsset,
@@ -770,6 +779,31 @@ void main() {
             File(onionPath).writeAsBytesSync(onionPng);
             // ignore: avoid_print
             print('wrote $onionPath');
+          }
+
+          // Measured motion traces (front view only — the traces read the
+          // resolved world transforms, which do not vary by review camera).
+          // Panels judging the static sheets cross-check absence-of-motion
+          // claims against these; the same painter backs the in-app
+          // inspector's TRACES view.
+          if (view == _frontView) {
+            final traces = sampleMotionTraces(scene, clip);
+            final recorder = ui.PictureRecorder();
+            const traceSize = Size(1400, 1000);
+            paintMotionTraces(
+              Canvas(recorder),
+              traceSize,
+              traces,
+            );
+            final tracesPng = await _pngOf(
+              recorder.endRecording(),
+              traceSize.width.round(),
+              traceSize.height.round(),
+            );
+            final tracesPath = '${outputDir.path}/${name}_motion_traces.png';
+            File(tracesPath).writeAsBytesSync(tracesPng);
+            // ignore: avoid_print
+            print('wrote $tracesPath');
           }
 
           if (frameSeq) {
