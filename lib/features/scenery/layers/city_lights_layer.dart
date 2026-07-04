@@ -10,12 +10,13 @@ import 'package:dancing_cats/features/scenery/runtime/scenery_math.dart';
 import 'package:dancing_cats/features/scenery/runtime/scenery_shaders.dart';
 import 'package:flutter/rendering.dart';
 
-/// Additive night-lights layer drawn over the painted plate: lit building
+/// Additive CITY night-lights layer drawn over the painted plate: lit building
 /// windows (read from the base-plate-derived `city_windows` field so each glow
-/// lands on a real painted window) and warm yacht cabin windows (confined by the
-/// `yacht` mask) via the city-lights shader, plus blinking red aircraft warning
-/// beacons on the tallest towers and bridge pylons (canvas, from
-/// [SkylineManifest] anchors).
+/// lands on a real painted window) via the city-lights shader in its city mode
+/// (`uYachtOnly = 0` — skyline windows, haze, dome and water reflections), plus
+/// blinking red aircraft warning beacons on the tallest towers and bridge pylons
+/// (canvas, from [SkylineManifest] anchors). The moored yacht's own cabin/nav
+/// lights are a SEPARATE pass on the yacht group's plane (see `YachtLightsLayer`).
 ///
 /// Both the shader's mask sampling and the beacon positions are placed through
 /// the SAME cover-fit mapping the base plate uses ([coverFit]), so every light
@@ -35,52 +36,6 @@ class CityLightsLayer implements BackdropLayer {
     final cover = coverFit(ctx.size);
     _paintWindows(canvas, ctx, cover);
     _paintBeacons(canvas, ctx, cover);
-    _paintYachtLights(canvas, ctx, cover);
-  }
-
-  /// Steady navigation / anchor lights and warm deck courtesy lamps on the moored
-  /// yacht, placed from the painted art (mast tip, bow, stern, main-deck rail) so
-  /// it reads as a lit, occupied vessel. Drawn after the yacht bitmap so the
-  /// lamps sit on top of the hull, not behind it.
-  void _paintYachtLights(Canvas canvas, BackdropContext ctx, Rect cover) {
-    final p = ctx.palette;
-    final time = ctx.reducedMotion ? 0.0 : ctx.timeSeconds;
-    // A gentle breath on the masthead anchor light so it twinkles through haze.
-    final breath = 0.82 + 0.18 * math.sin(time * 1.3);
-    final r = cover.width * 0.0016;
-    Offset at(double x, double y) => cover.project(x, y);
-
-    void lamp(Offset c, Color color, double amp, double scale) {
-      paintGlowPointLight(
-        canvas,
-        center: c,
-        color: color,
-        haloRadius: r * 4.2 * scale,
-        haloInnerAlpha: 0.42 * amp,
-        haloMidAlpha: 0.10 * amp,
-        haloMidStop: 0.42,
-        coreRadius: r * 0.95 * scale,
-        coreColor: Color.lerp(color, const Color(0xFFFFFFFF), 0.5)!,
-        coreAlpha: 0.9 * amp,
-      );
-    }
-
-    // Navigation / anchor lights: white masthead anchor light (top of the mast),
-    // red port sidelight at the bow (the port side faces the viewer), white stern
-    // light at the transom.
-    lamp(at(0.871, 0.350), p.shipMast, breath, 1.1);
-    lamp(at(0.667, 0.578), p.shipPort, 1, 1);
-    lamp(at(0.965, 0.586), p.shipMast, 1, 0.95);
-
-    // Warm deck courtesy lamps along the main-deck rail.
-    const deckLamps = [
-      Offset(0.74, 0.55),
-      Offset(0.80, 0.545),
-      Offset(0.86, 0.55),
-    ];
-    for (final d in deckLamps) {
-      lamp(at(d.dx, d.dy), p.yachtCabinGlow, 0.7, 0.55);
-    }
   }
 
   void _paintWindows(Canvas canvas, BackdropContext ctx, Rect cover) {
@@ -95,6 +50,10 @@ class CityLightsLayer implements BackdropLayer {
       return;
     }
     final p = ctx.palette;
+    // City pass (uYachtOnly = 0): skyline windows, haze, dome and reflections.
+    // The yacht's cabin/rim glow is a SEPARATE pass on the yacht group's plane
+    // (see YachtLightsLayer); the yacht window field carries no city markers, so
+    // even the shared shader draws nothing on the yacht here.
     final shader = program.fragmentShader()
       ..setFloat(0, ctx.size.width)
       ..setFloat(1, ctx.size.height)
@@ -110,6 +69,7 @@ class CityLightsLayer implements BackdropLayer {
     setSceneryColor(shader, 14, p.windowLed);
     setSceneryColor(shader, 18, p.yachtCabinGlow);
     shader
+      ..setFloat(22, 0) // uYachtOnly = 0 → city pass
       ..setImageSampler(0, windowField)
       ..setImageSampler(1, yachtMask)
       ..setImageSampler(2, basePlate);

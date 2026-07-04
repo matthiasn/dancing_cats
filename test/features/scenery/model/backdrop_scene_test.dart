@@ -11,6 +11,7 @@ import 'package:dancing_cats/features/scenery/layers/ocean_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/parallax_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/sky_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/vignette_layer.dart';
+import 'package:dancing_cats/features/scenery/layers/yacht_group_layer.dart';
 import 'package:dancing_cats/features/scenery/model/backdrop_scene.dart';
 import 'package:dancing_cats/features/scenery/model/scenery_assets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -42,6 +43,7 @@ void main() {
           SceneryAssets.cloudsNear,
           SceneryAssets.cityBridge,
           SceneryAssets.cityWindows,
+          SceneryAssets.yachtWindows,
           SceneryAssets.yacht,
           SceneryAssets.foreground,
           SceneryAssets.lufthansa747,
@@ -50,7 +52,7 @@ void main() {
     });
 
     test(
-      'composites plate -> clouds -> jet -> ocean -> city/yacht -> deck -> drones',
+      'composites plate -> clouds -> jet -> ocean -> yacht -> deck -> drones',
       () {
         final raw = BackdropScene.blueHourWaterfront().layers;
         // Every background layer is wrapped in a ParallaxLayer; the separable
@@ -68,12 +70,9 @@ void main() {
         );
         final cloud = layers.indexWhere((l) => l is CloudParallaxLayer);
         final deck = layers.lastIndexWhere((l) => l is ImageLayer);
-        final city = layers.indexWhere(
-          (l) => l is ImageLayer && l.assetKey == SceneryAssets.cityBridge,
-        );
-        final yacht = layers.indexWhere(
-          (l) => l is ImageLayer && l.assetKey == SceneryAssets.yacht,
-        );
+        // The yacht is now a self-contained GROUP (hull bitmap + its lighting),
+        // not a bare ImageLayer, so it can ride its own plane.
+        final yacht = layers.indexWhere((l) => l is YachtGroupLayer);
         final lights = layers.indexWhere((l) => l is CityLightsLayer);
         final ocean = layers.indexWhere((l) => l is OceanLayer);
         final jet = layers.indexWhere((l) => l is DistantJetLayer);
@@ -90,17 +89,14 @@ void main() {
         final glow = layers.indexWhere((l) => l is DeckGlowLayer);
         final haze = layers.indexWhere((l) => l is AtmosphericHazeLayer);
         final police = layers.indexWhere((l) => l is BridgePoliceLayer);
-        // Coarse depth PLANES, not a per-layer ladder: the whole backdrop
-        // (plate, skyline, yacht, ocean) shares ONE background depth so re-draws
-        // never slide off their baked twins. The deck rides a nearer stage plane;
-        // the dynamic jet — no baked twin — rides the farthest plane of all.
+        // Coarse depth PLANES, not a per-layer ladder: the far backdrop (plate,
+        // skyline, ocean) shares ONE background depth. The deck rides a nearer
+        // stage plane, and the moored yacht — docked at the pier — rides that
+        // SAME stage plane so it parallaxes with the deck it is tied to, not the
+        // far city. The dynamic jet rides the farthest plane of all.
         double depthAt(int i) => planes[i].depth;
         expect(depthAt(deck), greaterThan(depthAt(plate))); // stage nearer
-        expect(
-          depthAt(city),
-          closeTo(depthAt(plate), 1e-9),
-        ); // one backdrop plane
-        expect(depthAt(yacht), closeTo(depthAt(plate), 1e-9));
+        expect(depthAt(yacht), closeTo(depthAt(deck), 1e-9)); // docked with deck
         expect(depthAt(ocean), closeTo(depthAt(plate), 1e-9));
         expect(depthAt(jet), lessThan(depthAt(plate))); // farthest of all
         expect(plate, 0);
@@ -110,19 +106,21 @@ void main() {
         // Animated water sits over the painted plate.
         expect(ocean, greaterThan(plate));
         expect(ocean, greaterThan(cloud));
-        // The fixed skyline/bridge is re-drawn over drifting clouds so the clouds
-        // stay behind the city instead of sliding across tower silhouettes.
-        expect(city, greaterThan(ocean));
-        // The moored yacht is re-drawn OVER the ocean so its solid hull occludes
-        // the foam, and the city lights (incl. the lit cabin windows) draw on top
-        // of the yacht so the warm cabin glow is not hidden behind the hull.
-        expect(yacht, greaterThan(ocean));
-        expect(lights, greaterThan(yacht));
+        // City lights draw over the ocean; the yacht carries its OWN lights now
+        // (inside the group), so the city pass no longer needs to sit after it.
+        expect(ocean, greaterThan(cloud));
+        expect(lights, greaterThan(ocean));
         // Aerial-perspective haze veils the distant structures + city lights
-        // (sits over them) but stays UNDER the foreground deck, so the deck and
-        // the dancers in front of it keep full contrast (the depth cue).
+        // (sits over them) but stays UNDER the near yacht + foreground deck, so
+        // the near, docked vessel and the dancers keep full contrast (depth cue).
         expect(haze, greaterThan(lights));
         expect(haze, lessThan(deck));
+        // The moored yacht group sits OVER the ocean (its hull occludes the foam)
+        // and AFTER the haze (a near docked vessel is not veiled like the far
+        // city), but BEHIND the deck (the pier occludes its moored stern).
+        expect(yacht, greaterThan(ocean));
+        expect(yacht, greaterThan(haze));
+        expect(yacht, lessThan(deck));
         // The foreground deck is the LAST bitmap, drawn over the ocean so foam
         // never streaks the planks; the lantern glow pools on the now-lit deck.
         expect(deck, greaterThan(ocean));

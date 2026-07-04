@@ -55,13 +55,13 @@ flowchart BT
   child[Dancers / caller child]
   vignette[VignetteLayer foreground]
   glow[DeckGlowLayer]
-  fg[foreground.webp]
-  lights[CityLightsLayer]
+  fg[foreground.webp deck - stage plane]
+  yachtGroup[YachtGroupLayer: hull + YachtLightsLayer - stage plane]
+  haze[AtmosphericHazeLayer]
+  lights[CityLightsLayer city-only]
   police[BridgePoliceLayer cordon]
   launchDrones[DroneShowLayer launch/ascent pass]
   skyDrones[DroneShowLayer sky pass]
-  yacht[yacht.webp]
-  city[city_bridge.webp]
   ocean[OceanLayer shader/fallback]
   jet[DistantJetLayer]
   near[clouds_near.webp parallax]
@@ -69,7 +69,7 @@ flowchart BT
   far[clouds_far.webp parallax]
   base[blue_hour_cloudless.webp]
 
-  base --> far --> mid --> near --> jet --> ocean --> city --> yacht --> lights --> fg --> glow --> police --> skyDrones --> launchDrones --> child --> vignette
+  base --> far --> mid --> near --> jet --> ocean --> lights --> haze --> yachtGroup --> fg --> glow --> police --> skyDrones --> launchDrones --> child --> vignette
 ```
 
 The ordering is the important contract:
@@ -84,10 +84,20 @@ The ordering is the important contract:
   model the visible side only: steady red port wingtip, steady aft white, plus
   FAA-rate red/white anti-collision pulses.
 - `OceanLayer` adds animated foam/glint over the painted lagoon.
-- `city_bridge.webp` and `yacht.webp` are redrawn after the moving clouds and
-  ocean so clouds and foam never slide across solid structure.
-- `CityLightsLayer` draws additive windows, yacht lamps, and beacon glows on top
-  of the structure layers.
+- The moored yacht is a `YachtGroupLayer` — the hull bitmap plus its own
+  `YachtLightsLayer` (cabin windows, hull rim/fill, nav/deck lamps) — drawn as
+  ONE group on the nearer, docked (foreground/stage) plane, so it parallaxes with
+  the pier it is tied to rather than the far skyline. It is drawn AFTER the city
+  lights + haze (a near, docked vessel is not veiled by the distance haze) and
+  behind the deck; its hull still occludes the foam. The de-baked base plate has
+  no yacht twin to slide off.
+- The skyline is NOT redrawn — the city and sky share one plane and the clean
+  base plate already carries a sharp skyline, so `city_bridge.webp` is decoded
+  only as the distant jet's `dstOut` occluder mask (the opaque plate has no
+  transparent sky to cut the aircraft against).
+- `CityLightsLayer` draws additive CITY windows + tower/pylon beacon glows only
+  (shader in city mode, `uYachtOnly = 0`). The yacht's own cabin/nav lights are a
+  separate pass in the yacht group (shader in yacht mode, `uYachtOnly = 1`).
 - `foreground.webp` and `DeckGlowLayer` sit over the animated water/deck area.
 - `BridgePoliceLayer` strobes a blue (plus sparse red) emergency cordon along the
   bridge roadway. It is timed to the drone-show loop: the lights roll in before
@@ -116,9 +126,15 @@ than the centre.
   against the independently animated `foreground.webp` parallax layer.
 - `clouds_far.webp`, `clouds_mid.webp`, `clouds_near.webp`: exact-size transparent
   cloud plates. They are not cropped.
-- `city_bridge.webp`, `yacht.webp`, `foreground.webp`: structure/occluder layers
-  cut from same-size masks.
-- `city_windows.webp`: sampled window field used by `CityLightsLayer`.
+- `yacht.webp`, `foreground.webp`: structure/occluder layers cut from same-size
+  masks, redrawn over the animated water.
+- `city_bridge.webp`: alpha-cut skyline silhouette; no longer painted as a
+  redraw layer — decoded only as the distant jet's `dstOut` occluder mask.
+- `city_windows.webp` / `yacht_windows.webp`: sampled window fields (the two
+  halves of the old combined field — skyline windows in `city_windows`'s red
+  channel, yacht cabin windows in `yacht_windows`'s blue channel). `CityLightsLayer`
+  samples the first, `YachtLightsLayer` the second, so the yacht's glow can be lit
+  on the yacht group's own plane.
 
 Full-frame assets are intentional. Cropping would require independent alignment
 metadata and creates visible drift errors when layers are cover-fit at different

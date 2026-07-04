@@ -29,6 +29,11 @@ uniform vec2 uCoverDrawn;    // px: cover-fit art size
 uniform vec4 uWarm;          // sodium window
 uniform vec4 uCool;          // LED window
 uniform vec4 uYachtGlow;     // warm cabin
+uniform float uYachtOnly;    // 0 = city pass (skyline windows/haze/reflections),
+                             // 1 = yacht pass (hull rim/fill + cabin windows).
+                             // The two passes ride DIFFERENT parallax planes and
+                             // read DIFFERENT window fields (city vs yacht), so
+                             // the yacht's glow can move with its hull.
 uniform sampler2D uWindowField; // baked registered window field (master-derived)
 uniform sampler2D uYachtMask;
 uniform sampler2D uMaster; // source plate used for window/glass darkness gates
@@ -145,6 +150,11 @@ void main() {
   vec3 lights = vec3(0.0);
   float intensity = 0.0;
 
+  // ================= CITY PASS (skyline plane) =================
+  // Skyline haze, afterglow, lit windows + bloom/streak/dome and the water
+  // reflections. Runs only on the city pass so this whole block moves with the
+  // base-plate/skyline plane and never on the nearer yacht plane.
+  if (uYachtOnly < 0.5) {
   // --- Aerial-perspective haze: a cool, low-saturation veil over the skyline
   // band that THICKENS WITH DISTANCE (toward the top of the band = the far
   // towers), so the far city sits behind air and reads dimmer / lower-contrast
@@ -364,7 +374,14 @@ void main() {
       intensity += refl;
     }
   }
+  } // ================= end CITY PASS =================
 
+  // ================= YACHT PASS (nearer, docked plane) =================
+  // Cool sky rim, cool lower-hull fill, warm cabin windows + halation and the
+  // warm water spill. Runs only on the yacht pass, drawn under the yacht group's
+  // own parallax transform, reading the yacht-only window field (cabin in .b),
+  // so the whole vessel — hull and glow — rides one plane.
+  if (uYachtOnly > 0.5) {
   // --- Cool sky/moon rim on the yacht's upper edges: the twilight sky dome lights
   // the top of the superstructure and rails, seating the dark hull's COOL side
   // against the warm interior (the warm/cool split is what reads as form). Detect
@@ -470,6 +487,7 @@ void main() {
       intensity += spill;
     }
   }
+  } // ================= end YACHT PASS =================
 
   fragColor = vec4(lights, clamp(intensity, 0.0, 1.0));
 }

@@ -1,4 +1,4 @@
-import 'dart:ui' show Color, Size;
+import 'dart:ui' show Size;
 
 import 'package:dancing_cats/features/scenery/layers/atmospheric_haze_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/backdrop_layer.dart';
@@ -14,6 +14,7 @@ import 'package:dancing_cats/features/scenery/layers/ocean_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/parallax_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/sky_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/vignette_layer.dart';
+import 'package:dancing_cats/features/scenery/layers/yacht_group_layer.dart';
 import 'package:dancing_cats/features/scenery/model/scenery_assets.dart';
 
 /// The blue-hour scene's per-layer grade targets (ADR 0002 §3): only the
@@ -46,15 +47,14 @@ bool _isAdditiveTarget(String id) =>
 GradedLayer _target(String id, BackdropLayer layer) =>
     GradedLayer(layer, target: id, additive: _isAdditiveTarget(id));
 
-/// Parallax depth PLANES — deliberately coarse. The painted base plate has the
-/// skyline, yacht and deck baked in, and the scene re-draws those same
-/// structures as separate layers over the animated clouds/ocean for correct
-/// depth ordering. Parallaxing a re-draw independently of the base would slide
-/// it off its baked twin and reveal a DOUBLED skyline / yacht. So the ENTIRE
-/// backdrop moves as ONE far plane; only the foreground deck (the stage the cast
-/// dances on) rides its own nearer plane, and the lone distant jet — a DYNAMIC
-/// layer with no baked twin — rides its own farthest plane behind everything.
-/// `0` locks a plane at infinity, `1` moves it with the dancers (see
+/// Parallax depth PLANES — deliberately coarse. The clean base plate no longer
+/// bakes in the skyline, yacht or deck, so the yacht and foreground redraws are
+/// now the SOLE copies of those structures — there is no baked twin under them
+/// to slide off, which is what will let the yacht ride its own nearer plane. For
+/// now the whole backdrop still shares ONE far plane; only the foreground deck
+/// (the stage the cast dances on) rides its own nearer plane, and the lone
+/// distant jet — a DYNAMIC layer — rides its own farthest plane behind
+/// everything. `0` locks a plane at infinity, `1` moves it with the dancers (see
 /// `CharacterPainter.danceParallaxMatrixForShotAtDepth`). Five planes in all,
 /// front to back: lead cat (1.0) › backup cats (0.9) › stage › background › jet.
 const double _depthAircraft =
@@ -80,15 +80,17 @@ class BackdropScene {
     this.sceneSize = kSceneryCanvasSize,
   });
 
-  /// The painted Lagos-lagoon blue-hour scene, back to front: the cloudless
+  /// The painted Lagos-lagoon blue-hour scene, back to front: the clean
   /// master-derived base plate, three exact-pixel cloud layers drifting at
   /// different depths, a subtle distant jet crossing behind the skyline early
-  /// in the loop, the animated ocean, solid skyline/bridge/yacht structure
-  /// re-drawn OVER atmosphere/water so clouds/foam never slide across them,
-  /// the additive city/yacht night lights, the foreground deck/palms, the warm
-  /// lantern glow pooling on the now-lit deck, and finally both drone-show
-  /// passes above the painted structures so bridge cables cannot slice holes in
-  /// the ascent. All sit behind the dancers (they are background layers).
+  /// in the loop, the animated ocean, the additive city night lights, the
+  /// aerial haze, then the moored yacht GROUP (hull + its own lighting) on the
+  /// nearer docked plane, the foreground deck/palms, the warm lantern glow
+  /// pooling on the now-lit deck, and finally both drone-show passes above the
+  /// painted structures so bridge cables cannot slice holes in the ascent. (The
+  /// skyline is not re-drawn — the city and sky share one plane and the clean
+  /// plate's skyline is already sharp.) All sit behind the dancers (background
+  /// layers).
   factory BackdropScene.blueHourWaterfront() {
     return BackdropScene(
       // Each layer is wrapped in a [ParallaxLayer] on one of the coarse planes
@@ -163,28 +165,16 @@ class BackdropScene {
             depth: _depthBackground,
           ),
         ),
-        // Re-draw fixed skyline + bridge over the drifting cloud layers and
-        // ocean shimmer, preserving the original depth ordering. NOT a grade
-        // target: its twin is baked into the base plate (see the doc above).
-        const ParallaxLayer(
-          ImageLayer(SceneryAssets.cityBridge),
-          depth: _depthBackground,
-        ),
-        // The moored yacht silhouette, re-drawn over the ocean so its hull
-        // covers the foam that would otherwise wash up its side. The yacht sits
-        // NEARER than the far skyline, so it must read at least as sharp and as
-        // clear as the city — a heavy defocus + cool dim made a mid-distance
-        // object foggier than the distant towers (a depth inversion). Keep only
-        // a light cool exposure pull so it doesn't blaze as a foreground hero,
-        // and NO blur, so it reads as a clean mid-distance object. The warm cabin
-        // windows are added after this (CityLightsLayer) so the glow reads on
-        // top. NOT a grade target (baked twin).
-        const ParallaxLayer(
-          ImageLayer(SceneryAssets.yacht, modulate: Color(0xFFD0D5DE)),
-          depth: _depthBackground,
-        ),
-        // More windows lit (brighter highrises) than the 0.6 default; drawn
-        // after the yacht so the warm cabin glow reads on top of the hull.
+        // (The skyline/bridge is NOT re-drawn over the clouds/ocean any more:
+        // the city and sky share one background plane with no relative parallax,
+        // and the clean plate already carries a sharp skyline, so the redraw
+        // twin bought nothing. `city_bridge.webp` is still decoded — it is the
+        // distant jet's skyline OCCLUDER mask (dstOut in DistantJetLayer); the
+        // opaque base plate can't serve as that mask because it has no
+        // transparent sky. See `imageAssets` below.)
+        // City night lights only (skyline windows/beacons); the yacht's own
+        // cabin/nav lights moved into the yacht group below. More windows lit
+        // (brighter highrises) than the 0.6 default.
         _target(
           'city-lights',
           const ParallaxLayer(
@@ -193,13 +183,21 @@ class BackdropScene {
           ),
         ),
         // Aerial-perspective haze banded on the waterline: lifts + cools the
-        // distant skyline/bridge/yacht so the midground recedes behind the
-        // sharp, un-hazed foreground deck + trio (the establishing-shot depth
-        // cue). Sits over the structures + lights but under the deck/palms.
+        // distant skyline/bridge so the midground recedes behind the sharp,
+        // un-hazed foreground deck + trio (the establishing-shot depth cue).
+        // Sits over the far structures + lights but under the near yacht/deck.
         _target(
           'haze',
           const ParallaxLayer(AtmosphericHazeLayer(), depth: _depthBackground),
         ),
+        // The moored yacht as ONE group — hull bitmap + its own lighting (cabin
+        // windows, hull rim/fill, nav/deck lamps). It rides the nearer DOCKED
+        // (stage) plane so it parallaxes with the pier it is tied to, not the far
+        // skyline plane. Drawn AFTER the aerial haze because a near, docked vessel
+        // is not veiled by the distance haze that recedes the far city; and behind
+        // the deck (the deck occludes its moored stern). The de-baked base plate
+        // has no yacht twin to slide off. NOT a grade target.
+        const ParallaxLayer(YachtGroupLayer(), depth: _depthStage),
         // NOT a grade target (the deck/palms redraw is a baked twin).
         const ParallaxLayer(
           ImageLayer(SceneryAssets.foreground),
@@ -242,6 +240,7 @@ class BackdropScene {
         SceneryAssets.cloudsNear,
         SceneryAssets.cityBridge,
         SceneryAssets.cityWindows,
+        SceneryAssets.yachtWindows,
         SceneryAssets.yacht,
         SceneryAssets.foreground,
         SceneryAssets.lufthansa747,
