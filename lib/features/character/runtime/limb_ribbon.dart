@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 import 'dart:ui';
 
+import 'package:meta/meta.dart';
+
 /// Builds a smooth, tapered **ribbon** that flows through a bone chain's joint
 /// positions — the core of mesh-style limb deformation. Where the rigid renderer
 /// draws a thigh and a shin as two separate capsules that hinge at a sharp knee
@@ -56,17 +58,23 @@ Path limbRibbonPath(
   // centred between the two edge points and spans their average radius, which
   // degenerates to the historic circle when the sides match.
   final path = Path();
+
+  // The two offset edges, de-spiked so a spine hairpin can't mitre the
+  // silhouette into a batwing (see [_ribbonEdges]).
+  final (:front, :back) = _ribbonEdges(samples);
+
   final first = samples.first;
   final last = samples.last;
+  final firstFront = front.first;
+  final firstBack = back.first;
+  final lastFront = front.last;
+  final lastBack = back.last;
 
-  Offset frontEdge(_Sample s) => s.centre + s.normal * s.halfWidth;
-  Offset backEdge(_Sample s) => s.centre - s.normal * s.backHalfWidth;
-
-  path.moveTo(backEdge(first).dx, backEdge(first).dy);
+  path.moveTo(firstBack.dx, firstBack.dy);
   if (roundCaps) {
     // Start cap: semicircle from the back edge over the start to the front
     // edge (so the forward front-edge walk continues).
-    final capCentre = (frontEdge(first) + backEdge(first)) / 2;
+    final capCentre = (firstFront + firstBack) / 2;
     final capRadius = (first.halfWidth + first.backHalfWidth) / 2;
     final startAngle = math.atan2(-first.normal.dy, -first.normal.dx);
     path.arcTo(
@@ -76,18 +84,17 @@ Path limbRibbonPath(
       false,
     );
   } else {
-    path.lineTo(frontEdge(first).dx, frontEdge(first).dy);
+    path.lineTo(firstFront.dx, firstFront.dy);
   }
 
   // Forward along the FRONT edge.
-  for (var i = 1; i < samples.length; i++) {
-    final p = frontEdge(samples[i]);
-    path.lineTo(p.dx, p.dy);
+  for (var i = 1; i < front.length; i++) {
+    path.lineTo(front[i].dx, front[i].dy);
   }
 
   if (roundCaps) {
     // End cap: semicircle from the front edge over the tip to the back edge.
-    final capCentre = (frontEdge(last) + backEdge(last)) / 2;
+    final capCentre = (lastFront + lastBack) / 2;
     final capRadius = (last.halfWidth + last.backHalfWidth) / 2;
     final endAngle = math.atan2(last.normal.dy, last.normal.dx);
     path.arcTo(
@@ -97,13 +104,12 @@ Path limbRibbonPath(
       false,
     );
   } else {
-    path.lineTo(backEdge(last).dx, backEdge(last).dy);
+    path.lineTo(lastBack.dx, lastBack.dy);
   }
 
   // Back along the BACK edge.
-  for (var i = samples.length - 2; i >= 0; i--) {
-    final p = backEdge(samples[i]);
-    path.lineTo(p.dx, p.dy);
+  for (var i = back.length - 2; i >= 0; i--) {
+    path.lineTo(back[i].dx, back[i].dy);
   }
 
   path.close();
@@ -330,6 +336,142 @@ void _clampInnerEdgeToCurvature(List<_Sample> samples) {
       }
     }
   }
+}
+
+/// The most an outer-edge vertex may bulge past the straight chord between
+/// its neighbours, as a fraction of that sample's authored half-width. A
+/// smooth curve's vertices sit almost exactly on their neighbours' chord
+/// (sagitta << width), so this never touches ordinary bends; only a spine
+/// HAIRPIN — a >~90-degree reversal where the outer offset mitres into a
+/// spike — produces a deviation this large. Measured across the catalogue: an
+/// arm's anti-hinge shoulder-socket reversal throws its outer vertex ~0.6–0.76x
+/// half-width past the chord; 0.18 pulls that pointed flap back to a rounded
+/// shoulder while leaving every legitimate elbow/knee crease (whose outer side
+/// is a gentle convex curve, deviation < a few % of width) untouched — tuned by
+/// render, like the inner clamp's constants.
+///
+/// Public + [visibleForTesting] so the silhouette-integrity regression can
+/// assert the invariant against this exact bound rather than a copied number.
+@visibleForTesting
+const double kOuterSpikeMaxChordDeviation = 0.18;
+
+/// Builds a ribbon's two offset edges from its sampled centreline and runs the
+/// silhouette-spike constraint on both. Shared by [limbRibbonPath] (which walks
+/// these into the fill) and [limbRibbonMaxOuterSpike] (which measures the
+/// residual spike a regression test gates on), so the rendered silhouette and
+/// the tested invariant can never drift apart.
+///
+/// Where the spine hairpins (a >~90-degree reversal, e.g. the anti-hinge
+/// shoulder socket or a near-degenerate elbow fold), the OUTER offset point
+/// juts past its neighbours into a "batwing" flap. The inner side is already
+/// protected by [_clampInnerEdgeToCurvature]; [_limitOuterSpikes] bounds the
+/// outer side symmetrically, so the sleeve can never spike regardless of pose.
+({List<Offset> front, List<Offset> back}) _ribbonEdges(List<_Sample> samples) {
+  final front = [for (final s in samples) s.centre + s.normal * s.halfWidth];
+  final back = [for (final s in samples) s.centre - s.normal * s.backHalfWidth];
+  _limitOuterSpikes(front, samples, (s) => s.halfWidth);
+  _limitOuterSpikes(back, samples, (s) => s.backHalfWidth);
+  return (front: front, back: back);
+}
+
+/// Signed OUTWARD distance of edge vertex [i] past the straight chord between
+/// its neighbours, measured along the outward direction (sample centre → edge
+/// point). Positive = the vertex bulges out past where a smooth edge would sit
+/// — the batwing-spike metric. Endpoints (no chord) and degenerate cases
+/// return 0. Shared by the clamp ([_limitOuterSpikes]) and the diagnostic
+/// ([limbRibbonMaxOuterSpike]) so both read the spike the same way.
+double _outwardChordDeviation(List<Offset> edge, int i, Offset centre) {
+  if (i <= 0 || i >= edge.length - 1) return 0;
+  final here = edge[i];
+  final outward = here - centre;
+  final outLen = outward.distance;
+  if (outLen < 1e-6) return 0;
+  final outUnit = outward / outLen;
+  final chord = edge[i + 1] - edge[i - 1];
+  final chordLen = chord.distance;
+  final Offset onChord;
+  if (chordLen < 1e-6) {
+    onChord = edge[i - 1];
+  } else {
+    final u = chord / chordLen;
+    final proj =
+        (here - edge[i - 1]).dx * u.dx + (here - edge[i - 1]).dy * u.dy;
+    onChord = edge[i - 1] + u * proj;
+  }
+  return (here.dx - onChord.dx) * outUnit.dx +
+      (here.dy - onChord.dy) * outUnit.dy;
+}
+
+/// Bounds each outer-edge vertex's OUTWARD bulge past the chord of its
+/// neighbours (see [kOuterSpikeMaxChordDeviation]). The mirror of
+/// [_clampInnerEdgeToCurvature]: that one stops the INNER edge crossing
+/// itself on a tight fold; this stops the OUTER edge spiking into a
+/// "batwing" at the same fold. Purely subtractive — a vertex is only ever
+/// pulled IN toward the centreline, never pushed out — so it can add no new
+/// material and cannot deform a pose, only remove a rendering spike. Three
+/// passes, since pulling one vertex in shifts its neighbours' chords; measured
+/// across the whole catalogue, three iterations settle the worst residual from
+/// ~0.25 (one relaxation short) down onto the ~0.18 target.
+void _limitOuterSpikes(
+  List<Offset> edge,
+  List<_Sample> samples,
+  double Function(_Sample) sideWidth,
+) {
+  for (var pass = 0; pass < 3; pass++) {
+    for (var i = 1; i < edge.length - 1; i++) {
+      final centre = samples[i].centre;
+      final deviation = _outwardChordDeviation(edge, i, centre);
+      final limit = sideWidth(samples[i]) * kOuterSpikeMaxChordDeviation;
+      if (deviation <= limit) continue;
+      final outward = edge[i] - centre;
+      final outLen = outward.distance;
+      if (outLen < 1e-6) continue;
+      edge[i] = edge[i] - (outward / outLen) * (deviation - limit);
+    }
+  }
+}
+
+/// The worst OUTWARD silhouette spike [limbRibbonPath] produces for [spine]:
+/// the largest amount any edge vertex bulges past its neighbours' chord, as a
+/// fraction of that vertex's half-width, AFTER the spike constraint has run.
+/// Takes the same inputs [limbRibbonPath] takes and reuses its exact edge
+/// construction ([_ribbonEdges]), so this measures precisely what gets drawn.
+///
+/// The constraint holds this at or (within its three-pass convergence) barely
+/// above [kOuterSpikeMaxChordDeviation]; a value well past that means the
+/// batwing is back. Exposed so the silhouette-integrity regression can assert
+/// the invariant across every catalogue pose without reproducing the private
+/// centreline sampling.
+@visibleForTesting
+double limbRibbonMaxOuterSpike(
+  List<Offset> spine,
+  List<double> halfWidths, {
+  List<double>? backHalfWidths,
+  List<double>? jointTensions,
+  int samplesPerSegment = 10,
+}) {
+  if (spine.length < 2) return 0;
+  final samples = _sampleCentreline(
+    spine,
+    halfWidths,
+    backHalfWidths ?? halfWidths,
+    samplesPerSegment,
+    jointTensions: jointTensions,
+  );
+  final (:front, :back) = _ribbonEdges(samples);
+  var worst = 0.0;
+  for (var i = 1; i < samples.length - 1; i++) {
+    final centre = samples[i].centre;
+    final w = samples[i].halfWidth;
+    if (w > 1e-6) {
+      worst = math.max(worst, _outwardChordDeviation(front, i, centre) / w);
+    }
+    final bw = samples[i].backHalfWidth;
+    if (bw > 1e-6) {
+      worst = math.max(worst, _outwardChordDeviation(back, i, centre) / bw);
+    }
+  }
+  return worst;
 }
 
 // Hermite form of Catmull-Rom with tension: tangents m1/m2 are the classic
