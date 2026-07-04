@@ -50,7 +50,7 @@ void main() {
     });
 
     test(
-      'composites plate -> clouds -> jet -> ocean -> city/yacht -> deck -> drones',
+      'composites plate -> clouds -> jet -> ocean -> yacht -> deck -> drones',
       () {
         final raw = BackdropScene.blueHourWaterfront().layers;
         // Every background layer is wrapped in a ParallaxLayer; the separable
@@ -68,9 +68,6 @@ void main() {
         );
         final cloud = layers.indexWhere((l) => l is CloudParallaxLayer);
         final deck = layers.lastIndexWhere((l) => l is ImageLayer);
-        final city = layers.indexWhere(
-          (l) => l is ImageLayer && l.assetKey == SceneryAssets.cityBridge,
-        );
         final yacht = layers.indexWhere(
           (l) => l is ImageLayer && l.assetKey == SceneryAssets.yacht,
         );
@@ -96,10 +93,6 @@ void main() {
         // the dynamic jet — no baked twin — rides the farthest plane of all.
         double depthAt(int i) => planes[i].depth;
         expect(depthAt(deck), greaterThan(depthAt(plate))); // stage nearer
-        expect(
-          depthAt(city),
-          closeTo(depthAt(plate), 1e-9),
-        ); // one backdrop plane
         expect(depthAt(yacht), closeTo(depthAt(plate), 1e-9));
         expect(depthAt(ocean), closeTo(depthAt(plate), 1e-9));
         expect(depthAt(jet), lessThan(depthAt(plate))); // farthest of all
@@ -110,9 +103,6 @@ void main() {
         // Animated water sits over the painted plate.
         expect(ocean, greaterThan(plate));
         expect(ocean, greaterThan(cloud));
-        // The fixed skyline/bridge is re-drawn over drifting clouds so the clouds
-        // stay behind the city instead of sliding across tower silhouettes.
-        expect(city, greaterThan(ocean));
         // The moored yacht is re-drawn OVER the ocean so its solid hull occludes
         // the foam, and the city lights (incl. the lit cabin windows) draw on top
         // of the yacht so the warm cabin glow is not hidden behind the hull.

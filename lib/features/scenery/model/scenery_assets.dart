@@ -12,9 +12,13 @@ const Size kSceneryCanvasSize = Size(2560, 1440);
 /// [cloudsFar], [cloudsMid] and [cloudsNear] so they can drift independently.
 /// [cityWindows] is a registered window field baked FROM the base plate (see
 /// `tools/scenery_art/bake_city_windows.py`) — the city-lights shader lights its
-/// painted windows directly. [cityBridge], [yacht] and [foreground] are
-/// alpha-cut structure/occluder layers re-drawn over animated atmosphere/water
-/// so moving effects stay behind solid painted objects. [lufthansa747] is a
+/// painted windows directly. [yacht] and [foreground] are alpha-cut structure
+/// layers re-drawn over the animated atmosphere/water so moving effects stay
+/// behind the solid painted objects. [cityBridge] is the alpha-cut skyline
+/// silhouette; it is NO LONGER painted as a redraw layer (the city and sky share
+/// one plane and the clean plate already carries a sharp skyline) — it is decoded
+/// solely as the distant jet's `dstOut` OCCLUDER mask, since the opaque base
+/// plate has no transparent sky to cut the aircraft against. [lufthansa747] is a
 /// cropped transparent overlay asset used by the distant-jet layer.
 abstract final class SceneryAssets {
   static const cloudlessPlate = 'assets/scenery/blue_hour_cloudless.webp';

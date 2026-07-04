@@ -61,7 +61,6 @@ flowchart BT
   launchDrones[DroneShowLayer launch/ascent pass]
   skyDrones[DroneShowLayer sky pass]
   yacht[yacht.webp]
-  city[city_bridge.webp]
   ocean[OceanLayer shader/fallback]
   jet[DistantJetLayer]
   near[clouds_near.webp parallax]
@@ -69,7 +68,7 @@ flowchart BT
   far[clouds_far.webp parallax]
   base[blue_hour_cloudless.webp]
 
-  base --> far --> mid --> near --> jet --> ocean --> city --> yacht --> lights --> fg --> glow --> police --> skyDrones --> launchDrones --> child --> vignette
+  base --> far --> mid --> near --> jet --> ocean --> yacht --> lights --> fg --> glow --> police --> skyDrones --> launchDrones --> child --> vignette
 ```
 
 The ordering is the important contract:
@@ -84,8 +83,11 @@ The ordering is the important contract:
   model the visible side only: steady red port wingtip, steady aft white, plus
   FAA-rate red/white anti-collision pulses.
 - `OceanLayer` adds animated foam/glint over the painted lagoon.
-- `city_bridge.webp` and `yacht.webp` are redrawn after the moving clouds and
-  ocean so clouds and foam never slide across solid structure.
+- `yacht.webp` is redrawn after the moving clouds and ocean so foam never slides
+  across the solid hull. The skyline is NOT redrawn — the city and sky share one
+  plane and the clean base plate already carries a sharp skyline, so
+  `city_bridge.webp` is decoded only as the distant jet's `dstOut` occluder mask
+  (the opaque plate has no transparent sky to cut the aircraft against).
 - `CityLightsLayer` draws additive windows, yacht lamps, and beacon glows on top
   of the structure layers.
 - `foreground.webp` and `DeckGlowLayer` sit over the animated water/deck area.
@@ -116,8 +118,10 @@ than the centre.
   against the independently animated `foreground.webp` parallax layer.
 - `clouds_far.webp`, `clouds_mid.webp`, `clouds_near.webp`: exact-size transparent
   cloud plates. They are not cropped.
-- `city_bridge.webp`, `yacht.webp`, `foreground.webp`: structure/occluder layers
-  cut from same-size masks.
+- `yacht.webp`, `foreground.webp`: structure/occluder layers cut from same-size
+  masks, redrawn over the animated water.
+- `city_bridge.webp`: alpha-cut skyline silhouette; no longer painted as a
+  redraw layer — decoded only as the distant jet's `dstOut` occluder mask.
 - `city_windows.webp`: sampled window field used by `CityLightsLayer`.
 
 Full-frame assets are intentional. Cropping would require independent alignment
