@@ -1086,20 +1086,25 @@ void main() {
       );
       expect(
         maxHeadY - minHeadY,
-        lessThan(36),
+        // 36 -> 62: owner decision (R16) — shaku's head RIDES the crouch,
+        // and the R17 pocket deepening brought the hips to catalogue-normal
+        // swing (~55, matching zanku/sekem), which the head now follows at
+        // ~0.99 coupling. "Rigid skull" is guarded by the scale asserts
+        // above and the step ceiling below, not by suppressing the ride.
+        lessThan(62),
         reason:
             'dance head travel should read like a rigid skull riding the body, '
             'not a rubber bobble',
       );
       expect(
         maxHeadStep,
-        // 9.8 -> 10.2 -> 11: first for the bar-period weight sway (a
-        // coherent slow bias, not a whip), then for the owner's R16 call
-        // that shaku's head RIDES the crouch (bob 0.8, level clamp eased)
-        // — the panel read the level-head counter-extension as "the
-        // strongest keyframed-robotics tell". The ceiling still catches a
-        // genuine snap, which measures multiples of this.
-        lessThan(11),
+        // 9.8 -> 15 across the R16-R17 owner-approved re-aesthetic: the
+        // head now RIDES a catalogue-normal deep pocket (hips swing ~55,
+        // matching zanku/sekem; bob -24 at the beat rate) plus the
+        // bar-period weight sway. The measured step (13.6) is the smooth
+        // beat pulse itself — this ceiling now guards against a genuine
+        // teleport, which measures well beyond 20, not against the pocket.
+        lessThan(15),
         reason:
             'the Shaku chest bite should not whip the rigid skull sideways '
             'between dense frame samples',

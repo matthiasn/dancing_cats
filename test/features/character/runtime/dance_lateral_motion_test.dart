@@ -52,6 +52,13 @@ void main() {
   // (+3.6%) - deemed worth it for the added liveliness.
   // Left in `known` with the latest numbers; next step is a panel round to
   // confirm the improvement actually reads, not just the raw metric.
+  // shaku joined the list 2026-07-04 for a DIFFERENT reason than the
+  // others: its owner-approved deep pocket (per-beat bob -24, hip swing
+  // deepened to catalogue-normal ~55 to answer three panels' "no pocket")
+  // drives support-balance corrections at the beat rate — measured vel
+  // 14.2 / smooth and coherent, not the shallow-hold-then-cliff snaps the
+  // rest of this list documents. It now simply moves as much as its
+  // deep-pocket siblings zanku/sekem, which were always parked here.
   const known = <String>{
     'torso/zanku',
     'hips/zanku',
@@ -63,6 +70,8 @@ void main() {
     'hips/buga',
     'torso/pouncingCat',
     'hips/pouncingCat',
+    'torso/shaku',
+    'hips/shaku',
   };
 
   test(

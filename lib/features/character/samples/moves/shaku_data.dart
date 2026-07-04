@@ -498,9 +498,13 @@ const _shakuFootLTargetKeys = [
   // cross-step vocabulary is absent"). The foot now alternates clear
   // airborne travel (y 86-88, visible daylight) with quick toe TAPS at
   // the floor (y 95-96) — in, out, in — instead of gliding at sole level.
-  DanceIkTargetKey(16, x: -52, y: 88), // lifted, travelling in
-  DanceIkTargetKey(17, x: -34, y: 96), // TAP inboard
-  DanceIkTargetKey(19, x: -46, y: 86), // lifted, travelling out
+  // Inboard taps stay closer under the hip than the R foot's: bar 2's
+  // pocket is deep AND right-shifted, and a far cross-body tap from a
+  // low pelvis over-rotates the hip past its 1.55 rad dancer envelope
+  // (the validator caught 1.76 at the -34 tap).
+  DanceIkTargetKey(16, x: -54, y: 88), // lifted, travelling in
+  DanceIkTargetKey(17, x: -42, y: 96), // TAP inboard
+  DanceIkTargetKey(19, x: -50, y: 86), // lifted, travelling out
   DanceIkTargetKey(21, x: -58, y: 95), // TAP outboard
   DanceIkTargetKey(23, x: -48, y: 87), // lifted
   DanceIkTargetKey(24, x: -52, y: 96), // down-and-OUT on the count (base)
@@ -531,10 +535,12 @@ const _shakuFootRTargetKeys = [
   DanceIkTargetKey(9, x: 36, y: 87), // lifted, travelling in
   DanceIkTargetKey(11, x: 60, y: 95), // TAP outboard
   DanceIkTargetKey(13, x: 44, y: 87), // lifted toward the descent
-  // Mirror of the L foot's seam fix: lift-swing-replant, not a floor drag.
-  DanceIkTargetKey(14, x: 50, y: 87), // toe-peel lift, sole clears the floor
-  DanceIkTargetKey(15, x: 62, y: 91), // airborne swing toward the plant
-  DanceIkTargetKey(16, x: 69, y: 103), // planted support, visible outside
+  // Plants on the "and" BEFORE bar 2 (15, tension:1 = dead arrival), so
+  // the foot is genuinely down when the contact span takes over at 14.5
+  // and the committed weight sway arrives onto a planted shoe.
+  DanceIkTargetKey(14, x: 58, y: 90), // airborne swing toward the plant
+  DanceIkTargetKey(15, x: 69, y: 103, tension: 1), // plant on the "and"
+  DanceIkTargetKey(16, x: 69, y: 103, tension: 1), // planted support, held
   // Hold the plant while the L foot makes its airborne recovery (frames
   // 30-31) — the old data peeled R at 30, leaving the seam with NO support
   // at all, which is exactly why the L foot used to slide in at floor

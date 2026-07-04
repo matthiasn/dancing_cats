@@ -795,14 +795,19 @@ const _danceLeadMoveSignatures = [
   ),
 ];
 
-// The broad Shaku-family phrase places the right foot on the floor at frame
-// 16, but the pelvis does not actually finish transferring weight until the
-// low-20s. Keep the support solver on the left through that double-support
-// transition, then let the right foot carry the phrase into the loop.
+// The handoff moved 22 -> 14.5 with the R16/R17 re-authoring: the left
+// foot now LIFTS into tap-steps at frame 14 (it used to scuff at sole
+// level, which is why the old span could stay on it through 22), the
+// right foot plants dead at 15, and the bar-period weight sway commits
+// the pelvis rightward from frame 16 — so the support solver must follow
+// the right foot for all of bar 2. Keeping the old late handoff pinned
+// the airborne left foot to its anchor while the deep right-shifted
+// pelvis pulled away, over-rotating the hip past its dancer envelope
+// (validator-measured 1.76 rad vs the 1.55 limit).
 const _shakuContactSpans = [
   GroundSpan(CatBones.footL, 0, 10 / 32),
-  GroundSpan(CatBones.footL, 10 / 32, 22 / 32),
-  GroundSpan(CatBones.footR, 22 / 32, 30.125 / 32),
+  GroundSpan(CatBones.footL, 10 / 32, 14.5 / 32),
+  GroundSpan(CatBones.footR, 14.5 / 32, 30.125 / 32),
   GroundSpan(CatBones.footL, 30.125 / 32, 1),
 ];
 

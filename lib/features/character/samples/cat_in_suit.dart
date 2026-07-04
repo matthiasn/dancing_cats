@@ -594,8 +594,14 @@ class CatClips {
             // and the RIGHT through bar 2. Owner-approved amplitude ladder;
             // the stance/head gates were recalibrated with it.
             SineRootChannel(swayAmplitude: -20, leanAmplitude: -0.07),
+            // Per-beat down-pulse deepened -10 -> -24: the head-coupling
+            // probe measured shaku's hips swinging 27 units vertically —
+            // HALF of every other catalogue move (zanku 59, sekem 54) —
+            // which is why three panels read "no pocket / ~17px bounce"
+            // no matter how faithfully the head rode it. Target: hips
+            // swing ~55-60, head following at ~0.9 coupling.
             SineRootChannel(
-              bobAmplitude: -10,
+              bobAmplitude: -24,
               bobPhase: 0.09375,
               bobHarmonic: 8,
               leanAmplitude: 0.015,
