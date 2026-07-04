@@ -97,6 +97,12 @@ class CharacterScene {
             _shoulderCorrectedPose(context.clip, context.timeSeconds, pose),
       ),
       PoseModifierPass(
+        id: 'shoulder-line',
+        description:
+            'Mirror clavicle drop onto the sternum-pivot shoulder-line levers.',
+        modifier: (context, pose) => _shoulderLinePose(pose),
+      ),
+      PoseModifierPass(
         id: 'limb-ik',
         description: 'Solve hand and foot two-bone IK targets.',
         modifier: (context, pose) =>
@@ -665,6 +671,72 @@ class CharacterScene {
     }
 
     if (!changed) return pose;
+    return Pose(
+      joints: joints,
+      rootDx: pose.rootDx,
+      rootDy: pose.rootDy,
+      rootRotation: pose.rootRotation,
+    );
+  }
+
+  /// How much of each clavicle's resolved rotation the matching
+  /// shoulder-line lever mirrors. The lever pivots at the sternum (~28
+  /// units of horizontal arm to the jacket's shoulder corner), so at 1.0 a
+  /// full ±0.42 clavicle see-saw translates the corner ~12 units vertically
+  /// before skin weights (0.45–0.55) scale the rendered pop to roughly
+  /// half. Tuned against the shoulder-line probe and rendered strips.
+  static const double _kShoulderLineGain = 1.3;
+
+  /// Shoulder-line levers paired with the same-side clavicle, discovered by
+  /// id convention like the rest of the girdle plumbing (no lever bones in a
+  /// rig ⇒ the pass is a no-op).
+  late final List<({String clavicleId, String leverId})> _shoulderLinePairs =
+      () {
+        final pairs = <({String clavicleId, String leverId})>[];
+        for (final bone in rig.bones) {
+          final id = bone.id.toLowerCase();
+          if (!id.startsWith('shoulder_line')) continue;
+          final suffix = id.endsWith('.l')
+              ? '.l'
+              : id.endsWith('.r')
+              ? '.r'
+              : null;
+          if (suffix == null) continue;
+          for (final candidate in rig.bones) {
+            final cid = candidate.id.toLowerCase();
+            if (cid.contains('clavicle') && cid.endsWith(suffix)) {
+              pairs.add((clavicleId: candidate.id, leverId: bone.id));
+              break;
+            }
+          }
+        }
+        return pairs;
+      }();
+
+  /// The `shoulder-line` pipeline stage: copies each clavicle's resolved
+  /// rotation (authored keys + girdle-follow + raised-hand shrug) onto the
+  /// transform-only shoulder-line lever on the same side, scaled by
+  /// [_kShoulderLineGain]. The levers pivot at the sternum (see the rig's
+  /// shoulder_line bone comment), so this is the step that turns a SOLVED
+  /// clavicle rotation into actual translation of the jacket's rendered
+  /// shoulder contour — the "solved-rotation-doesn't-render" fix. A
+  /// same-sign copy is correct for both sides: a +x (right) corner under a
+  /// positive rotation moves down (+y in screen space), and the left
+  /// clavicle's "drop" is authored with the opposite sign, which moves the
+  /// −x corner down as well.
+  Pose _shoulderLinePose(Pose pose) {
+    if (_shoulderLinePairs.isEmpty) return pose;
+    Map<String, JointPose>? joints;
+    for (final pair in _shoulderLinePairs) {
+      final rotation = pose.jointOf(pair.clavicleId).rotation;
+      if (rotation == 0) continue;
+      joints ??= Map<String, JointPose>.of(pose.joints);
+      joints[pair.leverId] = _addJointRotation(
+        pose.jointOf(pair.leverId),
+        rotation * _kShoulderLineGain,
+      );
+    }
+    if (joints == null) return pose;
     return Pose(
       joints: joints,
       rootDx: pose.rootDx,

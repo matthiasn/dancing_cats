@@ -18,6 +18,8 @@ class TrunkStation {
     required this.y,
     required this.halfWidth,
     this.x = 0,
+    this.extraWeightsLeft,
+    this.extraWeightsRight,
   });
 
   /// The spine bone this slice primarily follows.
@@ -28,6 +30,15 @@ class TrunkStation {
   final double y;
 
   final double halfWidth;
+
+  /// Optional additional influences for this station's LEFT / RIGHT boundary
+  /// vertex. The automatic spine weights are scaled down by the extra total
+  /// so the vertex still sums to weight 1 — letting a single station corner
+  /// ride an off-spine handle (e.g. a shoulder-line lever) without changing
+  /// any other station's skinning. Left and right are separate because a
+  /// side handle (`shoulder_line.L`) must pull only its own corner.
+  final Map<String, double>? extraWeightsLeft;
+  final Map<String, double>? extraWeightsRight;
 }
 
 /// Builds a skinned trunk surface from cross-section [stations] (ordered
@@ -112,6 +123,28 @@ SkinnedMeshSpec buildTrunkSurface({
     return weights;
   }
 
+  // Merges a station's automatic spine weights with an optional extra
+  // influence map: the spine share is scaled by (1 - extra total) so the
+  // result still sums to 1.
+  Map<String, double> withExtras(
+    Map<String, double> base,
+    Map<String, double>? extras,
+  ) {
+    if (extras == null || extras.isEmpty) return base;
+    final extraTotal = extras.values.reduce((a, b) => a + b);
+    assert(
+      extraTotal < 1,
+      'extra station weights must leave room for the spine share',
+    );
+    final merged = <String, double>{
+      for (final e in base.entries) e.key: e.value * (1 - extraTotal),
+    };
+    extras.forEach((boneId, weight) {
+      merged.update(boneId, (w) => w + weight, ifAbsent: () => weight);
+    });
+    return merged;
+  }
+
   final vertices = <SkinnedMeshVertex>[];
   final boundary = <int>[];
 
@@ -119,7 +152,13 @@ SkinnedMeshSpec buildTrunkSurface({
   for (var i = 0; i < stations.length; i++) {
     final s = stations[i];
     boundary.add(vertices.length);
-    vertices.add(vertexAt(s.x - s.halfWidth, s.y, stationWeights(i)));
+    vertices.add(
+      vertexAt(
+        s.x - s.halfWidth,
+        s.y,
+        withExtras(stationWeights(i), s.extraWeightsLeft),
+      ),
+    );
   }
   // Crown arch across the top: out→centre on the left, mirrored centre→out on
   // the right. By default crown points ride the top station's bone; passing
@@ -153,7 +192,13 @@ SkinnedMeshSpec buildTrunkSurface({
   for (var i = stations.length - 1; i >= 0; i--) {
     final s = stations[i];
     boundary.add(vertices.length);
-    vertices.add(vertexAt(s.x + s.halfWidth, s.y, stationWeights(i)));
+    vertices.add(
+      vertexAt(
+        s.x + s.halfWidth,
+        s.y,
+        withExtras(stationWeights(i), s.extraWeightsRight),
+      ),
+    );
   }
 
   // The crown as DRAWN SHOULDER SEAMS (when [crownSeamWidth] > 0): the

@@ -85,6 +85,7 @@ void main() {
           'spine-distribute',
           'girdle-follow',
           'shoulder-girdle',
+          'shoulder-line',
           'limb-ik',
           'overshoot-settle',
           'joint-limits',
