@@ -97,16 +97,19 @@ class CharacterScene {
             _shoulderCorrectedPose(context.clip, context.timeSeconds, pose),
       ),
       PoseModifierPass(
-        id: 'shoulder-line',
-        description:
-            'Mirror clavicle drop onto the sternum-pivot shoulder-line levers.',
-        modifier: (context, pose) => _shoulderLinePose(pose),
-      ),
-      PoseModifierPass(
         id: 'limb-ik',
         description: 'Solve hand and foot two-bone IK targets.',
         modifier: (context, pose) =>
             _limbTargetedPose(context.clip, context.timeSeconds, pose),
+      ),
+      PoseModifierPass(
+        id: 'shoulder-line',
+        description:
+            'Drive the sternum-pivot shoulder-line levers from the clavicle '
+            'drop and the solved humeral elevation. Runs after limb-ik so '
+            'the levers respond to the IK-solved arm, and because they are '
+            'render-only handles the solve itself is never disturbed.',
+        modifier: (context, pose) => _shoulderLinePose(context.clip, pose),
       ),
       PoseModifierPass(
         id: 'overshoot-settle',
@@ -687,6 +690,27 @@ class CharacterScene {
   /// half. Tuned against the shoulder-line probe and rendered strips.
   static const double _kShoulderLineGain = 1.3;
 
+  /// Humeral-elevation → girdle coupling (the R14 mocap panel's ask: "~1° of
+  /// clavicular elevation per 2° of humerus above ~30°"). When the solved
+  /// upper arm swings past [_kShoulderLineAbductionThreshold] from its
+  /// hanging rest, the lever on that side lifts the jacket's shoulder corner
+  /// with it — a winged elbow now raises its own shoulder line instead of
+  /// hinging under a rigid yoke. Applied ONLY to the render levers: the IK
+  /// solve, the clavicle channel, and its envelope gate are untouched.
+  static const double _kShoulderLineAbductionThreshold = 0.6;
+  static const double _kShoulderLineAbductionGain = 0.6;
+  static const double _kShoulderLineAbductionCap = 0.35;
+
+  /// Authored-girdle deference for the humeral coupling: as the resolved
+  /// clavicle rotation on a side approaches this magnitude, the elevation
+  /// coupling on that side fades to zero. Without this, shaku's punch-out
+  /// (humerus swung near horizontal) lifts the very shoulder its authored
+  /// see-saw is dropping on the same count, and the two cancel back into
+  /// the "level yoke" the see-saw fix exists to break. Choreographed
+  /// shoulder intent wins; scapulo-humeral rhythm fills in only where the
+  /// clavicle channel is quiet (transitions, un-authored moves).
+  static const double _kShoulderLineAbductionDeference = 0.25;
+
   /// Shoulder-line levers paired with the same-side clavicle, discovered by
   /// id convention like the rest of the girdle plumbing (no lever bones in a
   /// rig ⇒ the pass is a no-op).
@@ -713,37 +737,89 @@ class CharacterScene {
         return pairs;
       }();
 
-  /// The `shoulder-line` pipeline stage: copies each clavicle's resolved
-  /// rotation (authored keys + girdle-follow + raised-hand shrug) onto the
-  /// transform-only shoulder-line lever on the same side, scaled by
-  /// [_kShoulderLineGain]. The levers pivot at the sternum (see the rig's
-  /// shoulder_line bone comment), so this is the step that turns a SOLVED
-  /// clavicle rotation into actual translation of the jacket's rendered
-  /// shoulder contour — the "solved-rotation-doesn't-render" fix. A
-  /// same-sign copy is correct for both sides: a +x (right) corner under a
-  /// positive rotation moves down (+y in screen space), and the left
-  /// clavicle's "drop" is authored with the opposite sign, which moves the
-  /// −x corner down as well.
-  Pose _shoulderLinePose(Pose pose) {
+  /// The `shoulder-line` pipeline stage. Two drivers, both writing only the
+  /// transform-only shoulder-line levers (see the rig's shoulder_line bone
+  /// comment) — the step that turns SOLVED girdle motion into actual
+  /// translation of the jacket's rendered shoulder contour, the
+  /// "solved-rotation-doesn't-render" fix:
+  ///
+  /// 1. Mirrors each clavicle's resolved rotation (authored keys +
+  ///    girdle-follow + raised-hand shrug) onto the same-side lever, scaled
+  ///    by [_kShoulderLineGain]. A same-sign copy is correct for both
+  ///    sides: a +x (right) corner under a positive rotation moves down
+  ///    (+y in screen space), and the left clavicle's "drop" is authored
+  ///    with the opposite sign, which moves the −x corner down as well.
+  /// 2. Adds humeral-elevation coupling: the further the IK-solved upper
+  ///    arm swings from its hanging rest past the abduction threshold, the
+  ///    more the lever lifts that side's corner (capped) — scapulo-
+  ///    clavicular rhythm, reduced to its silhouette effect.
+  ///
+  /// Runs after `limb-ik` so driver 2 reads the solved humerus; since the
+  /// levers have no children and no drawables, nothing downstream is
+  /// disturbed.
+  Pose _shoulderLinePose(Clip clip, Pose pose) {
     if (_shoulderLinePairs.isEmpty) return pose;
     Map<String, JointPose>? joints;
-    for (final pair in _shoulderLinePairs) {
-      final rotation = pose.jointOf(pair.clavicleId).rotation;
-      if (rotation == 0) continue;
-      joints ??= Map<String, JointPose>.of(pose.joints);
-      joints[pair.leverId] = _addJointRotation(
-        pose.jointOf(pair.leverId),
-        rotation * _kShoulderLineGain,
+    void addLever(String leverId, double delta) {
+      if (delta == 0) return;
+      final map = joints ??= Map<String, JointPose>.of(pose.joints);
+      map[leverId] = _addJointRotation(
+        map[leverId] ?? pose.jointOf(leverId),
+        delta,
       );
     }
-    if (joints == null) return pose;
+
+    for (final pair in _shoulderLinePairs) {
+      addLever(
+        pair.leverId,
+        pose.jointOf(pair.clavicleId).rotation * _kShoulderLineGain,
+      );
+    }
+
+    for (final target in clip.limbTargets) {
+      if (!_isHandBone(target.endBoneId)) continue;
+      final side = _sideSign(target.endBoneId);
+      if (side == 0) continue;
+      final pair = _shoulderLineBySuffix[side > 0 ? '.l' : '.r'];
+      if (pair == null) continue;
+      final swing = _shortestAngle(
+        pose.jointOf(target.upperBoneId).rotation,
+      ).abs();
+      final engagement = swing - _kShoulderLineAbductionThreshold;
+      if (engagement <= 0) continue;
+      final authored = _shortestAngle(
+        pose.jointOf(pair.clavicleId).rotation,
+      ).abs();
+      final deference = (1 - authored / _kShoulderLineAbductionDeference)
+          .clamp(0.0, 1.0);
+      if (deference <= 0) continue;
+      final lift =
+          math.min(
+            engagement * _kShoulderLineAbductionGain,
+            _kShoulderLineAbductionCap,
+          ) *
+          deference;
+      // side: L=+1, R=−1 — matches the raised-hand shrug's convention where
+      // a NEGATIVE right-clavicle rotation is shoulder-up.
+      addLever(pair.leverId, side * lift);
+    }
+
+    final resolved = joints;
+    if (resolved == null) return pose;
     return Pose(
-      joints: joints,
+      joints: resolved,
       rootDx: pose.rootDx,
       rootDy: pose.rootDy,
       rootRotation: pose.rootRotation,
     );
   }
+
+  /// Lever/clavicle pair per side suffix, for the humeral coupling above.
+  late final Map<String, ({String clavicleId, String leverId})>
+  _shoulderLineBySuffix = {
+    for (final pair in _shoulderLinePairs)
+      if (pair.leverId.toLowerCase().endsWith('.l')) '.l': pair else '.r': pair,
+  };
 
   /// The `limb-ik` pipeline stage: bends each [Clip.limbTargets] two-bone
   /// limb (shoulder→elbow→wrist or hip→knee→ankle) toward its authored
