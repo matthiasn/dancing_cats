@@ -697,9 +697,13 @@ class CharacterScene {
   /// with it — a winged elbow now raises its own shoulder line instead of
   /// hinging under a rigid yoke. Applied ONLY to the render levers: the IK
   /// solve, the clavicle channel, and its envelope gate are untouched.
+  // Gain/cap backed off from 0.6/0.35 after R15: at full strength both
+  // levers fire together on two-arm gathers and the paired shrug humps
+  // "balloon until they crowd the jaw" (rigging). Enough to read, not
+  // enough to hunch.
   static const double _kShoulderLineAbductionThreshold = 0.6;
-  static const double _kShoulderLineAbductionGain = 0.6;
-  static const double _kShoulderLineAbductionCap = 0.35;
+  static const double _kShoulderLineAbductionGain = 0.5;
+  static const double _kShoulderLineAbductionCap = 0.25;
 
   /// Authored-girdle deference for the humeral coupling: as the resolved
   /// clavicle rotation on a side approaches this magnitude, the elevation
@@ -839,6 +843,61 @@ class CharacterScene {
   /// blended world-space hold (see [_supportFootWorldAnchor]) so the leg
   /// bends to absorb the body's groove while the foot stays planted, instead
   /// of dragging with the hips.
+  /// Minimum separation, in anchor-space units, the two hand IK targets are
+  /// allowed to close to. Each mitt drawable reads ~10 units across, so
+  /// anything under ~19 renders as one merged orange blob.
+  static const double _kHandClearance = 19;
+
+  /// Hand-clearance constraint (R15 animator: both mitts "stack directly
+  /// over the sternum as a single orange blob... enforce a minimum lateral
+  /// separation"). When both authored hand targets sample closer than
+  /// [_kHandClearance], each is pushed half the shortfall apart along their
+  /// separation axis (falling back to the x axis if they coincide exactly),
+  /// so crossed-chest churns always read as two limbs passing. A pure
+  /// function of the sampled targets — the clip+time ⇒ pose determinism
+  /// guarantee holds — and authored data that already keeps daylight is
+  /// returned untouched. Both hands share the same anchor bone in this rig,
+  /// so pushing in anchor space is pushing in render space.
+  Map<String, IkTargetPose> _handClearanceAdjustedSamples(
+    Clip clip,
+    double phase,
+  ) {
+    LimbIkTarget? first;
+    LimbIkTarget? second;
+    for (final target in clip.limbTargets) {
+      if (!_isHandBone(target.endBoneId)) continue;
+      if (first == null) {
+        first = target;
+      } else {
+        second = target;
+        break;
+      }
+    }
+    if (first == null || second == null) return const {};
+    final a = first.channel.sample(phase);
+    final b = second.channel.sample(phase);
+    if (a.weight <= 0 || b.weight <= 0) return const {};
+    final dx = b.x - a.x;
+    final dy = b.y - a.y;
+    final distance = math.sqrt(dx * dx + dy * dy);
+    if (distance >= _kHandClearance) return const {};
+    final push = (_kHandClearance - distance) / 2;
+    final ux = distance > 1e-6 ? dx / distance : 1.0;
+    final uy = distance > 1e-6 ? dy / distance : 0.0;
+    return {
+      first.endBoneId: IkTargetPose(
+        x: a.x - ux * push,
+        y: a.y - uy * push,
+        weight: a.weight,
+      ),
+      second.endBoneId: IkTargetPose(
+        x: b.x + ux * push,
+        y: b.y + uy * push,
+        weight: b.weight,
+      ),
+    };
+  }
+
   Pose _limbTargetedPose(Clip clip, double timeSeconds, Pose pose) {
     if (clip.limbTargets.isEmpty) return pose;
 
@@ -850,8 +909,11 @@ class CharacterScene {
     // toward its planted world position so the body grooves over it.
     final footAnchor = _supportFootWorldAnchor(clip, phase);
 
+    final clearedHands = _handClearanceAdjustedSamples(clip, phase);
+
     for (final target in clip.limbTargets) {
-      final sample = target.channel.sample(phase);
+      final sample =
+          clearedHands[target.endBoneId] ?? target.channel.sample(phase);
       final weight = sample.weight.clamp(0.0, 1.0);
       if (weight <= 0) continue;
 

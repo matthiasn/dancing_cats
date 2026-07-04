@@ -492,6 +492,10 @@ class CatClips {
         // travel further than the hips (whole-body pogo, no pocket); calming
         // the bob and letting the level-counter correct the full compress
         // reads as a steady head over a busy lower body.
+        // Bob stays at 0.35: the R15 "downbeat nod" ask is carried by the
+        // authored head-tilt channel instead — raising the bob pushed the
+        // rigid-skull whip band over its 9.8 ceiling once the bar-period
+        // weight sway joined the root stack.
         danceHeadBobScale: 0.35,
         danceHeadLevelClampMin: -14,
         baseClip: base,
@@ -535,6 +539,11 @@ class CatClips {
             _shakuShoulderSocketRKeys,
             smooth: true,
           ),
+          // Head attitude: a lagged counter-tilt answering each open count
+          // plus a tip into the generator pull — the R15 animator's "single
+          // change that turns this rig from a body that moves into a
+          // character that dances".
+          CatBones.head: const DanceJointTrack(_shakuHeadKeys, smooth: true),
         },
         bodyMotion: DanceBodyMotion(
           pelvisBoneId: CatBones.hips,
@@ -574,7 +583,12 @@ class CatClips {
             ),
           ],
           extraRootLayers: const [
-            SineRootChannel(swayAmplitude: -2, leanAmplitude: -0.04),
+            // Weight commitment (R15 mocap: "the pelvis stays centered
+            // between the feet for almost the entire loop, so every foot
+            // slide reads as ice-skating"). One sway cycle per loop = the
+            // pelvis rides over the LEFT support through bar 1 and the
+            // RIGHT through bar 2, instead of hovering on the midline.
+            SineRootChannel(swayAmplitude: -9, leanAmplitude: -0.055),
             SineRootChannel(
               bobAmplitude: -10,
               bobPhase: 0.09375,

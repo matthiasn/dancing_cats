@@ -440,23 +440,23 @@ const _shakuHandLTargetKeys = [
   // ~40% of the loop; vertically splitting the lanes keeps two readable
   // paws crossing OVER/UNDER instead of through each other.
   DanceIkTargetKey(0, x: -66, y: -30, tension: 1), // OPEN out-left (count)
-  DanceIkTargetKey(2, x: -15, y: -36, tension: 0.5), // gather in, high lane
-  DanceIkTargetKey(4, x: 12, y: -56, tension: 0.9), // recover high, off the tie
-  DanceIkTargetKey(6, x: -16, y: -32, tension: 0.5), // anticipate next open
+  DanceIkTargetKey(2, x: -15, y: -40, tension: 0.5), // gather in, high lane
+  DanceIkTargetKey(4, x: 14, y: -58, tension: 0.9), // recover high, off the tie
+  DanceIkTargetKey(6, x: -16, y: -36, tension: 0.5), // anticipate next open
   DanceIkTargetKey(8, x: -66, y: -30, tension: 1),
-  DanceIkTargetKey(10, x: -15, y: -36, tension: 0.5),
-  DanceIkTargetKey(12, x: 12, y: -56, tension: 0.9),
-  DanceIkTargetKey(14, x: -16, y: -32, tension: 0.5),
+  DanceIkTargetKey(10, x: -15, y: -40, tension: 0.5),
+  DanceIkTargetKey(12, x: 14, y: -58, tension: 0.9),
+  DanceIkTargetKey(14, x: -16, y: -36, tension: 0.5),
   // bar 2 — open wider; the generator-pull count (28) recovers L IN while R
   // yanks the cord up-and-out.
   DanceIkTargetKey(16, x: -70, y: -32, tension: 1),
-  DanceIkTargetKey(18, x: -15, y: -36, tension: 0.5),
-  DanceIkTargetKey(20, x: 12, y: -56, tension: 0.9),
-  DanceIkTargetKey(22, x: -16, y: -32, tension: 0.5),
+  DanceIkTargetKey(18, x: -15, y: -40, tension: 0.5),
+  DanceIkTargetKey(20, x: 14, y: -58, tension: 0.9),
+  DanceIkTargetKey(22, x: -16, y: -36, tension: 0.5),
   DanceIkTargetKey(24, x: -70, y: -32, tension: 1),
-  DanceIkTargetKey(26, x: -18, y: -30, tension: 0.5),
-  DanceIkTargetKey(28, x: 14, y: -52, tension: 0.9), // recover IN under the pull
-  DanceIkTargetKey(30, x: -16, y: -36, tension: 0.5),
+  DanceIkTargetKey(26, x: -18, y: -34, tension: 0.5),
+  DanceIkTargetKey(28, x: 16, y: -54, tension: 0.9), // recover IN under the pull
+  DanceIkTargetKey(30, x: -16, y: -40, tension: 0.5),
   DanceIkTargetKey(32, x: -66, y: -30, tension: 1), // == frame 0
 ];
 const _shakuHandRTargetKeys = [
@@ -464,25 +464,25 @@ const _shakuHandRTargetKeys = [
   // out-right on its own counts, so the silhouette breaks alternately L / R.
   // R rides the LOW lane (see the L-hand comment): transits cross under
   // L's, recoveries land below the tie knot toward the left ribs.
-  DanceIkTargetKey(0, x: -12, y: -44, tension: 0.9), // recover low at left-chest
-  DanceIkTargetKey(2, x: 16, y: -20, tension: 0.5), // anticipate the open
+  DanceIkTargetKey(0, x: -12, y: -40, tension: 0.9), // recover low at left-chest
+  DanceIkTargetKey(2, x: 16, y: -16, tension: 0.5), // anticipate the open
   DanceIkTargetKey(4, x: 66, y: -30, tension: 1), // OPEN out-right (count)
-  DanceIkTargetKey(6, x: 16, y: -24, tension: 0.5), // gather in, low lane
-  DanceIkTargetKey(8, x: -12, y: -44, tension: 0.9),
-  DanceIkTargetKey(10, x: 16, y: -20, tension: 0.5),
+  DanceIkTargetKey(6, x: 16, y: -20, tension: 0.5), // gather in, low lane
+  DanceIkTargetKey(8, x: -12, y: -40, tension: 0.9),
+  DanceIkTargetKey(10, x: 16, y: -16, tension: 0.5),
   DanceIkTargetKey(12, x: 66, y: -30, tension: 1),
-  DanceIkTargetKey(14, x: 16, y: -24, tension: 0.5),
+  DanceIkTargetKey(14, x: 16, y: -20, tension: 0.5),
   // bar 2 — open wider, then the GENERATOR PULL up-and-out on count 8.
-  DanceIkTargetKey(16, x: -12, y: -44, tension: 0.9),
-  DanceIkTargetKey(18, x: 16, y: -20, tension: 0.5),
+  DanceIkTargetKey(16, x: -12, y: -40, tension: 0.9),
+  DanceIkTargetKey(18, x: 16, y: -16, tension: 0.5),
   DanceIkTargetKey(20, x: 70, y: -32, tension: 1),
-  DanceIkTargetKey(22, x: 18, y: -24, tension: 0.5),
-  DanceIkTargetKey(24, x: -12, y: -44, tension: 0.9),
+  DanceIkTargetKey(22, x: 18, y: -20, tension: 0.5),
+  DanceIkTargetKey(24, x: -12, y: -40, tension: 0.9),
   DanceIkTargetKey(26, x: 30, y: -22, tension: 0.6), // gathers for the pull
   DanceIkTargetKey(28, x: 56, y: -46, tension: 1), // GENERATOR PULL up-out
   DanceIkTargetKey(29, x: 64, y: -54, tension: 0.8), // overshoot high
   DanceIkTargetKey(30, x: 24, y: -18, tension: 0.5), // release back down
-  DanceIkTargetKey(32, x: -12, y: -44, tension: 0.9), // == frame 0
+  DanceIkTargetKey(32, x: -12, y: -40, tension: 0.9), // == frame 0
 ];
 const _shakuFootLTargetKeys = [
   // The support phase is ONE constant plant — the round-3 rigging rater
@@ -682,6 +682,33 @@ const _shakuShoulderSocketRKeys = [
   DanceJointKey(28, rotation: 0.08, scaleX: 1.12, scaleY: 0.92),
   DanceJointKey(30, rotation: -0.03, scaleX: 0.98, scaleY: 1.05),
   DanceJointKey(32),
+];
+
+// Head attitude channel — the R15 animator's single highest-leverage note:
+// "the head is bolt-vertical with identical orientation in all 48 frames...
+// the body dances but the character doesn't." A ±0.11-0.14 rad counter-tilt
+// keyed ONE FRAME AFTER each open count (the lag is what makes it read as
+// the head answering the body instead of being welded to it), tipping INTO
+// the generator pull at 29. Stays inside the head's 0.18 joint envelope.
+const _shakuHeadKeys = [
+  DanceJointKey(0, rotation: 0.03),
+  DanceJointKey(1, rotation: 0.09), // answers L's open, tilts toward it
+  DanceJointKey(3, rotation: 0.04),
+  DanceJointKey(5, rotation: -0.09), // answers R's open
+  DanceJointKey(7, rotation: -0.04),
+  DanceJointKey(9, rotation: 0.09),
+  DanceJointKey(11, rotation: 0.04),
+  DanceJointKey(13, rotation: -0.09),
+  DanceJointKey(15, rotation: -0.04),
+  DanceJointKey(17, rotation: 0.1),
+  DanceJointKey(19, rotation: 0.04),
+  DanceJointKey(21, rotation: -0.1),
+  DanceJointKey(23, rotation: -0.04),
+  DanceJointKey(25, rotation: 0.1),
+  DanceJointKey(27, rotation: 0.02),
+  DanceJointKey(29, rotation: -0.12), // tips INTO the generator pull
+  DanceJointKey(31, rotation: -0.03),
+  DanceJointKey(32, rotation: 0.03), // == frame 0
 ];
 
 // Calmer ears for Shaku: enough delayed flop to avoid a fixed skull silhouette,
