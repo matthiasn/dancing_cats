@@ -755,10 +755,11 @@ void main() {
     });
 
     test('dance clips carry alternating shoulder overlap', () {
-      // Per-clip shrug ceilings: groove clips keep the girdle subtle, while
-      // sekem's whole identity is the shoulder-led pump (panel round 1: the
-      // frozen yoke was scored down) so its clavicles may jerk visibly.
-      const shrugCeiling = {'shaku': 0.07, 'zanku': 0.2, 'sekem': 0.45};
+      // Per-clip shrug ceilings: zanku keeps the girdle subtle, while sekem AND
+      // (as of the R13 re-author) shaku are shoulder-LED digs — the clavicle
+      // drops the socket on each count so the hand can dig with the elbow bent
+      // — so their clavicles may swing visibly, like sekem's pump.
+      const shrugCeiling = {'shaku': 0.45, 'zanku': 0.2, 'sekem': 0.45};
       for (final clip in [CatClips.shaku, CatClips.zanku, CatClips.sekem]) {
         final left = clip.channels[CatBones.clavicleL];
         final right = clip.channels[CatBones.clavicleR];
@@ -1097,7 +1098,13 @@ void main() {
       },
     );
 
-    test('shaku holds the handcuff X and flashes the open scoop', () {
+    test('shaku trades an alternating open-out cross-pump', () {
+      // R13 re-author (v2): each count ONE arm swings OUT to its own side
+      // (breaking the silhouette left, then right, alternately) while the other
+      // recovers IN across the chest — so the arms TRADE the opening every beat
+      // instead of clasping at the sternum (the panel's load-bearing miss was a
+      // centre-clamped hand blob that never opened). Bar 2 climaxes on the
+      // generator-pull.
       final phrase = CatClips.dancePhrase;
       final shaku = CatClips.shaku;
       final handL = _targetFor(shaku, CatBones.handL).channel;
@@ -1110,7 +1117,7 @@ void main() {
         greaterThanOrEqualTo(0.74),
         reason:
             'Shaku support feet need enough world anchor to let the torso '
-            'pocket read without skate during the held X',
+            'pocket read without skate through the pump',
       );
 
       for (final frame in [0, 4, 8, 16, 20, 24, 32]) {
@@ -1126,81 +1133,66 @@ void main() {
         );
       }
 
-      // The X is the base posture: crossed on every non-flash frame, wrists
-      // stacked close to the sternum midline with the top wrist alternating by
-      // bar. Duty cycle ~75%.
-      var crossedFrames = 0;
-      for (var frame = 0; frame < 32; frame++) {
-        final p = frame / phrase.frameCount;
-        final left = handL.sample(p);
-        final right = handR.sample(p);
-        if (left.x > 0 && right.x < 0) crossedFrames++;
-      }
-      expect(
-        crossedFrames,
-        greaterThanOrEqualTo(20),
-        reason:
-            'the handcuffed X must be the HELD base posture (the audit and '
-            'the panel both flagged the inverted duty cycle) — most of the '
-            'loop lives crossed',
-      );
-
-      for (final frame in [0, 4, 8, 16, 20, 24]) {
-        final p = frame / phrase.frameCount;
-        final left = handL.sample(p);
-        final right = handR.sample(p);
-        expect(
-          left.x - right.x,
-          greaterThan(8),
-          reason:
-              'Shaku frame $frame: wrists overlap near the sternum while the '
-              'forearms make the X',
-        );
-        expect(
-          math.max(left.x.abs(), right.x.abs()),
-          lessThan(18),
-          reason:
-              'Shaku frame $frame: the handcuffed stack stays near the midline, '
-              'not parked out at the shoulders',
-        );
-        expect(
-          (left.y - right.y).abs(),
-          greaterThan(8),
-          reason:
-              'Shaku frame $frame: the fists stagger in height so the X '
-              'reads as crossed forearms, not a stacked clasp',
-        );
-        expect(
-          left.y,
-          lessThan(-42),
-          reason: 'Shaku frame $frame: the X lives at sternum height',
-        );
-      }
-
-      // The open scoop is PUNCTUATION: a two-frame flash on the accented
-      // beat, fully open, re-crossed by the next downbeat.
-      for (final frame in [12, 13, 28, 29]) {
+      // On L's counts the LEFT hand OPENS out-left while the RIGHT recovers IN
+      // across to the left-chest; on R's counts the roles swap. The opening
+      // hand clears well past its shoulder; the recovering hand sits in near
+      // the midline — so the silhouette breaks alternately, not a centre blob.
+      for (final frame in [0, 8, 16, 24]) {
         final p = frame / phrase.frameCount;
         final left = handL.sample(p);
         final right = handR.sample(p);
         expect(
           left.x,
-          lessThan(-24),
-          reason: 'Shaku frame $frame: the flash opens the left arm out',
+          lessThan(-34),
+          reason: 'Shaku frame $frame: the LEFT arm OPENS out to the left',
         );
         expect(
-          right.x,
-          greaterThan(56),
-          reason: 'Shaku frame $frame: the flash opens the right arm out',
+          right.x.abs(),
+          lessThan(24),
+          reason: 'Shaku frame $frame: the RIGHT arm recovers IN near the midline',
         );
       }
-      final reCrossed = handL.sample(16 / phrase.frameCount);
+      for (final frame in [4, 12, 20]) {
+        final p = frame / phrase.frameCount;
+        final left = handL.sample(p);
+        final right = handR.sample(p);
+        expect(
+          right.x,
+          greaterThan(34),
+          reason: 'Shaku frame $frame: the RIGHT arm OPENS out to the right',
+        );
+        expect(
+          left.x.abs(),
+          lessThan(24),
+          reason: 'Shaku frame $frame: the LEFT arm recovers IN near the midline',
+        );
+      }
+
+      // The opening genuinely TRADES sides beat to beat: the left-open counts
+      // reach far left, the right-open counts reach far right.
+      final maxRightOpen = [4, 12, 20]
+          .map((f) => handR.sample(f / phrase.frameCount).x)
+          .reduce(math.max);
+      final maxLeftOpen = [0, 8, 16, 24]
+          .map((f) => handL.sample(f / phrase.frameCount).x)
+          .reduce(math.min);
       expect(
-        reCrossed.x,
-        greaterThan(2),
-        reason:
-            'the X must be re-crossed (with its two-frame close and '
-            'overcross settle) by the downbeat after the flash',
+        maxRightOpen - maxLeftOpen,
+        greaterThan(80),
+        reason: 'the silhouette must open to BOTH sides across the loop',
+      );
+
+      // Bar 2 climaxes on the generator-pull: the right arm yanks up-and-out.
+      final pull = handR.sample(28 / phrase.frameCount);
+      expect(
+        pull.x,
+        greaterThan(50),
+        reason: 'the generator pull sweeps the right arm out and up',
+      );
+      expect(
+        pull.y,
+        lessThan(-40),
+        reason: 'and high, as the bar-2 accent',
       );
     });
 

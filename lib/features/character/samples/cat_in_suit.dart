@@ -487,7 +487,13 @@ class CatClips {
         contactPinning: base.contactPinning,
         supportFootWorldAnchor: true,
         supportFootWorldAnchorStrength: 0.86,
-        danceHeadBobScale: 0.8,
+        // Grounded pocket: keep the head COOL and near-level while the hips
+        // sink into the knees on each count. The old 0.8 bob let the head
+        // travel further than the hips (whole-body pogo, no pocket); calming
+        // the bob and letting the level-counter correct the full compress
+        // reads as a steady head over a busy lower body.
+        danceHeadBobScale: 0.35,
+        danceHeadLevelClampMin: -14,
         baseClip: base,
         zOrderSwaps: const [
           ZOrderSwapWindow(
@@ -510,6 +516,25 @@ class CatClips {
           CatBones.footR: const DanceJointTrack(_shakuFootRKeys, smooth: true),
           CatBones.handL: const DanceJointTrack(_shakuHandLKeys, smooth: true),
           CatBones.handR: const DanceJointTrack(_shakuHandRKeys, smooth: true),
+          // Shoulder-LED dig: the clavicle drops the socket on each count so
+          // the hand can dig low with the elbow bent; the socket bunches for
+          // the flesh read.
+          CatBones.clavicleL: const DanceJointTrack(
+            _shakuClavicleLKeys,
+            smooth: true,
+          ),
+          CatBones.clavicleR: const DanceJointTrack(
+            _shakuClavicleRKeys,
+            smooth: true,
+          ),
+          CatBones.shoulderSocketL: const DanceJointTrack(
+            _shakuShoulderSocketLKeys,
+            smooth: true,
+          ),
+          CatBones.shoulderSocketR: const DanceJointTrack(
+            _shakuShoulderSocketRKeys,
+            smooth: true,
+          ),
         },
         bodyMotion: DanceBodyMotion(
           pelvisBoneId: CatBones.hips,
@@ -520,7 +545,12 @@ class CatClips {
               rootMicroFrames: 0,
               pelvisMicroFrames: -0.3,
               chestMicroFrames: 0.25,
-              chestRotationGain: 0.68,
+              // Groove pocket: let the chest COUNTER-ROTATE harder against the
+              // pelvis (panel: "upright torso, no hip/shoulder counter-rotation,
+              // timid upper body"). The calmed head bob above frees the shared
+              // spine budget the rigid-skull head-step test caps, so the twist
+              // can grow without lifting the skull.
+              chestRotationGain: 0.95,
             ),
             DanceBodyMotionTrack(
               keys: _danceBodyAccentKeys,
