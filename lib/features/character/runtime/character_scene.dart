@@ -147,6 +147,11 @@ class CharacterScene {
   /// Memoized foot-lock offset tables, keyed by clip name (built once per clip).
   final Map<String, _LocoTable> _locoTables = {};
 
+  /// Memoized per-clip spine-level plan (level lines + natural joint envelopes,
+  /// foot-stabilized, before any level counter), keyed by clip name. Drives the
+  /// dance head/neck leveler — see [_spineLevelShifts].
+  final Map<String, _SpineLevelPlan> _spineLevelPlans = {};
+
   /// The clip's world-space horizontal travel at [timeSeconds]. For clips with
   /// [Clip.groundSpans] this is **foot-locked**: travel is the negative of the
   /// planted foot's leg-sweep, so the planted foot holds world position (no
@@ -303,9 +308,9 @@ class CharacterScene {
       clip,
       footStabilizedWorld,
       timeSeconds: timeSeconds,
+      base: base,
       baseScale: _verticalScale(base),
       rootDx: posed.rootDx,
-      rootDy: posed.rootDy,
     );
     var face = faceSolver.applyAutonomic(expression.state, auto);
     if (eyeOpenScale != 1) {
@@ -1220,9 +1225,9 @@ class CharacterScene {
     Clip clip,
     Map<String, Affine2D> world, {
     required double timeSeconds,
+    required Affine2D base,
     required double baseScale,
     required double rootDx,
-    required double rootDy,
   }) {
     final headId = rig.face?.anchorBoneId;
     if (headId == null) return world;
@@ -1291,50 +1296,230 @@ class CharacterScene {
             5,
           )
         : 0.0;
-    final headCounterTranslate = _isDanceFamily(clip)
-        ? Affine2D.translation(
-            (_danceHeadHorizontalCounter(rootDx, clip.danceHeadBobScale) +
-                    headDxFollow) *
-                baseScale,
-            _danceHeadVerticalCounter(
-                  rootDy,
-                  clip.danceHeadBobScale,
-                  clip.danceHeadLevelClampMin,
-                ) *
-                baseScale,
+    final headHorizontalCounter = _isDanceFamily(clip)
+        ? (_danceHeadHorizontalCounter(rootDx, clip.danceHeadBobScale) +
+                  headDxFollow) *
+              baseScale
+        : 0.0;
+    // Vertical leveling is a TWO-STAGE spine pass (neck, then head): the head
+    // over-travels chiefly through the neck (the torso's crouch arcs it out —
+    // neck ~113px vs hips ~74 on pouncingCat), so a head-only counter is glued
+    // to that over-travelling neck. Level the neck first, then the head on top.
+    final level = _isDanceFamily(clip)
+        ? _spineLevelShifts(
+            clip,
+            headId: headId,
+            base: base,
+            baseScale: baseScale,
+            world: world,
           )
-        : Affine2D.identity;
-    final headTransform = headCounterTranslate.multiply(stabilizeHead);
+        : const (neckShiftY: 0.0, headExtraShiftY: 0.0, neckId: null);
+
+    final neckTranslate = Affine2D.translation(0, level.neckShiftY);
+    final headTransform = neckTranslate
+        .multiply(
+          Affine2D.translation(headHorizontalCounter, level.headExtraShiftY),
+        )
+        .multiply(stabilizeHead);
+    // THROAT BRIDGE: the collar/tie/shirt bones hang off the chest, not the
+    // neck, so lifting the neck alone opens an orange gap under the chin. Lift
+    // the bridge fabric by a tapering fraction of the neck shift so the collar
+    // follows the throat up instead of gapping.
+    final bridgeTranslate = Affine2D.translation(
+      0,
+      level.neckShiftY * _kThroatBridgeFraction,
+    );
+    final neckId = level.neckId;
     final shifted = Map<String, Affine2D>.of(world);
     for (final bone in rig.bones) {
       if (bone.id == headId || _hasAncestor(bone.id, headId)) {
         shifted[bone.id] = headTransform.multiply(world[bone.id]!);
+      } else if (neckId != null &&
+          (bone.id == neckId || _hasAncestor(bone.id, neckId))) {
+        shifted[bone.id] = neckTranslate.multiply(world[bone.id]!);
+      } else if (_kThroatBridgeBones.contains(bone.id)) {
+        shifted[bone.id] = bridgeTranslate.multiply(world[bone.id]!);
       }
     }
     return shifted;
   }
 
-  double _danceHeadVerticalCounter(
-    double rootDy,
-    double headBobScale,
-    double clampMin,
-  ) {
-    // The dance phrase gets its level change from knees/hips/torso. The head
-    // must RIDE that level change with the collar, not hold still above it: the
-    // old counter reached ~0.82 of the bob for a low-bob clip (shaku at scale
-    // 0.2) and ~0.92 near scale 0, so when the body dropped in a knee-bend the
-    // skull stayed put and a long orange throat opened under it — the head read
-    // as loose / detached / unhealthy. The rigid (non-rubbery) read comes from
-    // the uniform-scale + rotation correction, NOT this translate, so the
-    // counter is kept light (the head tracks the collar) and CLAMPED so no
-    // groove extreme can ever lift the skull off the neck.
-    const neutralDanceRootDy = 17.4;
-    final fraction = 0.14 + (1 - headBobScale) * 0.1;
-    final counter = -(rootDy - neutralDanceRootDy) * fraction;
-    // Negative = head rises (the float direction): bound it hard so the join
-    // can never gap. Downward (head settling INTO the collar) is harmless, so
-    // it is allowed a little more room.
-    return counter.clamp(clampMin, 4.0);
+  /// Fraction of the neck's level shift applied to the throat-bridge fabric
+  /// (collar/tie/shirt) so it follows the lifted neck instead of gapping.
+  static const double _kThroatBridgeFraction = 0.7;
+
+  /// Collar/tie/shirt bones that bridge the neck to the chest — lifted a
+  /// fraction of the neck shift to keep the throat closed under leveling.
+  /// (Rig-specific ids; EXPERIMENTAL — promote to a rig/face config if kept.)
+  static const Set<String> _kThroatBridgeBones = {
+    'collar.L',
+    'collar.R',
+    'shirt_v',
+    'tie',
+    'tie_lower',
+  };
+
+  /// Fraction of a spine bone's vertical deviation-from-level the leveler pulls
+  /// out each frame. Aggressive on purpose: bobbing is capped by each joint's
+  /// NATURAL envelope, not by this fraction.
+  static const double _kSpineLevelStrength = 1;
+
+  /// How much the leveling EASES OFF at the deepest crouch (0 = hold dead-level
+  /// everywhere; 1 = no leveling at the crouch bottom). The panel wanted a small
+  /// deliberate head DIP on the two deepest pounce frames so the neck doesn't
+  /// stretch tubey and the pounce keeps its weight/anticipation — this lets the
+  /// head ride down a fraction of the crouch as it bottoms out, while the holds
+  /// stay pinned level.
+  static const double _kDeepCrouchEase = 0.5;
+
+  /// The ease is gated on ABSOLUTE crouch depth (local units the torso drops
+  /// below its own mean), not a per-clip fraction: a shallow-crouch clip (shaku)
+  /// must get ~no dip so its rigid-skull smoothness gate holds, while a deep
+  /// pounce dips. Below the deadzone: no ease; at/above full-depth: full ease.
+  static const double _kEaseDeadzoneUnits = 20;
+  static const double _kEaseFullDepthUnits = 40;
+
+  /// Two-stage spine level shifts (world units): how far to raise/lower the neck
+  /// subtree, and the head subtree ON TOP of the neck. Each stage pulls its bone
+  /// toward its per-clip mean height, then HARD-CLAMPS its gap-to-parent to that
+  /// joint's NATURAL min/max over the loop ([_SpineLevelPlan]) so no joint
+  /// separates more than it already does un-leveled. See 2026-07-04-head-level-
+  /// probe for why the old rootDy-only counter under-corrected the arc.
+  ({double neckShiftY, double headExtraShiftY, String? neckId}) _spineLevelShifts(
+    Clip clip, {
+    required String headId,
+    required Affine2D base,
+    required double baseScale,
+    required Map<String, Affine2D> world,
+  }) {
+    const zero = (neckShiftY: 0.0, headExtraShiftY: 0.0, neckId: null);
+    if (clip.duration <= 0 || baseScale == 0) return zero;
+    final plan = _spineLevelPlan(clip, headId);
+    if (plan == null) return zero;
+
+    final torsoY = world[plan.torsoId]?.ty;
+    final neckY = world[plan.neckId]?.ty;
+    final headY = world[headId]?.ty;
+    if (torsoY == null || neckY == null || headY == null) return zero;
+
+    // Ease the leveling off as the crouch bottoms out, so the head rides a
+    // fraction of the deepest dip (weight/anticipation) instead of holding
+    // rigidly level and stretching the neck tubey (panel note, 2026-07-04). The
+    // ease blends the LEVELED position back toward the un-leveled one AFTER the
+    // joint clamps, so it dips the head even where the clamp would otherwise pin
+    // the gap (easing strength alone does nothing — the clamp binds; measured).
+    final torsoTargetY = base.transformPoint(plan.torsoMeanX, plan.torsoMeanY).y;
+    // Local units the torso sits below its own mean (negative = above; the
+    // clamp below floors it, so a raised torso just gets zero ease).
+    final crouchLocal = (torsoY - torsoTargetY) / baseScale;
+    final crouchNorm =
+        ((crouchLocal - _kEaseDeadzoneUnits) /
+                (_kEaseFullDepthUnits - _kEaseDeadzoneUnits))
+            .clamp(0.0, 1.0);
+    final ease = 1 - _kDeepCrouchEase * crouchNorm; // 1 on holds, <1 deep
+
+    // Stage 1 — neck level line, clamped to its natural gap-to-torso, then eased
+    // back toward the un-leveled neck at the deep crouch.
+    final neckTargetY = base.transformPoint(plan.neckMeanX, plan.neckMeanY).y;
+    final neckDesiredY = neckY + (neckTargetY - neckY) * _kSpineLevelStrength;
+    final neckGap = (neckDesiredY - torsoY).clamp(
+      plan.neckTorsoGapMin * baseScale,
+      plan.neckTorsoGapMax * baseScale,
+    );
+    final neckLeveledY = torsoY + neckGap;
+    final neckFinalY = neckY + (neckLeveledY - neckY) * ease;
+    final neckShiftY = neckFinalY - neckY;
+
+    // Stage 2 — head level line, clamped to its natural gap against the fully
+    // leveled neck, then eased alongside it (same factor) so the head-neck gap
+    // stays inside its natural band at every crouch depth.
+    final headTargetY = base.transformPoint(plan.headMeanX, plan.headMeanY).y;
+    final headDesiredY = headY + (headTargetY - headY) * _kSpineLevelStrength;
+    final headGap = (headDesiredY - neckLeveledY).clamp(
+      plan.headNeckGapMin * baseScale,
+      plan.headNeckGapMax * baseScale,
+    );
+    final headLeveledY = neckLeveledY + headGap;
+    final headFinalY = headY + (headLeveledY - headY) * ease;
+    final headExtraShiftY = (headFinalY - headY) - neckShiftY;
+
+    return (
+      neckShiftY: neckShiftY,
+      headExtraShiftY: headExtraShiftY,
+      neckId: plan.neckId,
+    );
+  }
+
+  /// Builds (and memoizes) the per-clip spine-level plan: mean head/neck origins
+  /// and each spine joint's natural vertical gap envelope, in local units from
+  /// the foot-stabilized solve BEFORE any level counter. No recursion — never
+  /// calls [_rigidHeadWorld]. Null if the rig has no head->neck->torso chain.
+  _SpineLevelPlan? _spineLevelPlan(Clip clip, String headId) {
+    final cached = _spineLevelPlans[clip.name];
+    if (cached != null) return cached;
+    final neckId = _parentOf(headId);
+    final torsoId = neckId == null ? null : _parentOf(neckId);
+    if (neckId == null || torsoId == null) return null;
+
+    const samples = 96;
+    var neckSx = 0.0;
+    var neckSy = 0.0;
+    var headSx = 0.0;
+    var headSy = 0.0;
+    var torsoSx = 0.0;
+    var torsoSy = 0.0;
+    var neckTorsoMin = double.infinity;
+    var neckTorsoMax = double.negativeInfinity;
+    var headNeckMin = double.infinity;
+    var headNeckMax = double.negativeInfinity;
+    for (var i = 0; i < samples; i++) {
+      final t = clip.duration * i / samples;
+      final posed = _resolvedPose(clip, t, breath: 0);
+      final stabilized = _danceSupportFootStabilizedWorld(
+        clip,
+        t,
+        solver.solve(posed),
+      );
+      final head = stabilized[headId]!.origin;
+      final neck = stabilized[neckId]!.origin;
+      final torso = stabilized[torsoId]!.origin;
+      neckSx += neck.x;
+      neckSy += neck.y;
+      headSx += head.x;
+      headSy += head.y;
+      torsoSx += torso.x;
+      torsoSy += torso.y;
+      final neckTorso = neck.y - torso.y;
+      final headNeck = head.y - neck.y;
+      neckTorsoMin = math.min(neckTorsoMin, neckTorso);
+      neckTorsoMax = math.max(neckTorsoMax, neckTorso);
+      headNeckMin = math.min(headNeckMin, headNeck);
+      headNeckMax = math.max(headNeckMax, headNeck);
+    }
+    final plan = _SpineLevelPlan(
+      neckId: neckId,
+      torsoId: torsoId,
+      neckMeanX: neckSx / samples,
+      neckMeanY: neckSy / samples,
+      headMeanX: headSx / samples,
+      headMeanY: headSy / samples,
+      torsoMeanX: torsoSx / samples,
+      torsoMeanY: torsoSy / samples,
+      neckTorsoGapMin: neckTorsoMin,
+      neckTorsoGapMax: neckTorsoMax,
+      headNeckGapMin: headNeckMin,
+      headNeckGapMax: headNeckMax,
+    );
+    _spineLevelPlans[clip.name] = plan;
+    return plan;
+  }
+
+  /// The parent bone id of [id], or null if root-parented / unknown.
+  String? _parentOf(String id) {
+    for (final bone in rig.bones) {
+      if (bone.id == id) return bone.parent;
+    }
+    return null;
   }
 
   double _danceHeadHorizontalCounter(double rootDx, double headBobScale) {
@@ -2094,6 +2279,39 @@ class CharacterScene {
       drawable.dy + drawable.height / 2,
     );
   }
+}
+
+/// Per-clip data for the dance spine leveler (see
+/// `CharacterScene._spineLevelShifts`): the head/neck "level lines" and each
+/// spine joint's natural vertical gap envelope, in local units.
+class _SpineLevelPlan {
+  const _SpineLevelPlan({
+    required this.neckId,
+    required this.torsoId,
+    required this.neckMeanX,
+    required this.neckMeanY,
+    required this.headMeanX,
+    required this.headMeanY,
+    required this.torsoMeanX,
+    required this.torsoMeanY,
+    required this.neckTorsoGapMin,
+    required this.neckTorsoGapMax,
+    required this.headNeckGapMin,
+    required this.headNeckGapMax,
+  });
+
+  final String neckId;
+  final String torsoId;
+  final double neckMeanX;
+  final double neckMeanY;
+  final double headMeanX;
+  final double headMeanY;
+  final double torsoMeanX;
+  final double torsoMeanY;
+  final double neckTorsoGapMin;
+  final double neckTorsoGapMax;
+  final double headNeckGapMin;
+  final double headNeckGapMax;
 }
 
 /// A precomputed foot-lock travel curve: [samples] are the cumulative offset at

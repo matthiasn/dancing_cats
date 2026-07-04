@@ -1231,14 +1231,19 @@ void main() {
             'the right feature should settle for a short held shot instead of '
             'drifting immediately back to centre',
       );
-      // The upper bound guards against a full zoom *jump* (which would be many
-      // tens of percent taller); the exact height is a per-pixel readback that
+      // The bounds guard against a full zoom *jump* (which would be many tens of
+      // percent taller/shorter); the exact height is a per-pixel readback that
       // drifts ~1-2% across rasterization backends (local arm64 vs CI x86_64),
-      // so the cap carries margin above the observed push-in.
+      // so they carry margin around the observed push-in. The floor was 0.80
+      // until the dance spine leveler (2026-07-04-head-level-probe) held the
+      // head level over the crouch: the face now reads a touch smaller in the
+      // settled hold relative to the push-in (ratio ~0.77), so the floor is
+      // 0.72 with backend margin. Still well clear of an actual zoom jump, and
+      // the viewport/centre assertions above confirm the shot stays framed.
       expect(
         rightHold.orangeHeight,
         inInclusiveRange(
-          rightClose.orangeHeight * 0.80,
+          rightClose.orangeHeight * 0.72,
           rightClose.orangeHeight * 1.40,
         ),
         reason:
