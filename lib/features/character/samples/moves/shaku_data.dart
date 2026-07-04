@@ -434,41 +434,41 @@ const _shakuHandLTargetKeys = [
   // left), gathering IN across the chest between so the two arms TRADE the
   // opening each beat instead of clasping at the sternum (R13 panel: the
   // clamped centre blob was the load-bearing miss).
-  DanceIkTargetKey(0, x: -46, y: 4, tension: 1), // OPEN out-left (count)
+  DanceIkTargetKey(0, x: -66, y: -30, tension: 1), // OPEN out-left (count)
   DanceIkTargetKey(2, x: -15, y: -30, tension: 0.5), // gather in, cross
   DanceIkTargetKey(4, x: 9, y: -50, tension: 0.9), // recover IN at right-chest
   DanceIkTargetKey(6, x: -16, y: -26, tension: 0.5), // anticipate next open
-  DanceIkTargetKey(8, x: -46, y: 4, tension: 1),
+  DanceIkTargetKey(8, x: -66, y: -30, tension: 1),
   DanceIkTargetKey(10, x: -15, y: -30, tension: 0.5),
   DanceIkTargetKey(12, x: 9, y: -50, tension: 0.9),
   DanceIkTargetKey(14, x: -16, y: -26, tension: 0.5),
   // bar 2 — open wider; the generator-pull count (28) recovers L IN while R
   // yanks the cord up-and-out.
-  DanceIkTargetKey(16, x: -50, y: 6, tension: 1),
+  DanceIkTargetKey(16, x: -70, y: -32, tension: 1),
   DanceIkTargetKey(18, x: -15, y: -30, tension: 0.5),
   DanceIkTargetKey(20, x: 9, y: -50, tension: 0.9),
   DanceIkTargetKey(22, x: -16, y: -26, tension: 0.5),
-  DanceIkTargetKey(24, x: -50, y: 6, tension: 1),
+  DanceIkTargetKey(24, x: -70, y: -32, tension: 1),
   DanceIkTargetKey(26, x: -18, y: -24, tension: 0.5),
   DanceIkTargetKey(28, x: 11, y: -46, tension: 0.9), // recover IN under the pull
   DanceIkTargetKey(30, x: -16, y: -30, tension: 0.5),
-  DanceIkTargetKey(32, x: -46, y: 4, tension: 1), // == frame 0
+  DanceIkTargetKey(32, x: -66, y: -30, tension: 1), // == frame 0
 ];
 const _shakuHandRTargetKeys = [
   // bar 1 — R recovers IN at the left-chest on L's open counts, then OPENS
   // out-right on its own counts, so the silhouette breaks alternately L / R.
   DanceIkTargetKey(0, x: -8, y: -50, tension: 0.9), // recover IN at left-chest
   DanceIkTargetKey(2, x: 16, y: -26, tension: 0.5), // anticipate the open
-  DanceIkTargetKey(4, x: 46, y: 4, tension: 1), // OPEN out-right (count)
+  DanceIkTargetKey(4, x: 66, y: -30, tension: 1), // OPEN out-right (count)
   DanceIkTargetKey(6, x: 16, y: -30, tension: 0.5), // gather in, cross
   DanceIkTargetKey(8, x: -8, y: -50, tension: 0.9),
   DanceIkTargetKey(10, x: 16, y: -26, tension: 0.5),
-  DanceIkTargetKey(12, x: 46, y: 4, tension: 1),
+  DanceIkTargetKey(12, x: 66, y: -30, tension: 1),
   DanceIkTargetKey(14, x: 16, y: -30, tension: 0.5),
   // bar 2 — open wider, then the GENERATOR PULL up-and-out on count 8.
   DanceIkTargetKey(16, x: -8, y: -50, tension: 0.9),
   DanceIkTargetKey(18, x: 16, y: -26, tension: 0.5),
-  DanceIkTargetKey(20, x: 50, y: 6, tension: 1),
+  DanceIkTargetKey(20, x: 70, y: -32, tension: 1),
   DanceIkTargetKey(22, x: 18, y: -30, tension: 0.5),
   DanceIkTargetKey(24, x: -8, y: -50, tension: 0.9),
   DanceIkTargetKey(26, x: 30, y: -22, tension: 0.6), // gathers for the pull
