@@ -1098,14 +1098,13 @@ void main() {
       },
     );
 
-    test('shaku alternates a shoulder-led dig with a fleeting cross', () {
-      // R13 re-author: shaku's arms are an ALTERNATING shoulder-led dig, NOT a
-      // held crossed-X. Each count one hand digs DOWN-and-ACROSS toward the
-      // opposite hip while the other recovers HIGH to the chest; the roles swap
-      // every count, so the arms trade a continuous diagonal instead of the
-      // welded sternum clasp the panel flagged. The crossed-wrist X survives
-      // only as a fleeting pass-through on the off-beat transitions. Bar 2
-      // deepens the dig and climaxes on the generator-pull.
+    test('shaku trades an alternating open-out cross-pump', () {
+      // R13 re-author (v2): each count ONE arm swings OUT to its own side
+      // (breaking the silhouette left, then right, alternately) while the other
+      // recovers IN across the chest — so the arms TRADE the opening every beat
+      // instead of clasping at the sternum (the panel's load-bearing miss was a
+      // centre-clamped hand blob that never opened). Bar 2 climaxes on the
+      // generator-pull.
       final phrase = CatClips.dancePhrase;
       final shaku = CatClips.shaku;
       final handL = _targetFor(shaku, CatBones.handL).channel;
@@ -1118,7 +1117,7 @@ void main() {
         greaterThanOrEqualTo(0.74),
         reason:
             'Shaku support feet need enough world anchor to let the torso '
-            'pocket read without skate through the dig',
+            'pocket read without skate through the pump',
       );
 
       for (final frame in [0, 4, 8, 16, 20, 24, 32]) {
@@ -1134,26 +1133,23 @@ void main() {
         );
       }
 
-      // On L's dig counts the LEFT hand is low-and-across while the RIGHT
-      // recovers high; on R's dig counts the roles swap.
+      // On L's counts the LEFT hand OPENS out-left while the RIGHT recovers IN
+      // across to the left-chest; on R's counts the roles swap. The opening
+      // hand clears well past its shoulder; the recovering hand sits in near
+      // the midline — so the silhouette breaks alternately, not a centre blob.
       for (final frame in [0, 8, 16, 24]) {
         final p = frame / phrase.frameCount;
         final left = handL.sample(p);
         final right = handR.sample(p);
         expect(
-          left.y,
-          greaterThan(8),
-          reason: 'Shaku frame $frame: the LEFT hand digs low on its count',
-        );
-        expect(
           left.x,
-          greaterThan(8),
-          reason: 'Shaku frame $frame: the dig reaches ACROSS the midline',
+          lessThan(-34),
+          reason: 'Shaku frame $frame: the LEFT arm OPENS out to the left',
         );
         expect(
-          right.y,
-          lessThan(-40),
-          reason: 'Shaku frame $frame: the RIGHT hand recovers high to the chest',
+          right.x.abs(),
+          lessThan(24),
+          reason: 'Shaku frame $frame: the RIGHT arm recovers IN near the midline',
         );
       }
       for (final frame in [4, 12, 20]) {
@@ -1161,45 +1157,37 @@ void main() {
         final left = handL.sample(p);
         final right = handR.sample(p);
         expect(
-          right.y,
-          greaterThan(8),
-          reason: 'Shaku frame $frame: the RIGHT hand digs low on its count',
-        );
-        expect(
           right.x,
-          lessThan(-8),
-          reason: 'Shaku frame $frame: the dig reaches ACROSS the midline',
+          greaterThan(34),
+          reason: 'Shaku frame $frame: the RIGHT arm OPENS out to the right',
         );
         expect(
-          left.y,
-          lessThan(-40),
-          reason: 'Shaku frame $frame: the LEFT hand recovers high to the chest',
+          left.x.abs(),
+          lessThan(24),
+          reason: 'Shaku frame $frame: the LEFT arm recovers IN near the midline',
         );
       }
 
-      // The crossed-X is now only a FLEETING transition, not the held base —
-      // the exact inverted-duty-cycle the R13 panel asked us to break.
-      var crossedFrames = 0;
-      for (var frame = 0; frame < 32; frame++) {
-        final p = frame / phrase.frameCount;
-        final left = handL.sample(p);
-        final right = handR.sample(p);
-        if (left.x > 0 && right.x < 0) crossedFrames++;
-      }
+      // The opening genuinely TRADES sides beat to beat: the left-open counts
+      // reach far left, the right-open counts reach far right.
+      final maxRightOpen = [4, 12, 20]
+          .map((f) => handR.sample(f / phrase.frameCount).x)
+          .reduce(math.max);
+      final maxLeftOpen = [0, 8, 16, 24]
+          .map((f) => handL.sample(f / phrase.frameCount).x)
+          .reduce(math.min);
       expect(
-        crossedFrames,
-        inInclusiveRange(4, 16),
-        reason:
-            'the crossed X is a fleeting pass-through on the transitions, not '
-            'the held base posture (R13 re-author of the round-1 duty cycle)',
+        maxRightOpen - maxLeftOpen,
+        greaterThan(80),
+        reason: 'the silhouette must open to BOTH sides across the loop',
       );
 
-      // Bar 2 climaxes on the generator-pull: the right arm yanks up-and-back.
+      // Bar 2 climaxes on the generator-pull: the right arm yanks up-and-out.
       final pull = handR.sample(28 / phrase.frameCount);
       expect(
         pull.x,
         greaterThan(50),
-        reason: 'the generator pull sweeps the right arm out and back',
+        reason: 'the generator pull sweeps the right arm out and up',
       );
       expect(
         pull.y,
