@@ -50,6 +50,57 @@ void main() {
     expect(navLampLit, greaterThan(30), reason: 'group drew the nav lamps');
   });
 
+  test('holds the yacht at rest under reduce-motion (no wave transform)', () {
+    final recorder = ui.PictureRecorder();
+    expect(
+      () => const YachtGroupLayer().paint(
+        Canvas(recorder),
+        const BackdropContext(
+          size: Size(1280, 720),
+          timeSeconds: 4, // a t with real heave/roll — must be ignored
+          palette: kBlueHourPalette,
+          reducedMotion: true,
+        ),
+      ),
+      returnsNormally,
+    );
+    recorder.endRecording().dispose();
+  });
+
+  group('yachtWaveMotion', () {
+    test('stays within the normalized [-1, 1] envelope across a long window', () {
+      for (var i = 0; i < 4000; i++) {
+        final t = i * 0.05; // 0..200 s
+        final m = yachtWaveMotion(t);
+        expect(m.heave.abs(), lessThanOrEqualTo(1.0 + 1e-9), reason: 't=$t');
+        expect(m.roll.abs(), lessThanOrEqualTo(1.0 + 1e-9), reason: 't=$t');
+      }
+    });
+
+    test('is deterministic and freezes with the clock', () {
+      expect(yachtWaveMotion(3.3), yachtWaveMotion(3.3));
+      // A frozen clock (t held constant) yields a held pose, not drift.
+      expect(yachtWaveMotion(0), yachtWaveMotion(0));
+    });
+
+    test('actually oscillates on both axes (not a dead constant)', () {
+      final heaves = <double>[];
+      final rolls = <double>[];
+      for (var i = 0; i < 400; i++) {
+        final m = yachtWaveMotion(i * 0.1);
+        heaves.add(m.heave);
+        rolls.add(m.roll);
+      }
+      double range(List<double> v) =>
+          v.reduce((a, b) => a > b ? a : b) - v.reduce((a, b) => a < b ? a : b);
+      // Swings across most of the envelope, and rocks both above and below rest.
+      expect(range(heaves), greaterThan(1.2));
+      expect(range(rolls), greaterThan(1.2));
+      expect(heaves.any((h) => h > 0.3) && heaves.any((h) => h < -0.3), isTrue);
+      expect(rolls.any((r) => r > 0.3) && rolls.any((r) => r < -0.3), isTrue);
+    });
+  });
+
   test('draws the hull bitmap when the yacht image is decoded', () async {
     const size = Size(1280, 720);
     final hull = await _solid(const Color(0xFFFFFFFF), 8, 8);
