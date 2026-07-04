@@ -279,22 +279,33 @@ const _bugaLegLowerKeys = [
 // shoulder's OWN response instead — small deltas per count (0.04 rad
 // steps) were too subtle to register, same "small delta near an
 // existing value reads as unchanged" lesson as elsewhere this session.
-// Kept well under the frame-13/29 hit's own -0.36 shrug spike so the
-// sink's response doesn't compete with the hit's accent.
+// Kept well under the frame-13/29 hit's own shrug spike so the sink's
+// response doesn't compete with the hit's accent.
+// R13 (buga re-panel, 2026-07-04): the animator still read the hit's
+// shoulders as "flat/dead — no shrug-up toward the ears, the hit lands soft"
+// (a persistent R12 finding). The clavicle IS the shoulder-girdle control and
+// the peacock hands are IK-pinned, so a bigger clavicle rotation raises the
+// shoulder SOCKET toward the head while the hand stays put — the neck
+// compresses and the shrug reads. Boosted the hit spike 0.36 -> 0.46 (and its
+// release 0.30 -> 0.36). 0.46 not higher: the ease overshoots ~0.07 past the
+// key, and the clavicle dancer-envelope caps abs rotation at 0.55, so a 0.55
+// key resolved to ~0.61 and tripped the joint-envelope gate. Re-check confirmed
+// the shrug now reads clearly, head not swallowed. See reviews/assets/
+// buga-shoulder-pop-before-after.png.
 const _bugaClavicleRKeys = [
   DanceJointKey(0, rotation: -0.04),
   DanceJointKey(4, rotation: -0.09),
   DanceJointKey(8, rotation: -0.16),
   DanceJointKey(11, rotation: -0.12),
-  DanceJointKey(12, rotation: -0.36),
-  DanceJointKey(13, rotation: -0.3),
+  DanceJointKey(12, rotation: -0.46),
+  DanceJointKey(13, rotation: -0.36),
   DanceJointKey(14, rotation: -0.1),
   DanceJointKey(16, rotation: 0.02),
   DanceJointKey(20, rotation: -0.1),
   DanceJointKey(24, rotation: -0.18),
   DanceJointKey(27, rotation: -0.14),
-  DanceJointKey(28, rotation: -0.36),
-  DanceJointKey(29, rotation: -0.3),
+  DanceJointKey(28, rotation: -0.46),
+  DanceJointKey(29, rotation: -0.36),
   DanceJointKey(30, rotation: -0.1),
   DanceJointKey(32, rotation: -0.04),
 ];
@@ -303,15 +314,15 @@ const _bugaClavicleLKeys = [
   DanceJointKey(4, rotation: 0.09),
   DanceJointKey(8, rotation: 0.16),
   DanceJointKey(11, rotation: 0.12),
-  DanceJointKey(12, rotation: 0.36),
-  DanceJointKey(13, rotation: 0.3),
+  DanceJointKey(12, rotation: 0.46),
+  DanceJointKey(13, rotation: 0.36),
   DanceJointKey(14, rotation: 0.1),
   DanceJointKey(16, rotation: -0.02),
   DanceJointKey(20, rotation: 0.1),
   DanceJointKey(24, rotation: 0.18),
   DanceJointKey(27, rotation: 0.14),
-  DanceJointKey(28, rotation: 0.36),
-  DanceJointKey(29, rotation: 0.3),
+  DanceJointKey(28, rotation: 0.46),
+  DanceJointKey(29, rotation: 0.36),
   DanceJointKey(30, rotation: 0.1),
   DanceJointKey(32, rotation: 0.04),
 ];
