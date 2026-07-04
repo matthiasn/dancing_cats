@@ -755,10 +755,11 @@ void main() {
     });
 
     test('dance clips carry alternating shoulder overlap', () {
-      // Per-clip shrug ceilings: groove clips keep the girdle subtle, while
-      // sekem's whole identity is the shoulder-led pump (panel round 1: the
-      // frozen yoke was scored down) so its clavicles may jerk visibly.
-      const shrugCeiling = {'shaku': 0.07, 'zanku': 0.2, 'sekem': 0.45};
+      // Per-clip shrug ceilings: zanku keeps the girdle subtle, while sekem AND
+      // (as of the R13 re-author) shaku are shoulder-LED digs — the clavicle
+      // drops the socket on each count so the hand can dig with the elbow bent
+      // — so their clavicles may swing visibly, like sekem's pump.
+      const shrugCeiling = {'shaku': 0.45, 'zanku': 0.2, 'sekem': 0.45};
       for (final clip in [CatClips.shaku, CatClips.zanku, CatClips.sekem]) {
         final left = clip.channels[CatBones.clavicleL];
         final right = clip.channels[CatBones.clavicleR];

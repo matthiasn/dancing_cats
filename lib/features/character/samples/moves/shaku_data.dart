@@ -431,40 +431,40 @@ const _shakuLegLowerRKeys = [
 // the elbow bent), which is the next lever, not authored here yet.
 const _shakuHandLTargetKeys = [
   // bar 1 — L leads the dig on the downbeats, recovers to the chest between.
-  DanceIkTargetKey(0, x: 10, y: 11, tension: 1), // DIG down-across (count)
+  DanceIkTargetKey(0, x: 11, y: 12, tension: 1), // DIG down-across (count)
   DanceIkTargetKey(2, x: 8, y: -18, tension: 0.5), // rise through the cross
   DanceIkTargetKey(4, x: -6, y: -54, tension: 0.9), // recover HIGH at chest
   DanceIkTargetKey(6, x: 5, y: -20, tension: 0.5), // descend through the cross
-  DanceIkTargetKey(8, x: 10, y: 11, tension: 1),
+  DanceIkTargetKey(8, x: 11, y: 12, tension: 1),
   DanceIkTargetKey(10, x: 8, y: -18, tension: 0.5),
   DanceIkTargetKey(12, x: -6, y: -54, tension: 0.9),
   DanceIkTargetKey(14, x: 5, y: -20, tension: 0.5),
   // bar 2 — dig a touch deeper (escalation); the generator-pull count (28)
   // plants L low as the anchor while R yanks the cord up-back.
-  DanceIkTargetKey(16, x: 10, y: 11, tension: 1),
+  DanceIkTargetKey(16, x: 12, y: 13, tension: 1),
   DanceIkTargetKey(18, x: 9, y: -16, tension: 0.5),
   DanceIkTargetKey(20, x: -8, y: -54, tension: 0.9),
   DanceIkTargetKey(22, x: 6, y: -18, tension: 0.5),
-  DanceIkTargetKey(24, x: 10, y: 11, tension: 1),
+  DanceIkTargetKey(24, x: 12, y: 13, tension: 1),
   DanceIkTargetKey(26, x: 10, y: -8, tension: 0.5),
-  DanceIkTargetKey(28, x: 11, y: 12, tension: 1), // planted dig under the pull
+  DanceIkTargetKey(28, x: 13, y: 13, tension: 1), // planted dig under the pull
   DanceIkTargetKey(30, x: 6, y: -20, tension: 0.5),
-  DanceIkTargetKey(32, x: 10, y: 11, tension: 1), // == frame 0
+  DanceIkTargetKey(32, x: 11, y: 12, tension: 1), // == frame 0
 ];
 const _shakuHandRTargetKeys = [
   // bar 1 — R recovers high on L's dig counts, digs on the off counts.
   DanceIkTargetKey(0, x: 6, y: -54, tension: 0.9), // recover HIGH at chest
   DanceIkTargetKey(2, x: -4, y: -18, tension: 0.5), // descend through the cross
-  DanceIkTargetKey(4, x: -10, y: 11, tension: 1), // DIG down-across (count)
+  DanceIkTargetKey(4, x: -11, y: 12, tension: 1), // DIG down-across (count)
   DanceIkTargetKey(6, x: -5, y: -20, tension: 0.5), // rise through the cross
   DanceIkTargetKey(8, x: 6, y: -54, tension: 0.9),
   DanceIkTargetKey(10, x: -4, y: -18, tension: 0.5),
-  DanceIkTargetKey(12, x: -10, y: 11, tension: 1),
+  DanceIkTargetKey(12, x: -11, y: 12, tension: 1),
   DanceIkTargetKey(14, x: -5, y: -20, tension: 0.5),
   // bar 2 — dig a touch deeper, then the GENERATOR PULL up-and-back on count 8.
   DanceIkTargetKey(16, x: 8, y: -54, tension: 0.9),
   DanceIkTargetKey(18, x: -5, y: -16, tension: 0.5),
-  DanceIkTargetKey(20, x: -10, y: 11, tension: 1),
+  DanceIkTargetKey(20, x: -12, y: 13, tension: 1),
   DanceIkTargetKey(22, x: -6, y: -18, tension: 0.5),
   DanceIkTargetKey(24, x: 8, y: -54, tension: 0.9),
   DanceIkTargetKey(26, x: 28, y: -30, tension: 0.7), // gathers for the pull
@@ -569,7 +569,7 @@ const _shakuHandRKeys = [
   DanceJointKey(11, rotation: -0.3),
   DanceJointKey(14, rotation: 0.44),
   DanceJointKey(15, rotation: -0.24),
-  DanceJointKey(17, rotation: -0.5),
+  DanceJointKey(17, rotation: -0.42),
   DanceJointKey(18, rotation: 0.54),
   DanceJointKey(19, rotation: -0.2),
   DanceJointKey(22, rotation: 0.44),
@@ -578,6 +578,86 @@ const _shakuHandRKeys = [
   DanceJointKey(29, rotation: 0.44),
   DanceJointKey(31, rotation: -0.22),
   DanceJointKey(32, rotation: 0.12),
+];
+
+// Shoulder-LED dig: the clavicle drops the socket DOWN on its count so the
+// hand can dig low with the elbow still bent (from a high static shoulder the
+// two-bone solver straightened out before the hand reached the belt — the
+// reach ceiling documented on the hand targets above). Same mechanism/sign as
+// sekem's shoulder dig: R down = +, L down = − (mirrored bones); the dig snaps
+// down on the count and releases with a small upward overshoot. L leads the
+// dig on 0/8/16/24, R on 4/12/20/28 — matching the hand schedule so each arm
+// digs off its OWN shoulder.
+const _shakuClavicleLKeys = [
+  DanceJointKey(0, rotation: -0.42), // L DIG down
+  DanceJointKey(2, rotation: 0.08), // release overshoot up
+  DanceJointKey(4), // rides neutral while R digs
+  DanceJointKey(6, rotation: -0.05), // anticipates the next dig
+  DanceJointKey(8, rotation: -0.42),
+  DanceJointKey(10, rotation: 0.08),
+  DanceJointKey(12),
+  DanceJointKey(14, rotation: -0.05),
+  DanceJointKey(16, rotation: -0.42),
+  DanceJointKey(18, rotation: 0.08),
+  DanceJointKey(20),
+  DanceJointKey(22, rotation: -0.05),
+  DanceJointKey(24, rotation: -0.42),
+  DanceJointKey(26, rotation: 0.08),
+  DanceJointKey(28),
+  DanceJointKey(30, rotation: -0.05),
+  DanceJointKey(32, rotation: -0.42),
+];
+const _shakuClavicleRKeys = [
+  DanceJointKey(0), // rides neutral while L digs
+  DanceJointKey(2, rotation: -0.05), // anticipates the next dig
+  DanceJointKey(4, rotation: 0.42), // R DIG down
+  DanceJointKey(6, rotation: -0.08), // release overshoot up
+  DanceJointKey(8),
+  DanceJointKey(10, rotation: -0.05),
+  DanceJointKey(12, rotation: 0.42),
+  DanceJointKey(14, rotation: -0.08),
+  DanceJointKey(16),
+  DanceJointKey(18, rotation: -0.05),
+  DanceJointKey(20, rotation: 0.42),
+  DanceJointKey(22, rotation: -0.08),
+  DanceJointKey(24),
+  DanceJointKey(26, rotation: -0.05),
+  DanceJointKey(28, rotation: 0.42),
+  DanceJointKey(30, rotation: -0.08),
+  DanceJointKey(32),
+];
+// Deltoid/socket mass response so the dig reads as flesh, not a hinge: the
+// working socket bunches (wide + short) on its dig and stretches on release,
+// mirroring the clavicle schedule (same as sekem's).
+const _shakuShoulderSocketLKeys = [
+  DanceJointKey(0, rotation: -0.08, scaleX: 1.12, scaleY: 0.92),
+  DanceJointKey(2, rotation: 0.03, scaleX: 0.98, scaleY: 1.05),
+  DanceJointKey(4),
+  DanceJointKey(8, rotation: -0.08, scaleX: 1.12, scaleY: 0.92),
+  DanceJointKey(10, rotation: 0.03, scaleX: 0.98, scaleY: 1.05),
+  DanceJointKey(12),
+  DanceJointKey(16, rotation: -0.08, scaleX: 1.12, scaleY: 0.92),
+  DanceJointKey(18, rotation: 0.03, scaleX: 0.98, scaleY: 1.05),
+  DanceJointKey(20),
+  DanceJointKey(24, rotation: -0.08, scaleX: 1.12, scaleY: 0.92),
+  DanceJointKey(26, rotation: 0.03, scaleX: 0.98, scaleY: 1.05),
+  DanceJointKey(28),
+  DanceJointKey(32, rotation: -0.08, scaleX: 1.12, scaleY: 0.92),
+];
+const _shakuShoulderSocketRKeys = [
+  DanceJointKey(0),
+  DanceJointKey(4, rotation: 0.08, scaleX: 1.12, scaleY: 0.92),
+  DanceJointKey(6, rotation: -0.03, scaleX: 0.98, scaleY: 1.05),
+  DanceJointKey(8),
+  DanceJointKey(12, rotation: 0.08, scaleX: 1.12, scaleY: 0.92),
+  DanceJointKey(14, rotation: -0.03, scaleX: 0.98, scaleY: 1.05),
+  DanceJointKey(16),
+  DanceJointKey(20, rotation: 0.08, scaleX: 1.12, scaleY: 0.92),
+  DanceJointKey(22, rotation: -0.03, scaleX: 0.98, scaleY: 1.05),
+  DanceJointKey(24),
+  DanceJointKey(28, rotation: 0.08, scaleX: 1.12, scaleY: 0.92),
+  DanceJointKey(30, rotation: -0.03, scaleX: 0.98, scaleY: 1.05),
+  DanceJointKey(32),
 ];
 
 // Calmer ears for Shaku: enough delayed flop to avoid a fixed skull silhouette,

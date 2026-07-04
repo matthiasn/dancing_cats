@@ -510,6 +510,25 @@ class CatClips {
           CatBones.footR: const DanceJointTrack(_shakuFootRKeys, smooth: true),
           CatBones.handL: const DanceJointTrack(_shakuHandLKeys, smooth: true),
           CatBones.handR: const DanceJointTrack(_shakuHandRKeys, smooth: true),
+          // Shoulder-LED dig: the clavicle drops the socket on each count so
+          // the hand can dig low with the elbow bent; the socket bunches for
+          // the flesh read.
+          CatBones.clavicleL: const DanceJointTrack(
+            _shakuClavicleLKeys,
+            smooth: true,
+          ),
+          CatBones.clavicleR: const DanceJointTrack(
+            _shakuClavicleRKeys,
+            smooth: true,
+          ),
+          CatBones.shoulderSocketL: const DanceJointTrack(
+            _shakuShoulderSocketLKeys,
+            smooth: true,
+          ),
+          CatBones.shoulderSocketR: const DanceJointTrack(
+            _shakuShoulderSocketRKeys,
+            smooth: true,
+          ),
         },
         bodyMotion: DanceBodyMotion(
           pelvisBoneId: CatBones.hips,
