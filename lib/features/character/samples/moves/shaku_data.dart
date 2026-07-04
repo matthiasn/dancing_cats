@@ -412,94 +412,66 @@ const _shakuLegLowerRKeys = [
   DanceJointKey(32, rotation: -0.96),
 ];
 
-// Shaku arm vocabulary: crossed WRISTS, not folded forearms. Each hit keeps
-// the elbow on its own side, crosses only the paw/wrist through the centre,
-// then opens into a low scoop. That preserves the Shaku X without asking the
-// forearm to rotate out through the same-side sleeve.
-// The Shaku Shaku X is the LANDLORD, not the visitor (research audit
-// finding 2, panel round 1's unanimous shaku critique): the crossed-wrist
-// "handcuffed" pose is the HELD base posture — wrists crossing at the
-// sternum, both fists breaking past the far silhouette line at staggered
-// heights so the X survives at stage distance — and the open scoop is a
-// two-frame flash of punctuation landing on the accented beats, re-crossed
-// by the next downbeat. Duty cycle: ~24 of 32 frames crossed.
+// Shaku arm vocabulary — R13 re-author: an ALTERNATING shoulder-led DIG, not a
+// held crossed-X. Every count one hand digs DOWN-and-ACROSS toward the opposite
+// hip while the other RECOVERS HIGH to the chest; the roles swap each count, so
+// the arms trade a continuous down/up diagonal instead of clasping at the
+// sternum. The crossed-wrist X survives as a FLEETING pass-through on the
+// off-beat transitions (the hands swap sides through the centre), keeping the
+// shaku read without the "welded/pops-between-two-poses" duty cycle the panel
+// flagged. Bar 2 deepens the dig and climaxes on the generator-pull (R sweeps
+// up-and-back on the count-8 accent) so it escalates bar 1 rather than copying
+// it. L digs on counts 0/8/16/24; R digs on 4/12/20/28.
+// NOTE: dig depth is bounded by the arm-reach envelope. From a HIGH, static
+// shoulder the hand cannot reach far down-and-across without the two-bone solver
+// straightening the elbow (ratio>1 / bend~180) — the exact ceiling documented
+// across shaku's earlier scoop rounds. These digs sit at the deepest point that
+// still clears the reach + elbow-bend validators; a DEEPER shoulder-led dig
+// needs a clavicle-drop channel (bring the socket down so the hand follows with
+// the elbow bent), which is the next lever, not authored here yet.
 const _shakuHandLTargetKeys = [
-  // Round 4: the round-3 "wide" X put each fist ±30 past the midline — at
-  // stage distance that reads as two fists parked on opposite sides with
-  // the tie visible between them (a boxer's guard, said every rater). A
-  // real handcuffed X STACKS the wrists near the sternum midline: paws
-  // overlap slightly (offset so both read), forearms make the X, and the
-  // TOP wrist alternates per bar. The open accent is a 3-frame LOW SCOOP
-  // arc past the knees (lead hand finishes higher than the trail hand),
-  // and bar 2 swaps the copy-paste flash for an asymmetric generator pull.
-  // Round 6: bar-1's wrist separation (10 vs -6, an 16-unit gap) was too
-  // tight at render scale — the rigging/anatomy raters both saw the two
-  // fists collapse into one indistinct blob rather than a legible crossed
-  // stack. Widened toward the tested |x|<18 ceiling on both hands so the
-  // gap between them reads as two shapes even where they're closest.
-  DanceIkTargetKey(0, x: 16, y: -56, tension: 1), // X — L wrist on TOP
-  DanceIkTargetKey(2, x: 15, y: -48, tension: 0.5), // gallop ride down
-  DanceIkTargetKey(4, x: 16, y: -55, tension: 0.9),
-  DanceIkTargetKey(6, x: 15, y: -48, tension: 0.5), // ride
-  DanceIkTargetKey(8, x: 16, y: -56, tension: 1),
-  // Round 6: the scoop's y (10, -16) barely dipped below the X's own
-  // sternum height — at that depth the two-bone solve reads as a static
-  // hands-on-hips akimbo plant (every rater's complaint at this exact
-  // frame), not a sweep. Pushed the low point down past the hip toward
-  // the knee so the silhouette actually opens and drops before the lead
-  // hand rises back out.
-  // R10: every rater independently called the flash "perfect mirror
-  // symmetry, like jazz hands" — at frame 12 itself both hands hit the
-  // SAME y (20), only diverging a frame later at 13. Made L (the lead
-  // hand) dip deeper than R AT frame 12 itself, not just at the next
-  // frame, so the asymmetry reads from the first instant of the flash.
-  DanceIkTargetKey(11, x: 6, y: -50, tension: 0.8), // squeeze (anticipation)
-  DanceIkTargetKey(12, x: -62, y: 24, tension: 0.7), // lead hand sweeps LOWEST
-  DanceIkTargetKey(13, x: -76, y: -10, tension: 0.7), // lead hand rises out
-  DanceIkTargetKey(14, x: -10, y: -42, tension: 0.5), // closing transit
-  DanceIkTargetKey(15, x: 14, y: -58, tension: 0.8), // overcross lands
-  // Same separation widening as bar 1 (see its comment) — note bar 2's
-  // "L drops UNDER / R takes TOP" intent is aspirational only: hand.L and
-  // hand.R carry fixed z (18 and 17), so L always renders in front
-  // regardless of bar. Fixing that needs a per-frame z override, which
-  // this rig doesn't have yet — left as a known gap rather than guessed at.
-  DanceIkTargetKey(16, x: 8, y: -44, tension: 1), // bar-2 X — L drops UNDER
-  DanceIkTargetKey(18, x: 7, y: -36, tension: 0.5), // ride
-  DanceIkTargetKey(20, x: 8, y: -43, tension: 0.9),
-  DanceIkTargetKey(22, x: 7, y: -36, tension: 0.5),
-  DanceIkTargetKey(24, x: 8, y: -44, tension: 1),
-  DanceIkTargetKey(27, x: -32, y: 4, tension: 0.8), // parks LOW by the hip
-  DanceIkTargetKey(28, x: -38, y: 8, tension: 0.7), // holds through the pull
-  DanceIkTargetKey(29, x: -38, y: 6, tension: 0.7),
-  DanceIkTargetKey(30, x: -14, y: -34, tension: 0.5), // recovers
-  DanceIkTargetKey(31, x: 14, y: -58, tension: 0.8), // overcross
-  DanceIkTargetKey(32, x: 16, y: -56, tension: 1), // == frame 0
+  // bar 1 — L leads the dig on the downbeats, recovers to the chest between.
+  DanceIkTargetKey(0, x: 10, y: 11, tension: 1), // DIG down-across (count)
+  DanceIkTargetKey(2, x: 8, y: -18, tension: 0.5), // rise through the cross
+  DanceIkTargetKey(4, x: -6, y: -54, tension: 0.9), // recover HIGH at chest
+  DanceIkTargetKey(6, x: 5, y: -20, tension: 0.5), // descend through the cross
+  DanceIkTargetKey(8, x: 10, y: 11, tension: 1),
+  DanceIkTargetKey(10, x: 8, y: -18, tension: 0.5),
+  DanceIkTargetKey(12, x: -6, y: -54, tension: 0.9),
+  DanceIkTargetKey(14, x: 5, y: -20, tension: 0.5),
+  // bar 2 — dig a touch deeper (escalation); the generator-pull count (28)
+  // plants L low as the anchor while R yanks the cord up-back.
+  DanceIkTargetKey(16, x: 10, y: 11, tension: 1),
+  DanceIkTargetKey(18, x: 9, y: -16, tension: 0.5),
+  DanceIkTargetKey(20, x: -8, y: -54, tension: 0.9),
+  DanceIkTargetKey(22, x: 6, y: -18, tension: 0.5),
+  DanceIkTargetKey(24, x: 10, y: 11, tension: 1),
+  DanceIkTargetKey(26, x: 10, y: -8, tension: 0.5),
+  DanceIkTargetKey(28, x: 11, y: 12, tension: 1), // planted dig under the pull
+  DanceIkTargetKey(30, x: 6, y: -20, tension: 0.5),
+  DanceIkTargetKey(32, x: 10, y: 11, tension: 1), // == frame 0
 ];
 const _shakuHandRTargetKeys = [
-  // Round 6: mirrors the hand.L separation widening above (see its
-  // comment) — same fused-blob complaint, mirrored keys.
-  DanceIkTargetKey(0, x: -16, y: -46, tension: 1), // X — R wrist UNDER
-  DanceIkTargetKey(2, x: -15, y: -38, tension: 0.5), // gallop ride down
-  DanceIkTargetKey(4, x: -16, y: -45, tension: 0.9),
-  DanceIkTargetKey(6, x: -15, y: -38, tension: 0.5), // ride
-  DanceIkTargetKey(8, x: -16, y: -46, tension: 1),
-  // Round 6: mirrors the hand.L scoop-depth fix above (see its comment).
-  DanceIkTargetKey(11, x: -3, y: -40, tension: 0.8), // squeeze
-  DanceIkTargetKey(12, x: 66, y: 8, tension: 0.7), // trail hand stays shallow
-  DanceIkTargetKey(13, x: 76, y: 14, tension: 0.7), // trail hand stays lower
-  DanceIkTargetKey(14, x: 6, y: -34, tension: 0.5), // closing transit
-  DanceIkTargetKey(15, x: -12, y: -46, tension: 0.8), // overcross lands
-  DanceIkTargetKey(16, x: -17, y: -56, tension: 1), // bar-2 X — R takes TOP
-  DanceIkTargetKey(18, x: -16, y: -48, tension: 0.5), // ride
-  DanceIkTargetKey(20, x: -17, y: -55, tension: 0.9),
-  DanceIkTargetKey(22, x: -16, y: -48, tension: 0.5),
-  DanceIkTargetKey(24, x: -17, y: -56, tension: 1),
-  DanceIkTargetKey(27, x: 12, y: 8, tension: 0.8), // grabs the cord low
-  DanceIkTargetKey(28, x: 62, y: -44, tension: 0.9), // GENERATOR PULL up-back
-  DanceIkTargetKey(29, x: 74, y: -56, tension: 0.8), // overshoot high
-  DanceIkTargetKey(30, x: 22, y: -18, tension: 0.5), // releases back down
-  DanceIkTargetKey(31, x: -12, y: -46, tension: 0.8), // re-crosses
-  DanceIkTargetKey(32, x: -16, y: -46, tension: 1), // == frame 0
+  // bar 1 — R recovers high on L's dig counts, digs on the off counts.
+  DanceIkTargetKey(0, x: 6, y: -54, tension: 0.9), // recover HIGH at chest
+  DanceIkTargetKey(2, x: -4, y: -18, tension: 0.5), // descend through the cross
+  DanceIkTargetKey(4, x: -10, y: 11, tension: 1), // DIG down-across (count)
+  DanceIkTargetKey(6, x: -5, y: -20, tension: 0.5), // rise through the cross
+  DanceIkTargetKey(8, x: 6, y: -54, tension: 0.9),
+  DanceIkTargetKey(10, x: -4, y: -18, tension: 0.5),
+  DanceIkTargetKey(12, x: -10, y: 11, tension: 1),
+  DanceIkTargetKey(14, x: -5, y: -20, tension: 0.5),
+  // bar 2 — dig a touch deeper, then the GENERATOR PULL up-and-back on count 8.
+  DanceIkTargetKey(16, x: 8, y: -54, tension: 0.9),
+  DanceIkTargetKey(18, x: -5, y: -16, tension: 0.5),
+  DanceIkTargetKey(20, x: -10, y: 11, tension: 1),
+  DanceIkTargetKey(22, x: -6, y: -18, tension: 0.5),
+  DanceIkTargetKey(24, x: 8, y: -54, tension: 0.9),
+  DanceIkTargetKey(26, x: 28, y: -30, tension: 0.7), // gathers for the pull
+  DanceIkTargetKey(28, x: 56, y: -48, tension: 0.9), // GENERATOR PULL up-back
+  DanceIkTargetKey(29, x: 66, y: -56, tension: 0.8), // overshoot high
+  DanceIkTargetKey(30, x: 22, y: -20, tension: 0.5), // release back down
+  DanceIkTargetKey(32, x: 6, y: -54, tension: 0.9), // == frame 0
 ];
 const _shakuFootLTargetKeys = [
   // The support phase is ONE constant plant — the round-3 rigging rater
