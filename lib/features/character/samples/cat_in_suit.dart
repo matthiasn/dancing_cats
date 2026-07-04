@@ -594,27 +594,39 @@ class CatClips {
             // and the RIGHT through bar 2. Owner-approved amplitude ladder;
             // the stance/head gates were recalibrated with it.
             SineRootChannel(swayAmplitude: -20, leanAmplitude: -0.07),
-            // Per-beat down-pulse deepened -10 -> -24: the head-coupling
-            // probe measured shaku's hips swinging 27 units vertically —
-            // HALF of every other catalogue move (zanku 59, sekem 54) —
-            // which is why three panels read "no pocket / ~17px bounce"
-            // no matter how faithfully the head rode it. Target: hips
-            // swing ~55-60, head following at ~0.9 coupling.
+            // The pocket pulse, SHAPED (R19 mocap verdict: the symmetric
+            // triangle wave "never SITS into a beat... one timing change
+            // that converts the whole loop from keyframed to danced").
+            // Three-harmonic Fourier stack, phases solved numerically:
+            //  - h8 primary: trough dead on each count (depth restored by
+            //    the accent layer below, so overall swing stays ~55);
+            //  - h16 skew at phase 0.05664: steepens the drop INTO each
+            //    trough and flattens the exit — measured 2.9x drop/rise
+            //    slope asymmetry, trough arriving a hair early (a dancer
+            //    hits slightly INTO the beat);
+            //  - h2 accent: its two deep moments land ~1.5 frames AFTER
+            //    counts 1 and 5 (frames 1.5 / 17.5) — a behind-the-beat
+            //    pocket: the foot steps ON the count, the weight arrives
+            //    just after, once the landed foot's contact lock is fully
+            //    engaged (dead on frame 0 the dive landed inside the wrap
+            //    span's lock fade-in and popped the planted sole ~16 units
+            //    through its hold).
             SineRootChannel(
-              bobAmplitude: -24,
+              bobAmplitude: -20,
               bobPhase: 0.09375,
               bobHarmonic: 8,
               leanAmplitude: 0.015,
               leanHarmonic: 8,
             ),
             SineRootChannel(
-              bobAmplitude: -3.5,
-              bobPhase: 0.02,
+              bobAmplitude: -6,
+              bobPhase: 0.05664,
               bobHarmonic: 16,
               leanAmplitude: 0.006,
               leanPhase: 0.03,
               leanHarmonic: 16,
             ),
+            SineRootChannel(bobAmplitude: -7, bobPhase: 0.328125),
           ],
           extraPelvisLayers: const [
             SineChannel(

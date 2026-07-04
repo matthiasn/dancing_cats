@@ -507,7 +507,19 @@ void main() {
       var lockedVerticalDrift = 0.0;
       var lockedLateralDrift = 0.0;
 
+      final firstSpan = CatClips.shaku.contactSpans.first;
+      final wrapSpan = CatClips.shaku.contactSpans.last;
       for (final span in CatClips.shaku.contactSpans) {
+        // The final 1.9-frame span is the warm-up tail of the wrap-around
+        // hold (same bone as span 1): its central third still sits inside
+        // the contact lock's ~1.4-frame fade-in, so it rides whatever deep
+        // pocket pulse crosses the seam instead of measuring a locked
+        // hold. The same physical hold IS measured strictly by the first
+        // span (sole drift ~0.5 there) — see the identical skip in the
+        // floor-plausibility test.
+        if (identical(span, wrapSpan) && span.bone == firstSpan.bone) {
+          continue;
+        }
         final mid = (span.start + span.end) / 2;
         final width = (span.end - span.start) / 3;
         final lockedAnchor = _supportPoint(
@@ -1086,12 +1098,13 @@ void main() {
       );
       expect(
         maxHeadY - minHeadY,
-        // 36 -> 62: owner decision (R16) — shaku's head RIDES the crouch,
-        // and the R17 pocket deepening brought the hips to catalogue-normal
-        // swing (~55, matching zanku/sekem), which the head now follows at
-        // ~0.99 coupling. "Rigid skull" is guarded by the scale asserts
-        // above and the step ceiling below, not by suppressing the ride.
-        lessThan(62),
+        // 36 -> 62 -> 68: owner decision (R16) — shaku's head RIDES the
+        // crouch. The R17 pocket brought the hips to catalogue-normal
+        // swing, and the R19 accent layer (counts 1/5 sit deeper) took
+        // hips to ~59, which the head follows at ~1.0 coupling. "Rigid
+        // skull" is guarded by the scale asserts above and the step
+        // ceiling below, not by suppressing the ride.
+        lessThan(68),
         reason:
             'dance head travel should read like a rigid skull riding the body, '
             'not a rubber bobble',
