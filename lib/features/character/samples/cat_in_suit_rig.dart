@@ -143,6 +143,7 @@ class CatInSuitPalette {
     whisker: 0xFFE7D7C0,
     brow: 0xFFF1E2C9,
   );
+
 }
 
 /// Stable bone ids, also the keys clips animate.
@@ -282,10 +283,16 @@ Bone _tailSeg(
 
 /// Builds the cat-in-a-suit [RigSpec].
 RigSpec buildCatInSuitRig({
-  CatInSuitPalette palette = CatInSuitPalette.orangeTabby,
+  CatSpeciesSpec species = CatSpeciesSpec.houseCat,
   double legWidthScale = 1,
   double armWidthScale = 1,
 }) {
+  final palette = species.palette;
+  // The species' own base leanness composes with the caller's scale (today
+  // used for per-ensemble-member depth thinning), so a species sets its own
+  // build and staging can still thin it further for an upstage flanker.
+  final legScale = species.legWidthScale * legWidthScale;
+  final armScale = species.armWidthScale * armWidthScale;
   final bones = <Bone>[
     // Tail controls: the visible tail is drawn as one soft ribbon below. These
     // short bones only provide the bending spine, so the tail can attach behind
@@ -864,8 +871,8 @@ RigSpec buildCatInSuitRig({
       rotationLimit: const JointRotationLimit(-1, 1),
       drawable: BoneDrawable(
         kind: BoneShapeKind.ellipse,
-        width: 22.5 * armWidthScale,
-        height: 21 * armWidthScale,
+        width: 22.5 * armScale,
+        height: 21 * armScale,
         dy: 1,
         color: palette.fur,
         outlineColor: _outline,
@@ -879,13 +886,13 @@ RigSpec buildCatInSuitRig({
       id: CatBones.wristCuffR,
       parent: CatBones.handR,
       pivotX: 0,
-      pivotY: -12 * armWidthScale,
+      pivotY: -12 * armScale,
       z: 16,
       restRotation: -0.08,
       drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
-        width: 18 * armWidthScale,
-        height: 7 * armWidthScale,
+        width: 18 * armScale,
+        height: 7 * armScale,
         dy: -1,
         cornerRadius: 3,
         color: _shirt,
@@ -900,14 +907,14 @@ RigSpec buildCatInSuitRig({
     Bone(
       id: CatBones.pawToeR1,
       parent: CatBones.handR,
-      pivotX: -6 * armWidthScale,
+      pivotX: -6 * armScale,
       pivotY: 0,
       z: 16,
       drawable: BoneDrawable(
         kind: BoneShapeKind.ellipse,
-        width: 9.2 * armWidthScale,
-        height: 9.2 * armWidthScale,
-        dy: 8 * armWidthScale,
+        width: 9.2 * armScale,
+        height: 9.2 * armScale,
+        dy: 8 * armScale,
         color: palette.fur,
         outlineColor: _outline,
         outlineWidth: 2.5,
@@ -917,14 +924,14 @@ RigSpec buildCatInSuitRig({
     Bone(
       id: CatBones.pawToeR2,
       parent: CatBones.handR,
-      pivotX: 5 * armWidthScale,
+      pivotX: 5 * armScale,
       pivotY: 0,
       z: 16,
       drawable: BoneDrawable(
         kind: BoneShapeKind.ellipse,
-        width: 9.2 * armWidthScale,
-        height: 9.2 * armWidthScale,
-        dy: 8 * armWidthScale,
+        width: 9.2 * armScale,
+        height: 9.2 * armScale,
+        dy: 8 * armScale,
         color: palette.fur,
         outlineColor: _outline,
         outlineWidth: 2.5,
@@ -938,14 +945,14 @@ RigSpec buildCatInSuitRig({
     Bone(
       id: CatBones.thumbR,
       parent: CatBones.handR,
-      pivotX: -9 * armWidthScale,
+      pivotX: -9 * armScale,
       pivotY: 2,
       z: 18,
       restRotation: 0.8,
       drawable: _tapered(
-        9.4 * armWidthScale,
-        5.8 * armWidthScale,
-        13.5 * armWidthScale,
+        9.4 * armScale,
+        5.8 * armScale,
+        13.5 * armScale,
         palette.fur,
         dy: 1,
         outlineWidth: 2.5,
@@ -1225,8 +1232,8 @@ RigSpec buildCatInSuitRig({
       rotationLimit: const JointRotationLimit(-1, 1),
       drawable: BoneDrawable(
         kind: BoneShapeKind.ellipse,
-        width: 22.5 * armWidthScale,
-        height: 21 * armWidthScale,
+        width: 22.5 * armScale,
+        height: 21 * armScale,
         dy: 1,
         color: palette.fur,
         outlineColor: _outline,
@@ -1238,13 +1245,13 @@ RigSpec buildCatInSuitRig({
       id: CatBones.wristCuffL,
       parent: CatBones.handL,
       pivotX: 0,
-      pivotY: -12 * armWidthScale,
+      pivotY: -12 * armScale,
       z: 17,
       restRotation: 0.08,
       drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
-        width: 18 * armWidthScale,
-        height: 7 * armWidthScale,
+        width: 18 * armScale,
+        height: 7 * armScale,
         dy: -1,
         cornerRadius: 3,
         color: _shirt,
@@ -1256,14 +1263,14 @@ RigSpec buildCatInSuitRig({
     Bone(
       id: CatBones.pawToeL1,
       parent: CatBones.handL,
-      pivotX: 6 * armWidthScale,
+      pivotX: 6 * armScale,
       pivotY: 0,
       z: 17,
       drawable: BoneDrawable(
         kind: BoneShapeKind.ellipse,
-        width: 9.2 * armWidthScale,
-        height: 9.2 * armWidthScale,
-        dy: 8 * armWidthScale,
+        width: 9.2 * armScale,
+        height: 9.2 * armScale,
+        dy: 8 * armScale,
         color: palette.fur,
         outlineColor: _outline,
         outlineWidth: 2.5,
@@ -1273,14 +1280,14 @@ RigSpec buildCatInSuitRig({
     Bone(
       id: CatBones.pawToeL2,
       parent: CatBones.handL,
-      pivotX: -5 * armWidthScale,
+      pivotX: -5 * armScale,
       pivotY: 0,
       z: 17,
       drawable: BoneDrawable(
         kind: BoneShapeKind.ellipse,
-        width: 9.2 * armWidthScale,
-        height: 9.2 * armWidthScale,
-        dy: 8 * armWidthScale,
+        width: 9.2 * armScale,
+        height: 9.2 * armScale,
+        dy: 8 * armScale,
         color: palette.fur,
         outlineColor: _outline,
         outlineWidth: 2.5,
@@ -1290,14 +1297,14 @@ RigSpec buildCatInSuitRig({
     Bone(
       id: CatBones.thumbL,
       parent: CatBones.handL,
-      pivotX: 9 * armWidthScale,
+      pivotX: 9 * armScale,
       pivotY: 2,
       z: 20,
       restRotation: -0.8,
       drawable: _tapered(
-        9.4 * armWidthScale,
-        5.8 * armWidthScale,
-        13.5 * armWidthScale,
+        9.4 * armScale,
+        5.8 * armScale,
+        13.5 * armScale,
         palette.fur,
         dy: 1,
         outlineWidth: 2.5,
@@ -1318,8 +1325,8 @@ RigSpec buildCatInSuitRig({
       // upper part of the ear lives on the TIP joint below and bends.
       drawable: BoneDrawable(
         kind: BoneShapeKind.triangle,
-        width: 32,
-        height: 44,
+        width: species.earBaseWidth,
+        height: species.earBaseHeight,
         dy: -6,
         color: palette.fur,
         outlineColor: _outline,
@@ -1340,8 +1347,8 @@ RigSpec buildCatInSuitRig({
       // arrowhead stuck on a stalk, even at rest.
       drawable: BoneDrawable(
         kind: BoneShapeKind.triangle,
-        width: 9,
-        height: 24,
+        width: species.earTipWidth,
+        height: species.earTipHeight,
         dy: -11,
         color: palette.fur,
         outlineColor: _outline,
@@ -1356,8 +1363,8 @@ RigSpec buildCatInSuitRig({
       z: 19,
       drawable: BoneDrawable(
         kind: BoneShapeKind.triangle,
-        width: 14,
-        height: 17,
+        width: species.earInnerWidth,
+        height: species.earInnerHeight,
         dy: -13,
         color: palette.innerEar,
       ),
@@ -1374,8 +1381,8 @@ RigSpec buildCatInSuitRig({
       // upper part of the ear lives on the TIP joint below and bends.
       drawable: BoneDrawable(
         kind: BoneShapeKind.triangle,
-        width: 32,
-        height: 44,
+        width: species.earBaseWidth,
+        height: species.earBaseHeight,
         dy: -6,
         color: palette.fur,
         outlineColor: _outline,
@@ -1396,8 +1403,8 @@ RigSpec buildCatInSuitRig({
       // arrowhead stuck on a stalk, even at rest.
       drawable: BoneDrawable(
         kind: BoneShapeKind.triangle,
-        width: 9,
-        height: 24,
+        width: species.earTipWidth,
+        height: species.earTipHeight,
         dy: -11,
         color: palette.fur,
         outlineColor: _outline,
@@ -1412,8 +1419,8 @@ RigSpec buildCatInSuitRig({
       z: 19,
       drawable: BoneDrawable(
         kind: BoneShapeKind.triangle,
-        width: 14,
-        height: 17,
+        width: species.earInnerWidth,
+        height: species.earInnerHeight,
         dy: -13,
         color: palette.innerEar,
       ),
@@ -1454,8 +1461,8 @@ RigSpec buildCatInSuitRig({
       z: 20,
       drawable: BoneDrawable(
         kind: BoneShapeKind.ellipse,
-        width: 72,
-        height: 66,
+        width: species.headWidth,
+        height: species.headHeight,
         dy: -28,
         color: palette.fur,
         outlineColor: _outline,
@@ -1463,17 +1470,18 @@ RigSpec buildCatInSuitRig({
         formRound: false, // head keeps the flat terminator — see celShade note
       ),
     ),
+    if (species.markings != null) ...species.markings!(),
   ];
 
   final face = FaceRig(
     anchorBoneId: CatBones.head,
-    eyeOffsetX: 15,
-    eyeOffsetY: -34,
-    eyeRadiusX: 9,
-    eyeRadiusY: 11,
-    pupilRadius: 7,
-    browOffsetY: -48,
-    browWidth: 16,
+    eyeOffsetX: species.eyeOffsetX,
+    eyeOffsetY: species.eyeOffsetY,
+    eyeRadiusX: species.eyeRadiusX,
+    eyeRadiusY: species.eyeRadiusY,
+    pupilRadius: species.pupilRadius,
+    browOffsetY: species.browOffsetY,
+    browWidth: species.browWidth,
     mouthOffsetY: -12,
     mouthWidth: 22,
     mouthHeight: 11,
@@ -1481,21 +1489,21 @@ RigSpec buildCatInSuitRig({
     pupilColor: _outline,
     browColor: palette.brow,
     mouthColor: _outline,
-    muzzleWidth: 34,
-    muzzleHeight: 24,
+    muzzleWidth: species.muzzleWidth,
+    muzzleHeight: species.muzzleHeight,
     muzzleColor: palette.muzzle,
-    noseWidth: 10,
-    noseHeight: 7,
+    noseWidth: species.noseWidth,
+    noseHeight: species.noseHeight,
     noseColor: palette.nose,
     whiskerColor: palette.whisker,
-    whiskerLength: 22,
+    whiskerLength: species.whiskerLength,
   );
 
   List<double> scaledLegWidths(List<double> widths) => [
-    for (final width in widths) width * legWidthScale,
+    for (final width in widths) width * legScale,
   ];
   List<double> scaledArmWidths(List<double> widths) => [
-    for (final width in widths) width * armWidthScale,
+    for (final width in widths) width * armScale,
   ];
   final ribbons = <LimbRibbonSpec>[
     LimbRibbonSpec(
@@ -1796,6 +1804,7 @@ RigSpec buildCatInSuitRig({
     ribbons: ribbons,
     meshes: meshes,
     face: face,
+    displayScale: species.displayScale,
     // Cel-shade the cat: a baked per-shape form shadow so the flat fills read as
     // dimensional cartoon volumes (each limb/torso/head lit from upper-left into
     // a cool blue-hour shade), not stickers on the painted plate. The core shadow

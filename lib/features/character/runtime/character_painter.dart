@@ -585,7 +585,10 @@ class CharacterPainter extends CustomPainter {
         final memberDepth =
             _roleStageDepth(i, members.length) + heroStage.depthBonus;
         final memberScale =
-            drawScale * _perspectiveScale(memberDepth) * formation.scale;
+            drawScale *
+            _perspectiveScale(memberDepth) *
+            formation.scale *
+            memberScene.rig.displayScale;
         final memberView = leadCentreOrder && danceViewProjection
             ? _danceMemberView(i, members.length)
             : null;

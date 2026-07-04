@@ -735,7 +735,7 @@ void main() {
         );
         final partnerScene = CharacterScene(
           buildCatInSuitRig(
-            palette: CatInSuitPalette.silverTabby,
+            species: CatSpeciesSpec.silverTabby,
             legWidthScale: catalogueDance ? flankThickness : 1,
             armWidthScale: catalogueDance ? flankThickness : 1,
           ),
@@ -743,7 +743,7 @@ void main() {
         );
         final thirdScene = CharacterScene(
           buildCatInSuitRig(
-            palette: CatInSuitPalette.darkBrown,
+            species: CatSpeciesSpec.darkBrown,
             legWidthScale: catalogueDance ? flankThickness : 1,
             armWidthScale: catalogueDance ? flankThickness : 1,
           ),

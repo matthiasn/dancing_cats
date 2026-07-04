@@ -21,6 +21,8 @@ import 'package:dancing_cats/features/character/model/rig_spec.dart';
 import 'package:dancing_cats/features/character/model/trunk_surface.dart';
 
 part 'cat_in_suit_rig.dart';
+part 'cat_species.dart';
+part 'cat_species_markings.dart';
 part 'moves/buga_data.dart';
 part 'moves/shaku_data.dart';
 part 'moves/zanku_data.dart';

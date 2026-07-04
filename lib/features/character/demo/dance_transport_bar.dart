@@ -20,6 +20,7 @@ class DanceTransportBar extends StatelessWidget {
     required this.captionsAvailable,
     required this.useNewBackdrop,
     required this.muted,
+    required this.bigCats,
     required this.bpm,
     required this.positionSec,
     required this.durationSec,
@@ -32,6 +33,7 @@ class DanceTransportBar extends StatelessWidget {
     required this.onToggleCaptions,
     required this.onToggleBackdrop,
     required this.onToggleMute,
+    required this.onToggleBigCats,
     required this.onSeekToSeconds,
     this.gradeOpen = false,
     this.gradeActive = false,
@@ -58,6 +60,11 @@ class DanceTransportBar extends StatelessWidget {
   /// Whether the track audio is muted (volume forced to zero); the video keeps
   /// playing. Drives the speaker glyph in the control cluster.
   final bool muted;
+
+  /// Whether the trio is showing as the tiger/lion/cheetah big-cat variant
+  /// instead of the default house-cat trio. Drives the paw glyph in the
+  /// control cluster.
+  final bool bigCats;
   final double bpm;
   final double positionSec;
   final double durationSec;
@@ -74,6 +81,7 @@ class DanceTransportBar extends StatelessWidget {
   final VoidCallback onToggleCaptions;
   final VoidCallback onToggleBackdrop;
   final VoidCallback onToggleMute;
+  final VoidCallback onToggleBigCats;
   final ValueChanged<double> onSeekToSeconds;
 
   /// Whether the colour-grade workspace is expanded below the bar.
@@ -245,6 +253,19 @@ class DanceTransportBar extends StatelessWidget {
             enabled: true,
             tooltip: muted ? 'Unmute' : 'Mute',
             onTap: onToggleMute,
+          ),
+          const _VRule(height: 40),
+          _toggle(
+            key: const Key('bigCatsToggle'),
+            // Paw glyph flips filled/outline with the species trio, matching
+            // the mute toggle's simple on/off pattern right next to it.
+            icon: bigCats ? Icons.pets_rounded : Icons.pets_outlined,
+            active: bigCats,
+            enabled: true,
+            tooltip: bigCats
+                ? 'Show house cats'
+                : 'Show big cats (tiger/lion/cheetah)',
+            onTap: onToggleBigCats,
           ),
           const _VRule(height: 40),
           _toggle(
@@ -604,15 +625,25 @@ class DanceTransportBar extends StatelessWidget {
           decoration: BoxDecoration(color: hue, shape: BoxShape.circle),
         ),
         const SizedBox(width: 7),
-        Text(
-          // Uppercase to match the timeline's marker pills (one label system);
-          // textMid so the headline timecode stays the single brightest reading.
-          label.toUpperCase(),
-          style: const TextStyle(
-            color: _Chrome.textMid,
-            fontSize: 13,
-            letterSpacing: 0.6,
-            fontWeight: FontWeight.w700,
+        ConstrainedBox(
+          // A hard ceiling on the label's own width — independent of the
+          // Row's flex layout — so an unusually long section name (or a
+          // console squeezed by the toggle cluster) ellipsizes instead of
+          // overflowing the transport row.
+          constraints: const BoxConstraints(maxWidth: 90),
+          child: Text(
+            // Uppercase to match the timeline's marker pills (one label
+            // system); textMid so the headline timecode stays the single
+            // brightest reading.
+            label.toUpperCase(),
+            overflow: TextOverflow.ellipsis,
+            softWrap: false,
+            style: const TextStyle(
+              color: _Chrome.textMid,
+              fontSize: 13,
+              letterSpacing: 0.6,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
       ],

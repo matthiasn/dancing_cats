@@ -13,6 +13,7 @@ class RigSpec {
     List<SkinnedMeshSpec> meshes = const [],
     this.face,
     this.celShade,
+    this.displayScale = 1,
   }) : bones = List<Bone>.unmodifiable(bones),
        ribbons = List<LimbRibbonSpec>.unmodifiable(ribbons),
        meshes = List<SkinnedMeshSpec>.unmodifiable(meshes),
@@ -67,6 +68,12 @@ class RigSpec {
   /// shadow clipped to each volume so flat fills read as dimensional cartoon
   /// forms. Null leaves the rig flat-filled (the legacy look).
   final CelShadeSpec? celShade;
+
+  /// Overall body-size multiplier for this rig, composed into the ensemble's
+  /// per-member scale (see `character_painter.dart`) — lets a bigger species
+  /// (a lion) read as physically larger than a smaller one (a cheetah) at the
+  /// same stage position.
+  final double displayScale;
 
   final Map<String, Bone> _byId;
   final List<Bone> _drawOrder;

@@ -274,11 +274,39 @@ class DanceCast {
   /// built from its staged PLANE scale (lead downstage at 1, flankers ~0.49)
   /// through [limbThicknessForPlaneScale], so upstage dancers thin out enough
   /// to keep the negative space that makes a small silhouette read.
-  factory DanceCast.build() {
+  ///
+  /// [bigCats] swaps the trio's house cats for a tiger/lion/cheetah trio —
+  /// one species per dancer, all on stage at once — rather than recolouring
+  /// the whole cast into a single species.
+  factory DanceCast.build({bool bigCats = false}) {
     final leadPlane = danceLanePlaneScale(1, 3);
     final flankThickness = limbThicknessForPlaneScale(
       danceLanePlaneScale(0, 3) / leadPlane,
     );
+    if (bigCats) {
+      return DanceCast(
+        lead: CharacterScene(
+          buildCatInSuitRig(species: CatSpeciesSpec.tiger),
+          autonomic: danceAutonomic(11),
+        ),
+        left: CharacterScene(
+          buildCatInSuitRig(
+            species: CatSpeciesSpec.lion,
+            legWidthScale: flankThickness,
+            armWidthScale: flankThickness,
+          ),
+          autonomic: danceAutonomic(29),
+        ),
+        right: CharacterScene(
+          buildCatInSuitRig(
+            species: CatSpeciesSpec.cheetah,
+            legWidthScale: flankThickness,
+            armWidthScale: flankThickness,
+          ),
+          autonomic: danceAutonomic(47),
+        ),
+      );
+    }
     return DanceCast(
       lead: CharacterScene(
         buildCatInSuitRig(),
@@ -286,7 +314,7 @@ class DanceCast {
       ),
       left: CharacterScene(
         buildCatInSuitRig(
-          palette: CatInSuitPalette.silverTabby,
+          species: CatSpeciesSpec.silverTabby,
           legWidthScale: flankThickness,
           armWidthScale: flankThickness,
         ),
@@ -294,7 +322,7 @@ class DanceCast {
       ),
       right: CharacterScene(
         buildCatInSuitRig(
-          palette: CatInSuitPalette.darkBrown,
+          species: CatSpeciesSpec.darkBrown,
           legWidthScale: flankThickness,
           armWidthScale: flankThickness,
         ),

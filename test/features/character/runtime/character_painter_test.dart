@@ -462,14 +462,14 @@ void main() {
       CharacterPainter(
         scene: scene,
         partnerScene: CharacterScene(
-          buildCatInSuitRig(palette: CatInSuitPalette.silverTabby),
+          buildCatInSuitRig(species: CatSpeciesSpec.silverTabby),
         ),
         ensembleScenes: [
           CharacterScene(
-            buildCatInSuitRig(palette: CatInSuitPalette.silverTabby),
+            buildCatInSuitRig(species: CatSpeciesSpec.silverTabby),
           ),
           CharacterScene(
-            buildCatInSuitRig(palette: CatInSuitPalette.darkBrown),
+            buildCatInSuitRig(species: CatSpeciesSpec.darkBrown),
           ),
         ],
         ensembleClips: [
@@ -560,13 +560,13 @@ void main() {
     }) => CharacterPainter(
       scene: scene,
       partnerScene: CharacterScene(
-        buildCatInSuitRig(palette: CatInSuitPalette.silverTabby),
+        buildCatInSuitRig(species: CatSpeciesSpec.silverTabby),
       ),
       ensembleScenes: [
         CharacterScene(
-          buildCatInSuitRig(palette: CatInSuitPalette.silverTabby),
+          buildCatInSuitRig(species: CatSpeciesSpec.silverTabby),
         ),
-        CharacterScene(buildCatInSuitRig(palette: CatInSuitPalette.darkBrown)),
+        CharacterScene(buildCatInSuitRig(species: CatSpeciesSpec.darkBrown)),
       ],
       ensembleClips: [
         lead ?? CatClips.shaku,
@@ -766,14 +766,14 @@ void main() {
         CharacterPainter(
           scene: scene,
           partnerScene: CharacterScene(
-            buildCatInSuitRig(palette: CatInSuitPalette.silverTabby),
+            buildCatInSuitRig(species: CatSpeciesSpec.silverTabby),
           ),
           ensembleScenes: [
             CharacterScene(
-              buildCatInSuitRig(palette: CatInSuitPalette.silverTabby),
+              buildCatInSuitRig(species: CatSpeciesSpec.silverTabby),
             ),
             CharacterScene(
-              buildCatInSuitRig(palette: CatInSuitPalette.darkBrown),
+              buildCatInSuitRig(species: CatSpeciesSpec.darkBrown),
             ),
           ],
           ensembleClips: [
@@ -1051,14 +1051,14 @@ void main() {
         CharacterPainter(
           scene: scene,
           partnerScene: CharacterScene(
-            buildCatInSuitRig(palette: CatInSuitPalette.silverTabby),
+            buildCatInSuitRig(species: CatSpeciesSpec.silverTabby),
           ),
           ensembleScenes: [
             CharacterScene(
-              buildCatInSuitRig(palette: CatInSuitPalette.silverTabby),
+              buildCatInSuitRig(species: CatSpeciesSpec.silverTabby),
             ),
             CharacterScene(
-              buildCatInSuitRig(palette: CatInSuitPalette.darkBrown),
+              buildCatInSuitRig(species: CatSpeciesSpec.darkBrown),
             ),
           ],
           ensembleClips: [
@@ -1362,14 +1362,14 @@ void main() {
           CharacterPainter(
             scene: scene,
             partnerScene: CharacterScene(
-              buildCatInSuitRig(palette: CatInSuitPalette.silverTabby),
+              buildCatInSuitRig(species: CatSpeciesSpec.silverTabby),
             ),
             ensembleScenes: [
               CharacterScene(
-                buildCatInSuitRig(palette: CatInSuitPalette.silverTabby),
+                buildCatInSuitRig(species: CatSpeciesSpec.silverTabby),
               ),
               CharacterScene(
-                buildCatInSuitRig(palette: CatInSuitPalette.darkBrown),
+                buildCatInSuitRig(species: CatSpeciesSpec.darkBrown),
               ),
             ],
             ensembleClips: [
@@ -1478,10 +1478,10 @@ void main() {
             scene: scene,
             ensembleScenes: [
               CharacterScene(
-                buildCatInSuitRig(palette: CatInSuitPalette.silverTabby),
+                buildCatInSuitRig(species: CatSpeciesSpec.silverTabby),
               ),
               CharacterScene(
-                buildCatInSuitRig(palette: CatInSuitPalette.darkBrown),
+                buildCatInSuitRig(species: CatSpeciesSpec.darkBrown),
               ),
             ],
             ensembleClips: [
@@ -1869,7 +1869,7 @@ void main() {
           scene: scene,
           partnerScene: walkingPair
               ? CharacterScene(
-                  buildCatInSuitRig(palette: CatInSuitPalette.silverTabby),
+                  buildCatInSuitRig(species: CatSpeciesSpec.silverTabby),
                 )
               : null,
           walkingPair: walkingPair,
@@ -1936,14 +1936,14 @@ void main() {
         CharacterPainter(
           scene: scene,
           partnerScene: CharacterScene(
-            buildCatInSuitRig(palette: CatInSuitPalette.silverTabby),
+            buildCatInSuitRig(species: CatSpeciesSpec.silverTabby),
           ),
           ensembleScenes: [
             CharacterScene(
-              buildCatInSuitRig(palette: CatInSuitPalette.silverTabby),
+              buildCatInSuitRig(species: CatSpeciesSpec.silverTabby),
             ),
             CharacterScene(
-              buildCatInSuitRig(palette: CatInSuitPalette.darkBrown),
+              buildCatInSuitRig(species: CatSpeciesSpec.darkBrown),
             ),
           ],
           ensembleClips: [lead, lead, lead],
@@ -1987,14 +1987,14 @@ void main() {
         CharacterPainter(
           scene: scene,
           partnerScene: CharacterScene(
-            buildCatInSuitRig(palette: CatInSuitPalette.silverTabby),
+            buildCatInSuitRig(species: CatSpeciesSpec.silverTabby),
           ),
           ensembleScenes: [
             CharacterScene(
-              buildCatInSuitRig(palette: CatInSuitPalette.silverTabby),
+              buildCatInSuitRig(species: CatSpeciesSpec.silverTabby),
             ),
             CharacterScene(
-              buildCatInSuitRig(palette: CatInSuitPalette.darkBrown),
+              buildCatInSuitRig(species: CatSpeciesSpec.darkBrown),
             ),
           ],
           ensembleClips: [
@@ -2048,7 +2048,7 @@ void main() {
         CharacterPainter(
           scene: scene,
           partnerScene: CharacterScene(
-            buildCatInSuitRig(palette: CatInSuitPalette.silverTabby),
+            buildCatInSuitRig(species: CatSpeciesSpec.silverTabby),
           ),
           synchronousEnsemble: synchronous,
           walkingPair: true,
@@ -2221,10 +2221,10 @@ void main() {
           scene: scene,
           ensembleScenes: [
             CharacterScene(
-              buildCatInSuitRig(palette: CatInSuitPalette.silverTabby),
+              buildCatInSuitRig(species: CatSpeciesSpec.silverTabby),
             ),
             CharacterScene(
-              buildCatInSuitRig(palette: CatInSuitPalette.darkBrown),
+              buildCatInSuitRig(species: CatSpeciesSpec.darkBrown),
             ),
           ],
           ensembleClips: [

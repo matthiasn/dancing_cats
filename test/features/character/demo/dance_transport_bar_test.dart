@@ -11,6 +11,7 @@ class _Recorder {
   int captions = 0;
   int backdrop = 0;
   int mute = 0;
+  int bigCats = 0;
   int grade = 0;
   int lipSync = 0;
   List<int> inspectMoveCalls = [];
@@ -37,6 +38,7 @@ Future<_Recorder> _pump(
   bool captionsAvailable = true,
   bool useNewBackdrop = true,
   bool muted = false,
+  bool bigCats = false,
   double bpm = 120,
   double positionSec = 93.433,
   double durationSec = 144.06,
@@ -75,6 +77,7 @@ Future<_Recorder> _pump(
               captionsAvailable: captionsAvailable,
               useNewBackdrop: useNewBackdrop,
               muted: muted,
+              bigCats: bigCats,
               bpm: bpm,
               positionSec: positionSec,
               durationSec: durationSec,
@@ -87,6 +90,7 @@ Future<_Recorder> _pump(
               onToggleCaptions: () => rec.captions++,
               onToggleBackdrop: () => rec.backdrop++,
               onToggleMute: () => rec.mute++,
+              onToggleBigCats: () => rec.bigCats++,
               onSeekToSeconds: (s) => rec.seek = s,
               gradeOpen: gradeOpen,
               gradeActive: gradeActive,

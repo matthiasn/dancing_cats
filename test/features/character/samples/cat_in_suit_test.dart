@@ -193,8 +193,8 @@ void main() {
     test('paired background cats use the same ribbon sleeves', () {
       final base = buildCatInSuitRig();
       for (final rig in [
-        buildCatInSuitRig(palette: CatInSuitPalette.silverTabby),
-        buildCatInSuitRig(palette: CatInSuitPalette.darkBrown),
+        buildCatInSuitRig(species: CatSpeciesSpec.silverTabby),
+        buildCatInSuitRig(species: CatSpeciesSpec.darkBrown),
       ]) {
         for (final ribbonId in const ['arm.L.ribbon', 'arm.R.ribbon']) {
           final ribbon = rig.ribbons.singleWhere((r) => r.id == ribbonId);
@@ -580,7 +580,7 @@ void main() {
     });
 
     test('can build a distinct fur palette for paired cats', () {
-      final rig = buildCatInSuitRig(palette: CatInSuitPalette.silverTabby);
+      final rig = buildCatInSuitRig(species: CatSpeciesSpec.silverTabby);
 
       expect(
         rig.bone(CatBones.head)?.drawable?.color,
@@ -598,7 +598,7 @@ void main() {
     });
 
     test('dark brown palette reads near black', () {
-      final rig = buildCatInSuitRig(palette: CatInSuitPalette.darkBrown);
+      final rig = buildCatInSuitRig(species: CatSpeciesSpec.darkBrown);
 
       expect(
         rig.bone(CatBones.head)?.drawable?.color,

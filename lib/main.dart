@@ -249,9 +249,10 @@ class DanceToTrackPage extends StatefulWidget {
 
 class _DanceToTrackPageState extends State<DanceToTrackPage>
     with SingleTickerProviderStateMixin {
-  // The trio: lead plus two backing cats, built once. The clock is the audio
-  // position warped through the beat map, not a free-running scalar.
-  late final DanceCast _cast = DanceCast.build();
+  // The trio: lead plus two backing cats. The clock is the audio position
+  // warped through the beat map, not a free-running scalar. Rebuilt (not
+  // final) when the big-cats toggle swaps the whole trio's rigs.
+  late DanceCast _cast = DanceCast.build();
 
   final CharacterRenderer _renderer = CharacterRenderer();
   final Player _player = Player();
@@ -284,6 +285,9 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
   // Mute forces the player volume to zero; the video keeps playing. The app has
   // no volume slider, so unmuting restores full (100) volume.
   bool _muted = false;
+  // Swaps the trio between the default house cats and a tiger/lion/cheetah
+  // big-cat trio (one species per dancer, all on stage at once).
+  bool _bigCats = false;
   // The keyframed colour-grade timeline (ADR 0002): the store persists and
   // watches <track>.grade.json, the controller owns editing state, and the
   // workspace below the transport renders both when the GRADE toggle is on.
@@ -719,6 +723,13 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
     if (mounted) setState(() {});
   }
 
+  void _toggleBigCats() {
+    setState(() {
+      _bigCats = !_bigCats;
+      _cast = DanceCast.build(bigCats: _bigCats);
+    });
+  }
+
   void _seekToTime(double tSec) {
     if (_trackDurationSec <= 0) return;
     final t = tSec < 0
@@ -949,6 +960,7 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
                   captionsAvailable: _words.isNotEmpty,
                   useNewBackdrop: _useNewBackdrop,
                   muted: _muted,
+                  bigCats: _bigCats,
                   bpm: _bpm,
                   positionSec: posSec,
                   durationSec: _trackDurationSec,
@@ -966,6 +978,7 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
                   onToggleBackdrop: () =>
                       setState(() => _useNewBackdrop = !_useNewBackdrop),
                   onToggleMute: () => unawaited(_toggleMute()),
+                  onToggleBigCats: _toggleBigCats,
                   onSeekToSeconds: _seekToTime,
                   gradeOpen: _gradeOpen,
                   gradeActive: _gradeStore?.doc.isActive ?? false,
