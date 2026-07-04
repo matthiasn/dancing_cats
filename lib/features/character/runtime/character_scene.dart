@@ -320,6 +320,7 @@ class CharacterScene {
       base: base,
       baseScale: _verticalScale(base),
       rootDx: posed.rootDx,
+      rootDy: posed.rootDy,
     );
     var face = faceSolver.applyAutonomic(expression.state, auto);
     if (eyeOpenScale != 1) {
@@ -1440,6 +1441,7 @@ class CharacterScene {
     required Affine2D base,
     required double baseScale,
     required double rootDx,
+    required double rootDy,
   }) {
     final headId = rig.face?.anchorBoneId;
     if (headId == null) return world;
@@ -1491,20 +1493,52 @@ class CharacterScene {
       anchor.x,
       anchor.y,
     ).multiply(correction).multiply(Affine2D.translation(-anchor.x, -anchor.y));
-    // Lateral follow-through, same lagged-difference model as the rotation:
-    // the skull trails the pelvis groove by a few px and catches up, so fast
-    // side-to-side pockets read as a head riding a spring, not a bolted mass.
-    // Clamped tight — the collar join must never gap.
-    final headDxFollow = _isDanceFamily(clip) && clip.duration > 0
+    // Lateral + vertical follow-through, same lagged-difference model as the
+    // rotation: the skull trails the pelvis groove and catches up, so fast
+    // pockets read as a head riding a spring, not a bolted mass. Clamped
+    // tight — the collar join must never gap.
+    final lagged = _isDanceFamily(clip) && clip.duration > 0
+        ? evaluator.evaluate(
+            clip,
+            timeSeconds - clip.duration * _headLagFraction,
+          )
+        : null;
+    final headDxFollow = lagged != null
+        ? _clampMagnitude((lagged.rootDx - rootDx) * 0.22, 5)
+        : 0.0;
+    // The BOUNCE CASCADE — R20's unanimous finding across all four panel
+    // lenses: the skull's vertical trace was "a near pixel-clone" of the
+    // hips (measured correlation 0.97 at zero lag), an elevator platform
+    // instead of a spine absorbing the bounce. The skull now trails the
+    // root bounce by the 2-frame head lag at reduced gain, and the neck by
+    // half that — successive breaking: pelvis leads, chest follows, skull
+    // arrives last, compressing into each trough and floating off each top.
+    // Asymmetric by direction: dropping (negative diff) lets the skull lag
+    // UP at full gain — the trough compression every rater asked for — but
+    // rising (positive diff) lags the skull DOWN at BELOW the neck's gain,
+    // because a neck compresses (chin tuck) far more readily than it
+    // extends, and the head-above-neck join invariant must hold at every
+    // instant (pouncingCat's big rebound dipped the skull 4.7 units below
+    // the throat at the symmetric gain). Scaled by [Clip.danceHeadBobScale]
+    // like the rotation follow above, so a clip whose PREMISE is a tight,
+    // level skull (pouncingCat, bob scale 0) opts out entirely instead of
+    // reading its 75-unit crouch differential as a rubber throat.
+    final cascade = clip.danceHeadBobScale;
+    final headDyDiff = lagged != null ? lagged.rootDy - rootDy : 0.0;
+    final headDyFollow = headDyDiff < 0
+        ? _clampMagnitude(headDyDiff * 0.44 * cascade, 9)
+        : _clampMagnitude(headDyDiff * 0.19 * cascade, 4);
+    final neckDyFollow = _isDanceFamily(clip) && clip.duration > 0
         ? _clampMagnitude(
             (evaluator
                         .evaluate(
                           clip,
-                          timeSeconds - clip.duration * _headLagFraction,
+                          timeSeconds - clip.duration * _headLagFraction / 2,
                         )
-                        .rootDx -
-                    rootDx) *
-                0.22,
+                        .rootDy -
+                    rootDy) *
+                0.22 *
+                cascade,
             5,
           )
         : 0.0;
@@ -1527,10 +1561,16 @@ class CharacterScene {
           )
         : const (neckShiftY: 0.0, headExtraShiftY: 0.0, neckId: null);
 
-    final neckTranslate = Affine2D.translation(0, level.neckShiftY);
+    final neckTranslate = Affine2D.translation(
+      0,
+      level.neckShiftY + neckDyFollow,
+    );
     final headTransform = neckTranslate
         .multiply(
-          Affine2D.translation(headHorizontalCounter, level.headExtraShiftY),
+          Affine2D.translation(
+            headHorizontalCounter,
+            level.headExtraShiftY + headDyFollow,
+          ),
         )
         .multiply(stabilizeHead);
     // THROAT BRIDGE: the collar/tie/shirt bones hang off the chest, not the
@@ -1539,7 +1579,7 @@ class CharacterScene {
     // follows the throat up instead of gapping.
     final bridgeTranslate = Affine2D.translation(
       0,
-      level.neckShiftY * _kThroatBridgeFraction,
+      (level.neckShiftY + neckDyFollow) * _kThroatBridgeFraction,
     );
     final neckId = level.neckId;
     final shifted = Map<String, Affine2D>.of(world);

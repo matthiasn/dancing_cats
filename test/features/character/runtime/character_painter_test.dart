@@ -1158,7 +1158,10 @@ void main() {
       // close-up is still multiples larger.
       expect(
         centerPush.orangeHeight,
-        inInclusiveRange(wide.orangeHeight * 0.95, wide.orangeHeight * 1.55),
+        // Lower bound 0.95 -> 0.93: the bounce cascade lags the skull
+        // behind the pelvis, shifting the framed bbox ~1% at this sampled
+        // beat. A zoom jump still measures far outside this band.
+        inInclusiveRange(wide.orangeHeight * 0.93, wide.orangeHeight * 1.55),
         reason:
             'the first beat should begin a visible dolly-in without jumping '
             'straight to a close-up',
