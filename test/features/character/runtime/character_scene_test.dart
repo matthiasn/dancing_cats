@@ -1093,13 +1093,13 @@ void main() {
       );
       expect(
         maxHeadStep,
-        // 9.8 -> 10.2: the R15 weight-commitment sway (one bar-period root
-        // cycle riding the pelvis over each support foot) adds a coherent
-        // ~0.3/sample bias to every head step. That is the opposite of the
-        // high-frequency whip this guards against — the rig can only
-        // express pelvis commitment through root translation, so the skull
-        // sharing the slow sway is intrinsic to the fix, not a snap.
-        lessThan(10.2),
+        // 9.8 -> 10.2 -> 11: first for the bar-period weight sway (a
+        // coherent slow bias, not a whip), then for the owner's R16 call
+        // that shaku's head RIDES the crouch (bob 0.8, level clamp eased)
+        // — the panel read the level-head counter-extension as "the
+        // strongest keyframed-robotics tell". The ceiling still catches a
+        // genuine snap, which measures multiples of this.
+        lessThan(11),
         reason:
             'the Shaku chest bite should not whip the rigid skull sideways '
             'between dense frame samples',

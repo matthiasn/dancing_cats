@@ -492,13 +492,20 @@ const _shakuFootLTargetKeys = [
   DanceIkTargetKey(0, x: -69, y: 103), // planted support, visible outside
   DanceIkTargetKey(13, x: -69, y: 103), // still exactly there
   DanceIkTargetKey(14, x: -66, y: 97), // toe-led lift begins
-  DanceIkTargetKey(16, x: -52, y: 96), // free foot scuffs, unweighted
-  DanceIkTargetKey(17, x: -32, y: 90),
-  DanceIkTargetKey(19, x: -60, y: 92),
-  DanceIkTargetKey(21, x: -44, y: 94),
-  DanceIkTargetKey(24, x: -50, y: 96),
-  DanceIkTargetKey(25, x: -30, y: 90),
-  DanceIkTargetKey(27, x: -60, y: 92),
+  // Free phase re-authored as LIFTED tap-steps (R16 mocap: stance-width
+  // changes "all while both feet render flat and weighted... replaced by
+  // feet sliding on the floor"; coach: "the signature quick in-out
+  // cross-step vocabulary is absent"). The foot now alternates clear
+  // airborne travel (y 86-88, visible daylight) with quick toe TAPS at
+  // the floor (y 95-96) — in, out, in — instead of gliding at sole level.
+  DanceIkTargetKey(16, x: -52, y: 88), // lifted, travelling in
+  DanceIkTargetKey(17, x: -34, y: 96), // TAP inboard
+  DanceIkTargetKey(19, x: -46, y: 86), // lifted, travelling out
+  DanceIkTargetKey(21, x: -58, y: 95), // TAP outboard
+  DanceIkTargetKey(23, x: -48, y: 87), // lifted
+  DanceIkTargetKey(24, x: -52, y: 96), // down-and-OUT on the count (base)
+  DanceIkTargetKey(26, x: -32, y: 96), // TAP inboard on the "and"
+  DanceIkTargetKey(28, x: -54, y: 86), // lifted, swinging home
   // The R14 rigging rater pixel-tracked the old 29→32 travel (y 94→98→103)
   // as a ~28px flat-contact DRAG across the loop seam — the sole never
   // visibly left the floor. Re-shaped as a real recovery step: the flick
@@ -513,14 +520,17 @@ const _shakuFootLTargetKeys = [
   DanceIkTargetKey(32, x: -69, y: 103, tension: 1), // == frame 0, planted
 ];
 const _shakuFootRTargetKeys = [
-  DanceIkTargetKey(0, x: 52, y: 96), // free foot brushes on own side
-  DanceIkTargetKey(1, x: 32, y: 90),
-  DanceIkTargetKey(3, x: 60, y: 92),
-  DanceIkTargetKey(5, x: 44, y: 94),
-  DanceIkTargetKey(8, x: 50, y: 96),
-  DanceIkTargetKey(9, x: 30, y: 90),
-  DanceIkTargetKey(11, x: 60, y: 92),
-  DanceIkTargetKey(13, x: 42, y: 94),
+  // Mirror of the L foot's tap-step vocabulary: lifted travel between
+  // quick floor taps, never a sole-level glide.
+  DanceIkTargetKey(0, x: 52, y: 96), // TAP on its own side on the downbeat
+  DanceIkTargetKey(1, x: 36, y: 87), // lifted, travelling in
+  DanceIkTargetKey(3, x: 58, y: 95), // TAP outboard
+  DanceIkTargetKey(5, x: 44, y: 86), // lifted
+  DanceIkTargetKey(6, x: 32, y: 96), // TAP inboard on the "and"
+  DanceIkTargetKey(8, x: 50, y: 96), // back OUT and down on the count (base)
+  DanceIkTargetKey(9, x: 36, y: 87), // lifted, travelling in
+  DanceIkTargetKey(11, x: 60, y: 95), // TAP outboard
+  DanceIkTargetKey(13, x: 44, y: 87), // lifted toward the descent
   // Mirror of the L foot's seam fix: lift-swing-replant, not a floor drag.
   DanceIkTargetKey(14, x: 50, y: 87), // toe-peel lift, sole clears the floor
   DanceIkTargetKey(15, x: 62, y: 91), // airborne swing toward the plant

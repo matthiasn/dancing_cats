@@ -697,13 +697,15 @@ class CharacterScene {
   /// with it — a winged elbow now raises its own shoulder line instead of
   /// hinging under a rigid yoke. Applied ONLY to the render levers: the IK
   /// solve, the clavicle channel, and its envelope gate are untouched.
-  // Gain/cap backed off from 0.6/0.35 after R15: at full strength both
-  // levers fire together on two-arm gathers and the paired shrug humps
-  // "balloon until they crowd the jaw" (rigging). Enough to read, not
-  // enough to hunch.
-  static const double _kShoulderLineAbductionThreshold = 0.6;
+  // Ratcheted twice by panels: 0.6/0.6/0.35 ballooned paired shrug humps
+  // to the jaw (R15); at 0.6/0.5/0.25 a churn move whose arms swing every
+  // frame kept the caps "permanently shrugged, cresting above the collar"
+  // (R16) because the coupling never shut off. The higher threshold means
+  // only a genuinely WINGED elbow (upper arm past ~54° from hanging) earns
+  // a lift, and the smaller cap keeps the cap below the collar line.
+  static const double _kShoulderLineAbductionThreshold = 0.95;
   static const double _kShoulderLineAbductionGain = 0.5;
-  static const double _kShoulderLineAbductionCap = 0.25;
+  static const double _kShoulderLineAbductionCap = 0.15;
 
   /// Authored-girdle deference for the humeral coupling: as the resolved
   /// clavicle rotation on a side approaches this magnitude, the elevation
@@ -2376,8 +2378,13 @@ class CharacterScene {
         ? 0.72
         : spanLength <= 0.26
         ? 0.58
+        // 0.26 -> 0.45: R16 rigging pixel-diffed both planted shoes sliding
+        // ~half a shoe length during the lunge hold — the weak long-span
+        // hold let the plants ride the (now much deeper) weight sway. The
+        // head-whip concern that motivated 0.26 is re-checked by the
+        // rigid-skull gate, which stays green at 0.45.
         : (clip.name == 'shaku' || clip.name.startsWith('danceBackup'))
-        ? 0.26
+        ? 0.45
         : 0.42;
     return base * edge * clip.supportFootWorldAnchorStrength;
   }
@@ -2400,8 +2407,10 @@ class CharacterScene {
         ? 0.38
         : spanLength <= 0.26
         ? 0.3
+        // 0.16 -> 0.24 alongside the deeper weight sway: the planted shoe
+        // needs a firmer lateral hold or the committed pelvis drags it.
         : (clip.name == 'shaku' || clip.name.startsWith('danceBackup'))
-        ? 0.16
+        ? 0.24
         : 0.26;
     final baseX = clip.supportFootWorldAnchor
         ? (dance ? anchoredDanceBaseX : 0.18)

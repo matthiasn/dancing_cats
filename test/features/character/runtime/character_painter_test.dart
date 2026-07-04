@@ -1165,7 +1165,11 @@ void main() {
       );
       expect(
         centerPush.orangeCenterX - rightPan.orangeCenterX,
-        inInclusiveRange(-8, 48),
+        // 48 -> 56: shaku's owner-approved weight sway (bar-period, ±20
+        // units) legitimately moves the trio's rendered centre a little
+        // further between these two sampled camera beats. A true snap
+        // still measures multiples of this band.
+        inInclusiveRange(-8, 56),
         reason:
             'the second beat now starts with the push-in; any right truck '
             'should ease in without snapping the lead left',

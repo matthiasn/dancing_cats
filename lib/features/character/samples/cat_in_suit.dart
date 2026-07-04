@@ -492,12 +492,16 @@ class CatClips {
         // travel further than the hips (whole-body pogo, no pocket); calming
         // the bob and letting the level-counter correct the full compress
         // reads as a steady head over a busy lower body.
-        // Bob stays at 0.35: the R15 "downbeat nod" ask is carried by the
-        // authored head-tilt channel instead — raising the bob pushed the
-        // rigid-skull whip band over its 9.8 ceiling once the bar-period
-        // weight sway joined the root stack.
-        danceHeadBobScale: 0.35,
-        danceHeadLevelClampMin: -14,
+        // OWNER DECISION (2026-07-04, R16): the head RIDES the crouch for
+        // shaku. Three panels read the level-head design as "the strongest
+        // keyframed-robotics tell" — the skull sat HIGHEST in the deepest
+        // crouch because the leveler counter-extended the neck. Bob back up
+        // to 0.8 and the level clamp eased to -5 so the head inherits
+        // roughly half of the pelvis drop; the authored tilt channel gives
+        // it attitude on top. (pouncingCat and the rest keep the leveler —
+        // this is a per-move taste call, not a rig change.)
+        danceHeadBobScale: 0.8,
+        danceHeadLevelClampMin: -5,
         baseClip: base,
         zOrderSwaps: const [
           ZOrderSwapWindow(
@@ -583,12 +587,13 @@ class CatClips {
             ),
           ],
           extraRootLayers: const [
-            // Weight commitment (R15 mocap: "the pelvis stays centered
-            // between the feet for almost the entire loop, so every foot
-            // slide reads as ice-skating"). One sway cycle per loop = the
-            // pelvis rides over the LEFT support through bar 1 and the
-            // RIGHT through bar 2, instead of hovering on the midline.
-            SineRootChannel(swayAmplitude: -9, leanAmplitude: -0.055),
+            // Weight commitment at PANEL SCALE (R16 animator measured the
+            // previous -9 as "~8px of centroid sway against a ~90px stance"
+            // and asked for 18-25px): one sway cycle per loop rides the
+            // pelvis 30-40% of the way onto the LEFT support through bar 1
+            // and the RIGHT through bar 2. Owner-approved amplitude ladder;
+            // the stance/head gates were recalibrated with it.
+            SineRootChannel(swayAmplitude: -20, leanAmplitude: -0.07),
             SineRootChannel(
               bobAmplitude: -10,
               bobPhase: 0.09375,
