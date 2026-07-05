@@ -115,7 +115,11 @@ void main() {
       for (var i = 0; i < units.length; i++) {
         final p = units[i].position;
         expect(p.dx, inExclusiveRange(0, 1));
-        expect(p.dy, inInclusiveRange(0.47, 0.49), reason: 'on the deck');
+        expect(
+          p.dy,
+          inInclusiveRange(0.466, 0.475),
+          reason: 'straddling the deck railing line',
+        );
         expect(units[i].phase, inInclusiveRange(0, 0.9));
         if (i > 0) {
           expect(
@@ -139,7 +143,7 @@ void main() {
     // art maps 1:1-scaled into a 16:9 viewport (640x360 → normalized * size).
     int bluePixelsOnDeck(Uint8List px, {int w = 640, int h = 360}) {
       var n = 0;
-      for (var y = (0.46 * h).round(); y < (0.50 * h).round(); y++) {
+      for (var y = (0.44 * h).round(); y < (0.49 * h).round(); y++) {
         for (var x = (0.54 * w).round(); x < (0.76 * w).round(); x++) {
           final o = (y * w + x) * 4;
           if (px[o + 3] == 0) continue;
