@@ -925,8 +925,13 @@ class CatClips {
         supportFootWorldAnchor: true,
         supportFootWorldAnchorStrength: 0.86,
         danceHeadBobScale: 0.7,
+        // Ornament-port round: azonto joins the sole-floor ratchet (its
+        // step-touch redirects are floor-adjacent; the clamp guards the
+        // deep-accent frames).
+        enforceSoleFloor: true,
         baseClip: base,
         jointTracks: {
+          CatBones.head: const DanceJointTrack(_azontoHeadKeys, smooth: true),
           CatBones.handL: const DanceJointTrack(
             _azontoHandLKeys,
             smooth: true,

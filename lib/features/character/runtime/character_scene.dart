@@ -2603,8 +2603,18 @@ class CharacterScene {
         : fade;
     final fadeOutX = smoothstep((span.end - p) / fadeOutWidth);
     final fadeOutY = smoothstep((span.end - p) / fade);
+    // Vertical grounding also ENGAGES faster than the lateral hold: a sole
+    // that arrives dead (the tension-1 plants) is on the floor at once —
+    // the R30 seam verifier measured the wrap-span plant riding ~30px down
+    // with the seam dive while its y-lock was still fading in over ~1.4
+    // frames, sinking the very floor the free foot is clamped against. The
+    // lateral anti-skate keeps the gentler engage (a hard lateral grab at
+    // first contact reads as a snap).
+    final fadeInY = dance
+        ? smoothstep((p - span.start) / (fade * 0.65))
+        : fadeIn;
     final edgeX = fadeIn < fadeOutX ? fadeIn : fadeOutX;
-    final edgeY = fadeIn < fadeOutY ? fadeIn : fadeOutY;
+    final edgeY = fadeInY < fadeOutY ? fadeInY : fadeOutY;
     return (x: baseX * edgeX, y: baseY * edgeY);
   }
 

@@ -299,11 +299,41 @@ const _azontoHandRTargetKeys = [
 // real punch-snap (positive rotation on the strike, relaxed negative on
 // the chamber) instead of a static crossed hold. Magnitude matched to
 // zanku's hand-rotation channel (its punch/pump already reads clearly).
+// Head attitude — the ornament-port vocabulary in azonto's MIME idiom:
+// in the wheel bars the skull leans gently with each grip turn and
+// settles with a ~40% echo; behind each JAB it gathers, SNAPS with the
+// hit, and carries the echo through the hold — the head sells the mime
+// instead of riding level over it. Azonto previously had no authored
+// head keys.
+const _azontoHeadKeys = [
+  DanceJointKey(0, rotation: 0.05), // rides the wide grip
+  DanceJointKey(3, rotation: 0.02), // echo settle
+  DanceJointKey(4, rotation: -0.05), // answers the narrow grip
+  DanceJointKey(7, rotation: -0.02),
+  DanceJointKey(8, rotation: 0.05),
+  DanceJointKey(11, rotation: 0.02),
+  DanceJointKey(12, rotation: -0.05),
+  DanceJointKey(15, rotation: -0.06), // gathers behind the jab
+  DanceJointKey(16, rotation: 0.1), // SNAPS with the jab
+  DanceJointKey(18, rotation: 0.04), // echo through the hold
+  DanceJointKey(20, rotation: -0.03), // relaxes through the chamber
+  DanceJointKey(23, rotation: -0.06), // loads again
+  DanceJointKey(24, rotation: 0.1), // second JAB
+  DanceJointKey(26, rotation: 0.04), // echo
+  DanceJointKey(28, rotation: -0.03),
+  DanceJointKey(30),
+  DanceJointKey(32, rotation: 0.05), // == frame 0
+];
+
 const _azontoHandLKeys = [
   DanceJointKey(0, rotation: 0.28), // wide grip
+  DanceJointKey(1, rotation: 0.36), // flick past the grip (ornament port)
   DanceJointKey(4, rotation: -0.28), // narrow grip — wheel turns
+  DanceJointKey(5, rotation: -0.36), // flick
   DanceJointKey(8, rotation: 0.28),
+  DanceJointKey(9, rotation: 0.36), // flick
   DanceJointKey(12, rotation: -0.28),
+  DanceJointKey(13, rotation: -0.34), // flick, softer into the jab load
   DanceJointKey(14, rotation: -0.1), // settle before the jab
   DanceJointKey(16, rotation: 0.4), // JAB snap
   DanceJointKey(17, rotation: 0.32), // hold
@@ -321,9 +351,13 @@ const _azontoHandLKeys = [
 ];
 const _azontoHandRKeys = [
   DanceJointKey(0, rotation: -0.28), // narrow grip
+  DanceJointKey(1, rotation: -0.36), // flick past the grip (ornament port)
   DanceJointKey(4, rotation: 0.28), // wide grip — wheel turns
+  DanceJointKey(5, rotation: 0.36), // flick
   DanceJointKey(8, rotation: -0.28),
+  DanceJointKey(9, rotation: -0.36), // flick
   DanceJointKey(12, rotation: 0.28),
+  DanceJointKey(13, rotation: 0.34), // flick, softer into the jab load
   DanceJointKey(14, rotation: 0.1),
   DanceJointKey(16, rotation: -0.15), // chamber, relaxed
   DanceJointKey(18, rotation: -0.12),

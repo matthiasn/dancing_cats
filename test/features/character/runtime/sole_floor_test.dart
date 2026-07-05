@@ -24,6 +24,7 @@ void main() {
     final clips = {
       'shaku': CatClips.shaku,
       'zanku': CatClips.zanku,
+      'azonto': CatClips.azonto,
     };
     const samples = 256;
     // The bones compare like-for-like (same rig geometry both sides), so
