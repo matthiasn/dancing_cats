@@ -624,7 +624,7 @@ const _azontoPocketKeys = [
   DanceBodyKey(
     24,
     rootDx: -0.99,
-    rootDy: 34.0,
+    rootDy: 34,
     pelvisRotation: 0.072,
     chestRotation: -0.16,
     chestScaleY: 0.95,
