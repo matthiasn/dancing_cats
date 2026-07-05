@@ -224,6 +224,69 @@ class CatBones {
   static const tail6 = 'tail_6';
 }
 
+/// Bones eligible for the split-clock Effort time warp
+/// (`upperBodyDynamicsWarpedClip` in `model/dance_dynamics_warp.dart`).
+///
+/// Every bone that support/contact solving depends on — [CatBones.hips], the
+/// hip blends, every `leg*`/`foot*`/`shoe*`/`toeFlex*` bone, and the root
+/// channel — is deliberately ABSENT: those must keep sampling the shared,
+/// unwarped clock across all three cats, or a per-lane time offset would cross
+/// support-foot handoffs at different moments and pop the flanking dancers'
+/// feet (the reason the trio otherwise takes zero per-member sampled-time
+/// offset — see `CharacterPainter._ensembleMicroTimingOffset`).
+const Set<String> kDanceUpperBodyWarpBoneIds = {
+  CatBones.torso,
+  CatBones.chest,
+  CatBones.clavicleL,
+  CatBones.clavicleR,
+  CatBones.shoulderLineL,
+  CatBones.shoulderLineR,
+  CatBones.shirtV,
+  CatBones.collarL,
+  CatBones.collarR,
+  CatBones.button0,
+  CatBones.button1,
+  CatBones.tie,
+  CatBones.tieLower,
+  CatBones.neck,
+  CatBones.head,
+  CatBones.earL,
+  CatBones.earR,
+  CatBones.earInnerL,
+  CatBones.earTipL,
+  CatBones.earInnerR,
+  CatBones.earTipR,
+  CatBones.armUpperL,
+  CatBones.shoulderSocketL,
+  CatBones.armBicepL,
+  CatBones.armLowerL,
+  CatBones.armForearmL,
+  CatBones.armElbowCreaseL,
+  CatBones.handL,
+  CatBones.wristCuffL,
+  CatBones.thumbL,
+  CatBones.pawToeL1,
+  CatBones.pawToeL2,
+  CatBones.armUpperR,
+  CatBones.shoulderSocketR,
+  CatBones.armBicepR,
+  CatBones.armLowerR,
+  CatBones.armForearmR,
+  CatBones.armElbowCreaseR,
+  CatBones.handR,
+  CatBones.wristCuffR,
+  CatBones.thumbR,
+  CatBones.pawToeR1,
+  CatBones.pawToeR2,
+  CatBones.tail0,
+  CatBones.tail1,
+  CatBones.tail2,
+  CatBones.tail3,
+  CatBones.tail4,
+  CatBones.tail5,
+  CatBones.tail6,
+};
+
 /// A tapered limb segment: [w] wide at the joint (pivot) end, [wTip] at the far
 /// end, so limbs read as wedged arms/legs with defined wrists/ankles instead of
 /// constant-width sausages.

@@ -1,5 +1,6 @@
 import 'package:dancing_cats/features/character/model/afrobeats_move.dart';
 import 'package:dancing_cats/features/character/model/clip.dart';
+import 'package:dancing_cats/features/character/model/dance_dynamics.dart';
 import 'package:dancing_cats/features/character/model/dance_move_compiler.dart';
 import 'package:dancing_cats/features/character/model/dance_move_descriptor.dart';
 import 'package:dancing_cats/features/character/model/dance_phrase.dart';
@@ -332,6 +333,22 @@ void main() {
       expect(clip.contactSpans, isEmpty);
       expect(clip.limbTargets, isEmpty);
       expect(clip.root, isA<SineRootChannel>());
+      expect(clip.dynamics, DanceDynamics.neutral);
+    });
+
+    test("the assembled clip carries its move's dynamics", () {
+      const dynamics = DanceDynamics(weight: 0.7, time: 0.6, flow: -0.45);
+      const move = AfrobeatsMove(
+        name: 'synthetic-strong-move',
+        feel: DanceFeel.onBeat,
+        featuredRegion: BodyRegion.legs,
+        dynamics: dynamics,
+      );
+      const descriptor = DanceMoveDescriptor(move: move, duration: 1);
+
+      final clip = assembleMoveClip(_phrase, descriptor);
+
+      expect(clip.dynamics, dynamics);
     });
   });
 }

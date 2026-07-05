@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:dancing_cats/features/character/model/dance_dynamics.dart';
 import 'package:dancing_cats/features/character/model/easing.dart';
 import 'package:dancing_cats/features/character/model/pose.dart';
 
@@ -85,6 +86,36 @@ double _shifted(double p, double shift, double duration) {
   if (duration <= 0) return p + shift;
   final t = (p + shift) % duration;
   return t < 0 ? t + duration : t;
+}
+
+/// Wraps [inner] so it samples a warped phase instead of the raw one.
+///
+/// This is the split-clock Effort mechanism's only touch point: [warpPhase]
+/// reshapes *when within a beat* the wrapped bone samples its authored
+/// channel, while every other bone (in particular the root, legs, and feet)
+/// keeps sampling the shared, unwarped clock. See
+/// `upperBodyDynamicsWarpedClip` in `dance_dynamics_warp.dart`, the sole
+/// place that constructs one of these.
+class PhaseWarpedJointChannel extends JointChannel {
+  const PhaseWarpedJointChannel(this.inner, this.warpPhase);
+
+  final JointChannel inner;
+  final double Function(double p) warpPhase;
+
+  @override
+  JointPose sample(double p) => inner.sample(warpPhase(p));
+}
+
+/// The [IkTargetChannel] counterpart of [PhaseWarpedJointChannel], used to warp
+/// hand IK targets (never foot targets — those must stay on the shared clock).
+class PhaseWarpedIkTargetChannel extends IkTargetChannel {
+  const PhaseWarpedIkTargetChannel(this.inner, this.warpPhase);
+
+  final IkTargetChannel inner;
+  final double Function(double p) warpPhase;
+
+  @override
+  IkTargetPose sample(double p) => inner.sample(warpPhase(p));
 }
 
 /// Maps the global 0..1 transition progress into a local blend window.
@@ -1194,6 +1225,7 @@ class Clip {
     this.enforceSoleFloor = false,
     this.transitionPlan,
     this.zOrderSwaps = const [],
+    this.dynamics = DanceDynamics.neutral,
   }) : assert(
          supportFootWorldAnchorStrength >= 0 &&
              supportFootWorldAnchorStrength <= 1,
@@ -1294,6 +1326,15 @@ class Clip {
 
   /// Whether this clip travels across the stage at all (either model).
   bool get locomotes => locomotionSpeed != 0 || groundSpans.isNotEmpty;
+
+  /// This move's authored Laban-Effort character (the "move base" term of
+  /// `effectiveDanceDynamics`), stamped on at assembly time from
+  /// `AfrobeatsMove.dynamics` by `assembleMoveClip`. Lane-invariant — every cat
+  /// dancing this clip shares the same base; per-cat/per-section variation is
+  /// composed and carried separately (`DanceStage.dynamics`), never on the
+  /// `Clip` itself, so the shared static `Clip` instances stay shareable.
+  /// Neutral for `kick`/`idle` and any clip that predates the Effort catalog.
+  final DanceDynamics dynamics;
 }
 
 /// Declares that [boneA] and [boneB] swap paint order for the phase span
@@ -1398,6 +1439,7 @@ Clip blendedClip({
         ? from.enforceSoleFloor
         : to.enforceSoleFloor,
     transitionPlan: ClipTransitionPlan(from: from, to: to, weight: weight),
+    dynamics: DanceDynamics.lerp(from.dynamics, to.dynamics, rootWeight),
   );
 }
 
