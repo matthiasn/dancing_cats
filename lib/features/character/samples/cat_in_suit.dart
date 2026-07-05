@@ -554,7 +554,7 @@ class CatClips {
           chestBoneId: CatBones.torso,
           tracks: [
             DanceBodyMotionTrack(
-              keys: _shakuGrooveCalm,
+              keys: _shakuGrooveCommitted,
               rootMicroFrames: 0,
               pelvisMicroFrames: -0.3,
               chestMicroFrames: 0.25,
@@ -587,13 +587,31 @@ class CatClips {
             ),
           ],
           extraRootLayers: const [
-            // Weight commitment at PANEL SCALE (R16 animator measured the
-            // previous -9 as "~8px of centroid sway against a ~90px stance"
-            // and asked for 18-25px): one sway cycle per loop rides the
-            // pelvis 30-40% of the way onto the LEFT support through bar 1
-            // and the RIGHT through bar 2. Owner-approved amplitude ladder;
-            // the stance/head gates were recalibrated with it.
-            SineRootChannel(swayAmplitude: -20, leanAmplitude: -0.07),
+            // Weight commitment as STEPPED PER-BAR TRANSFERS (R21, all four
+            // lenses: "the lateral trace is one smooth 2-bar sinusoid...
+            // the centroid glides instead of committing over each support
+            // foot — the core keyframed-vs-recorded tell; every other flaw
+            // hangs off that"). Three square-wave Fourier terms (h1 + h3/3
+            // + h5/5, common phase) turn the old sine into plateau-and-
+            // shift: the pelvis PARKS over the left support through bar 1,
+            // transitions in ~2-3 frames, and parks over the right through
+            // bar 2 — with the crossings phased one frame AFTER the plants
+            // (feet step ON the count, weight arrives just behind them).
+            SineRootChannel(
+              swayAmplitude: -17,
+              swayPhase: -0.03125,
+              leanAmplitude: -0.07,
+            ),
+            SineRootChannel(
+              swayAmplitude: -5.7,
+              swayPhase: -0.03125,
+              swayHarmonic: 3,
+            ),
+            SineRootChannel(
+              swayAmplitude: -3.4,
+              swayPhase: -0.03125,
+              swayHarmonic: 5,
+            ),
             // The pocket pulse, SHAPED (R19 mocap verdict: the symmetric
             // triangle wave "never SITS into a beat... one timing change
             // that converts the whole loop from keyframed to danced").
