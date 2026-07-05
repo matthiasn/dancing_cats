@@ -527,7 +527,10 @@ class CharacterPainter extends CustomPainter {
       // dance — so the front/centre cat never swaps between the calm intro (idle
       // clip) and the dance (continuity). Only the dance-specific behaviours
       // (formation, rim/pool lighting, foot anchors) stay gated on the dance clip
-      // via [leadCentreOrder].
+      // via [leadCentreOrder] — the body-grade plate seat is NOT one of these
+      // (see the `grade` assignment below): it must apply during the idle
+      // clip too, or the calm intro/outro cats look flat and ungraded next to
+      // the danced sections.
       final trioCentre = baseMembers.length == 3;
       final leadCentreOrder = _isTrioDanceClip(clip) && trioCentre;
       final order = trioCentre ? const [1, 0, 2] : null;
@@ -765,7 +768,17 @@ class CharacterPainter extends CustomPainter {
         // (`srcATop`) — see the cel-shade block for the form-shadow terminator
         // and twilight wrap. The rim passes above stay outside this layer, so the
         // gel edge stays pure.
-        final grade = leadCentreOrder ? bodyGrade : null;
+        //
+        // Gated on [trioCentre] (always true in the live app), NOT
+        // [leadCentreOrder]: the seat/wrap grade is what makes the cartoon
+        // fills sit in the scene's exposure at all (owner: "too clean" during
+        // the calm intro/outro, where `stageAt` falls back to the literal
+        // 'idle' clip and `leadCentreOrder` goes false). That's a plate/colour
+        // concern, not a dance-energy one, so it must not track the same
+        // clip-name gate as the energetic-only flourishes (hero staging,
+        // formation, rim glow, floor-pool bounce) below, which stay on
+        // [leadCentreOrder] deliberately — see those sites' own comments.
+        final grade = trioCentre ? bodyGrade : null;
         // Full-stage isolation avoids internal crop edges in tight side shots.
         // The grade is still masked by srcATop to the just-drawn cat silhouette.
         final gradeBounds = Offset.zero & size;
