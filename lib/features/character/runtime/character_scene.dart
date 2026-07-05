@@ -1064,6 +1064,13 @@ class CharacterScene {
     if (frameDuration <= epsilon * 2) return pose;
 
     final frameIndex = (timeSeconds / frameDuration).floor();
+    // Never ring off the LOOP WRAP boundary: the taper zeroes every settle
+    // INTO frame 32, so a settle firing OUT of frame 0 makes the loop's
+    // boundary velocities asymmetric by construction — measured as a
+    // once-per-loop hand tick at the seam (jump ~28 vs the gate's 8) that
+    // no authored key could fix. A loop point must depart the way it
+    // arrived; accents elsewhere in the phrase keep their follow-through.
+    if (clip.loop && frameIndex == 0) return pose;
     final t0 = frameIndex * frameDuration;
     final dt = timeSeconds - t0;
     if (dt <= 1e-9) return pose;
