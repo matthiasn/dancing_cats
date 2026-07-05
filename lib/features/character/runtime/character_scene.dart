@@ -914,13 +914,50 @@ class CharacterScene {
 
     final clearedHands = _handClearanceAdjustedSamples(clip, phase);
 
-    for (final target in clip.limbTargets) {
+    // SOLE FLOOR (R27 mocap hard gate: "floor penetration is the one thing
+    // a mocap eye rejects outright"): foot targets are authored in the
+    // anchor bone's space, so a deep pocket sink carries the free foot's
+    // tap target down with the body — probe-measured up to ~10 units below
+    // the planted sole at the seam. The planted support sole IS the floor
+    // at every instant; a free foot's target may never sink below it.
+    final contactForFloor = clip.enforceSoleFloor && _isDanceFamily(clip)
+        ? _activeContactAt(clip, phase)
+        : null;
+
+    // Solve the PLANTED foot before free feet: the free feet's sole floor
+    // reads the support sole from the evolving pose, which must already
+    // carry the support's world-anchored solve (in authored order the free
+    // foot could read the support's un-anchored, sink-dragged position).
+    final orderedTargets = [...clip.limbTargets]
+      ..sort((a, b) {
+        int rank(LimbIkTarget t) => !_isFootBone(t.endBoneId)
+            ? 0
+            : (footAnchor != null && t.endBoneId == footAnchor.bone)
+            ? 1
+            : 2;
+        return rank(a).compareTo(rank(b));
+      });
+    for (final target in orderedTargets) {
       final sample =
           clearedHands[target.endBoneId] ?? target.channel.sample(phase);
       final weight = sample.weight.clamp(0.0, 1.0);
       if (weight <= 0) continue;
 
       final planted = footAnchor != null && target.endBoneId == footAnchor.bone;
+      // The floor for a free foot is the planted sole's position in the
+      // CURRENT pre-correction solve — the same space the IK target lives
+      // in. (Anchor-space floors mismatch during the seam dive, where the
+      // contact-lock's later root correction is large.)
+      final soleFloor =
+          _isFootBone(target.endBoneId) &&
+              !planted &&
+              contactForFloor != null &&
+              contactForFloor.span.bone != target.endBoneId
+          ? _contactPoint(
+              solver.solve(currentPose),
+              contactForFloor.span.bone,
+            )?.y
+          : null;
       final solved = _solveLimbTarget(
         target,
         sample,
@@ -928,6 +965,7 @@ class CharacterScene {
         weight,
         worldAnchor: planted ? (x: footAnchor.x, y: footAnchor.y) : null,
         anchorBlend: planted ? footAnchor.blend : 0,
+        soleFloorY: soleFloor,
       );
       if (solved == null) continue;
 
@@ -960,6 +998,7 @@ class CharacterScene {
           weight,
           worldAnchor: planted ? (x: footAnchor.x, y: footAnchor.y) : null,
           anchorBlend: planted ? footAnchor.blend : 0,
+          soleFloorY: soleFloor,
         );
         if (refined != null) {
           final first = (
@@ -1326,6 +1365,7 @@ class CharacterScene {
     double weight, {
     ({double x, double y})? worldAnchor,
     double anchorBlend = 0,
+    double? soleFloorY,
   }) {
     final upper = rig.bone(target.upperBoneId);
     final lower = rig.bone(target.lowerBoneId);
@@ -1357,7 +1397,7 @@ class CharacterScene {
     // (instead of the foot dragging with the hips). [anchorBlend] fades to 0 at
     // the support handoff; it is gentle by design so the natural stance width is
     // preserved (a hard hold narrows the astride into a leg-tangle).
-    final targetPoint = worldAnchor == null || anchorBlend <= 0
+    var targetPoint = worldAnchor == null || anchorBlend <= 0
         ? authoredTarget
         : (
             x:
@@ -1367,6 +1407,21 @@ class CharacterScene {
                 authoredTarget.y +
                 (worldAnchor.y - authoredTarget.y) * anchorBlend,
           );
+    // The support sole is the floor: clamp a free foot's target so a deep
+    // pocket sink can never press it below the planted shoe (see
+    // [_limbTargetedPose]'s sole-floor note). +y is down-screen. The IK
+    // targets the foot bone ORIGIN, but a toe-pitched tap hangs its sole
+    // several units below the origin — the origin's floor is the sole
+    // floor raised by that drop, so the shoe bottom (not the ankle) is
+    // what never penetrates.
+    if (soleFloorY != null) {
+      final sole = _contactPoint(world, end.id);
+      final soleDrop = sole == null ? 0.0 : sole.y - endWorld.origin.y;
+      final originFloor = soleFloorY - (soleDrop > 0 ? soleDrop : 0);
+      if (targetPoint.y > originFloor) {
+        targetPoint = (x: targetPoint.x, y: originFloor);
+      }
+    }
     final solution = solveTwoBoneIk(
       shoulderX: shoulder.x,
       shoulderY: shoulder.y,
@@ -2003,6 +2058,8 @@ class CharacterScene {
 
   bool _isHandBone(String boneId) => boneId.toLowerCase().contains('hand');
 
+  bool _isFootBone(String boneId) => boneId.toLowerCase().contains('foot');
+
   int _sideSign(String boneId) {
     if (boneId.endsWith('.L')) return 1;
     if (boneId.endsWith('.R')) return -1;
@@ -2517,12 +2574,18 @@ class CharacterScene {
     // x-hold alone turned the crammed 1.5-beat return into a clean
     // 2.5-beat ease). Mid-span strength is unchanged, so the anti-skate
     // hold the drift gates measure still applies through the stance.
+    // The early release applies to X ONLY: the weight departs the trailing
+    // foot sideways, but the sole stays vertically GROUNDED until the
+    // actual peel (R27 rigging measured the plant sagging over its final
+    // 1.5 beats when R26 widened the whole edge).
     final fadeOutWidth = dance
         ? (spanLength * 0.5).clamp(0.044, 0.12)
         : fade;
-    final fadeOut = smoothstep((span.end - p) / fadeOutWidth);
-    final edge = fadeIn < fadeOut ? fadeIn : fadeOut;
-    return (x: baseX * edge, y: baseY * edge);
+    final fadeOutX = smoothstep((span.end - p) / fadeOutWidth);
+    final fadeOutY = smoothstep((span.end - p) / fade);
+    final edgeX = fadeIn < fadeOutX ? fadeIn : fadeOutX;
+    final edgeY = fadeIn < fadeOutY ? fadeIn : fadeOutY;
+    return (x: baseX * edgeX, y: baseY * edgeY);
   }
 
   double _clampMagnitude(double value, double limit) =>

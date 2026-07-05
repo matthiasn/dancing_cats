@@ -502,6 +502,11 @@ class CatClips {
         // this is a per-move taste call, not a rig change.)
         danceHeadBobScale: 0.8,
         danceHeadLevelClampMin: -5,
+        // R28: the R27 mocap hard gate — free-foot taps may never render
+        // below the planted sole (deep sinks dragged them ~10 units
+        // through the floor at the seam). Opt-in per the ratchet; other
+        // routines enable it in their own re-author rounds.
+        enforceSoleFloor: true,
         baseClip: base,
         zOrderSwaps: const [
           ZOrderSwapWindow(
@@ -640,6 +645,10 @@ class CatClips {
             // line"). The plateau keeps the committed side; this ripple
             // presses into and releases off the support with every tap.
             SineRootChannel(swayAmplitude: -3, swayHarmonic: 8),
+            // R27 coach: "the hips ride the gallop, not just drift" — a
+            // small per-BAR rock into the active foot's taps on top of
+            // the parked macro lean (h4 = one cycle per bar).
+            SineRootChannel(swayAmplitude: -2.5, swayHarmonic: 4),
             // The pocket pulse, SHAPED (R19 mocap verdict: the symmetric
             // triangle wave "never SITS into a beat... one timing change
             // that converts the whole loop from keyframed to danced").

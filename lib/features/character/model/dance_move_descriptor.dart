@@ -158,6 +158,7 @@ class DanceMoveDescriptor {
     this.supportFootWorldAnchorStrength,
     this.danceHeadBobScale,
     this.danceHeadLevelClampMin,
+    this.enforceSoleFloor,
     this.zOrderSwaps = const [],
     this.transitionPlan,
     this.baseClip,
@@ -211,6 +212,9 @@ class DanceMoveDescriptor {
   final double? supportFootWorldAnchorStrength;
   final double? danceHeadBobScale;
   final double? danceHeadLevelClampMin;
+
+  /// See [Clip.enforceSoleFloor] — opt-in per routine.
+  final bool? enforceSoleFloor;
   final List<ZOrderSwapWindow> zOrderSwaps;
   final ClipTransitionPlan? transitionPlan;
 

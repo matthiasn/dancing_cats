@@ -1157,6 +1157,7 @@ class Clip {
     this.supportFootWorldAnchorStrength = 0.6,
     this.danceHeadBobScale = 1.0,
     this.danceHeadLevelClampMin = -2.0,
+    this.enforceSoleFloor = false,
     this.transitionPlan,
     this.zOrderSwaps = const [],
   }) : assert(
@@ -1191,6 +1192,15 @@ class Clip {
   /// doesn't achieve that, since this budget still caps the lift regardless.
   /// Opt-in per clip; more negative allows a bigger upward correction.
   final double danceHeadLevelClampMin;
+
+  /// When true, free-foot IK targets are clamped so the shoe bottom never
+  /// sinks below the planted support sole (the R27 mocap hard gate: deep
+  /// pocket sinks carry body-space foot targets through the floor).
+  /// OPT-IN PER CLIP, following the re-authoring ratchet: the clamp
+  /// visibly changes tuned foot mechanics (zanku's floor scrape
+  /// over-rotates its hip when lifted), so each routine enables it in its
+  /// own re-author + panel round rather than being silently altered.
+  final bool enforceSoleFloor;
 
   /// When true, the active SUPPORT foot (per [contactSpans]) is held toward its
   /// world position via leg IK during its stance, so an in-place performance
@@ -1343,6 +1353,9 @@ Clip blendedClip({
       to.danceHeadLevelClampMin,
       rootWeight,
     ),
+    enforceSoleFloor: rootWeight < 0.5
+        ? from.enforceSoleFloor
+        : to.enforceSoleFloor,
     transitionPlan: ClipTransitionPlan(from: from, to: to, weight: weight),
   );
 }
