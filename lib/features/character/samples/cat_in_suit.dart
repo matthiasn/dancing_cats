@@ -1183,7 +1183,10 @@ class CatClips {
             // + a beat-level mini-bounce so mid-bar frames stop floating
             // (pocket was 0.8 ev/s over a 97.8 range).
             SineRootChannel(swayAmplitude: -12, swayPhase: 0.125, swayHarmonic: 4),
-            SineRootChannel(bobAmplitude: -5.5, bobPhase: 0.09, bobHarmonic: 8),
+            // r12: -5.5 -> -9 (coach: "the pocket is one slow swell per
+            // two bars — add a per-beat bounce under the strides so the
+            // groove does not float between hits").
+            SineRootChannel(bobAmplitude: -9, bobPhase: 0.09, bobHarmonic: 8),
           ],
           extraPelvisLayers: [
             SineChannel(

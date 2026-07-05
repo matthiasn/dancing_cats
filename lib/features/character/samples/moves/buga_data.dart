@@ -328,27 +328,32 @@ const _bugaClavicleRKeys = [
   // are now a PER-BEAT SEE-SAW: R lifts between the los (f2/f6/f22) while
   // L dips, then dips INTO each lo while L lifts — the difference changes
   // sign every beat, so the crown traces genuinely cross. Hits unchanged.
-  DanceJointKey(0, rotation: -0.05),
-  DanceJointKey(2, rotation: 0.06),
-  DanceJointKey(4, rotation: -0.16),
-  DanceJointKey(6, rotation: 0.05),
-  DanceJointKey(8, rotation: -0.24),
+  // r12: every r11 lens confirmed the crossings but called the
+  // differential under-scaled against the ~119-unit common-mode crown
+  // wave (sign held 3-5 beats; ~2-beat dropout entering bar 3 where both
+  // sides' keys sat near zero). Amplitudes up ~35% and the bar-3 entry
+  // gets real values so the see-saw never rests.
+  DanceJointKey(0, rotation: -0.06),
+  DanceJointKey(2, rotation: 0.1),
+  DanceJointKey(4, rotation: -0.2),
+  DanceJointKey(6, rotation: 0.08),
+  DanceJointKey(8, rotation: -0.28),
   DanceJointKey(10, rotation: -0.04),
   DanceJointKey(11, rotation: -0.14),
   DanceJointKey(12, rotation: -0.46),
   DanceJointKey(13, rotation: -0.36),
   DanceJointKey(14, rotation: -0.1),
-  DanceJointKey(16, rotation: 0.02),
-  DanceJointKey(18, rotation: 0.06),
-  DanceJointKey(20, rotation: -0.18),
-  DanceJointKey(22, rotation: 0.05),
-  DanceJointKey(24, rotation: -0.26),
+  DanceJointKey(16, rotation: -0.08),
+  DanceJointKey(18, rotation: 0.1),
+  DanceJointKey(20, rotation: -0.22),
+  DanceJointKey(22, rotation: 0.08),
+  DanceJointKey(24, rotation: -0.3),
   DanceJointKey(26, rotation: -0.04),
   DanceJointKey(27, rotation: -0.16),
   DanceJointKey(28, rotation: -0.46),
   DanceJointKey(29, rotation: -0.36),
   DanceJointKey(30, rotation: -0.1),
-  DanceJointKey(32, rotation: -0.05),
+  DanceJointKey(32, rotation: -0.06),
 ];
 // 9-path r3 (every rater: "L and R crowns track each other almost
 // exactly for the entire loop — the upper body moves as one slab"):
@@ -362,27 +367,29 @@ const _bugaClavicleLKeys = [
   // each lo while R dips, and dips (positive) between the los while R
   // lifts — the L-R difference alternates sign each beat. Hits and their
   // 1.1-frame answer lag are untouched (both-shoulder shrug gate).
-  DanceJointKey(0, rotation: -0.06, microFrames: 1.5),
-  DanceJointKey(2, rotation: 0.14, microFrames: 1.5),
-  DanceJointKey(4, rotation: -0.24, microFrames: 1.5),
-  DanceJointKey(6, rotation: 0.16, microFrames: 1.5),
-  DanceJointKey(8, rotation: -0.32, microFrames: 1.5),
-  DanceJointKey(10, rotation: 0.06, microFrames: 1.5),
+  // r12: +35% with the bar-3 entry live (see the R-key comment); deepest
+  // key -0.44 + ~0.05 smooth overshoot stays under the 0.55 envelope.
+  DanceJointKey(0, rotation: -0.08, microFrames: 1.5),
+  DanceJointKey(2, rotation: 0.2, microFrames: 1.5),
+  DanceJointKey(4, rotation: -0.32, microFrames: 1.5),
+  DanceJointKey(6, rotation: 0.22, microFrames: 1.5),
+  DanceJointKey(8, rotation: -0.42, microFrames: 1.5),
+  DanceJointKey(10, rotation: 0.1, microFrames: 1.5),
   DanceJointKey(11, rotation: -0.08, microFrames: 1.5),
   DanceJointKey(12, rotation: 0.488, microFrames: 1.1),
   DanceJointKey(13, rotation: 0.382, microFrames: 1.1),
   DanceJointKey(14, rotation: 0.085, microFrames: 1.5),
-  DanceJointKey(16, rotation: -0.02, microFrames: 1.5),
-  DanceJointKey(18, rotation: 0.16, microFrames: 1.5),
-  DanceJointKey(20, rotation: -0.26, microFrames: 1.5),
-  DanceJointKey(22, rotation: 0.18, microFrames: 1.5),
-  DanceJointKey(24, rotation: -0.34, microFrames: 1.5),
-  DanceJointKey(26, rotation: 0.06, microFrames: 1.5),
+  DanceJointKey(16, rotation: -0.16, microFrames: 1.5),
+  DanceJointKey(18, rotation: 0.22, microFrames: 1.5),
+  DanceJointKey(20, rotation: -0.36, microFrames: 1.5),
+  DanceJointKey(22, rotation: 0.24, microFrames: 1.5),
+  DanceJointKey(24, rotation: -0.44, microFrames: 1.5),
+  DanceJointKey(26, rotation: 0.1, microFrames: 1.5),
   DanceJointKey(27, rotation: -0.1, microFrames: 1.5),
   DanceJointKey(28, rotation: 0.488, microFrames: 1.1),
   DanceJointKey(29, rotation: 0.382, microFrames: 1.1),
   DanceJointKey(30, rotation: 0.085, microFrames: 1.5),
-  DanceJointKey(32, rotation: -0.06, microFrames: 1.5),
+  DanceJointKey(32, rotation: -0.08, microFrames: 1.5),
 ];
 const _bugaShoulderSocketRKeys = [
   DanceJointKey(0, rotation: -0.11, scaleX: 1.1, scaleY: 0.955),
