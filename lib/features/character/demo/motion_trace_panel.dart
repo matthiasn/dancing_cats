@@ -188,9 +188,20 @@ void paintMotionTraces(
     hi += pad;
 
     label(trace.title, x0, top, text, 12.5);
+    // Paired traces (feet, shoulders) meter BOTH series: a planted-primary
+    // chart used to report only the quiet sole, under-counting the pair's
+    // real articulation by half.
+    final secondaryValues = trace.secondary;
     final rate = loopSeconds == null || loopSeconds <= 0
         ? null
-        : _reversalCount(trace.values, trace.range * 0.25) / loopSeconds;
+        : (_reversalCount(trace.values, trace.range * 0.25) +
+                  (secondaryValues == null
+                      ? 0
+                      : _reversalCount(
+                          secondaryValues,
+                          trace.range * 0.25,
+                        ))) /
+              loopSeconds;
     label(
       'range ${trace.range.toStringAsFixed(1)}'
       '${rate == null ? '' : '   ~${rate.toStringAsFixed(1)} events/s LIVE'}'
