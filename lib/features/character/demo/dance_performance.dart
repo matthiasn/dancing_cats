@@ -65,14 +65,20 @@ typedef DanceStage = ({
 /// Number of bars the looping dance phrase spans; the loop stays beat-locked
 /// for the whole track once anchored on the first downbeat.
 ///
-/// TWO bars: the 32-frame phrase then spans 8 beats — exactly 4 frames per
-/// beat — so the routines' authored quarter-note accents (frames 0/4/8/...,
-/// "per-beat stamps on 4/12/20/28") land ON the beats. The old 3-bar binding
-/// stretched the same phrase over 12 beats (2 2/3 frames per beat), which
-/// parked every other authored accent squarely BETWEEN beats — an accidental
-/// 4-against-3 that read as "not locked to the music". Measured BAS improved
-/// on every routine at 8 beats.
-const int kDancePhraseBars = 2;
+/// FOUR bars — the HALF-TIME interpretation (owner decision, 2026-07-05):
+/// the 32-frame phrase spans 16 beats — exactly 2 frames per beat — so
+/// every authored accent (frames 0/4/8/...) still lands dead ON a real
+/// beat, but the counts fall on every OTHER beat: the body's full groove
+/// cycle spans two beats, the way dancers actually ride a ~120 BPM track.
+/// The previous TWO-bar binding packed a full-body event onto every beat
+/// AND played the 6s-authored phrase 1.5x fast (6s squeezed into an 8-beat
+/// / 4s window) — reviewed at the slow clock, it shipped as "everyone on
+/// uppers... doubtful they would make it through a real show". At 16 beats
+/// the phrase spans 8 real seconds: half the previous live speed, and the
+/// review-vs-ship gap drops from 1.5x to 0.75x. (The still-earlier 3-bar
+/// binding gave 2 2/3 frames per beat — accents BETWEEN beats — and stays
+/// wrong for a different reason.)
+const int kDancePhraseBars = 4;
 
 /// How much faster the shipped app's beat-warped pose clock runs than the
 /// raw, authored clip clock (`_danceBase.duration`) motion-quality tests
@@ -80,13 +86,15 @@ const int kDancePhraseBars = 2;
 ///
 /// `BeatMap.clipSecondsAt` re-maps clip-relative time onto the *real* detected
 /// beat grid via `BeatLoopBinding.barAligned`, whose loop spans
-/// `kDancePhraseBars * timeSignatureNumerator` beats — 8 beats for this
+/// `kDancePhraseBars * timeSignatureNumerator` beats — 16 beats for this
 /// track's 4/4 time signature. At the sample track's detected
-/// `tempo.global_bpm` (`assets/sample_track/moving.json`, 120.0), 8 beats take
-/// `8 * 60 / 120 = 4` real seconds, versus the `_danceBase` clip's authored
-/// `duration: 6` seconds — so the live/exported app plays every routine
-/// `6 / 4 = 1.5x` faster than the raw clip clock the film-strip tests and
-/// `TemporalMotionAnalyzer` sample by default.
+/// `tempo.global_bpm` (`assets/sample_track/moving.json`, 120.0), 16 beats
+/// take `16 * 60 / 120 = 8` real seconds, versus the `_danceBase` clip's
+/// authored `duration: 6` seconds — so the live/exported app now plays every
+/// routine at `6 / 8 = 0.75x` of the raw clip clock the film-strip tests and
+/// `TemporalMotionAnalyzer` sample by default (slightly SLOWER than
+/// authored, the sustainable half-time read — down from the previous
+/// two-bar binding's 1.5x, which shipped frantic).
 ///
 /// This is *this project's current default track's* factor, not a universal
 /// constant — it would need recomputing (from the same formula) if the
@@ -94,7 +102,7 @@ const int kDancePhraseBars = 2;
 /// `k` scales the n-th time-derivative by `k^n`, so callers multiply speed by
 /// `k`, acceleration by `k^2`, and jerk by `k^3` rather than resampling at a
 /// different clock.
-const double kDanceRealTempoSpeedup = 6 / 4;
+const double kDanceRealTempoSpeedup = 6 / 8;
 
 /// Fraction of the track's energy range below which a section counts as "calm"
 /// (and, if also long enough, eases the trio into idle). See [kMinCalmSeconds].
