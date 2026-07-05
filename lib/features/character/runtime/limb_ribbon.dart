@@ -3,6 +3,30 @@ import 'dart:ui';
 
 import 'package:meta/meta.dart';
 
+/// Pulls a spine's LAST point back toward its neighbour by [inset] units
+/// (clamped so the final segment keeps at least a sliver of length).
+///
+/// This is how a tailored sleeve TERMINATES AT THE CUFF instead of running
+/// to the palm: the arm chain's last joint is the hand origin (the mitten's
+/// centre), so an un-inset ribbon paints sleeve fabric across the paw and —
+/// with its end cap — past it, the "sleeve continues past the cuff to an
+/// empty squared end" read review panels flagged on every extended-arm
+/// frame. The renderer and the silhouette-integrity gate both build their
+/// spines through this function so drawn and tested geometry cannot drift.
+List<Offset> insetRibbonSpineEnd(List<Offset> spine, double inset) {
+  if (inset <= 0 || spine.length < 2) return spine;
+  final last = spine.last;
+  final prev = spine[spine.length - 2];
+  final delta = last - prev;
+  final length = delta.distance;
+  if (length < 1e-6) return spine;
+  final pullBack = math.min(inset, length - 1);
+  if (pullBack <= 0) return spine;
+  final trimmed = List<Offset>.of(spine);
+  trimmed[trimmed.length - 1] = last - delta * (pullBack / length);
+  return trimmed;
+}
+
 /// Builds a smooth, tapered **ribbon** that flows through a bone chain's joint
 /// positions — the core of mesh-style limb deformation. Where the rigid renderer
 /// draws a thigh and a shin as two separate capsules that hinge at a sharp knee

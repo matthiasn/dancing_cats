@@ -392,15 +392,28 @@ void main() {
         greaterThan(elbow),
         reason: 'the forearm should swell back out after the elbow pinch',
       );
+      // Ratios recalibrated (0.72 -> 0.82, 0.55 -> 0.63) with the cuff
+      // termination: the terminal spec width is now the fabric OPENING at
+      // the cuff band (the sleeve no longer runs to the palm), and the R21
+      // rigging panel asked it to hold ~60% of the bicep so extended arms
+      // stop deflating — while still visibly tapering from the forearm
+      // swell and keeping the heroic shoulder-to-wrist falloff.
       expect(
         wrist,
-        lessThan(forearm * 0.72),
-        reason: 'the wrist should taper before the cuff and paw',
+        lessThan(forearm * 0.82),
+        reason: 'the sleeve still tapers from the forearm swell to the cuff',
       );
       expect(
         wrist,
-        lessThan(deltoid * 0.55),
+        lessThan(deltoid * 0.63),
         reason: 'shoulder-to-wrist taper carries the heroic silhouette',
+      );
+      expect(
+        wrist,
+        greaterThanOrEqualTo(bicep * 0.55),
+        reason:
+            'the cuff opening keeps real volume — an extended arm must not '
+            'deflate to a sliver above the cuff (R21 rigging)',
       );
       expect(hand.width, greaterThan(22));
       expect(hand.height, greaterThan(20));
