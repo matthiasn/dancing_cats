@@ -1,5 +1,7 @@
 import 'dart:math' as math;
 
+import 'package:dancing_cats/features/character/demo/dance_performance.dart'
+    show kDanceRealTempoSpeedup;
 import 'package:dancing_cats/features/character/demo/motion_trace_panel.dart';
 import 'package:dancing_cats/features/character/model/affine2d.dart';
 import 'package:dancing_cats/features/character/model/clip.dart';
@@ -631,7 +633,12 @@ class _DanceMoveInspectorDialogState extends State<_DanceMoveInspectorDialog>
     final traces = _traceCache ??= sampleMotionTraces(widget.scene, clip);
     return RepaintBoundary(
       child: CustomPaint(
-        painter: MotionTracePainter(traces),
+        painter: MotionTracePainter(
+          traces,
+          // Ship-tempo seconds, so the events/s annotations describe the
+          // live pace the audience sees, not the authored clip clock.
+          loopSeconds: clip.duration / kDanceRealTempoSpeedup,
+        ),
         size: Size.infinite,
       ),
     );

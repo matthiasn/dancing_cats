@@ -626,7 +626,7 @@ class CatClips {
               leanPhase: 0.03,
               leanHarmonic: 16,
             ),
-            SineRootChannel(bobAmplitude: -7, bobPhase: 0.328125),
+            SineRootChannel(bobAmplitude: -7, bobPhase: 0.3515625),
           ],
           extraPelvisLayers: const [
             SineChannel(
