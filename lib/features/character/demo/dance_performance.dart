@@ -60,6 +60,12 @@ typedef DanceStage = ({
   DanceSection? section,
   bool energetic,
   bool synchronous,
+  // When the current choreo STATEMENT began (audio seconds): the section,
+  // slot, or intra-section handoff boundary that selected this trio. The
+  // stepper re-anchors the phrase clock on the first downbeat at/after this
+  // instant so incoming moves open on their own bar 1 ("take the new move
+  // on the one") instead of whatever bar the global grid dictates.
+  double segmentStartSec,
 });
 
 /// Number of bars the looping dance phrase spans; the loop stays beat-locked
@@ -142,6 +148,7 @@ DanceStage danceIdleStage(double pos, {DanceSection? section}) => (
   section: section,
   energetic: false,
   synchronous: true,
+  segmentStartSec: section?.start ?? 0,
 );
 
 /// Tags each detected section energetic/calm by its mean waveform energy
@@ -363,6 +370,7 @@ class DancePerformance {
         section: section,
         energetic: section?.energetic ?? true,
         synchronous: true,
+        segmentStartSec: segmentStartAt(pos),
       );
     }
     return danceIdleStage(pos, section: section);
@@ -377,9 +385,10 @@ class DancePerformance {
   }
 
   /// Where [pos] sits inside the current semantic section: its label, progress
-  /// 0..1, and the section's length in seconds. Defaults to the empty section
-  /// when no span covers [pos].
-  ({String section, double phase, double seconds}) sectionInfoAt(double pos) {
+  /// 0..1, the section's length in seconds, and its start time. Defaults to
+  /// the empty section when no span covers [pos].
+  ({String section, double phase, double seconds, double start})
+  sectionInfoAt(double pos) {
     for (final s in sectionSpans) {
       if (pos >= s.start && pos < s.end) {
         final span = (s.end - s.start) <= 0 ? 1.0 : s.end - s.start;
@@ -387,10 +396,40 @@ class DancePerformance {
           section: s.section,
           phase: ((pos - s.start) / span).clamp(0.0, 1.0),
           seconds: span,
+          start: s.start,
         );
       }
     }
-    return (section: '', phase: 0, seconds: 0);
+    return (section: '', phase: 0, seconds: 0, start: 0);
+  }
+
+  /// When the choreo STATEMENT covering [pos] began: the span start, the
+  /// slot boundary inside a rotated span, or the mid-hook Buga switch. Must
+  /// mirror [choreoTrioForSection]'s branch structure — this is the instant
+  /// the trio last changed, which the stepper uses to re-anchor the phrase
+  /// so incoming moves enter on their own bar 1.
+  double segmentStartAt(double pos) {
+    final lyric = sectionInfoAt(pos);
+    if (lyric.section.isEmpty) return sectionAt(pos)?.start ?? 0;
+    switch (lyric.section) {
+      case 'chorus':
+      case 'post-chorus':
+        return lyric.phase >= 0.55
+            ? lyric.start + 0.55 * lyric.seconds
+            : lyric.start;
+      case 'verse':
+      case 'bridge':
+      case 'outro':
+        // Same slot arithmetic as _rotateSetlist: slot k spans phase
+        // [k/slots, (k+1)/slots).
+        final slots = lyric.seconds <= 0
+            ? 1
+            : (lyric.seconds / kChoreoSlotSeconds).floor().clamp(1, 64);
+        final slot = (lyric.phase * slots).floor().clamp(0, slots - 1);
+        return lyric.start + slot * lyric.seconds / slots;
+      default:
+        return lyric.start;
+    }
   }
 
   /// How many earlier spans share [section]'s label — 0 for its first occurrence.

@@ -126,6 +126,30 @@ void main() {
       expect(stepper.stage?.lead.name, 'buga');
     });
 
+    test('an incoming move enters on its own bar 1 (segment re-anchor)', () {
+      final perf = _perf(
+        sectionSpans: const [(start: 0, end: 6, section: 'chorus')],
+      );
+      final stepper = DancePlaybackStepper();
+      // Walk across the 3.3s Zanku->Buga handoff. Buga's choreo statement
+      // starts at 3.3; the first downbeat at/after it is 4.0s (beat index
+      // 8), so Buga's phrase clock must re-anchor there: its bar 1 lands ON
+      // that downbeat instead of whatever phase the global grid dictated.
+      for (var t = 3.2; t < 4.0; t += 0.016) {
+        stepper.advance(perf, const [], t, 0.016);
+      }
+      stepper.advance(perf, const [], 4.02, 0.016);
+      expect(stepper.stage?.lead.name, 'buga');
+      final duration = stepper.stage!.lead.duration;
+      expect(
+        stepper.stage!.seconds,
+        lessThan(duration / 8),
+        reason:
+            'just past the segment-anchor downbeat the incoming clip should '
+            'be at the very start of its own bar 1, not mid-phrase',
+      );
+    });
+
     test('in an energetic section the camera moves off its neutral hold', () {
       final perf = _perf();
       final stepper = DancePlaybackStepper();
