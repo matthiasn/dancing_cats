@@ -1420,6 +1420,10 @@ class CatClips {
             ),
           ],
           extraRootLayers: const [
+            // 9-path round 2: keep-alive breath — the two ~1s lunge holds
+            // read as pose freezes (R3: 'a freeze rather than a settled
+            // hold'). A micro h16 bob keeps the mass breathing everywhere.
+            SineRootChannel(bobAmplitude: -1.8, bobHarmonic: 16),
             SineRootChannel(
               swayAmplitude: 1.55,
               swayHarmonic: 8,
