@@ -1072,20 +1072,27 @@ RigSpec buildCatInSuitRig({
     // at the collar/shoulder junction (a geometry issue, also fixed) for
     // marginal payoff — the shirt V + collar + tie already sell "tailored
     // suit" on their own, so it was removed rather than tuned further.
+    // Re-parented clavicle -> chest (2026-07-05, owner screenshots: "the
+    // collar is flying around"): as clavicle children the wings rode the
+    // shoulder see-saw — probe-measured a 27-43 unit VERTICAL split
+    // between the two wings (one up, one down with every girdle roll),
+    // reading as the collar flapping under a still chin. A shirt collar
+    // sits on the chest; the pivots keep the identical rest placement
+    // (clavicle pivot ±35,-6 + collar offset ∓24,-18 = chest ±11,-24).
     Bone(
       id: CatBones.collarL,
-      parent: CatBones.clavicleL,
-      pivotX: 24,
-      pivotY: -18,
+      parent: CatBones.chest,
+      pivotX: -11,
+      pivotY: -24,
       z: 13,
       restRotation: 0.5,
       drawable: _tapered(15, 4, 26, _shirt, dy: 11, celShade: false),
     ),
     Bone(
       id: CatBones.collarR,
-      parent: CatBones.clavicleR,
-      pivotX: -24,
-      pivotY: -18,
+      parent: CatBones.chest,
+      pivotX: 11,
+      pivotY: -24,
       z: 13,
       restRotation: -0.5,
       drawable: _tapered(15, 4, 26, _shirt, dy: 11, celShade: false),
