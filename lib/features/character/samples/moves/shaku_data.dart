@@ -555,14 +555,14 @@ const _shakuFootLTargetKeys = [
   // call-and-response answers in a different voice"). Taps arrive DEAD
   // (tension) like the R side's, with half-height ghosts on the 'ands'
   // between, mirroring bars 1-2's spike/ghost alternation.
-  DanceIkTargetKey(17, x: -42, y: 96, tension: 0.8), // TAP inboard
+  DanceIkTargetKey(17, x: -42, y: 96, tension: 1), // TAP inboard, dead stop
   DanceIkTargetKey(18, x: -48, y: 87), // lifts clear
   DanceIkTargetKey(19, x: -52, y: 92, tension: 0.5), // GHOST on the 'and'
-  DanceIkTargetKey(21, x: -58, y: 95, tension: 0.8), // TAP outboard
+  DanceIkTargetKey(21, x: -58, y: 95, tension: 1), // TAP outboard, dead stop
   DanceIkTargetKey(22, x: -50, y: 87), // lifts clear
   DanceIkTargetKey(23, x: -46, y: 92, tension: 0.5), // GHOST on the 'and'
-  DanceIkTargetKey(24, x: -52, y: 96, tension: 0.8), // down-OUT on the count
-  DanceIkTargetKey(26, x: -32, y: 96, tension: 0.8), // TAP inboard, "and"
+  DanceIkTargetKey(24, x: -52, y: 96, tension: 1), // down-OUT on the count
+  DanceIkTargetKey(26, x: -32, y: 96, tension: 1), // TAP inboard, "and"
   DanceIkTargetKey(28, x: -54, y: 86), // lifted, swinging home
   // The R14 rigging rater pixel-tracked the old 29→32 travel (y 94→98→103)
   // as a ~28px flat-contact DRAG across the loop seam — the sole never
@@ -738,9 +738,9 @@ const _shakuClaviclePopsR = [
 ];
 const _shakuClaviclePopsL = [
   DanceJointKey(19, rotation: 0.42),
-  DanceJointKey(23, rotation: -0.02),
+  DanceJointKey(23, rotation: 0.1),
   DanceJointKey(27, rotation: 0.42),
-  DanceJointKey(31, rotation: -0.02),
+  DanceJointKey(31, rotation: 0.1),
 ];
 
 List<DanceJointKey> _mergedByFrame(

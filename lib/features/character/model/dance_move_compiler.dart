@@ -118,6 +118,8 @@ Clip assembleMoveClip(
         descriptor.danceHeadBobScale ?? base?.danceHeadBobScale ?? 1,
     danceHeadLevelClampMin:
         descriptor.danceHeadLevelClampMin ?? base?.danceHeadLevelClampMin ?? -2,
+    enforceSoleFloor:
+        descriptor.enforceSoleFloor ?? base?.enforceSoleFloor ?? false,
     transitionPlan: descriptor.transitionPlan ?? base?.transitionPlan,
     zOrderSwaps: descriptor.zOrderSwaps.isNotEmpty
         ? descriptor.zOrderSwaps
