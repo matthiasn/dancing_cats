@@ -80,9 +80,41 @@ List<MotionTrace> sampleMotionTraces(
   ];
 }
 
+/// Counts local extrema (direction reversals) in [values] with a prominence
+/// floor, so a trace's "events" can be expressed as a real-time rate.
+int _reversalCount(List<double> values, double prominence) {
+  var reversals = 0;
+  var lastExtreme = values.first;
+  var rising = true;
+  for (var i = 1; i < values.length; i++) {
+    if (rising && values[i] < values[i - 1]) {
+      if ((values[i - 1] - lastExtreme).abs() >= prominence) {
+        reversals++;
+        lastExtreme = values[i - 1];
+      }
+      rising = false;
+    } else if (!rising && values[i] > values[i - 1]) {
+      if ((lastExtreme - values[i - 1]).abs() >= prominence) {
+        reversals++;
+        lastExtreme = values[i - 1];
+      }
+      rising = true;
+    }
+  }
+  return reversals;
+}
+
 /// Paints [traces] as stacked mini-charts onto any canvas — a plain
 /// function so the review harness can drive it through a raw
 /// `PictureRecorder` while the app wraps it in [MotionTracePainter].
+///
+/// The sheet is MUSICALLY legible: [counts] gridlines are real music beats
+/// (every [beatsPerBar]-th drawn heavier as a bar line), and with
+/// [loopSeconds] — the loop's REAL duration at ship tempo — each chart is
+/// annotated with its measured direction-reversal rate in events **per
+/// real second live**, so a reviewer can judge tempo and effort
+/// sustainability numerically instead of guessing motion speed from
+/// stills.
 void paintMotionTraces(
   Canvas canvas,
   Size size,
@@ -91,9 +123,12 @@ void paintMotionTraces(
   Color line = const Color(0xFF7FB4FF),
   Color secondaryLine = const Color(0xFFF2B36B),
   Color grid = const Color(0xFF2A2E3A),
+  Color barGrid = const Color(0xFF4A5164),
   Color text = const Color(0xFFB9C0CF),
   Color accent = const Color(0xFFE87070),
-  int counts = 8,
+  int counts = 16,
+  int beatsPerBar = 4,
+  double? loopSeconds,
 }) {
   canvas.drawRect(Offset.zero & size, Paint()..color = background);
   if (traces.isEmpty) return;
@@ -135,8 +170,12 @@ void paintMotionTraces(
     hi += pad;
 
     label(trace.title, x0, top, text, 12.5);
+    final rate = loopSeconds == null || loopSeconds <= 0
+        ? null
+        : _reversalCount(trace.values, trace.range * 0.25) / loopSeconds;
     label(
       'range ${trace.range.toStringAsFixed(1)}'
+      '${rate == null ? '' : '   ~${rate.toStringAsFixed(1)} events/s LIVE'}'
       '${trace.secondaryLabel == null ? '' : '   ${trace.secondaryLabel}'}',
       x0 + 4,
       top + 15,
@@ -152,14 +191,16 @@ void paintMotionTraces(
         ..color = grid
         ..style = PaintingStyle.stroke,
     );
+    // Beat gridlines; every bar line (each beatsPerBar-th beat) heavier.
     for (var k = 0; k < counts; k++) {
       final gx = x0 + (x1 - x0) * k / counts;
+      final isBar = beatsPerBar > 0 && k % beatsPerBar == 0;
       canvas.drawLine(
         Offset(gx, cy0),
         Offset(gx, cy0 + chartH),
         Paint()
-          ..color = grid
-          ..strokeWidth = 1,
+          ..color = isBar ? barGrid : grid
+          ..strokeWidth = isBar ? 2 : 1,
       );
     }
 
@@ -201,15 +242,20 @@ void paintMotionTraces(
 
 /// CustomPainter wrapper for the in-app inspector.
 class MotionTracePainter extends CustomPainter {
-  const MotionTracePainter(this.traces);
+  const MotionTracePainter(this.traces, {this.loopSeconds});
 
   final List<MotionTrace> traces;
 
+  /// The loop's REAL duration at ship tempo (authored duration divided by
+  /// the beat-warp speedup) — enables the events-per-second annotations.
+  final double? loopSeconds;
+
   @override
   void paint(Canvas canvas, Size size) =>
-      paintMotionTraces(canvas, size, traces);
+      paintMotionTraces(canvas, size, traces, loopSeconds: loopSeconds);
 
   @override
   bool shouldRepaint(MotionTracePainter oldDelegate) =>
-      !identical(oldDelegate.traces, traces);
+      !identical(oldDelegate.traces, traces) ||
+      oldDelegate.loopSeconds != loopSeconds;
 }

@@ -1,4 +1,5 @@
 import 'package:dancing_cats/features/character/demo/dance_move_inspector.dart';
+import 'package:dancing_cats/features/character/demo/motion_trace_panel.dart';
 import 'package:dancing_cats/features/character/model/clip.dart';
 import 'package:dancing_cats/features/character/runtime/character_scene.dart';
 import 'package:dancing_cats/features/character/samples/cat_in_suit.dart';
@@ -121,6 +122,40 @@ void main() {
         await tester.tap(find.byKey(const Key('moveInspectorCloseButton')));
         await tester.pumpAndSettle();
       }
+    });
+
+    testWidgets('the TRACES chip swaps the grid for measured motion charts', (
+      tester,
+    ) async {
+      await _openInspector(tester, scene: scene, clip: clip);
+
+      await tester.tap(find.byKey(const Key('moveInspectorViewTRACES')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining('MOTION TRACES'),
+        findsOneWidget,
+        reason: 'the section header should switch to the traces view',
+      );
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is CustomPaint && w.painter is MotionTracePainter,
+        ),
+        findsOneWidget,
+        reason: 'the measured charts replace the keyframe grid',
+      );
+      expect(find.byKey(const ValueKey('moveFrameCell_0')), findsNothing);
+
+      await tester.tap(find.byKey(const Key('moveInspectorViewFRAMES')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('moveFrameCell_0')), findsOneWidget);
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is CustomPaint && w.painter is MotionTracePainter,
+        ),
+        findsNothing,
+      );
     });
   });
 

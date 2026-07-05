@@ -1,5 +1,7 @@
 import 'dart:math' as math;
 
+import 'package:dancing_cats/features/character/demo/dance_performance.dart'
+    show kDanceRealTempoSpeedup;
 import 'package:dancing_cats/features/character/demo/motion_trace_panel.dart';
 import 'package:dancing_cats/features/character/model/affine2d.dart';
 import 'package:dancing_cats/features/character/model/clip.dart';
@@ -590,14 +592,19 @@ class _DanceMoveInspectorDialogState extends State<_DanceMoveInspectorDialog>
                     : 'KEYFRAMES ($_frameCount, ${clip.loop ? "loop" : "one-shot"})',
               ),
               const SizedBox(width: 10),
-              Text(
-                _showTraces
-                    ? 'pocket bounce · weight sway · head ride · sole height'
-                    : 'tap a frame to preview it on stage',
-                style: const TextStyle(
-                  color: _Chrome.textLow,
-                  fontSize: 10,
-                  fontStyle: FontStyle.italic,
+              // Flexible + ellipsis: the traces label plus this hint can
+              // exceed the row at narrow widths — the hint yields first.
+              Flexible(
+                child: Text(
+                  _showTraces
+                      ? 'pocket bounce · weight sway · head ride · sole height'
+                      : 'tap a frame to preview it on stage',
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: _Chrome.textLow,
+                    fontSize: 10,
+                    fontStyle: FontStyle.italic,
+                  ),
                 ),
               ),
               const Spacer(),
@@ -631,7 +638,12 @@ class _DanceMoveInspectorDialogState extends State<_DanceMoveInspectorDialog>
     final traces = _traceCache ??= sampleMotionTraces(widget.scene, clip);
     return RepaintBoundary(
       child: CustomPaint(
-        painter: MotionTracePainter(traces),
+        painter: MotionTracePainter(
+          traces,
+          // Ship-tempo seconds, so the events/s annotations describe the
+          // live pace the audience sees, not the authored clip clock.
+          loopSeconds: clip.duration / kDanceRealTempoSpeedup,
+        ),
         size: Size.infinite,
       ),
     );
