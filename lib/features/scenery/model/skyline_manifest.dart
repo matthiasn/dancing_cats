@@ -47,15 +47,17 @@ class SkylineManifest {
 /// A coarse stand-in until the Codex-generated, art-matched manifest replaces
 /// it. Values are plausible but not tied to any real artwork.
 const SkylineManifest kPlaceholderSkylineManifest = SkylineManifest(
-  // Measured against assets/scenery/blue_hour_cloudless.webp — the tallest hi-rise
-  // tops, left→right: left tower, spired tower (on the spire), peaked-roof
-  // tower, dark flat-top tower, slim tall tower.
+  // Measured against assets/scenery/blue_hour_cloudless.webp (2560x1440,
+  // 2026-07 plate) — each anchor sits on the HIGHEST painted point of its
+  // tower (antenna/spire tip or roof ridge), left→right: antenna tower,
+  // spired tower (needle tip), pyramid-top tower, dark canopy-roof tower,
+  // slim antenna tower.
   buildingTops: [
-    Offset(0.145, 0.318),
-    Offset(0.207, 0.235),
-    Offset(0.250, 0.352),
-    Offset(0.342, 0.338),
-    Offset(0.430, 0.360),
+    Offset(0.1652, 0.2800),
+    Offset(0.2078, 0.2220),
+    Offset(0.2533, 0.3405),
+    Offset(0.3457, 0.3240),
+    Offset(0.4273, 0.3445),
   ],
   windowCells: [
     Rect.fromLTWH(0.10, 0.47, 0.05, 0.13),
@@ -68,15 +70,18 @@ const SkylineManifest kPlaceholderSkylineManifest = SkylineManifest(
   ],
   // The two mast tips of the cable-stayed bridge A-frame pylon.
   bridgeTowerTops: [
-    Offset(0.645, 0.363),
-    Offset(0.659, 0.365),
+    Offset(0.6438, 0.3542),
+    Offset(0.6566, 0.3590),
   ],
+  // Railing-top line of the cable-stayed roadway (the visible deck edge from
+  // this below-deck camera), essentially level across the span with a slight
+  // rise to the right.
   bridgeDeck: [
-    Offset(0, 0.64),
-    Offset(0.30, 0.62),
-    Offset(0.48, 0.615),
-    Offset(0.66, 0.62),
-    Offset(1, 0.64),
+    Offset(0.43, 0.4660),
+    Offset(0.555, 0.4648),
+    Offset(0.65, 0.4645),
+    Offset(0.745, 0.4640),
+    Offset(1, 0.4630),
   ],
   yachtCabin: Rect.fromLTWH(0.55, 0.66, 0.07, 0.03),
   yachtNavLights: [

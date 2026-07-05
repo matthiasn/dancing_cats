@@ -117,18 +117,21 @@ class PoliceCordonUnit {
 
 /// Deterministic, evenly spaced cordon units along the bridge roadway.
 ///
-/// The line follows the painted deck (normalized y ≈ 0.476→0.481 across
-/// x ≈ 0.555→0.745 — the same road the drones launch from) with a small
-/// deterministic vertical jitter so the lamps sit naturally rather than ruler
-/// straight. Most units are blue; a sparse few are red accents.
+/// The line straddles the painted railing-top edge of the deck (railing top
+/// ≈ y 0.4646 on the 2026-07 plate; light bars y ≈ 0.469-0.471 across
+/// x ≈ 0.555→0.745 — the same road the drones launch from), so each strobe
+/// reads as the roof bar of a vehicle standing ON the road: peeking over the
+/// parapet, neither embedded in the bridge girder nor floating above it. A
+/// small deterministic vertical jitter keeps the lamps natural rather than
+/// ruler straight. Most units are blue; a sparse few are red accents.
 List<PoliceCordonUnit> policeCordonPoints({
   int count = kBridgePoliceUnitCount,
 }) {
   if (count <= 0) return const [];
   const startX = 0.555;
   const endX = 0.745;
-  const startY = 0.476;
-  const endY = 0.481;
+  const startY = 0.4693;
+  const endY = 0.4713;
   return List<PoliceCordonUnit>.generate(count, (i) {
     final u = count <= 1 ? 0.5 : i / (count - 1);
     final jitter = (hashUnit(i + 41) - 0.5) * 0.004;

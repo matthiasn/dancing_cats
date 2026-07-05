@@ -132,8 +132,8 @@ void main() {
       for (var i = 2; i < xs.length; i++) {
         expect(xs[i] - xs[i - 1], closeTo(step, 1e-12));
       }
-      expect(minY, greaterThanOrEqualTo(0.472));
-      expect(maxY, lessThanOrEqualTo(0.48));
+      expect(minY, greaterThanOrEqualTo(0.468));
+      expect(maxY, lessThanOrEqualTo(0.473));
       for (final sample in samples) {
         expect(sample.isLit, isFalse);
         expect(sample.opacity, closeTo(0.64, 1e-12));

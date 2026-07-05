@@ -44,11 +44,13 @@ const int _ascentSpiralCount = 5;
 // (BridgePoliceLayer's roadway, x ≈ 0.555→0.745): the drones stage on exactly
 // the stretch of road the police have cleared, so the line of unlit aircraft
 // reads as "drones on the closed road" instead of a stray dark bar poking out
-// to the left of the cordon.
+// to the left of the cordon. The row sits at road level just behind the
+// deck's railing-top edge (railing ≈ y 0.4646 on the 2026-07 plate), level
+// with the cordon's light bars.
 const double _launchStartX = 0.555;
 const double _launchSpanX = 0.19;
-const double _launchBaseY = 0.475;
-const double _launchSlopeY = 0.005;
+const double _launchBaseY = 0.4698;
+const double _launchSlopeY = 0.002;
 const double _ascentSpiralXRadius = 0.014;
 const double _ascentSpiralYRadius = 0.011;
 const double _ascentSpiralStretchY = 0.024;
