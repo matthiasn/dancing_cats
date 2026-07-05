@@ -1136,7 +1136,7 @@ class CatClips {
             // regex overshot into sekem): lateral weight under the strides
             // + a beat-level mini-bounce so mid-bar frames stop floating
             // (pocket was 0.8 ev/s over a 97.8 range).
-            SineRootChannel(swayAmplitude: -8, swayHarmonic: 4),
+            SineRootChannel(swayAmplitude: -12, swayHarmonic: 4),
             SineRootChannel(bobAmplitude: -5.5, bobPhase: 0.09, bobHarmonic: 8),
           ],
           extraPelvisLayers: [

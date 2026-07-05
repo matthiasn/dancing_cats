@@ -715,6 +715,10 @@ const _sekemHeadKeys = [
   DanceJointKey(18, rotation: 0.09), // r6: re-arm — bars 3-4 crests decayed to half
   DanceJointKey(24, rotation: 0.12),
   DanceJointKey(26, rotation: 0.09),
+  // r8: ONE clear authored head event in the back half — the skull snaps
+  // into the loop's deepest dig (f28) instead of wiggling through it.
+  DanceJointKey(28, rotation: 0.16),
+  DanceJointKey(30, rotation: 0.05),
   DanceJointKey(32, rotation: -0.09), // == frame 0
 ];
 

@@ -344,6 +344,11 @@ const _zankuHeadKeys = [
   DanceJointKey(15, rotation: -0.032),
   DanceJointKey(17, rotation: 0.12), // varied answer
   DanceJointKey(19, rotation: 0.038),
+  // r8: the head ANSWERS the bar-3 stamp (the accent landed 'stiff-necked'
+  // — pocket-only by gate necessity, so the follow-through rides the
+  // rotation channel instead).
+  DanceJointKey(20, rotation: -0.09),
+  DanceJointKey(22, rotation: -0.03),
   DanceJointKey(21, rotation: -0.11),
   DanceJointKey(23, rotation: -0.032),
   DanceJointKey(25, rotation: 0.09), // gathers against the kick side
