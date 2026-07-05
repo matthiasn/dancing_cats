@@ -115,6 +115,17 @@ void main() {
       expect(a, containsAllInOrder(['-color_trc', 'bt709']));
     });
 
+    test('forces the bt709 VUI into the x264 stream', () {
+      final a = args();
+      expect(
+        a,
+        containsAllInOrder([
+          '-x264-params',
+          'colorprim=bt709:transfer=bt709:colormatrix=bt709',
+        ]),
+      );
+    });
+
     test('carries the x264/aac knobs through', () {
       final a = args();
       expect(a, containsAllInOrder(['-c:v', 'libx264']));
