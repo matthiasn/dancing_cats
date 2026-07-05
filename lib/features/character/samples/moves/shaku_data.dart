@@ -344,21 +344,39 @@ const double _shakuLateralGain = 0.6;
 /// every clip that grooves on these keys — shaku, zanku, azonto (lead and the
 /// ensemble backups alike) — so the whole crew commits less far, not just the
 /// lead.
-final List<DanceBodyKey> _shakuGrooveCalm = [
+final List<DanceBodyKey> _shakuGrooveCalm = _calmedGroove(_shakuLateralGain);
+
+
+/// Shaku's own groove variant for the R21 stepped weight transfer: the
+/// lateral commit story moved to the square-wave sway layers in the shaku
+/// descriptor (park over the support foot, shift in 2-3 frames after each
+/// plant), so the groove's own rootDx wander drops to per-beat texture —
+/// at the shared 0.6 it smeared the plateaus back into the "one smooth
+/// 2-bar sinusoid" all four R21 raters flagged. Zanku/azonto keep riding
+/// [_shakuGrooveCalm] at the shared gain; only shaku steps.
+///
+/// The deeper sink (+11 vs the shared +6) is the R21 pocket CEILING: at
+/// the top of each bounce the knees reached near-full extension ("the
+/// character stands up out of the pocket mid-loop" — all four raters), so
+/// the whole pulse now rides ~5 units lower and the highest hip position
+/// keeps a visible knee bend.
+final List<DanceBodyKey> _shakuGrooveCommitted = _calmedGroove(0.25, sink: 11);
+
+List<DanceBodyKey> _calmedGroove(double lateralGain, {double sink = 6}) => [
   for (final k in _shakuBodyGrooveKeys)
     DanceBodyKey(
       k.frame,
-      rootDx: k.rootDx == null ? null : k.rootDx! * _shakuLateralGain,
-      rootDy: k.rootDy == null ? null : k.rootDy! + 6,
+      rootDx: k.rootDx == null ? null : k.rootDx! * lateralGain,
+      rootDy: k.rootDy == null ? null : k.rootDy! + sink,
       rootRotation: k.rootRotation == null
           ? null
-          : k.rootRotation! * _shakuLateralGain,
+          : k.rootRotation! * lateralGain,
       pelvisRotation: k.pelvisRotation == null
           ? null
-          : k.pelvisRotation! * _shakuLateralGain,
+          : k.pelvisRotation! * lateralGain,
       chestRotation: k.chestRotation == null
           ? null
-          : k.chestRotation! * _shakuLateralGain,
+          : k.chestRotation! * lateralGain,
       chestScaleX: k.chestScaleX,
       chestScaleY: k.chestScaleY,
       ease: k.ease,
