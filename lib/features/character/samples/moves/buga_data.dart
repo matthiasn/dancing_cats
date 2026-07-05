@@ -103,10 +103,24 @@ const _bugaBodyKeys = [
   // by the contact hold exactly at the tall frames (the same
   // hold-eats-sine mechanism as azonto's lateral no-op), so the dip is
   // carved into the keys instead. f14 sits ON the beat.
+  // r14 (coach, the one lens under 9: "the bar-2 crest breathes once then
+  // drifts near-flat ~1.5 beats — author a second on-beat dip-and-recover,
+  // slightly deeper"): the hold now undulates TWICE — a small settle notch
+  // right off the hit, then the deeper on-beat dip (13 -> 16, the
+  // animator's +10-15% ask) before the recover into the next lo.
+  DanceBodyKey(
+    13,
+    rootDx: -5,
+    rootDy: 5,
+    rootRotation: 0.002,
+    pelvisRotation: 0.05,
+    chestRotation: -0.09,
+    chestScaleY: 1.1,
+  ), // settle notch off the hit
   DanceBodyKey(
     14,
     rootDx: -5,
-    rootDy: 13,
+    rootDy: 16,
     rootRotation: 0.002,
     pelvisRotation: 0.05,
     chestRotation: -0.08,
@@ -115,7 +129,7 @@ const _bugaBodyKeys = [
   DanceBodyKey(
     15,
     rootDx: -4,
-    rootDy: 4,
+    rootDy: 6,
     rootRotation: 0.002,
     pelvisRotation: 0.03,
     chestRotation: -0.05,
@@ -212,11 +226,20 @@ const _bugaBodyKeys = [
     chestScaleY: 1.16,
     chestScaleX: 0.97,
   ), // HIT
-  // r13: the bar-4 crest gets the same authored beat bounce as f14.
+  // r13/r14: the bar-4 crest breathes the same double undulation as f13-15.
+  DanceBodyKey(
+    29,
+    rootDx: 5,
+    rootDy: 5,
+    rootRotation: -0.002,
+    pelvisRotation: -0.05,
+    chestRotation: 0.09,
+    chestScaleY: 1.1,
+  ), // settle notch off the hit
   DanceBodyKey(
     30,
     rootDx: 5,
-    rootDy: 13,
+    rootDy: 16,
     rootRotation: -0.002,
     pelvisRotation: -0.05,
     chestRotation: 0.08,
@@ -225,7 +248,7 @@ const _bugaBodyKeys = [
   DanceBodyKey(
     31,
     rootDx: 4,
-    rootDy: 4,
+    rootDy: 6,
     rootRotation: -0.002,
     pelvisRotation: -0.03,
     chestRotation: 0.05,
