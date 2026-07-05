@@ -242,18 +242,21 @@ DistantJetSample? _sampleDistantJetLocal(double local, double safePass) {
   // entered under the foreground palm, making its lights read detached.
   final x = 0.98 - progress * 1.10;
   // Departing on a FRONT-LOADED climb-out (steep initial climb shallowing at
-  // altitude — how a heavy jet actually departs). The curve is tuned to the
-  // antenna mast on the tall tower at stage (0.209, 0.225): the jet reaches
-  // that column at progress ~0.70 (t ≈ 41-42s into the loop) with its engine
-  // line JUST above the mast tip — a near-miss flyover, not an overlap. The
-  // front-loading also lifts the trail the jet lays across mid-frame early in
-  // the pass (an eased-in climb kept that segment low, parking the bright
-  // streak at the lead singer's ear height in the tight chorus framings — a
-  // sustained crown tangent the review panel flagged twice), while the exit
-  // stays below the 0.17 background-traffic floor asserted by the
-  // drone-show-peak test.
+  // altitude — how a heavy jet actually departs). The curve passes clear of
+  // the antenna mast on the tall tower at stage (0.209, 0.225): the jet
+  // reaches that column at progress ~0.70 (t ≈ 41-42s into the loop) with its
+  // lowest opaque (engine-line) pixel well clear of the mast tip and its
+  // warning light — a visible flyover gap, not the earlier razor-thin
+  // near-miss that read as a crossing once the contrail's own width and the
+  // mast's thin, alpha-diluted occluder mask (only ~2px wide in the source
+  // art) ate into the margin. The front-loading also lifts the trail the jet
+  // lays across mid-frame early in the pass (an eased-in climb kept that
+  // segment low, parking the bright streak at the lead singer's ear height in
+  // the tight chorus framings — a sustained crown tangent the review panel
+  // flagged twice), while the exit stays below the 0.17 background-traffic
+  // floor asserted by the drone-show-peak test.
   final climb = 1 - math.pow(1 - progress, 3).toDouble();
-  final y = 0.25 - climb * 0.0415 + math.sin(progress * math.pi) * 0.002;
+  final y = 0.25 - climb * 0.0745 + math.sin(progress * math.pi) * 0.002;
   final edge = distantJetEdgeVisibility(x);
   if (edge <= 0) return null;
 
