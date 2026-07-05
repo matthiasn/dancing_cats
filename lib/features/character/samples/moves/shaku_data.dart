@@ -462,21 +462,21 @@ const _shakuHandLTargetKeys = [
   // the crossings from ever stacking.
   DanceIkTargetKey(0, x: -66, y: -14, tension: 1), // OPEN low-out (count)
   DanceIkTargetKey(2, x: 0, y: -44, tension: 0.5), // sweep up-across, high
-  DanceIkTargetKey(4, x: 20, y: -6, tension: 0.9), // land at the RIGHT hip
+  DanceIkTargetKey(4, x: 23, y: -2, tension: 0.9), // land wide at the right hip
   DanceIkTargetKey(6, x: -18, y: -28, tension: 0.5), // swing back out
   DanceIkTargetKey(8, x: -66, y: -14, tension: 1),
   DanceIkTargetKey(10, x: 0, y: -44, tension: 0.5),
-  DanceIkTargetKey(12, x: 20, y: -6, tension: 0.9),
+  DanceIkTargetKey(12, x: 23, y: -2, tension: 0.9),
   DanceIkTargetKey(14, x: -18, y: -28, tension: 0.5),
   // bar 2 — open wider; the generator-pull count (28) keeps L rowing low
   // while R yanks the cord up-and-out.
   DanceIkTargetKey(16, x: -70, y: -16, tension: 1),
   DanceIkTargetKey(18, x: 0, y: -44, tension: 0.5),
-  DanceIkTargetKey(20, x: 20, y: -6, tension: 0.9),
+  DanceIkTargetKey(20, x: 23, y: -2, tension: 0.9),
   DanceIkTargetKey(22, x: -18, y: -28, tension: 0.5),
   DanceIkTargetKey(24, x: -70, y: -16, tension: 1),
   DanceIkTargetKey(26, x: -2, y: -40, tension: 0.5),
-  DanceIkTargetKey(28, x: 18, y: -10, tension: 0.9), // rows low under the pull
+  DanceIkTargetKey(28, x: 24, y: -6, tension: 0.9), // rows low under the pull
   DanceIkTargetKey(30, x: -18, y: -30, tension: 0.5),
   DanceIkTargetKey(32, x: -66, y: -14, tension: 1), // == frame 0
 ];
@@ -486,25 +486,26 @@ const _shakuHandRTargetKeys = [
   // Mirror rowing, phase-shifted: R lands at the LEFT hip on L's open
   // counts, opens low-out on its own, and crosses high on the alternate
   // off-beats (6/14/22) so the two arms never peak together.
-  DanceIkTargetKey(0, x: -18, y: -6, tension: 0.9), // landed at the LEFT hip
-  DanceIkTargetKey(2, x: 18, y: -28, tension: 0.5), // swing back out
+  DanceIkTargetKey(0, x: -18, y: -8, tension: 0.75), // lands settled on the seam
+  DanceIkTargetKey(1, x: -24, y: -2, tension: 0.3), // follow-through loop past the land
+  DanceIkTargetKey(3, x: 4, y: -22, tension: 0.4), // swing back out on an arc
   DanceIkTargetKey(4, x: 66, y: -14, tension: 1), // OPEN low-out (count)
   DanceIkTargetKey(6, x: 0, y: -44, tension: 0.5), // sweep up-across, high
-  DanceIkTargetKey(8, x: -18, y: -6, tension: 0.9),
+  DanceIkTargetKey(8, x: -23, y: -2, tension: 0.9),
   DanceIkTargetKey(10, x: 18, y: -28, tension: 0.5),
   DanceIkTargetKey(12, x: 66, y: -14, tension: 1),
   DanceIkTargetKey(14, x: 0, y: -44, tension: 0.5),
   // bar 2 — open wider, then the GENERATOR PULL up-and-out on count 8.
-  DanceIkTargetKey(16, x: -18, y: -6, tension: 0.9),
+  DanceIkTargetKey(16, x: -23, y: -2, tension: 0.9),
   DanceIkTargetKey(18, x: 18, y: -28, tension: 0.5),
   DanceIkTargetKey(20, x: 70, y: -16, tension: 1),
   DanceIkTargetKey(22, x: 0, y: -44, tension: 0.5),
-  DanceIkTargetKey(24, x: -18, y: -6, tension: 0.9),
+  DanceIkTargetKey(24, x: -23, y: -2, tension: 0.9),
   DanceIkTargetKey(26, x: 30, y: -22, tension: 0.6), // gathers for the pull
   DanceIkTargetKey(28, x: 56, y: -46, tension: 1), // GENERATOR PULL up-out
   DanceIkTargetKey(29, x: 64, y: -54, tension: 0.8), // overshoot high
   DanceIkTargetKey(30, x: 24, y: -16, tension: 0.5), // release back down
-  DanceIkTargetKey(32, x: -18, y: -6, tension: 0.9), // == frame 0
+  DanceIkTargetKey(32, x: -18, y: -8, tension: 0.75), // == frame 0
 ];
 const _shakuFootLTargetKeys = [
   // The support phase is ONE constant plant — the round-3 rigging rater
@@ -650,6 +651,34 @@ const _shakuHandRKeys = [
 // drop snaps on the count and releases with a small overshoot; the off shoulder
 // pops up for the see-saw. L opens on 0/8/16/24, R on 4/12/20/28 — matching the
 // hand schedule so each arm rolls off its OWN shoulder.
+//
+// PHASE LEAD (R22, mocap + rigging): "offset the shoulder-line keys 1-2
+// frames AHEAD of the arm-row keys... so the shoulders drive the arms
+// rather than tilting with them — synchronous reversal reads keyframed,
+// not recorded." Every key carries microFrames -1.5: the girdle initiates
+// each roll ~1.5 frames before the hand arrives at its extreme.
+const _shakuClavicleLead = -1.5;
+
+List<DanceJointKey> _shoulderLed(List<DanceJointKey> keys) => [
+  for (final k in keys)
+    DanceJointKey(
+      k.frame,
+      rotation: k.rotation,
+      scaleX: k.scaleX,
+      scaleY: k.scaleY,
+      ease: k.ease,
+      tension: k.tension,
+      microFrames: _shakuClavicleLead,
+    ),
+];
+
+final List<DanceJointKey> _shakuClavicleLLedKeys = _shoulderLed(
+  _shakuClavicleLKeys,
+);
+final List<DanceJointKey> _shakuClavicleRLedKeys = _shoulderLed(
+  _shakuClavicleRKeys,
+);
+
 const _shakuClavicleLKeys = [
   DanceJointKey(0, rotation: -0.42), // L DROP (L opens)
   DanceJointKey(2, rotation: 0.08), // release overshoot up
@@ -729,23 +758,19 @@ const _shakuShoulderSocketRKeys = [
 // the head answering the body instead of being welded to it), tipping INTO
 // the generator pull at 29. Stays inside the head's 0.18 joint envelope.
 const _shakuHeadKeys = [
+  // Count-anchored keys ONLY (R22 de-jitter, three raters: the skull-top
+  // trace carried "high-frequency double-bumps between beats absent from
+  // the hips" — those were this channel's old intermediate half-way keys
+  // swinging the skull top every two frames). One smooth arc per count.
   DanceJointKey(0, rotation: 0.03),
   DanceJointKey(1, rotation: 0.09), // answers L's open, tilts toward it
-  DanceJointKey(3, rotation: 0.04),
   DanceJointKey(5, rotation: -0.09), // answers R's open
-  DanceJointKey(7, rotation: -0.04),
   DanceJointKey(9, rotation: 0.09),
-  DanceJointKey(11, rotation: 0.04),
   DanceJointKey(13, rotation: -0.09),
-  DanceJointKey(15, rotation: -0.04),
   DanceJointKey(17, rotation: 0.1),
-  DanceJointKey(19, rotation: 0.04),
   DanceJointKey(21, rotation: -0.1),
-  DanceJointKey(23, rotation: -0.04),
   DanceJointKey(25, rotation: 0.1),
-  DanceJointKey(27, rotation: 0.02),
   DanceJointKey(29, rotation: -0.12), // tips INTO the generator pull
-  DanceJointKey(31, rotation: -0.03),
   DanceJointKey(32, rotation: 0.03), // == frame 0
 ];
 

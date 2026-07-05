@@ -526,13 +526,16 @@ class CatClips {
           CatBones.handR: const DanceJointTrack(_shakuHandRKeys, smooth: true),
           // Shoulder-LED dig: the clavicle drops the socket on each count so
           // the hand can dig low with the elbow bent; the socket bunches for
-          // the flesh read.
-          CatBones.clavicleL: const DanceJointTrack(
-            _shakuClavicleLKeys,
+          // the flesh read. The led variants carry microFrames -1.5 so the
+          // girdle initiates each roll ~1.5 frames BEFORE the hand reaches
+          // its extreme (R22: "the shoulders drive the arms rather than
+          // tilting with them — synchronous reversal reads keyframed").
+          CatBones.clavicleL: DanceJointTrack(
+            _shakuClavicleLLedKeys,
             smooth: true,
           ),
-          CatBones.clavicleR: const DanceJointTrack(
-            _shakuClavicleRKeys,
+          CatBones.clavicleR: DanceJointTrack(
+            _shakuClavicleRLedKeys,
             smooth: true,
           ),
           CatBones.shoulderSocketL: const DanceJointTrack(
@@ -599,19 +602,26 @@ class CatClips {
             // (feet step ON the count, weight arrives just behind them).
             SineRootChannel(
               swayAmplitude: -17,
-              swayPhase: -0.03125,
+              swayPhase: 0.046875,
               leanAmplitude: -0.07,
             ),
             SineRootChannel(
               swayAmplitude: -5.7,
-              swayPhase: -0.03125,
+              swayPhase: 0.046875,
               swayHarmonic: 3,
             ),
             SineRootChannel(
               swayAmplitude: -3.4,
-              swayPhase: -0.03125,
+              swayPhase: 0.046875,
               swayHarmonic: 5,
             ),
+            // Per-tap weight SCALLOPS on the plateaus (R22 mocap verdict:
+            // "the pelvis never responds to a single contact... layer a
+            // per-tap lateral pulse decaying over the beat, so the trace
+            // becomes a plateau with beat-rate scallops instead of a flat
+            // line"). The plateau keeps the committed side; this ripple
+            // presses into and releases off the support with every tap.
+            SineRootChannel(swayAmplitude: -6, swayHarmonic: 8),
             // The pocket pulse, SHAPED (R19 mocap verdict: the symmetric
             // triangle wave "never SITS into a beat... one timing change
             // that converts the whole loop from keyframed to danced").
