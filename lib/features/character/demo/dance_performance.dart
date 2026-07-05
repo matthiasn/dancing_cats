@@ -53,18 +53,30 @@ typedef DanceTrio = ({Clip lead, List<Clip> ensemble});
 /// Per-lane Laban-Effort personality offsets, index-parallel to
 /// `DanceTrio.ensemble` (`[0]` lead, `[1]` backup-left, `[2]` backup-right).
 /// Composed with each move's base dynamics and the section-energy term via
-/// `effectiveDanceDynamics` in [DancePerformance.stageAt]. All-neutral until
-/// the tuning commit populates real personalities — see ADR CHAR-0003.
+/// `effectiveDanceDynamics` in [DancePerformance.stageAt]. Perceptual dials
+/// (ADR CHAR-0001 D6) — the lead reads a touch harder/snappier/looser than
+/// the pack, backup-left is the loosest (most Free) of the three, backup-right
+/// the tightest (most Bound); every axis stays well under
+/// `kDanceDynamicsModulationBudget` so it never risks inverting a move's
+/// authored Effort character (ADR CHAR-0003).
 const List<DanceDynamics> kDanceLaneDynamicsProfiles = [
-  DanceDynamics.neutral,
-  DanceDynamics.neutral,
-  DanceDynamics.neutral,
+  DanceDynamics(weight: 0.10, time: 0.08, flow: 0.05), // lead
+  DanceDynamics(weight: -0.08, time: -0.05, flow: 0.08), // backup-left
+  DanceDynamics(weight: -0.03, time: 0.04, flow: -0.06), // backup-right
 ];
 
 /// The per-axis Effort swing at the hottest section (`level == 1`); the
-/// coldest section (`level == 0`) gets the negated offset. Zero (a no-op)
-/// until the tuning commit — see ADR CHAR-0003.
-const DanceDynamics kDanceSectionEnergyGain = DanceDynamics.neutral;
+/// coldest section (`level == 0`) gets the negated offset. A quiet verse
+/// pulls the whole trio toward Light/Sustained; the drop pushes toward
+/// Strong/Sudden — continuous with the song's energy arc, on top of (not
+/// instead of) `choreoTrioByLevel`'s discrete move selection. Perceptual
+/// dial (ADR CHAR-0001 D6), sized with the lane profiles above to stay
+/// under `kDanceDynamicsModulationBudget`.
+const DanceDynamics kDanceSectionEnergyGain = DanceDynamics(
+  weight: 0.18,
+  time: 0.20,
+  flow: 0.05,
+);
 
 /// Maps the section's normalized 0..1 energy `level` to a continuous Effort
 /// offset: `0.5` (mid-energy) is neutral, `0` and `1` are the full swing in

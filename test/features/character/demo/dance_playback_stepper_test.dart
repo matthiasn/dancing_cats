@@ -165,23 +165,48 @@ void main() {
     );
 
     test(
-      'the stage carries a 3-length dynamics list through holds and blends '
-      '(the catalog and lane profiles are still neutral pre-tuning, so this '
-      'pins the shape; ADR CHAR-0003 populates the numbers)',
+      'the stage carries a 3-length dynamics list through holds and blends, '
+      "and the hold keeps the OUTGOING trio's own Effort character "
+      '(ADR CHAR-0003)',
       () {
         final perf = _perf(
           sectionSpans: const [(start: 0, end: 6, section: 'chorus')],
         );
         final stepper = DancePlaybackStepper()
           ..advance(perf, const [], 3.24, 0.016); // steady zanku
+        expect(stepper.stage?.lead.name, 'zanku');
         expect(stepper.stage?.dynamics.length, 3);
+        final steadyDynamics = stepper.stage!.dynamics;
+        // zanku (Strong·Sudden·Bound) is nowhere near neutral once its lane
+        // profile and this full-energy section's swing are composed in.
+        expect(steadyDynamics.first, isNot(DanceDynamics.neutral));
 
         stepper.advance(perf, const [], 3.36, 0.016); // held, waiting for beat
-        expect(stepper.stage?.dynamics, everyElement(DanceDynamics.neutral));
+        final held = stepper.stage!.dynamics;
+        for (var i = 0; i < held.length; i++) {
+          // The per-frame dynamics ease re-lerps toward its (unchanged)
+          // target every frame, so this is closeTo rather than exact
+          // equality — floating-point dust, not drift toward a new value.
+          expect(
+            held[i].weight,
+            closeTo(steadyDynamics[i].weight, 1e-9),
+            reason:
+                "the outgoing trio hasn't arrived at the new move yet, so "
+                'its Effort character should read unchanged through the hold',
+          );
+          expect(held[i].time, closeTo(steadyDynamics[i].time, 1e-9));
+          expect(held[i].flow, closeTo(steadyDynamics[i].flow, 1e-9));
+        }
 
-        stepper.advance(perf, const [], 3.52, 0.016); // blended zanku->buga
+        stepper.advance(perf, const [], 3.52, 0.016); // blend starts: zanku->buga
         expect(stepper.stage?.lead.name, 'zanku->buga');
-        expect(stepper.stage?.dynamics, everyElement(DanceDynamics.neutral));
+        expect(stepper.stage?.dynamics.length, 3);
+        // buga's weight/time dials sit below zanku's, so the very start of the
+        // blend should already read as less Strong/Sudden than steady zanku.
+        expect(
+          stepper.stage!.dynamics.first.weight,
+          lessThan(steadyDynamics.first.weight),
+        );
       },
     );
 

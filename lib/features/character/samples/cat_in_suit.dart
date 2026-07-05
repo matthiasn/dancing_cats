@@ -12,6 +12,7 @@ import 'dart:math' as math;
 import 'package:dancing_cats/features/character/model/afrobeats_move.dart';
 import 'package:dancing_cats/features/character/model/bone.dart';
 import 'package:dancing_cats/features/character/model/clip.dart';
+import 'package:dancing_cats/features/character/model/dance_dynamics.dart';
 import 'package:dancing_cats/features/character/model/dance_move_compiler.dart';
 import 'package:dancing_cats/features/character/model/dance_move_descriptor.dart';
 import 'package:dancing_cats/features/character/model/dance_phrase.dart';
@@ -482,6 +483,8 @@ class CatClips {
           name: 'shaku',
           feel: DanceFeel.onBeat,
           featuredRegion: BodyRegion.legs,
+          // ADR D4: loose body · Sudden legs · Bound arms.
+          dynamics: DanceDynamics(weight: -0.15, time: 0.55, flow: -0.35),
         ),
         duration: base.duration,
         contactPinning: base.contactPinning,
@@ -801,6 +804,8 @@ class CatClips {
           name: 'zanku',
           feel: DanceFeel.offBeat,
           featuredRegion: BodyRegion.legs,
+          // ADR D4: Strong · Sudden · Bound (the kick accent runs Free on top).
+          dynamics: DanceDynamics(weight: 0.7, time: 0.6, flow: -0.45),
         ),
         duration: base.duration,
         contactPinning: base.contactPinning,
@@ -956,6 +961,8 @@ class CatClips {
           name: 'azonto',
           feel: DanceFeel.offBeat,
           featuredRegion: BodyRegion.arms,
+          // ADR D4: loose body · Sudden·Direct hands.
+          dynamics: DanceDynamics(time: 0.6, flow: -0.1),
         ),
         duration: base.duration,
         contactPinning: base.contactPinning,
@@ -1119,6 +1126,8 @@ class CatClips {
           name: 'buga',
           feel: DanceFeel.onBeat,
           featuredRegion: BodyRegion.arms,
+          // ADR D4: Light bounces -> Strong·Direct·Sudden hit, holds.
+          dynamics: DanceDynamics(weight: 0.5, time: 0.55, flow: -0.15),
         ),
         duration: base.duration,
         contactPinning: base.contactPinning,
@@ -1345,6 +1354,8 @@ class CatClips {
           name: 'pouncingCat',
           feel: DanceFeel.halfTime,
           featuredRegion: BodyRegion.full,
+          // ADR D4: Sustained · Bound · Light glide.
+          dynamics: DanceDynamics(weight: -0.55, time: -0.65, flow: -0.35),
         ),
         duration: base.duration,
         contactPinning: base.contactPinning,
@@ -1429,6 +1440,8 @@ class CatClips {
           name: 'sekem',
           feel: DanceFeel.onBeat,
           featuredRegion: BodyRegion.chest,
+          // ADR D4: Strong · Sudden plant · Bound.
+          dynamics: DanceDynamics(weight: 0.65, time: 0.55, flow: -0.4),
         ),
         duration: base.duration,
         enforceSoleFloor: true,
