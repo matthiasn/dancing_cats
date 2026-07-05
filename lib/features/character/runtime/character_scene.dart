@@ -109,7 +109,8 @@ class CharacterScene {
             'drop and the solved humeral elevation. Runs after limb-ik so '
             'the levers respond to the IK-solved arm, and because they are '
             'render-only handles the solve itself is never disturbed.',
-        modifier: (context, pose) => _shoulderLinePose(context.clip, pose),
+        modifier: (context, pose) =>
+            _shoulderLinePose(context.clip, context.timeSeconds, pose),
       ),
       PoseModifierPass(
         id: 'overshoot-settle',
@@ -769,8 +770,21 @@ class CharacterScene {
   /// Runs after `limb-ik` so driver 2 reads the solved humerus; since the
   /// levers have no children and no drawables, nothing downstream is
   /// disturbed.
-  Pose _shoulderLinePose(Clip clip, Pose pose) {
+  Pose _shoulderLinePose(Clip clip, double timeSeconds, Pose pose) {
     if (_shoulderLinePairs.isEmpty) return pose;
+    // FOLLOW-THROUGH (R2 panels on buga/zanku/shaku: "the skull and both
+    // crowns track the pocket 1:1 — the body pops as one block"): each
+    // crown lags HALFWAY toward its clavicle's authored value ~1.5 frames
+    // ago (a pure function of time — determinism holds). On a snap the
+    // crown arrives late and swings past, the independent overshoot the
+    // raters asked for; on smooth grooves the term is near-zero.
+    final followLag = _isDanceFamily(clip) && clip.duration > 0
+        ? clip.duration * 1.5 / 32
+        : 0.0;
+    final laggedPose = followLag > 0
+        ? evaluator.evaluate(clip, timeSeconds - followLag)
+        : null;
+    final rawPose = followLag > 0 ? evaluator.evaluate(clip, timeSeconds) : null;
     Map<String, JointPose>? joints;
     void addLever(String leverId, double delta) {
       if (delta == 0) return;
@@ -782,9 +796,18 @@ class CharacterScene {
     }
 
     for (final pair in _shoulderLinePairs) {
+      final followThrough = laggedPose == null || rawPose == null
+          ? 0.0
+          : _clampMagnitude(
+              (laggedPose.jointOf(pair.clavicleId).rotation -
+                      rawPose.jointOf(pair.clavicleId).rotation) *
+                  0.5,
+              0.18,
+            );
       addLever(
         pair.leverId,
-        pose.jointOf(pair.clavicleId).rotation * _kShoulderLineGain,
+        (pose.jointOf(pair.clavicleId).rotation + followThrough) *
+            _kShoulderLineGain,
       );
     }
 
@@ -1661,8 +1684,14 @@ class CharacterScene {
           )
         : const (neckShiftY: 0.0, headExtraShiftY: 0.0, neckId: null);
 
+    // The neck follows 0.65 of the skull's RUNTIME lateral shift (the
+    // horizontal counter + dx follow are applied to the head subtree
+    // only, which slid the skull off the fixed fur column — the rigging
+    // panels' "neck loses ~half its width in deep leans" is the visible
+    // overlap sliver narrowing, not the drawable thinning). A fraction,
+    // not 1.0, so a hint of flex survives at the join.
     final neckTranslate = Affine2D.translation(
-      0,
+      (headHorizontalCounter + headDxFollow) * 0.65,
       level.neckShiftY + neckDyFollow,
     );
     final headTransform = neckTranslate

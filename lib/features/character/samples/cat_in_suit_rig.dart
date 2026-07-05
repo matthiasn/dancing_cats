@@ -1471,7 +1471,9 @@ RigSpec buildCatInSuitRig({
         // Spans from behind the skull DOWN past the jacket crown: the fur
         // column must bridge chin → collar with overlap at both ends, or the
         // head reads as detached the moment it follows through laterally.
-        width: 18,
+        // 18 -> 21 (mesh round): margin so the fur column keeps visible
+        // width through the deepest authored leans.
+        width: 21,
         height: 24,
         dy: -3,
         cornerRadius: 9,
