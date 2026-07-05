@@ -26,8 +26,12 @@ void main() {
       final shirtColor = rig.bone(CatBones.shirtV)?.drawable?.color;
       final collarL = rig.bone(CatBones.collarL);
       final collarR = rig.bone(CatBones.collarR);
-      expect(collarL?.parent, CatBones.clavicleL);
-      expect(collarR?.parent, CatBones.clavicleR);
+      // Chest-parented (2026-07-05): as clavicle children the wings rode
+      // the shoulder see-saw — a probe measured 27-43 unit VERTICAL splits
+      // between the two wings, which the owner saw live as "the collar is
+      // flying around". A shirt collar sits on the chest.
+      expect(collarL?.parent, CatBones.chest);
+      expect(collarR?.parent, CatBones.chest);
       for (final collar in [collarL, collarR]) {
         // Same off-white shirt fabric as the chest V, so the head reads as
         // rising out of a collar rather than pasted onto the jacket.
