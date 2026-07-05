@@ -178,11 +178,13 @@ void main() {
       );
     });
 
-    test('the climb-out JUST clears the tall tower antenna (near-miss)', () {
+    test('the climb-out clears the tall tower antenna with a visible gap', () {
       // The skyline plate's antenna mast tops out at stage (0.209, 0.225); the
       // departure gradient is tuned so the jet's lowest opaque pixels (the
-      // engine line) skim past a hair above the tip around t≈41-42s — visibly
-      // a near-miss, never an overlap and never a wide berth.
+      // engine line) pass a clean stage-height gap above the tip around
+      // t≈41-42s — a readable flyover, not the earlier razor-thin near-miss
+      // that the contrail's own width (plus the mast's thin, alpha-diluted
+      // occluder mask) could visually bridge into a crossing.
       const antennaX = 0.209;
       const antennaTipY = 0.225;
       // Aspect (h/w) of assets/scenery/lufthansa_747.png and the normalized
@@ -209,13 +211,13 @@ void main() {
           crossing.position.dy + (opaqueBottom - 0.5) * heightFraction;
       expect(
         bottomY,
-        lessThan(antennaTipY),
-        reason: 'the jet must MISS the antenna',
+        lessThan(antennaTipY - 0.010),
+        reason: 'the jet must clear the antenna with a visible gap',
       );
       expect(
         bottomY,
-        greaterThan(antennaTipY - 0.012),
-        reason: 'the miss must stay a NEAR-miss (skims the tip)',
+        greaterThan(antennaTipY - 0.05),
+        reason: 'the plane should stay a near flyover, not a wide berth',
       );
     });
 
