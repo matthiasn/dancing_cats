@@ -428,46 +428,55 @@ const _azontoFootLTargetKeys = [
   DanceIkTargetKey(0, x: -56, y: 103),
   DanceIkTargetKey(2, x: -56, y: 103), // planted through left support
   DanceIkTargetKey(4, x: -56, y: 103),
-  DanceIkTargetKey(5, x: -52, y: 96), // pickup — visible passing lift
-  DanceIkTargetKey(6, x: -48, y: 102), // free-foot redirect plants
-  DanceIkTargetKey(8, x: -48, y: 102),
+  // DOUBLE-TIME LEGS (owner-approved on shaku): each free window is a
+  // touch-lift-touch step at ~13-unit clearance — azonto's step-touch
+  // idiom at per-beat rate, under the untouched mime/jab upper body.
+  DanceIkTargetKey(5, x: -52, y: 89), // high pickup
+  DanceIkTargetKey(6, x: -46, y: 101), // TOUCH
+  DanceIkTargetKey(7, x: -50, y: 90), // lift
+  DanceIkTargetKey(8, x: -48, y: 102), // steps onto the new support
   DanceIkTargetKey(10, x: -48, y: 102), // planted through left support
   DanceIkTargetKey(12, x: -48, y: 102),
-  DanceIkTargetKey(13, x: -53, y: 97), // pickup
-  DanceIkTargetKey(14, x: -58, y: 103),
+  DanceIkTargetKey(13, x: -53, y: 89), // high pickup
+  DanceIkTargetKey(14, x: -62, y: 101), // TOUCH out
+  DanceIkTargetKey(15, x: -55, y: 90), // lift
   DanceIkTargetKey(16, x: -58, y: 103),
   DanceIkTargetKey(18, x: -58, y: 103), // planted through left support
   DanceIkTargetKey(20, x: -58, y: 103),
-  DanceIkTargetKey(21, x: -54, y: 97), // pickup
-  DanceIkTargetKey(22, x: -50, y: 102),
-  DanceIkTargetKey(23, x: -56, y: 97), // pickup
+  DanceIkTargetKey(21, x: -54, y: 89), // high pickup
+  DanceIkTargetKey(22, x: -50, y: 101), // TOUCH
+  DanceIkTargetKey(23, x: -58, y: 90), // lift
   DanceIkTargetKey(24, x: -62, y: 103),
   DanceIkTargetKey(26, x: -62, y: 103), // planted through left support
   DanceIkTargetKey(28, x: -62, y: 103),
-  DanceIkTargetKey(29, x: -56, y: 97), // pickup
-  DanceIkTargetKey(30, x: -50, y: 102),
-  DanceIkTargetKey(31, x: -53, y: 98), // pickup home
+  DanceIkTargetKey(29, x: -56, y: 89), // high pickup
+  DanceIkTargetKey(30, x: -50, y: 101), // TOUCH
+  DanceIkTargetKey(31, x: -54, y: 90), // lift home
   DanceIkTargetKey(32, x: -56, y: 103),
 ];
 const _azontoFootRTargetKeys = [
   DanceIkTargetKey(0, x: 54, y: 102),
-  DanceIkTargetKey(1, x: 52, y: 97), // pickup — visible passing lift
-  DanceIkTargetKey(2, x: 50, y: 102), // free-foot redirect plants
+  DanceIkTargetKey(1, x: 52, y: 89), // high pickup (double-time legs)
+  DanceIkTargetKey(2, x: 46, y: 101), // TOUCH
+  DanceIkTargetKey(3, x: 52, y: 90), // lift
   DanceIkTargetKey(4, x: 54, y: 103),
   DanceIkTargetKey(6, x: 54, y: 103), // planted through right support
   DanceIkTargetKey(8, x: 54, y: 103),
-  DanceIkTargetKey(9, x: 51, y: 97), // pickup
-  DanceIkTargetKey(10, x: 48, y: 102),
+  DanceIkTargetKey(9, x: 51, y: 89), // high pickup
+  DanceIkTargetKey(10, x: 44, y: 101), // TOUCH
+  DanceIkTargetKey(11, x: 50, y: 90), // lift
   DanceIkTargetKey(12, x: 48, y: 102),
   DanceIkTargetKey(14, x: 48, y: 102), // planted through right support
   DanceIkTargetKey(16, x: 48, y: 102),
-  DanceIkTargetKey(17, x: 54, y: 97), // pickup
-  DanceIkTargetKey(18, x: 60, y: 103),
+  DanceIkTargetKey(17, x: 54, y: 89), // high pickup
+  DanceIkTargetKey(18, x: 64, y: 101), // TOUCH out
+  DanceIkTargetKey(19, x: 57, y: 90), // lift
   DanceIkTargetKey(20, x: 60, y: 103),
   DanceIkTargetKey(22, x: 60, y: 103), // planted through right support
   DanceIkTargetKey(24, x: 60, y: 103),
-  DanceIkTargetKey(25, x: 56, y: 97), // pickup
-  DanceIkTargetKey(26, x: 52, y: 102),
+  DanceIkTargetKey(25, x: 56, y: 89), // high pickup
+  DanceIkTargetKey(26, x: 48, y: 101), // TOUCH
+  DanceIkTargetKey(27, x: 54, y: 90), // lift
   DanceIkTargetKey(28, x: 52, y: 102),
   DanceIkTargetKey(30, x: 52, y: 102), // planted through right support
   DanceIkTargetKey(32, x: 54, y: 102),

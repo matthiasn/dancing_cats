@@ -503,24 +503,37 @@ const _sekemFootLTargetKeys = [
     tension: 0.6,
   ), // planted through left support
   DanceIkTargetKey(4, x: -60, y: 104, tension: 0.5),
-  DanceIkTargetKey(6, x: -66, y: 103), // outward knee/ankle mark
+  // DOUBLE-TIME LEGS (light): the old flat 'marks' had 1 unit of
+  // travel — invisible. Lifted step-touches keep the feet supporting
+  // the shoulder-led digs at per-beat rate without competing.
+  DanceIkTargetKey(5, x: -63, y: 93), // lift
+  DanceIkTargetKey(6, x: -67, y: 101), // TOUCH out
+  DanceIkTargetKey(7, x: -62, y: 94), // lift
   DanceIkTargetKey(8, x: -60, y: 104, ease: Ease.easeIn, tension: 1),
   DanceIkTargetKey(10, x: -60, y: 104, tension: 0.6),
   DanceIkTargetKey(12, x: -60, y: 104, tension: 0.5),
-  DanceIkTargetKey(14, x: -66, y: 103),
+  DanceIkTargetKey(13, x: -63, y: 93),
+  DanceIkTargetKey(14, x: -67, y: 101), // TOUCH out
+  DanceIkTargetKey(15, x: -62, y: 94),
   DanceIkTargetKey(16, x: -60, y: 104, ease: Ease.easeIn, tension: 1),
   DanceIkTargetKey(18, x: -60, y: 104, tension: 0.6),
   DanceIkTargetKey(20, x: -60, y: 104, tension: 0.5),
-  DanceIkTargetKey(22, x: -66, y: 103),
+  DanceIkTargetKey(21, x: -63, y: 93),
+  DanceIkTargetKey(22, x: -67, y: 101), // TOUCH out
+  DanceIkTargetKey(23, x: -62, y: 94),
   DanceIkTargetKey(24, x: -64, y: 104, ease: Ease.easeIn, tension: 1),
   DanceIkTargetKey(26, x: -64, y: 104, tension: 0.6),
   DanceIkTargetKey(28, x: -62, y: 104, tension: 0.4),
-  DanceIkTargetKey(30, x: -54, y: 103),
+  DanceIkTargetKey(29, x: -58, y: 93),
+  DanceIkTargetKey(30, x: -54, y: 101), // TOUCH in
+  DanceIkTargetKey(31, x: -58, y: 95),
   DanceIkTargetKey(32, x: -60, y: 104, ease: Ease.easeIn, tension: 1),
 ];
 const _sekemFootRTargetKeys = [
   DanceIkTargetKey(0, x: 60, y: 104, tension: 0.6), // grounded plant
-  DanceIkTargetKey(2, x: 66, y: 103), // outward knee/ankle mark
+  DanceIkTargetKey(1, x: 63, y: 93), // lift (double-time legs, light)
+  DanceIkTargetKey(2, x: 67, y: 101), // TOUCH out
+  DanceIkTargetKey(3, x: 62, y: 94), // lift
   DanceIkTargetKey(4, x: 60, y: 104, ease: Ease.easeIn, tension: 1),
   DanceIkTargetKey(
     6,
@@ -529,15 +542,21 @@ const _sekemFootRTargetKeys = [
     tension: 0.6,
   ), // planted through right support
   DanceIkTargetKey(8, x: 60, y: 104, tension: 0.5),
-  DanceIkTargetKey(10, x: 66, y: 103),
+  DanceIkTargetKey(9, x: 63, y: 93),
+  DanceIkTargetKey(10, x: 67, y: 101), // TOUCH out
+  DanceIkTargetKey(11, x: 62, y: 94),
   DanceIkTargetKey(12, x: 60, y: 104, ease: Ease.easeIn, tension: 1),
   DanceIkTargetKey(14, x: 60, y: 104, tension: 0.6),
   DanceIkTargetKey(16, x: 60, y: 104, tension: 0.5),
-  DanceIkTargetKey(18, x: 66, y: 103),
+  DanceIkTargetKey(17, x: 63, y: 93),
+  DanceIkTargetKey(18, x: 67, y: 101), // TOUCH out
+  DanceIkTargetKey(19, x: 62, y: 94),
   DanceIkTargetKey(20, x: 60, y: 104, ease: Ease.easeIn, tension: 1),
   DanceIkTargetKey(22, x: 60, y: 104, tension: 0.6),
   DanceIkTargetKey(24, x: 60, y: 104, tension: 0.5),
-  DanceIkTargetKey(26, x: 66, y: 103),
+  DanceIkTargetKey(25, x: 63, y: 93),
+  DanceIkTargetKey(26, x: 67, y: 101), // TOUCH out
+  DanceIkTargetKey(27, x: 62, y: 94),
   DanceIkTargetKey(28, x: 64, y: 104, ease: Ease.easeIn, tension: 1),
   DanceIkTargetKey(30, x: 64, y: 104, tension: 0.6),
   DanceIkTargetKey(32, x: 60, y: 104, tension: 0.6),
