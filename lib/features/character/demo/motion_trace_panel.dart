@@ -54,6 +54,8 @@ List<MotionTrace> sampleMotionTraces(
   final hipsY = <double>[];
   final hipsX = <double>[];
   final headY = <double>[];
+  final shoulderLY = <double>[];
+  final shoulderRY = <double>[];
   final footLY = <double>[];
   final footRY = <double>[];
   for (var i = 0; i <= samples; i++) {
@@ -64,6 +66,12 @@ List<MotionTrace> sampleMotionTraces(
     hipsY.add(frame.world[CatBones.hips]!.ty);
     hipsX.add(frame.world[CatBones.hips]!.tx);
     headY.add(frame.world[CatBones.head]!.ty);
+    // The shoulder-line levers are transform-only handles: their ORIGINS
+    // ride the chest; the jacket crown moves because mesh weights follow
+    // the lever ROTATION. Sample a point out along each lever (the crown
+    // surface it carries) so pops and see-saw register in the trace.
+    shoulderLY.add(frame.world[CatBones.shoulderLineL]!.transformPoint(-14, 0).y);
+    shoulderRY.add(frame.world[CatBones.shoulderLineR]!.transformPoint(14, 0).y);
     footLY.add(frame.world[CatBones.footL]!.ty);
     footRY.add(frame.world[CatBones.footR]!.ty);
   }
@@ -71,6 +79,16 @@ List<MotionTrace> sampleMotionTraces(
     MotionTrace(title: 'POCKET — hips vertical (down = sink)', values: hipsY),
     MotionTrace(title: 'WEIGHT — hips lateral (sway)', values: hipsX),
     MotionTrace(title: 'HEAD RIDE — skull vertical', values: headY),
+    // The R25 coach's ask: shoulder pops were "unverifiable and likely
+    // under silhouette scale" without a girdle channel — these are the
+    // visible shoulder-crown levers, so pop amplitude is measurable in
+    // the same pixels the contact sheet renders.
+    MotionTrace(
+      title: 'SHOULDERS — crown height (pops vs see-saw)',
+      values: shoulderLY,
+      secondary: shoulderRY,
+      secondaryLabel: 'L solid · R dashed',
+    ),
     MotionTrace(
       title: 'FEET — sole height (taps vs plants)',
       values: footLY,

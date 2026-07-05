@@ -12,18 +12,20 @@ void main() {
       final scene = CharacterScene(buildCatInSuitRig());
       final traces = sampleMotionTraces(scene, CatClips.shaku, samples: 48);
 
-      expect(traces, hasLength(4));
+      expect(traces, hasLength(5));
       expect(traces[0].title, contains('POCKET'));
       expect(traces[1].title, contains('WEIGHT'));
       expect(traces[2].title, contains('HEAD RIDE'));
-      expect(traces[3].title, contains('FEET'));
+      expect(traces[3].title, contains('SHOULDERS'));
+      expect(traces[4].title, contains('FEET'));
       for (final trace in traces) {
         expect(trace.values, hasLength(49)); // samples + closing endpoint
       }
-      // The feet chart overlays both soles.
+      // The shoulder and feet charts overlay both sides.
       expect(traces[3].secondary, isNotNull);
-      expect(traces[3].secondary, hasLength(49));
-      expect(traces[3].secondaryLabel, isNotNull);
+      expect(traces[4].secondary, isNotNull);
+      expect(traces[4].secondary, hasLength(49));
+      expect(traces[4].secondaryLabel, isNotNull);
       // A dance clip genuinely moves: the pocket has real range.
       expect(traces[0].range, greaterThan(10));
     });

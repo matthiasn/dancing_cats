@@ -441,7 +441,11 @@ const _shakuLegLowerRKeys = [
   DanceJointKey(24, rotation: -1.34),
   DanceJointKey(26, rotation: -0.92),
   DanceJointKey(28, rotation: -1.34),
-  DanceJointKey(30, rotation: -0.92),
+  // R26: stay loaded through the bar-4 rise — the R25 animator read the
+  // pre-seam cells as a straight-leg jumping-jack splay; the seam dive
+  // should launch from bent knees.
+  DanceJointKey(30, rotation: -1.04),
+  DanceJointKey(31, rotation: -1.06),
   DanceJointKey(32, rotation: -0.96),
 ];
 
@@ -534,7 +538,7 @@ const _shakuFootLTargetKeys = [
   // panel measured a 1.5-beat dead zone (beats 7.5-9) where neither foot
   // articulates while the R foot plants; a half-height press keeps the
   // free foot talking through the transfer.
-  DanceIkTargetKey(15, x: -58, y: 95),
+  DanceIkTargetKey(15, x: -58, y: 94, tension: 0.5),
   // Free phase re-authored as LIFTED tap-steps (R16 mocap: stance-width
   // changes "all while both feet render flat and weighted... replaced by
   // feet sliding on the floor"; coach: "the signature quick in-out
@@ -546,12 +550,19 @@ const _shakuFootLTargetKeys = [
   // low pelvis over-rotates the hip past its 1.55 rad dancer envelope
   // (the validator caught 1.76 at the -34 tap).
   DanceIkTargetKey(16, x: -54, y: 88), // lifted, travelling in
-  DanceIkTargetKey(17, x: -42, y: 96), // TAP inboard
-  DanceIkTargetKey(19, x: -50, y: 86), // lifted, travelling out
-  DanceIkTargetKey(21, x: -58, y: 95), // TAP outboard
-  DanceIkTargetKey(23, x: -48, y: 87), // lifted
-  DanceIkTargetKey(24, x: -52, y: 96), // down-and-OUT on the count (base)
-  DanceIkTargetKey(26, x: -32, y: 96), // TAP inboard on the "and"
+  // R26: bars 3-4 re-spoken in the R foot's language — the R25 panel
+  // measured the L side as broad rounded ~1-beat waves ("the
+  // call-and-response answers in a different voice"). Taps arrive DEAD
+  // (tension) like the R side's, with half-height ghosts on the 'ands'
+  // between, mirroring bars 1-2's spike/ghost alternation.
+  DanceIkTargetKey(17, x: -42, y: 96, tension: 0.8), // TAP inboard
+  DanceIkTargetKey(18, x: -48, y: 87), // lifts clear
+  DanceIkTargetKey(19, x: -52, y: 92, tension: 0.5), // GHOST on the 'and'
+  DanceIkTargetKey(21, x: -58, y: 95, tension: 0.8), // TAP outboard
+  DanceIkTargetKey(22, x: -50, y: 87), // lifts clear
+  DanceIkTargetKey(23, x: -46, y: 92, tension: 0.5), // GHOST on the 'and'
+  DanceIkTargetKey(24, x: -52, y: 96, tension: 0.8), // down-OUT on the count
+  DanceIkTargetKey(26, x: -32, y: 96, tension: 0.8), // TAP inboard, "and"
   DanceIkTargetKey(28, x: -54, y: 86), // lifted, swinging home
   // The R14 rigging rater pixel-tracked the old 29→32 travel (y 94→98→103)
   // as a ~28px flat-contact DRAG across the loop seam — the sole never
@@ -592,7 +603,12 @@ const _shakuFootRTargetKeys = [
   // 30-31) — the old data peeled R at 30, leaving the seam with NO support
   // at all, which is exactly why the L foot used to slide in at floor
   // level instead of stepping.
-  DanceIkTargetKey(31, x: 69, y: 103), // still planted under the L recovery
+  // R26: the peel starts as soon as the L plant is solid (f30.125) — the
+  // old full-plant hold to f31 pinned the leg at max reach while the
+  // weight left, and the contact-lock's root correction fought the
+  // return transfer with a ~9-unit rightward bump at f31 (the measured
+  // seam snap-back all four R25 raters flagged).
+  DanceIkTargetKey(31, x: 58, y: 97), // peeling under the L recovery
   DanceIkTargetKey(32, x: 52, y: 96), // peel into the loop-start brush
 ];
 const _shakuFootLKeys = [
@@ -705,11 +721,41 @@ List<DanceJointKey> _shoulderLed(List<DanceJointKey> keys) => [
     ),
 ];
 
-final List<DanceJointKey> _shakuClavicleLLedKeys = _shoulderLed(
-  _shakuClavicleLKeys,
+// Off-beat shoulder POPS on the 'ands' of counts 2/4, same side as the
+// tapping foot (R bars 1-2, L bars 3-4) — the R24 ornament, re-timed and
+// re-sized in R26. Unlike the see-saw (which LEADS the arm rows by
+// [_shakuClavicleLead]), pops answer the taps, so they sit dead ON the
+// grid: they are merged into the led lists WITHOUT the lead. Sizes were
+// probe-measured at the visible shoulder crown relative to the chest —
+// the R25 raters could not verify the originals ("likely under
+// silhouette scale", measured 1.6-3.9 units); these target the panel's
+// 5-10%-of-pocket-range spec (~4-6 units).
+const _shakuClaviclePopsR = [
+  DanceJointKey(3, rotation: -0.3),
+  DanceJointKey(7, rotation: -0.42),
+  DanceJointKey(11, rotation: -0.3),
+  DanceJointKey(15, rotation: -0.42),
+];
+const _shakuClaviclePopsL = [
+  DanceJointKey(19, rotation: 0.42),
+  DanceJointKey(23, rotation: -0.02),
+  DanceJointKey(27, rotation: 0.42),
+  DanceJointKey(31, rotation: -0.02),
+];
+
+List<DanceJointKey> _mergedByFrame(
+  List<DanceJointKey> a,
+  List<DanceJointKey> b,
+) => [...a, ...b]
+  ..sort((x, y) => (x.frame + x.microFrames).compareTo(y.frame + y.microFrames));
+
+final List<DanceJointKey> _shakuClavicleLLedKeys = _mergedByFrame(
+  _shoulderLed(_shakuClavicleLKeys),
+  _shakuClaviclePopsL,
 );
-final List<DanceJointKey> _shakuClavicleRLedKeys = _shoulderLed(
-  _shakuClavicleRKeys,
+final List<DanceJointKey> _shakuClavicleRLedKeys = _mergedByFrame(
+  _shoulderLed(_shakuClavicleRKeys),
+  _shakuClaviclePopsR,
 );
 
 const _shakuClavicleLKeys = [
@@ -723,37 +769,23 @@ const _shakuClavicleLKeys = [
   DanceJointKey(14, rotation: -0.05),
   DanceJointKey(16, rotation: -0.42),
   DanceJointKey(18, rotation: 0.08),
-  // R24 ornament: the pop riff swaps to the L shoulder for bars 3-4,
-  // tracking the tapping foot (see _shakuClavicleRKeys).
-  DanceJointKey(19, rotation: 0.24), // off-beat pop (L up = +)
   DanceJointKey(20, rotation: 0.15),
   DanceJointKey(22, rotation: -0.05),
-  DanceJointKey(23, rotation: -0.1), // off-beat pop off the drop approach
   DanceJointKey(24, rotation: -0.42),
   DanceJointKey(26, rotation: 0.08),
-  DanceJointKey(27, rotation: 0.24), // off-beat pop
   DanceJointKey(28, rotation: 0.15),
   DanceJointKey(30, rotation: -0.05),
-  DanceJointKey(31, rotation: -0.1), // off-beat pop into the seam
   DanceJointKey(32, rotation: -0.42),
 ];
 const _shakuClavicleRKeys = [
   DanceJointKey(0, rotation: -0.15), // POP up (see-saw) while L drops
   DanceJointKey(2, rotation: -0.05), // anticipates the next drop
-  // R24 ornament: off-beat shoulder POPS on the 'ands' of counts 2/4 in
-  // the bars where the R foot is the tapping foot — a quick up-hitch
-  // (~0.1 rad off the interpolated path) answering the taps, per the
-  // panel's "alternating pop/dip on the 'ands', same side as the foot".
-  DanceJointKey(3, rotation: -0.12),
   DanceJointKey(4, rotation: 0.42), // R DROP (R opens)
   DanceJointKey(6, rotation: -0.08), // release overshoot up
-  DanceJointKey(7, rotation: -0.22), // off-beat pop
   DanceJointKey(8, rotation: -0.15),
   DanceJointKey(10, rotation: -0.05),
-  DanceJointKey(11, rotation: -0.12), // off-beat pop
   DanceJointKey(12, rotation: 0.42),
   DanceJointKey(14, rotation: -0.08),
-  DanceJointKey(15, rotation: -0.22), // off-beat pop, hands the riff to L
   DanceJointKey(16, rotation: -0.15),
   DanceJointKey(18, rotation: -0.05),
   DanceJointKey(20, rotation: 0.42),
@@ -816,7 +848,7 @@ const _shakuHeadKeys = [
   // second nod present in bars 1-2 and vanishing in 3-4). Unlike the R22
   // jitter keys these are count-locked, one per main nod, same direction —
   // a hesitation before the cross, not noise.
-  DanceJointKey(3, rotation: 0.03),
+  DanceJointKey(3, rotation: 0.042),
   DanceJointKey(5, rotation: -0.09), // answers R's open
   DanceJointKey(7, rotation: -0.03),
   DanceJointKey(9, rotation: 0.09),
@@ -824,7 +856,7 @@ const _shakuHeadKeys = [
   DanceJointKey(13, rotation: -0.09),
   DanceJointKey(15, rotation: -0.03),
   DanceJointKey(17, rotation: 0.1),
-  DanceJointKey(19, rotation: 0.035),
+  DanceJointKey(19, rotation: 0.046),
   DanceJointKey(21, rotation: -0.1),
   DanceJointKey(23, rotation: -0.035),
   DanceJointKey(25, rotation: 0.1),
