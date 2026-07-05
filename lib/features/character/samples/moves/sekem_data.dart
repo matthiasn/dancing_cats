@@ -158,7 +158,7 @@ const _sekemBodyKeysRaw = [
   DanceBodyKey(
     28,
     rootDx: 33,
-    rootDy: 49,
+    rootDy: 45,
     pelvisRotation: 0.42,
     chestRotation: -0.42,
     chestScaleY: 0.78,
