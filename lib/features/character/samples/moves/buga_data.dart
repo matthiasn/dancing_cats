@@ -298,20 +298,28 @@ const _bugaLegLowerKeys = [
 // BUGA hit alongside the shoulder shrug, and settles with a ~40% echo.
 // Bar 2 (A') digs and snaps a shade harder. Buga previously had no
 // authored head keys.
+// R2 (port panel: the hit read as a 2-beat SWELL and the chin dips fell
+// under the prominence floor): the coil is twice as deep, the snap
+// OVERSHOOTS in one frame and rings an echo, and the post-hit hold gets
+// a live settle wobble instead of a 2-beat dead zone.
 const _bugaHeadKeys = [
-  DanceJointKey(0, rotation: 0.03), // first 'lo' — chin dips
-  DanceJointKey(4, rotation: 0.055), // second, deeper
-  DanceJointKey(8, rotation: 0.08), // third — coiled over the deep hold
-  DanceJointKey(11, rotation: 0.1), // loads under the hit
-  DanceJointKey(12, rotation: -0.1), // BUGA — snaps up-and-back
-  DanceJointKey(14, rotation: -0.04), // echo settle
-  DanceJointKey(16, rotation: 0.03), // bar 2 restarts the descent
-  DanceJointKey(20, rotation: 0.06),
-  DanceJointKey(24, rotation: 0.09), // A' digs deeper
-  DanceJointKey(27, rotation: 0.11),
-  DanceJointKey(28, rotation: -0.12), // the bigger BUGA
-  DanceJointKey(30, rotation: -0.05),
-  DanceJointKey(32, rotation: 0.03), // == frame 0
+  DanceJointKey(0, rotation: 0.05), // first 'lo' — chin dips
+  DanceJointKey(4, rotation: 0.09), // second, deeper
+  DanceJointKey(8, rotation: 0.13), // third — coiled over the deep hold
+  DanceJointKey(11, rotation: 0.14), // loads hard under the hit
+  DanceJointKey(12, rotation: -0.16), // BUGA — one-frame snap, overshoot
+  DanceJointKey(13, rotation: -0.02), // recoil
+  DanceJointKey(14, rotation: -0.08), // echo ring
+  DanceJointKey(15, rotation: -0.03), // settle wobble
+  DanceJointKey(16, rotation: 0.05), // bar 2 restarts the descent
+  DanceJointKey(20, rotation: 0.1),
+  DanceJointKey(24, rotation: 0.14), // A' digs deeper
+  DanceJointKey(27, rotation: 0.14),
+  DanceJointKey(28, rotation: -0.16), // the bigger BUGA, inside the envelope
+  DanceJointKey(29, rotation: -0.03), // recoil
+  DanceJointKey(30, rotation: -0.09), // echo ring
+  DanceJointKey(31, rotation: -0.04),
+  DanceJointKey(32, rotation: 0.05), // == frame 0
 ];
 
 const _bugaClavicleRKeys = [

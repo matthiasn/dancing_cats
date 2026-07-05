@@ -840,6 +840,16 @@ class CatClips {
             ),
           ],
           extraRootLayers: const [
+            // Zanku R2: a per-stamp lateral pulse (~35% of the bar sway)
+            // commits the pelvis over each stamping foot — the R2 mocap
+            // rater measured the mass riding a bar-long lean while the
+            // stamps alternated under it ("leg gestures without mass
+            // behind them").
+            // h4, not h8: stamps alternate every 4 frames, so consecutive
+            // stamps sit one full h8 period apart (same pulse sign on both
+            // sides — the mirrored dwell gate caught it). h4 flips the
+            // lean per stamp: toward L after the L stamp, R after R.
+            SineRootChannel(swayAmplitude: -5, swayHarmonic: 4),
             SineRootChannel(
               bobAmplitude: -8,
               bobPhase: 0.09375,
