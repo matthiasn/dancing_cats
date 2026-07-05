@@ -103,6 +103,15 @@ class CharacterScene {
             _limbTargetedPose(context.clip, context.timeSeconds, pose),
       ),
       PoseModifierPass(
+        id: 'shoulder-line',
+        description:
+            'Drive the sternum-pivot shoulder-line levers from the clavicle '
+            'drop and the solved humeral elevation. Runs after limb-ik so '
+            'the levers respond to the IK-solved arm, and because they are '
+            'render-only handles the solve itself is never disturbed.',
+        modifier: (context, pose) => _shoulderLinePose(context.clip, pose),
+      ),
+      PoseModifierPass(
         id: 'overshoot-settle',
         description:
             'Add a decaying rotational settle after a hard authored stop on '
@@ -311,6 +320,7 @@ class CharacterScene {
       base: base,
       baseScale: _verticalScale(base),
       rootDx: posed.rootDx,
+      rootDy: posed.rootDy,
     );
     var face = faceSolver.applyAutonomic(expression.state, auto);
     if (eyeOpenScale != 1) {
@@ -673,6 +683,151 @@ class CharacterScene {
     );
   }
 
+  /// How much of each clavicle's resolved rotation the matching
+  /// shoulder-line lever mirrors. The lever pivots at the sternum (~28
+  /// units of horizontal arm to the jacket's shoulder corner), so at 1.0 a
+  /// full ±0.42 clavicle see-saw translates the corner ~12 units vertically
+  /// before skin weights (0.45–0.55) scale the rendered pop to roughly
+  /// half. Tuned against the shoulder-line probe and rendered strips.
+  static const double _kShoulderLineGain = 1.3;
+
+  /// Humeral-elevation → girdle coupling (the R14 mocap panel's ask: "~1° of
+  /// clavicular elevation per 2° of humerus above ~30°"). When the solved
+  /// upper arm swings past [_kShoulderLineAbductionThreshold] from its
+  /// hanging rest, the lever on that side lifts the jacket's shoulder corner
+  /// with it — a winged elbow now raises its own shoulder line instead of
+  /// hinging under a rigid yoke. Applied ONLY to the render levers: the IK
+  /// solve, the clavicle channel, and its envelope gate are untouched.
+  // Ratcheted twice by panels: 0.6/0.6/0.35 ballooned paired shrug humps
+  // to the jaw (R15); at 0.6/0.5/0.25 a churn move whose arms swing every
+  // frame kept the caps "permanently shrugged, cresting above the collar"
+  // (R16) because the coupling never shut off. The higher threshold means
+  // only a genuinely WINGED elbow (upper arm past ~54° from hanging) earns
+  // a lift, and the smaller cap keeps the cap below the collar line.
+  static const double _kShoulderLineAbductionThreshold = 0.95;
+  static const double _kShoulderLineAbductionGain = 0.5;
+  static const double _kShoulderLineAbductionCap = 0.15;
+
+  /// Authored-girdle deference for the humeral coupling: as the resolved
+  /// clavicle rotation on a side approaches this magnitude, the elevation
+  /// coupling on that side fades to zero. Without this, shaku's punch-out
+  /// (humerus swung near horizontal) lifts the very shoulder its authored
+  /// see-saw is dropping on the same count, and the two cancel back into
+  /// the "level yoke" the see-saw fix exists to break. Choreographed
+  /// shoulder intent wins; scapulo-humeral rhythm fills in only where the
+  /// clavicle channel is quiet (transitions, un-authored moves).
+  static const double _kShoulderLineAbductionDeference = 0.25;
+
+  /// Shoulder-line levers paired with the same-side clavicle, discovered by
+  /// id convention like the rest of the girdle plumbing (no lever bones in a
+  /// rig ⇒ the pass is a no-op).
+  late final List<({String clavicleId, String leverId})> _shoulderLinePairs =
+      () {
+        final pairs = <({String clavicleId, String leverId})>[];
+        for (final bone in rig.bones) {
+          final id = bone.id.toLowerCase();
+          if (!id.startsWith('shoulder_line')) continue;
+          final suffix = id.endsWith('.l')
+              ? '.l'
+              : id.endsWith('.r')
+              ? '.r'
+              : null;
+          if (suffix == null) continue;
+          for (final candidate in rig.bones) {
+            final cid = candidate.id.toLowerCase();
+            if (cid.contains('clavicle') && cid.endsWith(suffix)) {
+              pairs.add((clavicleId: candidate.id, leverId: bone.id));
+              break;
+            }
+          }
+        }
+        return pairs;
+      }();
+
+  /// The `shoulder-line` pipeline stage. Two drivers, both writing only the
+  /// transform-only shoulder-line levers (see the rig's shoulder_line bone
+  /// comment) — the step that turns SOLVED girdle motion into actual
+  /// translation of the jacket's rendered shoulder contour, the
+  /// "solved-rotation-doesn't-render" fix:
+  ///
+  /// 1. Mirrors each clavicle's resolved rotation (authored keys +
+  ///    girdle-follow + raised-hand shrug) onto the same-side lever, scaled
+  ///    by [_kShoulderLineGain]. A same-sign copy is correct for both
+  ///    sides: a +x (right) corner under a positive rotation moves down
+  ///    (+y in screen space), and the left clavicle's "drop" is authored
+  ///    with the opposite sign, which moves the −x corner down as well.
+  /// 2. Adds humeral-elevation coupling: the further the IK-solved upper
+  ///    arm swings from its hanging rest past the abduction threshold, the
+  ///    more the lever lifts that side's corner (capped) — scapulo-
+  ///    clavicular rhythm, reduced to its silhouette effect.
+  ///
+  /// Runs after `limb-ik` so driver 2 reads the solved humerus; since the
+  /// levers have no children and no drawables, nothing downstream is
+  /// disturbed.
+  Pose _shoulderLinePose(Clip clip, Pose pose) {
+    if (_shoulderLinePairs.isEmpty) return pose;
+    Map<String, JointPose>? joints;
+    void addLever(String leverId, double delta) {
+      if (delta == 0) return;
+      final map = joints ??= Map<String, JointPose>.of(pose.joints);
+      map[leverId] = _addJointRotation(
+        map[leverId] ?? pose.jointOf(leverId),
+        delta,
+      );
+    }
+
+    for (final pair in _shoulderLinePairs) {
+      addLever(
+        pair.leverId,
+        pose.jointOf(pair.clavicleId).rotation * _kShoulderLineGain,
+      );
+    }
+
+    for (final target in clip.limbTargets) {
+      if (!_isHandBone(target.endBoneId)) continue;
+      final side = _sideSign(target.endBoneId);
+      if (side == 0) continue;
+      final pair = _shoulderLineBySuffix[side > 0 ? '.l' : '.r'];
+      if (pair == null) continue;
+      final swing = _shortestAngle(
+        pose.jointOf(target.upperBoneId).rotation,
+      ).abs();
+      final engagement = swing - _kShoulderLineAbductionThreshold;
+      if (engagement <= 0) continue;
+      final authored = _shortestAngle(
+        pose.jointOf(pair.clavicleId).rotation,
+      ).abs();
+      final deference = (1 - authored / _kShoulderLineAbductionDeference)
+          .clamp(0.0, 1.0);
+      if (deference <= 0) continue;
+      final lift =
+          math.min(
+            engagement * _kShoulderLineAbductionGain,
+            _kShoulderLineAbductionCap,
+          ) *
+          deference;
+      // side: L=+1, R=−1 — matches the raised-hand shrug's convention where
+      // a NEGATIVE right-clavicle rotation is shoulder-up.
+      addLever(pair.leverId, side * lift);
+    }
+
+    final resolved = joints;
+    if (resolved == null) return pose;
+    return Pose(
+      joints: resolved,
+      rootDx: pose.rootDx,
+      rootDy: pose.rootDy,
+      rootRotation: pose.rootRotation,
+    );
+  }
+
+  /// Lever/clavicle pair per side suffix, for the humeral coupling above.
+  late final Map<String, ({String clavicleId, String leverId})>
+  _shoulderLineBySuffix = {
+    for (final pair in _shoulderLinePairs)
+      if (pair.leverId.toLowerCase().endsWith('.l')) '.l': pair else '.r': pair,
+  };
+
   /// The `limb-ik` pipeline stage: bends each [Clip.limbTargets] two-bone
   /// limb (shoulder→elbow→wrist or hip→knee→ankle) toward its authored
   /// world-space target via [_solveLimbTarget], committing joints one target
@@ -691,6 +846,61 @@ class CharacterScene {
   /// blended world-space hold (see [_supportFootWorldAnchor]) so the leg
   /// bends to absorb the body's groove while the foot stays planted, instead
   /// of dragging with the hips.
+  /// Minimum separation, in anchor-space units, the two hand IK targets are
+  /// allowed to close to. Each mitt drawable reads ~10 units across, so
+  /// anything under ~19 renders as one merged orange blob.
+  static const double _kHandClearance = 19;
+
+  /// Hand-clearance constraint (R15 animator: both mitts "stack directly
+  /// over the sternum as a single orange blob... enforce a minimum lateral
+  /// separation"). When both authored hand targets sample closer than
+  /// [_kHandClearance], each is pushed half the shortfall apart along their
+  /// separation axis (falling back to the x axis if they coincide exactly),
+  /// so crossed-chest churns always read as two limbs passing. A pure
+  /// function of the sampled targets — the clip+time ⇒ pose determinism
+  /// guarantee holds — and authored data that already keeps daylight is
+  /// returned untouched. Both hands share the same anchor bone in this rig,
+  /// so pushing in anchor space is pushing in render space.
+  Map<String, IkTargetPose> _handClearanceAdjustedSamples(
+    Clip clip,
+    double phase,
+  ) {
+    LimbIkTarget? first;
+    LimbIkTarget? second;
+    for (final target in clip.limbTargets) {
+      if (!_isHandBone(target.endBoneId)) continue;
+      if (first == null) {
+        first = target;
+      } else {
+        second = target;
+        break;
+      }
+    }
+    if (first == null || second == null) return const {};
+    final a = first.channel.sample(phase);
+    final b = second.channel.sample(phase);
+    if (a.weight <= 0 || b.weight <= 0) return const {};
+    final dx = b.x - a.x;
+    final dy = b.y - a.y;
+    final distance = math.sqrt(dx * dx + dy * dy);
+    if (distance >= _kHandClearance) return const {};
+    final push = (_kHandClearance - distance) / 2;
+    final ux = distance > 1e-6 ? dx / distance : 1.0;
+    final uy = distance > 1e-6 ? dy / distance : 0.0;
+    return {
+      first.endBoneId: IkTargetPose(
+        x: a.x - ux * push,
+        y: a.y - uy * push,
+        weight: a.weight,
+      ),
+      second.endBoneId: IkTargetPose(
+        x: b.x + ux * push,
+        y: b.y + uy * push,
+        weight: b.weight,
+      ),
+    };
+  }
+
   Pose _limbTargetedPose(Clip clip, double timeSeconds, Pose pose) {
     if (clip.limbTargets.isEmpty) return pose;
 
@@ -702,8 +912,11 @@ class CharacterScene {
     // toward its planted world position so the body grooves over it.
     final footAnchor = _supportFootWorldAnchor(clip, phase);
 
+    final clearedHands = _handClearanceAdjustedSamples(clip, phase);
+
     for (final target in clip.limbTargets) {
-      final sample = target.channel.sample(phase);
+      final sample =
+          clearedHands[target.endBoneId] ?? target.channel.sample(phase);
       final weight = sample.weight.clamp(0.0, 1.0);
       if (weight <= 0) continue;
 
@@ -1228,6 +1441,7 @@ class CharacterScene {
     required Affine2D base,
     required double baseScale,
     required double rootDx,
+    required double rootDy,
   }) {
     final headId = rig.face?.anchorBoneId;
     if (headId == null) return world;
@@ -1279,20 +1493,52 @@ class CharacterScene {
       anchor.x,
       anchor.y,
     ).multiply(correction).multiply(Affine2D.translation(-anchor.x, -anchor.y));
-    // Lateral follow-through, same lagged-difference model as the rotation:
-    // the skull trails the pelvis groove by a few px and catches up, so fast
-    // side-to-side pockets read as a head riding a spring, not a bolted mass.
-    // Clamped tight — the collar join must never gap.
-    final headDxFollow = _isDanceFamily(clip) && clip.duration > 0
+    // Lateral + vertical follow-through, same lagged-difference model as the
+    // rotation: the skull trails the pelvis groove and catches up, so fast
+    // pockets read as a head riding a spring, not a bolted mass. Clamped
+    // tight — the collar join must never gap.
+    final lagged = _isDanceFamily(clip) && clip.duration > 0
+        ? evaluator.evaluate(
+            clip,
+            timeSeconds - clip.duration * _headLagFraction,
+          )
+        : null;
+    final headDxFollow = lagged != null
+        ? _clampMagnitude((lagged.rootDx - rootDx) * 0.22, 5)
+        : 0.0;
+    // The BOUNCE CASCADE — R20's unanimous finding across all four panel
+    // lenses: the skull's vertical trace was "a near pixel-clone" of the
+    // hips (measured correlation 0.97 at zero lag), an elevator platform
+    // instead of a spine absorbing the bounce. The skull now trails the
+    // root bounce by the 2-frame head lag at reduced gain, and the neck by
+    // half that — successive breaking: pelvis leads, chest follows, skull
+    // arrives last, compressing into each trough and floating off each top.
+    // Asymmetric by direction: dropping (negative diff) lets the skull lag
+    // UP at full gain — the trough compression every rater asked for — but
+    // rising (positive diff) lags the skull DOWN at BELOW the neck's gain,
+    // because a neck compresses (chin tuck) far more readily than it
+    // extends, and the head-above-neck join invariant must hold at every
+    // instant (pouncingCat's big rebound dipped the skull 4.7 units below
+    // the throat at the symmetric gain). Scaled by [Clip.danceHeadBobScale]
+    // like the rotation follow above, so a clip whose PREMISE is a tight,
+    // level skull (pouncingCat, bob scale 0) opts out entirely instead of
+    // reading its 75-unit crouch differential as a rubber throat.
+    final cascade = clip.danceHeadBobScale;
+    final headDyDiff = lagged != null ? lagged.rootDy - rootDy : 0.0;
+    final headDyFollow = headDyDiff < 0
+        ? _clampMagnitude(headDyDiff * 0.44 * cascade, 9)
+        : _clampMagnitude(headDyDiff * 0.19 * cascade, 4);
+    final neckDyFollow = _isDanceFamily(clip) && clip.duration > 0
         ? _clampMagnitude(
             (evaluator
                         .evaluate(
                           clip,
-                          timeSeconds - clip.duration * _headLagFraction,
+                          timeSeconds - clip.duration * _headLagFraction / 2,
                         )
-                        .rootDx -
-                    rootDx) *
-                0.22,
+                        .rootDy -
+                    rootDy) *
+                0.22 *
+                cascade,
             5,
           )
         : 0.0;
@@ -1315,10 +1561,16 @@ class CharacterScene {
           )
         : const (neckShiftY: 0.0, headExtraShiftY: 0.0, neckId: null);
 
-    final neckTranslate = Affine2D.translation(0, level.neckShiftY);
+    final neckTranslate = Affine2D.translation(
+      0,
+      level.neckShiftY + neckDyFollow,
+    );
     final headTransform = neckTranslate
         .multiply(
-          Affine2D.translation(headHorizontalCounter, level.headExtraShiftY),
+          Affine2D.translation(
+            headHorizontalCounter,
+            level.headExtraShiftY + headDyFollow,
+          ),
         )
         .multiply(stabilizeHead);
     // THROAT BRIDGE: the collar/tie/shirt bones hang off the chest, not the
@@ -1327,7 +1579,7 @@ class CharacterScene {
     // follows the throat up instead of gapping.
     final bridgeTranslate = Affine2D.translation(
       0,
-      level.neckShiftY * _kThroatBridgeFraction,
+      (level.neckShiftY + neckDyFollow) * _kThroatBridgeFraction,
     );
     final neckId = level.neckId;
     final shifted = Map<String, Affine2D>.of(world);
@@ -2166,8 +2418,13 @@ class CharacterScene {
         ? 0.72
         : spanLength <= 0.26
         ? 0.58
+        // 0.26 -> 0.45: R16 rigging pixel-diffed both planted shoes sliding
+        // ~half a shoe length during the lunge hold — the weak long-span
+        // hold let the plants ride the (now much deeper) weight sway. The
+        // head-whip concern that motivated 0.26 is re-checked by the
+        // rigid-skull gate, which stays green at 0.45.
         : (clip.name == 'shaku' || clip.name.startsWith('danceBackup'))
-        ? 0.26
+        ? 0.45
         : 0.42;
     return base * edge * clip.supportFootWorldAnchorStrength;
   }
@@ -2190,8 +2447,10 @@ class CharacterScene {
         ? 0.38
         : spanLength <= 0.26
         ? 0.3
+        // 0.16 -> 0.24 alongside the deeper weight sway: the planted shoe
+        // needs a firmer lateral hold or the committed pelvis drags it.
         : (clip.name == 'shaku' || clip.name.startsWith('danceBackup'))
-        ? 0.16
+        ? 0.24
         : 0.26;
     final baseX = clip.supportFootWorldAnchor
         ? (dance ? anchoredDanceBaseX : 0.18)

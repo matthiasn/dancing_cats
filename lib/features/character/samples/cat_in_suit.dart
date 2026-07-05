@@ -492,8 +492,16 @@ class CatClips {
         // travel further than the hips (whole-body pogo, no pocket); calming
         // the bob and letting the level-counter correct the full compress
         // reads as a steady head over a busy lower body.
-        danceHeadBobScale: 0.35,
-        danceHeadLevelClampMin: -14,
+        // OWNER DECISION (2026-07-04, R16): the head RIDES the crouch for
+        // shaku. Three panels read the level-head design as "the strongest
+        // keyframed-robotics tell" — the skull sat HIGHEST in the deepest
+        // crouch because the leveler counter-extended the neck. Bob back up
+        // to 0.8 and the level clamp eased to -5 so the head inherits
+        // roughly half of the pelvis drop; the authored tilt channel gives
+        // it attitude on top. (pouncingCat and the rest keep the leveler —
+        // this is a per-move taste call, not a rig change.)
+        danceHeadBobScale: 0.8,
+        danceHeadLevelClampMin: -5,
         baseClip: base,
         zOrderSwaps: const [
           ZOrderSwapWindow(
@@ -535,6 +543,11 @@ class CatClips {
             _shakuShoulderSocketRKeys,
             smooth: true,
           ),
+          // Head attitude: a lagged counter-tilt answering each open count
+          // plus a tip into the generator pull — the R15 animator's "single
+          // change that turns this rig from a body that moves into a
+          // character that dances".
+          CatBones.head: const DanceJointTrack(_shakuHeadKeys, smooth: true),
         },
         bodyMotion: DanceBodyMotion(
           pelvisBoneId: CatBones.hips,
@@ -574,22 +587,46 @@ class CatClips {
             ),
           ],
           extraRootLayers: const [
-            SineRootChannel(swayAmplitude: -2, leanAmplitude: -0.04),
+            // Weight commitment at PANEL SCALE (R16 animator measured the
+            // previous -9 as "~8px of centroid sway against a ~90px stance"
+            // and asked for 18-25px): one sway cycle per loop rides the
+            // pelvis 30-40% of the way onto the LEFT support through bar 1
+            // and the RIGHT through bar 2. Owner-approved amplitude ladder;
+            // the stance/head gates were recalibrated with it.
+            SineRootChannel(swayAmplitude: -20, leanAmplitude: -0.07),
+            // The pocket pulse, SHAPED (R19 mocap verdict: the symmetric
+            // triangle wave "never SITS into a beat... one timing change
+            // that converts the whole loop from keyframed to danced").
+            // Three-harmonic Fourier stack, phases solved numerically:
+            //  - h8 primary: trough dead on each count (depth restored by
+            //    the accent layer below, so overall swing stays ~55);
+            //  - h16 skew at phase 0.05664: steepens the drop INTO each
+            //    trough and flattens the exit — measured 2.9x drop/rise
+            //    slope asymmetry, trough arriving a hair early (a dancer
+            //    hits slightly INTO the beat);
+            //  - h2 accent: its two deep moments land ~1.5 frames AFTER
+            //    counts 1 and 5 (frames 1.5 / 17.5) — a behind-the-beat
+            //    pocket: the foot steps ON the count, the weight arrives
+            //    just after, once the landed foot's contact lock is fully
+            //    engaged (dead on frame 0 the dive landed inside the wrap
+            //    span's lock fade-in and popped the planted sole ~16 units
+            //    through its hold).
             SineRootChannel(
-              bobAmplitude: -10,
+              bobAmplitude: -20,
               bobPhase: 0.09375,
               bobHarmonic: 8,
               leanAmplitude: 0.015,
               leanHarmonic: 8,
             ),
             SineRootChannel(
-              bobAmplitude: -3.5,
-              bobPhase: 0.02,
+              bobAmplitude: -6,
+              bobPhase: 0.05664,
               bobHarmonic: 16,
               leanAmplitude: 0.006,
               leanPhase: 0.03,
               leanHarmonic: 16,
             ),
+            SineRootChannel(bobAmplitude: -7, bobPhase: 0.328125),
           ],
           extraPelvisLayers: const [
             SineChannel(

@@ -152,6 +152,8 @@ class CatBones {
   static const chest = 'chest';
   static const clavicleL = 'clavicle.L';
   static const clavicleR = 'clavicle.R';
+  static const shoulderLineL = 'shoulder_line.L';
+  static const shoulderLineR = 'shoulder_line.R';
   static const shirtV = 'shirt_v';
   static const collarL = 'collar.L';
   static const collarR = 'collar.R';
@@ -1004,6 +1006,32 @@ RigSpec buildCatInSuitRig({
       pivotY: -6,
       z: 14,
     ),
+    // Sternum-pivot shoulder-line levers. The clavicle's own pivot sits AT
+    // the shoulder corner (x = ±35), so its rotation cannot displace the
+    // jacket contour there — a point at the pivot doesn't move when the
+    // pivot rotates. That geometry is why an authored clavicle see-saw
+    // solves (~±0.42) yet the rendered yoke stays a "level, locked
+    // shoulder line" (the R13 finding). A real clavicle rotates about the
+    // STERNOCLAVICULAR joint at the centreline, putting ~30 units of lever
+    // between pivot and acromion. These transform-only handles restore
+    // that lever: the scene's shoulder-line pass mirrors each clavicle's
+    // resolved rotation onto its handle, and the jacket's armhole/yoke
+    // vertices ride the handle — so a clavicle drop finally translates the
+    // rendered shoulder corner down instead of rotating in place.
+    const Bone(
+      id: CatBones.shoulderLineR,
+      parent: CatBones.chest,
+      pivotX: 4,
+      pivotY: -6,
+      z: 13,
+    ),
+    const Bone(
+      id: CatBones.shoulderLineL,
+      parent: CatBones.chest,
+      pivotX: -4,
+      pivotY: -6,
+      z: 13,
+    ),
 
     // Jacket front tailoring: a pale shirt wedge at the collar opening with two
     // navy lapels folded back over it, framing a V down to the tie knot — the
@@ -1758,23 +1786,51 @@ RigSpec buildCatInSuitRig({
         TrunkStation(boneId: CatBones.hips, y: 14, halfWidth: 22.5),
         TrunkStation(boneId: CatBones.torso, y: -8, halfWidth: 19.5),
         TrunkStation(boneId: CatBones.torso, y: -34, halfWidth: 24.5),
-        TrunkStation(boneId: CatBones.chest, y: -60, halfWidth: 32.5),
+        // The armhole corner rides the shoulder-line lever hard: this is the
+        // widest point of the silhouette — the "shoulder line" a review
+        // panel judges — and the lever is the only bone whose motion can
+        // actually translate it (see the shoulder_line bone comment).
+        TrunkStation(
+          boneId: CatBones.chest,
+          y: -60,
+          halfWidth: 32.5,
+          extraWeightsLeft: {CatBones.shoulderLineL: 0.45},
+          extraWeightsRight: {CatBones.shoulderLineR: 0.45},
+        ),
       ],
       // The yoke: a near-vertical armhole side seam up to the shoulder corner,
       // then a ~25° trapezius line into the collar — NOT a steep straight
       // ramp from deltoid to head. The arm ribbon's deltoid dome crowns just
       // above the corner and reads as the shoulder point. The OUTER corners
-      // ride the clavicles half-weighted, so a girdle shrug lifts the
-      // trapezius with the raised deltoid instead of leaving a valley
-      // between shoulder and collar.
+      // ride the shoulder-line levers plus a clavicle share, so a girdle
+      // drop/shrug moves the trapezius with the deltoid instead of leaving
+      // a valley between shoulder and collar; the response tapers off
+      // toward the collar points so the see-saw reads as a shoulder POP,
+      // not the whole neckline rocking.
       crown: const [(x: -29.0, y: -75.0), (x: -13.0, y: -81.5)],
       crownWeights: const [
-        {CatBones.chest: 0.5, CatBones.clavicleL: 0.5},
-        {CatBones.chest: 0.85, CatBones.clavicleL: 0.15},
+        {
+          CatBones.chest: 0.3,
+          CatBones.clavicleL: 0.15,
+          CatBones.shoulderLineL: 0.55,
+        },
+        {
+          CatBones.chest: 0.7,
+          CatBones.clavicleL: 0.1,
+          CatBones.shoulderLineL: 0.2,
+        },
       ],
       crownWeightsMirrored: const [
-        {CatBones.chest: 0.85, CatBones.clavicleR: 0.15},
-        {CatBones.chest: 0.5, CatBones.clavicleR: 0.5},
+        {
+          CatBones.chest: 0.7,
+          CatBones.clavicleR: 0.1,
+          CatBones.shoulderLineR: 0.2,
+        },
+        {
+          CatBones.chest: 0.3,
+          CatBones.clavicleR: 0.15,
+          CatBones.shoulderLineR: 0.55,
+        },
       ],
       z: 13,
       color: _suit,

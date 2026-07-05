@@ -1039,20 +1039,25 @@ void main() {
           CatBones.footR,
           CatBones.footL,
         ]);
+        // Handoff re-timed 22 -> 14.5 for the tap-step re-author: the left
+        // foot lifts into airborne taps at 14 and the right foot plants
+        // dead at 15, with the bar-period weight sway committing the
+        // pelvis rightward from 16 — the support solver now follows the
+        // foot that actually carries the weight (see _shakuContactSpans).
         expect(spans.map((span) => span.start), [
           0,
           10 / 32,
-          22 / 32,
+          14.5 / 32,
           30.125 / 32,
         ]);
         expect(spans.map((span) => span.end), [
           10 / 32,
-          22 / 32,
+          14.5 / 32,
           30.125 / 32,
           1,
         ]);
-        expect(spans[1].end, greaterThan(20 / 32));
-        expect(spans[2].start, greaterThan(20 / 32));
+        expect(spans[1].end, greaterThan(13 / 32));
+        expect(spans[2].start, greaterThan(13 / 32));
         expect(spans[2].end, greaterThan(30 / 32));
         expect(phrase.supports.map((support) => support.label), [
           'left-foot Shaku low pocket',
