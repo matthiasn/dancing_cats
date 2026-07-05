@@ -1621,11 +1621,15 @@ RigSpec buildCatInSuitRig({
       // stays close to the deltoid width so the round start cap (the armhole
       // gap-proofing dome) reads as one continuous mass with the shoulder,
       // not a pinched neck-then-bulge.
-      halfWidths: scaledArmWidths(const [10.8, 11.0, 11.2, 7.2, 8.5, 5.2]),
+      // Terminal width raised 5.2 -> 6.7 (~60% of the bicep): with the cuff
+      // termination below, the sleeve ENDS as a fabric opening at the cuff
+      // band instead of deflating into the palm ("forearm pinches to a
+      // third of the bicep just above the cuff" — R21 rigging).
+      halfWidths: scaledArmWidths(const [10.8, 11.0, 11.2, 7.2, 8.5, 6.7]),
       // BACK profile: fuller triceps up high, a tight bony elbow point, and
       // a lean forearm underside — the same put-the-mass-where-the-muscle-is
       // asymmetry that makes the legs read athletic.
-      backHalfWidths: scaledArmWidths(const [10.4, 10.4, 10.2, 7.4, 7.2, 5.0]),
+      backHalfWidths: scaledArmWidths(const [10.4, 10.4, 10.2, 7.4, 7.2, 6.4]),
       // Tension profile: soft over the clavicle/deltoid cap (a flat firm
       // tension scalloped the shoulder into per-joint lobes), firm from the
       // bicep out so the elbow keeps a defined vertex at any flexion.
@@ -1642,6 +1646,14 @@ RigSpec buildCatInSuitRig({
       // clipped to actual body overlap at render time, so its ends land ON
       // the silhouette rather than floating mid-cloth.
       inkStartFraction: 0.2,
+      // Sleeve terminates at the CUFF, not the palm: the last spine joint
+      // is the hand origin (the mitten's centre) and the wrist cuff sits
+      // ~12 units back up the forearm — without this inset the sleeve
+      // painted across the paw and, via its end cap, PAST it ("continues
+      // past the cuff to an empty squared end" — three panel rounds).
+      // 14 back + the ~6.7 cap radius lands the fabric edge under the
+      // cuff band.
+      distalInset: 14 * armWidthScale,
     ),
     LimbRibbonSpec(
       id: 'arm.L.ribbon',
@@ -1664,11 +1676,15 @@ RigSpec buildCatInSuitRig({
       // stays close to the deltoid width so the round start cap (the armhole
       // gap-proofing dome) reads as one continuous mass with the shoulder,
       // not a pinched neck-then-bulge.
-      halfWidths: scaledArmWidths(const [10.8, 11.0, 11.2, 7.2, 8.5, 5.2]),
+      // Terminal width raised 5.2 -> 6.7 (~60% of the bicep): with the cuff
+      // termination below, the sleeve ENDS as a fabric opening at the cuff
+      // band instead of deflating into the palm ("forearm pinches to a
+      // third of the bicep just above the cuff" — R21 rigging).
+      halfWidths: scaledArmWidths(const [10.8, 11.0, 11.2, 7.2, 8.5, 6.7]),
       // BACK profile: fuller triceps up high, a tight bony elbow point, and
       // a lean forearm underside — the same put-the-mass-where-the-muscle-is
       // asymmetry that makes the legs read athletic.
-      backHalfWidths: scaledArmWidths(const [10.4, 10.4, 10.2, 7.4, 7.2, 5.0]),
+      backHalfWidths: scaledArmWidths(const [10.4, 10.4, 10.2, 7.4, 7.2, 6.4]),
       // Tension profile: soft over the clavicle/deltoid cap (a flat firm
       // tension scalloped the shoulder into per-joint lobes), firm from the
       // bicep out so the elbow keeps a defined vertex at any flexion.
@@ -1685,6 +1701,14 @@ RigSpec buildCatInSuitRig({
       // clipped to actual body overlap at render time, so its ends land ON
       // the silhouette rather than floating mid-cloth.
       inkStartFraction: 0.2,
+      // Sleeve terminates at the CUFF, not the palm: the last spine joint
+      // is the hand origin (the mitten's centre) and the wrist cuff sits
+      // ~12 units back up the forearm — without this inset the sleeve
+      // painted across the paw and, via its end cap, PAST it ("continues
+      // past the cuff to an empty squared end" — three panel rounds).
+      // 14 back + the ~6.7 cap radius lands the fabric edge under the
+      // cuff band.
+      distalInset: 14 * armWidthScale,
     ),
   ];
 

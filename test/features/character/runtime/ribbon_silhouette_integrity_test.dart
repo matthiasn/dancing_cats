@@ -32,8 +32,9 @@ void main() {
   const spikeCeiling = 0.32;
 
   // Replicates CharacterRenderer._ribbonPath's spine construction: each joint
-  // bone's solved world origin. Kept identical so the tested silhouette is the
-  // drawn one.
+  // bone's solved world origin, then the spec's distal inset (sleeves
+  // terminate at the cuff, not the palm). Kept identical so the tested
+  // silhouette is the drawn one.
   List<Offset>? ribbonSpine(
     LimbRibbonSpec ribbon,
     Map<String, Affine2D> world,
@@ -44,7 +45,7 @@ void main() {
       if (t == null) return null;
       spine.add(Offset(t.origin.x, t.origin.y));
     }
-    return spine;
+    return insetRibbonSpineEnd(spine, ribbon.distalInset);
   }
 
   test('no catalogue arm/leg ribbon spikes into a batwing', () {

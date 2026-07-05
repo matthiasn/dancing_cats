@@ -385,6 +385,7 @@ class LimbRibbonSpec {
     this.shadeGroup,
     this.inkOverFill = false,
     this.inkStartFraction = 0,
+    this.distalInset = 0,
   }) : assert(
          jointTensions == null || jointTensions.length == jointBoneIds.length,
          'jointTensions must match jointBoneIds',
@@ -427,6 +428,15 @@ class LimbRibbonSpec {
   final int? outlineColor;
   final double outlineWidth;
   final int samplesPerSegment;
+
+  /// World units to pull the ribbon's LAST spine point back toward its
+  /// neighbour before drawing. A tailored sleeve should terminate at the
+  /// CUFF: an arm chain's final joint is the hand origin (the mitten's
+  /// centre), so with no inset the sleeve paints across the paw and — via
+  /// its end cap — past it, reading as an empty fabric paddle beyond the
+  /// cuff on every extended pose. Applied identically by the renderer and
+  /// the silhouette-integrity gate (see `insetRibbonSpineEnd`).
+  final double distalInset;
 
   /// Whether the cel-shade's broad contour-rounding applies to the whole
   /// ribbon. Limbs default to true for soft anatomical volume; tailored sleeves

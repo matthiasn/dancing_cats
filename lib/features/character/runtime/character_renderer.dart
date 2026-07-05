@@ -628,13 +628,14 @@ class CharacterRenderer {
     if (!ribbon.inkOverFill || outline == null || ribbon.outlineWidth <= 0) {
       return;
     }
-    final spine = <Offset>[];
+    var spine = <Offset>[];
     for (final boneId in ribbon.jointBoneIds) {
       final transform = world[boneId];
       if (transform == null) return;
       final origin = transform.origin;
       spine.add(Offset(origin.x, origin.y));
     }
+    spine = insetRibbonSpineEnd(spine, ribbon.distalInset);
     final path = limbRibbonInkPath(
       spine,
       ribbon.halfWidths,
@@ -694,13 +695,14 @@ class CharacterRenderer {
 
   /// The world-space outline of [ribbon], or null if a joint bone is missing.
   Path? _ribbonPath(LimbRibbonSpec ribbon, Map<String, Affine2D> world) {
-    final spine = <Offset>[];
+    var spine = <Offset>[];
     for (final boneId in ribbon.jointBoneIds) {
       final transform = world[boneId];
       if (transform == null) return null;
       final origin = transform.origin;
       spine.add(Offset(origin.x, origin.y));
     }
+    spine = insetRibbonSpineEnd(spine, ribbon.distalInset);
     return limbRibbonPath(
       spine,
       ribbon.halfWidths,
