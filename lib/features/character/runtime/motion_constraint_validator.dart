@@ -334,7 +334,7 @@ class MotionConstraintValidator {
             endBoneId: target.endBoneId,
             phase: phase,
             weight: sample.weight,
-            expectedBendDirection: target.bendDirection,
+            expectedBendDirection: sample.bendDirection ?? target.bendDirection,
             actualBendDirection: actualBendDirection,
             signedArea: signedArea,
             bendDegrees: bendDegrees,

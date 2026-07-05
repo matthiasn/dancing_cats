@@ -221,7 +221,7 @@ class DancePlaybackStepper {
   /// its own choreo statement start. Idle stages and null [perf] pass through.
   DanceStage _rebasedStage(DancePerformance? perf, DanceStage stage, double pos) {
     if (perf == null || !stage.energetic) return stage;
-    final binding = _segmentBinding(perf, stage.segmentStartSec);
+    final binding = _segmentBinding(perf, stage.lead.name, stage.segmentStartSec);
     return (
       lead: stage.lead,
       ensemble: stage.ensemble,
@@ -251,27 +251,62 @@ class DancePlaybackStepper {
     return perf.map.clipSecondsAt(
       pos,
       clipDuration: from.lead.duration,
-      binding: _segmentBinding(perf, from.segmentStartSec),
+      binding: _segmentBinding(perf, from.lead.name, from.segmentStartSec),
     );
   }
 
-  final Map<double, BeatLoopBinding> _segmentBindings = {};
+  final Map<(String, double), BeatLoopBinding> _segmentBindings = {};
 
   /// The phrase binding anchored on the first downbeat at/after
-  /// [segmentStartSec]; falls back to the performance's global binding when
-  /// the segment starts past the last detected downbeat.
-  BeatLoopBinding _segmentBinding(DancePerformance perf, double segmentStartSec) {
-    return _segmentBindings.putIfAbsent(segmentStartSec, () {
+  /// [segmentStartSec], additionally rotated by [kDanceEntryPhaseOffset]
+  /// for moves whose identifying gesture doesn't live at its own phrase's
+  /// frame 0. Falls back to the performance's global binding (still offset)
+  /// when the segment starts past the last detected downbeat.
+  ///
+  /// Transitions panel r3 (all four lenses, zoom-crop verified): once entry
+  /// became deterministic, azonto's incoming reads converged onto its own
+  /// "bar 1" — a quiet wheel-mime/arm-orbit hold — because that's genuinely
+  /// what sits at phase 0 of its clip (confirmed reading azonto_data.dart:
+  /// the alternating point/jab, its identifying gesture, doesn't start
+  /// until frame 16 of the 32-frame loop). Since azonto LOOPS seamlessly
+  /// (frame 32 == frame 0 by construction), rotating which phase counts as
+  /// "the start" for entry purposes is a pure phase shift of the SAME
+  /// content — it changes nothing about the already-9/10 full loop, only
+  /// which part of the cycle plays first right after a cut.
+  BeatLoopBinding _segmentBinding(
+    DancePerformance perf,
+    String moveName,
+    double segmentStartSec,
+  ) {
+    return _segmentBindings.putIfAbsent((moveName, segmentStartSec), () {
+      final loopLengthBeats = perf.binding.loopLengthBeats;
+      final offsetBeats =
+          ((kDanceEntryPhaseOffset[moveName] ?? 0) * loopLengthBeats).round();
+      int rotate(int anchorBeatIndex) {
+        if (offsetBeats == 0) return anchorBeatIndex;
+        // Subtracting rotates which phase lands on the anchor beat; wrap by
+        // full loop lengths (periodic in loopLengthBeats) to stay >= 0 —
+        // BeatLoopBinding asserts a non-negative anchor.
+        var shifted = anchorBeatIndex - offsetBeats;
+        while (shifted < 0) {
+          shifted += loopLengthBeats;
+        }
+        return shifted;
+      }
+
       final beats = perf.map.beatTimesSec;
       for (final db in perf.map.downbeatIndices) {
         if (beats[db] >= segmentStartSec - 0.05) {
           return BeatLoopBinding(
-            loopLengthBeats: perf.binding.loopLengthBeats,
-            anchorBeatIndex: db,
+            loopLengthBeats: loopLengthBeats,
+            anchorBeatIndex: rotate(db),
           );
         }
       }
-      return perf.binding;
+      return BeatLoopBinding(
+        loopLengthBeats: loopLengthBeats,
+        anchorBeatIndex: rotate(perf.binding.anchorBeatIndex),
+      );
     });
   }
 }
@@ -282,6 +317,26 @@ class DancePlaybackStepper {
 /// step, short enough that a real move change (which the clip blend already
 /// smooths) doesn't visibly lag its dynamics behind its pose.
 const double kDanceDynamicsEaseSeconds = 0.15;
+
+/// Per-move fraction (0..1) of the move's OWN phrase where its identifying
+/// gesture lives, for moves whose signature is not at phase 0. Empty/absent
+/// entries mean "identity is at bar 1" (the default, correct for most of the
+/// catalogue — shaku/zanku/sekem/buga all lead with a recognizable accent).
+///
+/// azonto 0.65: the alternating point/jab (this move's namesake gesture)
+/// starts at frame 16 of its 32-frame loop — exactly HALFWAY (phase 0.5).
+/// The value here is 0.65, not 0.5, because this offset rotates the
+/// binding's DOWNBEAT anchor, while the beat-quantized cut fires on the
+/// nearest BEAT after the raw boundary — a coarser-vs-finer mismatch that
+/// empirically leaves the phrase clock running ~0.15 phase (~2-3 beats)
+/// behind the intended landing at the actual cut instant (probe-measured
+/// across both azonto entries on the sample track: cut-time phase 0.32-0.38
+/// at offset 0.5). +0.15 lands the cut consistently at phase ~0.44-0.50 —
+/// the jab is already arriving, not still a bar-half away. See
+/// [DancePlaybackStepper._segmentBinding] for why rotating the entry phase
+/// is safe (a pure phase shift of a seamlessly looping clip, not a content
+/// change) and the transitions-panel finding that motivated it.
+const Map<String, double> kDanceEntryPhaseOffset = {'azonto': 0.65};
 
 /// The short window used when one catalogue move changes to another.
 ///

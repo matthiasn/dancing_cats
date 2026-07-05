@@ -1477,7 +1477,7 @@ class CharacterScene {
       targetY: targetPoint.y,
       upperLength: pointDistance(shoulder, elbow),
       lowerLength: pointDistance(elbow, wrist),
-      bendDirection: target.bendDirection.toDouble(),
+      bendDirection: (sample.bendDirection ?? target.bendDirection).toDouble(),
     );
     if (solution == null) return null;
     final upperSegmentAngle = solution.upperAngle;
