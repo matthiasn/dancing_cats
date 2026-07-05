@@ -385,7 +385,17 @@ double? _nextBeatAfter(DancePerformance perf, double pos) {
 
 /// The longer settle used when the trio eases into or out of REST (idle):
 /// nothing musical to preserve there, and a calm body change reads better.
-const double kDanceRestTransitionSeconds = 0.45;
+///
+/// Raised 0.45 -> 1.3 (owner, live: "the jump right after music start is too
+/// harsh"): this window no longer only eases the pose — `CharacterPainter`
+/// and `StageLightsOverlay` now also ride it for the whole "stage light
+/// comes up" reveal (pre-show dim, gel/rim, floor pools, hero
+/// staging/formation), since all of those key off the same blended clip's
+/// `ClipTransitionPlan.weight`. 0.45s was tuned for just a body-pose ease
+/// and reads as a snap once it's also switching the lighting on; a real
+/// stage light cue needs real time to feel like a deliberate reveal rather
+/// than a hard cut with a fast fade bolted on.
+const double kDanceRestTransitionSeconds = 1.3;
 
 const _bodyBlendWindow = ClipBlendWindow(end: 0.72);
 const _shoulderBlendWindow = ClipBlendWindow(start: 0.06, end: 0.88);
