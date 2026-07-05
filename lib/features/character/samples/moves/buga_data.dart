@@ -345,21 +345,28 @@ const _bugaClavicleRKeys = [
 // (microFrames) at ~3/4 amplitude, so hits roll across the girdle
 // R-then-L instead of landing as a yoke.
 const _bugaClavicleLKeys = [
-  DanceJointKey(0, rotation: 0.034, microFrames: 1.5),
-  DanceJointKey(4, rotation: 0.0765, microFrames: 1.5),
-  DanceJointKey(8, rotation: 0.136, microFrames: 1.5),
-  DanceJointKey(11, rotation: 0.102, microFrames: 1.5),
+  // r10 (all four lenses: "shoulder L/R traces track almost perfectly —
+  // near-zero counterpoint, pure torso ride"): during the STRIDE windows
+  // the L girdle now moves in CONTRARY motion — easing up-and-open as the
+  // R dips into each descending 'lo' (negative here = the visual opposite
+  // of R's dip, mirrored bone) — then both still explode together on the
+  // hits, which the both-shoulder shrug gate samples. The 1.2-frame answer
+  // lag stays.
+  DanceJointKey(0, rotation: -0.025, microFrames: 1.5),
+  DanceJointKey(4, rotation: -0.06, microFrames: 1.5),
+  DanceJointKey(8, rotation: -0.1, microFrames: 1.5),
+  DanceJointKey(11, rotation: -0.07, microFrames: 1.5),
   DanceJointKey(12, rotation: 0.488, microFrames: 1.1),
   DanceJointKey(13, rotation: 0.382, microFrames: 1.1),
   DanceJointKey(14, rotation: 0.085, microFrames: 1.5),
   DanceJointKey(16, rotation: -0.017, microFrames: 1.5),
-  DanceJointKey(20, rotation: 0.085, microFrames: 1.5),
-  DanceJointKey(24, rotation: 0.153, microFrames: 1.5),
-  DanceJointKey(27, rotation: 0.119, microFrames: 1.5),
+  DanceJointKey(20, rotation: -0.065, microFrames: 1.5),
+  DanceJointKey(24, rotation: -0.11, microFrames: 1.5),
+  DanceJointKey(27, rotation: -0.085, microFrames: 1.5),
   DanceJointKey(28, rotation: 0.488, microFrames: 1.1),
   DanceJointKey(29, rotation: 0.382, microFrames: 1.1),
   DanceJointKey(30, rotation: 0.085, microFrames: 1.5),
-  DanceJointKey(32, rotation: 0.034, microFrames: 1.5),
+  DanceJointKey(32, rotation: -0.025, microFrames: 1.5),
 ];
 const _bugaShoulderSocketRKeys = [
   DanceJointKey(0, rotation: -0.11, scaleX: 1.1, scaleY: 0.955),

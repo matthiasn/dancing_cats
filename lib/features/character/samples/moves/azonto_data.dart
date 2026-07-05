@@ -401,7 +401,17 @@ const _azontoHandRKeys = [
 // compete with the crossed-arms silhouette itself. Real fix is the elbow-
 // abduction/pole-vector work (task #46), not a bigger shoulder-roll number.
 const _azontoClavicleLKeys = [
+  // r10 (all four r9 lenses: "shoulder crowns L/R nearly phase-locked for
+  // most of the loop — minimal counterpoint for an arm-led routine"): bar 1
+  // was authored neutral, so the wheel turned with a dead girdle. The
+  // shoulders now trade the lead beat-by-beat through the wheel — L rolls
+  // forward into the turn while R eases back, then they swap — the same
+  // contrary-motion grammar the bar-2 jab/chamber pairs already use.
   DanceJointKey(0),
+  DanceJointKey(2, rotation: 0.13), // L leads the first turn
+  DanceJointKey(5, rotation: -0.06), // releases as R takes it
+  DanceJointKey(8, rotation: 0.13), // L leads again
+  DanceJointKey(11, rotation: -0.06),
   DanceJointKey(14), // into bar 2
   DanceJointKey(16, rotation: 0.22), // L JABS — shoulder drives forward
   DanceJointKey(17, rotation: 0.18), // hold
@@ -415,7 +425,12 @@ const _azontoClavicleLKeys = [
   DanceJointKey(32), // == frame 0
 ];
 const _azontoClavicleRKeys = [
+  // r10: the answering half of the bar-1 counterpoint above.
   DanceJointKey(0),
+  DanceJointKey(2, rotation: -0.09), // R eases back while L leads
+  DanceJointKey(5, rotation: 0.11), // R takes the turn
+  DanceJointKey(8, rotation: -0.09),
+  DanceJointKey(11, rotation: 0.11),
   DanceJointKey(14),
   DanceJointKey(16, rotation: -0.05), // R chambers while L jabs
   DanceJointKey(19, rotation: 0.02),

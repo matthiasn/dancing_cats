@@ -619,16 +619,25 @@ class CatClips {
             // still ripple the parks.
             KeyframeRootChannel(
               [
-                // r4: the rock is authored INTO the parks (per-bar re-arm
-                // -12/-20/-13) — the sine rock's ripples sat under the 25%
-                // prominence floor on the plateaus and the back half read
-                // as one slow trough.
-                RootKeyframe(p: 1 / 32, dx: -9, tension: 0.6),
-                RootKeyframe(p: 7 / 32, dx: -22, tension: 0.6),
-                RootKeyframe(p: 13 / 32, dx: -10, tension: 0.6),
+                // r10: PER-BAR weight commits inside each park (unanimous
+                // r9 note: "WEIGHT is one slow phrase-length drift, ~0.8
+                // ev/s — hips never exchange laterally on the taps"). The
+                // r4 single rock's ~7-unit world wiggle sat under the
+                // 25%-of-range prominence floor (~13); each park now digs
+                // twice — once per bar, timed with that bar's tap cluster
+                // — rising to the park's inner edge between digs (still on
+                // the committed side, so the park-and-commit story holds;
+                // this is a rock ON the support, not a transfer).
+                RootKeyframe(p: 1 / 32, dx: -8, tension: 0.6),
+                RootKeyframe(p: 4 / 32, dx: -22, tension: 0.6),
+                RootKeyframe(p: 7 / 32, dx: -9, tension: 0.6),
+                RootKeyframe(p: 10 / 32, dx: -22, tension: 0.6),
+                RootKeyframe(p: 13 / 32, dx: -8, tension: 0.6),
                 RootKeyframe(p: 15.25 / 32, dx: -1),
-                RootKeyframe(p: 17.75 / 32, dx: 10, tension: 0.6),
-                RootKeyframe(p: 23 / 32, dx: 23, tension: 0.6),
+                RootKeyframe(p: 17.75 / 32, dx: 9, tension: 0.6),
+                RootKeyframe(p: 20 / 32, dx: 25, tension: 0.6),
+                RootKeyframe(p: 23 / 32, dx: 7, tension: 0.6),
+                RootKeyframe(p: 26 / 32, dx: 24, tension: 0.6),
                 // The return starts a beat earlier than symmetry suggests:
                 // the support anchor keeps pulling toward the planted R
                 // foot until its span ends at f30.125 and follows ~1 frame
@@ -648,11 +657,14 @@ class CatClips {
             // becomes a plateau with beat-rate scallops instead of a flat
             // line"). The plateau keeps the committed side; this ripple
             // presses into and releases off the support with every tap.
-            SineRootChannel(swayAmplitude: -4.5, swayHarmonic: 8),
-            // R27 coach: "the hips ride the gallop, not just drift" — a
-            // small per-BAR rock into the active foot's taps on top of
-            // the parked macro lean (h4 = one cycle per bar).
-            SineRootChannel(swayAmplitude: -2.5, swayHarmonic: 4),
+            // r10: -4.5 -> -3.5 — the per-bar dig keys above now carry the
+            // press-into-the-support story; at -4.5 the summed lateral
+            // slope (dig + scallop) swung the skull 20.4 units against the
+            // collar, past the loose-head gate's 20.
+            SineRootChannel(swayAmplitude: -3.5, swayHarmonic: 8),
+            // (r10: the R27 h4 per-bar rock layer is FOLDED INTO the park
+            // keys above — a sine layer under authored per-bar digs risks
+            // phase interference, the campaign's thrice-confirmed lesson.)
             // The pocket pulse, SHAPED (R19 mocap verdict: the symmetric
             // triangle wave "never SITS into a beat... one timing change
             // that converts the whole loop from keyframed to danced").
@@ -999,7 +1011,11 @@ class CatClips {
               bobPhase: 0.125,
               bobHarmonic: 8,
             ),
-            SineRootChannel(swayAmplitude: -4, swayHarmonic: 2),
+            // r10: h2 -> h4 — the 2-cycle sway was the "one long unilateral
+            // excursion across bars 1-2 / parked bar 3" every r9 lens
+            // measured (0.9 ev/s). One full exchange per bar now steps the
+            // pelvis with the step-touch instead of drifting under it.
+            SineRootChannel(swayAmplitude: -7, swayHarmonic: 4),
           ],
           extraPelvisLayers: const [SineChannel(harmonicAmplitude: 0.17)],
           extraChestLayers: const [
@@ -1126,7 +1142,17 @@ class CatClips {
               keys: _bugaBodyKeys,
               rootMicroFrames: -0.1,
               pelvisMicroFrames: -0.15,
-              chestMicroFrames: 0.75,
+              // r10: 0.75 -> 1.0 — every r9 lens measured pocket/skull/
+              // shoulder as ONE near-identical waveform ("torso rides as a
+              // rigid block"). The chest (and everything riding it: crowns,
+              // skull) now arrives a frame behind the hips on the lunges.
+              // 1.0 is the chin-collar gate's actual headroom: 1.2 read
+              // 24.75 and 1.6 read 25.2 against the 24.5 off-the-body
+              // ceiling (and a bigger head budget moves it the WRONG way —
+              // the budget bounds the leveler's lift, so more budget holds
+              // the skull higher). The rest of the decoupling rides the
+              // contrary-motion clavicle keys and the authored head snaps.
+              chestMicroFrames: 1,
               chestRotationGain: 0.94,
               chestScaleGain: 0.98,
             ),

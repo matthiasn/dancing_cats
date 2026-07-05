@@ -347,11 +347,14 @@ const _zankuHeadKeys = [
   // r8: the head ANSWERS the bar-3 stamp (the accent landed 'stiff-necked'
   // — pocket-only by gate necessity, so the follow-through rides the
   // rotation channel instead).
-  DanceJointKey(20, rotation: -0.09),
+  // r10: the r8 stamp-answer keys (f20/22/23) had been inserted BEFORE a
+  // pre-existing f21/f23 answer pair, leaving duplicate and out-of-order
+  // frames — the rigging lens's "bar-3 head dips read noisy (multiple
+  // small events)" was this collision, not an authoring choice. One
+  // ordered answer now, crest depth matched to the other three stamps.
+  DanceJointKey(20, rotation: -0.11),
   DanceJointKey(22, rotation: -0.045),
   DanceJointKey(23, rotation: -0.015), // r9: one more settle frame
-  DanceJointKey(21, rotation: -0.11),
-  DanceJointKey(23, rotation: -0.032),
   DanceJointKey(25, rotation: 0.09), // gathers against the kick side
   DanceJointKey(26, rotation: -0.1), // tips INTO the gbese
   DanceJointKey(28, rotation: -0.05), // recoils off the slam
@@ -678,8 +681,13 @@ const _zankuGbeseAccentKeys = [
   // rootDy only: a chest component on the stamp frame trips the
   // chest-arrival gate ('the mirrored chest should also avoid arriving
   // fully on the hip stomp frame').
-  DanceBodyKey(18, rootDy: 0),
-  DanceBodyKey(20, rootDy: 7),
+  // r10 (rigging: "pocket bar hierarchy weakens in bar 3 — the descending-
+  // step shape flattens before the bar-4 stamp recharges it"): a small
+  // LIFT out of the bar-2 pocket before the drop restores the step
+  // contrast — the hit is the same authored depth but now arrives from
+  // above, so bar 3 keeps the staircase shape.
+  DanceBodyKey(17, rootDy: -3),
+  DanceBodyKey(20, rootDy: 8),
   DanceBodyKey(21, rootDy: 4),
   DanceBodyKey(22, rootDy: 0),
   DanceBodyKey(24, rootDy: 0, chestRotation: 0),
