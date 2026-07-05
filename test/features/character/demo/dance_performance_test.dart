@@ -221,7 +221,7 @@ void main() {
 
     test(
       'the shared gain is currently neutral, so every level is a no-op '
-      '(pins the pre-tuning state; ADR CHAR-0002 turns this into a real ramp)',
+      '(pins the pre-tuning state; ADR CHAR-0003 turns this into a real ramp)',
       () {
         expect(kDanceSectionEnergyGain, DanceDynamics.neutral);
         for (final level in [0.0, 0.25, 0.5, 0.75, 1.0]) {

@@ -256,7 +256,7 @@ void main() {
     test(
       'passes the stage clips through UNCHANGED while dynamics are neutral '
       '(the split-clock Effort warp is a provable no-op pre-tuning — ADR '
-      'CHAR-0002)',
+      'CHAR-0003)',
       () {
         final stage = _perf().stageAt(2);
         expect(

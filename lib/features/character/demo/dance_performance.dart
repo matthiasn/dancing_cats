@@ -54,7 +54,7 @@ typedef DanceTrio = ({Clip lead, List<Clip> ensemble});
 /// `DanceTrio.ensemble` (`[0]` lead, `[1]` backup-left, `[2]` backup-right).
 /// Composed with each move's base dynamics and the section-energy term via
 /// `effectiveDanceDynamics` in [DancePerformance.stageAt]. All-neutral until
-/// the tuning commit populates real personalities — see ADR CHAR-0002.
+/// the tuning commit populates real personalities — see ADR CHAR-0003.
 const List<DanceDynamics> kDanceLaneDynamicsProfiles = [
   DanceDynamics.neutral,
   DanceDynamics.neutral,
@@ -63,7 +63,7 @@ const List<DanceDynamics> kDanceLaneDynamicsProfiles = [
 
 /// The per-axis Effort swing at the hottest section (`level == 1`); the
 /// coldest section (`level == 0`) gets the negated offset. Zero (a no-op)
-/// until the tuning commit — see ADR CHAR-0002.
+/// until the tuning commit — see ADR CHAR-0003.
 const DanceDynamics kDanceSectionEnergyGain = DanceDynamics.neutral;
 
 /// Maps the section's normalized 0..1 energy `level` to a continuous Effort
