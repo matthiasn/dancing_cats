@@ -77,9 +77,16 @@ void main() {
       expect(stepper.stage?.lead.name, 'zanku');
 
       // Cross the choreography handoff at chorus phase 0.55. The raw derivation
-      // would now be Buga; the stepper should expose a transient blended clip
-      // so the renderer does not jump from one full-body pose to another.
+      // is now Buga, but the cut is BEAT-QUANTIZED: the outgoing Zanku keeps
+      // dancing (held on the shared clock) until the next detected beat at
+      // 3.5s, so ballistic outgoing limbs resolve onto a count instead of
+      // being amputated mid-flight (transitions panel r1).
       stepper.advance(perf, const [], 3.36, 0.016);
+      expect(stepper.stage?.lead.name, 'zanku');
+
+      // The beat lands — now the stepper exposes the transient blended clip
+      // so the renderer does not jump from one full-body pose to another.
+      stepper.advance(perf, const [], 3.52, 0.016);
       final mixed = stepper.stage!;
       expect(mixed.lead.name, 'zanku->buga');
       expect(mixed.lead.root, isA<BlendedRootChannel>());
@@ -114,7 +121,7 @@ void main() {
       );
 
       for (var i = 0; i < 20; i++) {
-        stepper.advance(perf, const [], 3.38 + i * 0.016, 0.016);
+        stepper.advance(perf, const [], 3.54 + i * 0.016, 0.016);
       }
       expect(stepper.stage?.lead.name, 'buga');
     });
