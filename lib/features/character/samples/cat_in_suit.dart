@@ -558,9 +558,14 @@ class CatClips {
           tracks: [
             DanceBodyMotionTrack(
               keys: _shakuGrooveCommitted,
-              rootMicroFrames: 0,
-              pelvisMicroFrames: -0.3,
-              chestMicroFrames: 0.25,
+              // R24 sync: the whole authored pocket rides +0.3 frames
+              // (~75ms live) so troughs land BEHIND their beats — the
+              // panel measured bars 1/2/4 anticipating 27-63ms early —
+              // and the seam dive clears the wrap-span contact-lock
+              // fade-in instead of being eaten by it. The relative
+              // pelvis-leads-root-leads-chest stagger is preserved.
+              rootMicroFrames: 0.3,
+              pelvisMicroFrames: 0,
               // Groove pocket: let the chest COUNTER-ROTATE harder against the
               // pelvis (panel: "upright torso, no hip/shoulder counter-rotation,
               // timid upper body"). The calmed head bob above frees the shared
@@ -570,22 +575,19 @@ class CatClips {
             ),
             DanceBodyMotionTrack(
               keys: _danceBodyAccentKeys,
-              rootMicroFrames: 0,
-              pelvisMicroFrames: -0.3,
-              chestMicroFrames: 0.25,
+              rootMicroFrames: 0.3,
+              pelvisMicroFrames: 0,
             ),
             const DanceBodyMotionTrack(
               keys: _shakuDabBodyKeys,
-              rootMicroFrames: 0,
-              pelvisMicroFrames: -0.3,
-              chestMicroFrames: 0.25,
+              rootMicroFrames: 0.3,
+              pelvisMicroFrames: 0,
               chestRotationGain: 0.68,
             ),
             const DanceBodyMotionTrack(
               keys: _shakuPanelBodyKeys,
-              rootMicroFrames: 0,
-              pelvisMicroFrames: -0.3,
-              chestMicroFrames: 0.25,
+              rootMicroFrames: 0.3,
+              pelvisMicroFrames: 0,
               chestRotationGain: 0.68,
             ),
           ],
@@ -600,19 +602,24 @@ class CatClips {
             // transitions in ~2-3 frames, and parks over the right through
             // bar 2 — with the crossings phased one frame AFTER the plants
             // (feet step ON the count, weight arrives just behind them).
+            // R24 sync: crossings re-phased 14.5/30.5 -> 15.5/31.5 so the
+            // weight transfer lands just AFTER the plants (R foot f15,
+            // L foot f30) and ON the bar-line sinks — the panel measured
+            // the old transfer arriving BEFORE the foot it commits onto,
+            // and read the sway as phase-locked to nothing.
             SineRootChannel(
-              swayAmplitude: -17,
-              swayPhase: 0.046875,
+              swayAmplitude: -21,
+              swayPhase: 0.0234375,
               leanAmplitude: -0.07,
             ),
             SineRootChannel(
-              swayAmplitude: -5.7,
-              swayPhase: 0.046875,
+              swayAmplitude: -7,
+              swayPhase: 0.0234375,
               swayHarmonic: 3,
             ),
             SineRootChannel(
-              swayAmplitude: -3.4,
-              swayPhase: 0.046875,
+              swayAmplitude: -4.2,
+              swayPhase: 0.0234375,
               swayHarmonic: 5,
             ),
             // Per-tap weight SCALLOPS on the plateaus (R22 mocap verdict:
@@ -621,7 +628,7 @@ class CatClips {
             // becomes a plateau with beat-rate scallops instead of a flat
             // line"). The plateau keeps the committed side; this ripple
             // presses into and releases off the support with every tap.
-            SineRootChannel(swayAmplitude: -6, swayHarmonic: 8),
+            SineRootChannel(swayAmplitude: -4, swayHarmonic: 8),
             // The pocket pulse, SHAPED (R19 mocap verdict: the symmetric
             // triangle wave "never SITS into a beat... one timing change
             // that converts the whole loop from keyframed to danced").
@@ -641,20 +648,24 @@ class CatClips {
             //    through its hold).
             SineRootChannel(
               bobAmplitude: -20,
-              bobPhase: 0.09375,
+              bobPhase: 0.084375,
               bobHarmonic: 8,
               leanAmplitude: 0.015,
               leanHarmonic: 8,
             ),
             SineRootChannel(
               bobAmplitude: -6,
-              bobPhase: 0.05664,
+              bobPhase: 0.047265625,
               bobHarmonic: 16,
               leanAmplitude: 0.006,
               leanPhase: 0.03,
               leanHarmonic: 16,
             ),
-            SineRootChannel(bobAmplitude: -7, bobPhase: 0.3515625),
+            // h2 accent raised -7 -> -9: the R24 panel measured bar 1's
+            // hierarchy inverted (the behind-the-bar-line trough was the
+            // SHALLOWEST in its bar); the stronger 2-cycle puts the two
+            // deepest moments of the loop just behind bars 1 and 3.
+            SineRootChannel(bobAmplitude: -11, bobPhase: 0.3421875),
           ],
           extraPelvisLayers: const [
             SineChannel(

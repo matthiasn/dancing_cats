@@ -802,7 +802,12 @@ void main() {
           // before the lock catches it — a ~2-frame landing settle, not a
           // drag. Tightening this back means shortening the lock's fade-in
           // for the short wrap span (a catalogue-wide runtime change).
-          lessThan(58),
+          // 58 -> 61 (R24 sync): the weight-transfer crossing moved from
+          // f30.5 to ~f31.8 so the commit lands ON the bar-1 sink just
+          // after the plant (the panel measured the old transfer arriving
+          // BEFORE the foot it commits onto) — the same landing-settle
+          // window now carries the square-wave transition itself.
+          lessThan(61),
           reason:
               'the low-hook wrap can carry lateral groove, but should not drag '
               'the support foot across the body',
