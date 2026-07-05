@@ -81,6 +81,11 @@ List<DanceBodyKey> _azontoGrooveCalm = [
 // half-reach target folds the elbow across the belly and the sleeve reads
 // as a stump (two-bone flexion grows brutally below full reach).
 const _azontoHandLTargetKeys = [
+  // 9-path round 2 (coach + animator, twice: the wheel "reads as
+  // hands-on-hips... never breaks the torso silhouette"): the whole
+  // bars-1-2 orbit rises ~38 units to STERNUM height — elbows lifted,
+  // fists rolling in front of the chest, the mime finally legible at
+  // strip distance. The x lane is unchanged (the wheel-lane gate holds).
   // Round 4, measured in RENDERED space: targets live in the torso anchor
   // whose origin sits ~50 world units BELOW the shoulder line (a probe of
   // the round-3 keys showed the "chest-height" jab at y-44 rendering ON
@@ -129,14 +134,14 @@ const _azontoHandLTargetKeys = [
   // and broke the elbow-bend validator — backed off to ~0.78/0.55 (span
   // ~0.23), still a real ~35% bigger visible excursion than before while
   // clearing both the near-degenerate zone and the straight-elbow ceiling.
-  DanceIkTargetKey(0, x: -20, y: 28), // wide reach, held
-  DanceIkTargetKey(2, x: -27, y: 18, tension: 0.2), // turning
-  DanceIkTargetKey(4, x: -36, y: 5, tension: 0.6), // narrower reach, held
-  DanceIkTargetKey(6, x: -27, y: 18, tension: 0.2), // turning back
-  DanceIkTargetKey(8, x: -20, y: 28, tension: 0.6), // wide again
-  DanceIkTargetKey(10, x: -27, y: 18, tension: 0.2),
-  DanceIkTargetKey(12, x: -36, y: 5, tension: 0.6), // narrower again
-  DanceIkTargetKey(14, x: -27, y: 18, tension: 0.8), // into bar 2
+  DanceIkTargetKey(0, x: -22, y: -10), // wide reach, held
+  DanceIkTargetKey(2, x: -30, y: -20, tension: 0.2), // turning
+  DanceIkTargetKey(4, x: -37, y: -31, tension: 0.6), // narrower reach, held
+  DanceIkTargetKey(6, x: -30, y: -20, tension: 0.2), // turning back
+  DanceIkTargetKey(8, x: -22, y: -10, tension: 0.6), // wide again
+  DanceIkTargetKey(10, x: -30, y: -20, tension: 0.2),
+  DanceIkTargetKey(12, x: -37, y: -31, tension: 0.6), // narrower again
+  DanceIkTargetKey(14, x: -30, y: -20, tension: 0.8), // into bar 2
   // Bar 2 jabs (beats 5-8, alternating L,R,L,R): fire to near-full
   // extension PAST the opposite shoulder line in one beat-quarter, hold a
   // frame, recoil; the idle paw chambers at the OWN-side hip crest.
@@ -248,14 +253,14 @@ const _azontoHandRTargetKeys = [
   // mirrored keys.
   // R10 follow-up: widened to match hand.L's bigger reach-ratio swing
   // (see that comment above) — same mirrored values.
-  DanceIkTargetKey(0, x: 36, y: 5, tension: 0.6), // narrower reach, held
-  DanceIkTargetKey(2, x: 27, y: 18, tension: 0.2),
-  DanceIkTargetKey(4, x: 20, y: 28, tension: 0.6), // wide reach, held
-  DanceIkTargetKey(6, x: 27, y: 18, tension: 0.2),
-  DanceIkTargetKey(8, x: 36, y: 5, tension: 0.6), // narrower again
-  DanceIkTargetKey(10, x: 27, y: 18, tension: 0.2),
-  DanceIkTargetKey(12, x: 20, y: 28, tension: 0.6), // wide again
-  DanceIkTargetKey(14, x: 27, y: 18, tension: 0.2), // into bar 2
+  DanceIkTargetKey(0, x: 37, y: -31, tension: 0.6), // narrower reach, held
+  DanceIkTargetKey(2, x: 30, y: -20, tension: 0.2),
+  DanceIkTargetKey(4, x: 22, y: -10, tension: 0.6), // wide reach, held
+  DanceIkTargetKey(6, x: 30, y: -20, tension: 0.2),
+  DanceIkTargetKey(8, x: 37, y: -31, tension: 0.6), // narrower again
+  DanceIkTargetKey(10, x: 30, y: -20, tension: 0.2),
+  DanceIkTargetKey(12, x: 22, y: -10, tension: 0.6), // wide again
+  DanceIkTargetKey(14, x: 30, y: -20, tension: 0.2), // into bar 2
   // Bar 2: chambered at the own-side hip while the left jabs, then the
   // answering cross jab.
   DanceIkTargetKey(16, x: 26, y: -10, tension: 0.8), // chamber at the hip

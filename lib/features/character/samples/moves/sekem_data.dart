@@ -16,6 +16,12 @@ const _sekemContactSpans = [
   GroundSpan(CatBones.footL, 0.75, 0.875),
   GroundSpan(CatBones.footR, 0.875, 1),
 ];
+// 9-path round 2: the dig-depth "escalation" (40 -> 48/54/60/68 across
+// bars 3-4) authored a ~29-unit WHOLE-BODY descent with a 4-frame seam
+// snap-back — every R2/port rater called it the loop's structural flaw
+// ("pocket/skull/shoulders drift ~40% of range down, recovery crammed
+// into the final half-beat"). The ramp is quartered (42/44/46/49):
+// escalation survives as a hint, per-bar hip means now near-flat.
 const _sekemBodyKeysRaw = [
   // The weight COMMIT, keyframed to DWELL over the planting foot (a sine sway
   // just passes through centre and reads uncommitted). rootDx holds at one
@@ -104,7 +110,7 @@ const _sekemBodyKeysRaw = [
   DanceBodyKey(
     16,
     rootDx: -30,
-    rootDy: 48,
+    rootDy: 42,
     pelvisRotation: -0.37,
     chestRotation: 0.37,
     chestScaleY: 0.83,
@@ -120,7 +126,7 @@ const _sekemBodyKeysRaw = [
   DanceBodyKey(
     20,
     rootDx: 31,
-    rootDy: 54,
+    rootDy: 44,
     pelvisRotation: 0.37,
     chestRotation: -0.37,
     chestScaleY: 0.82,
@@ -136,7 +142,7 @@ const _sekemBodyKeysRaw = [
   DanceBodyKey(
     24,
     rootDx: -32,
-    rootDy: 60,
+    rootDy: 46,
     pelvisRotation: -0.4,
     chestRotation: 0.4,
     chestScaleY: 0.8,
@@ -152,7 +158,7 @@ const _sekemBodyKeysRaw = [
   DanceBodyKey(
     28,
     rootDx: 33,
-    rootDy: 68,
+    rootDy: 49,
     pelvisRotation: 0.42,
     chestRotation: -0.42,
     chestScaleY: 0.78,

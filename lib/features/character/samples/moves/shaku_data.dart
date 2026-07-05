@@ -588,17 +588,17 @@ const _shakuFootRTargetKeys = [
   // why the legs measured 0.9 events/s and read slow). The trunk keeps
   // its half-time pocket untouched: laid-back body, busy feet.
   DanceIkTargetKey(0, x: 52, y: 96, tension: 0.8), // TAP out (downbeat)
-  DanceIkTargetKey(1, x: 38, y: 82), // high pickup
+  DanceIkTargetKey(1, x: 38, y: 78), // high pickup, matched to the L half
   DanceIkTargetKey(2, x: 30, y: 95, tension: 0.8), // TAP in
-  DanceIkTargetKey(3, x: 46, y: 81), // high pickup
+  DanceIkTargetKey(3, x: 46, y: 77),
   DanceIkTargetKey(4, x: 58, y: 95, tension: 0.8), // TAP out
-  DanceIkTargetKey(5, x: 42, y: 82),
+  DanceIkTargetKey(5, x: 42, y: 78),
   DanceIkTargetKey(6, x: 32, y: 96, tension: 0.8), // TAP in
-  DanceIkTargetKey(7, x: 44, y: 81),
+  DanceIkTargetKey(7, x: 44, y: 77),
   DanceIkTargetKey(8, x: 50, y: 96, tension: 0.8), // TAP out on the count
-  DanceIkTargetKey(9, x: 36, y: 82),
+  DanceIkTargetKey(9, x: 36, y: 78),
   DanceIkTargetKey(10, x: 28, y: 95, tension: 0.8), // TAP in
-  DanceIkTargetKey(11, x: 48, y: 81),
+  DanceIkTargetKey(11, x: 48, y: 77),
   DanceIkTargetKey(12, x: 60, y: 95, tension: 0.8), // TAP out wide
   DanceIkTargetKey(13, x: 44, y: 84), // gathering toward the plant
   // Plants on the "and" BEFORE bar 2 (15, tension:1 = dead arrival), so

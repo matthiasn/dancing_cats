@@ -72,10 +72,11 @@ void main() {
       // by the same per-clip budget as its lift.
       expect(
         lo,
-        greaterThan(10),
+        greaterThan(12.5),
         reason:
             '${entry.key}: the chin dips to ${lo.toStringAsFixed(1)} above '
-            'the collar line — the neck visibly disappears',
+            'the collar line — the neck visibly disappears (owner, GIF review: '
+            '"it often all but disappears")',
       );
       // Firmness v2 (owner: "heads are terribly loose"): the skull stays
       // near the collar's centerline. Bounds leave room for authored lean

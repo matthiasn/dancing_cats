@@ -1648,9 +1648,20 @@ class CharacterScene {
     // (measured 2-7 residual with the follows zeroed entirely).
     final cascade = clip.danceHeadBobScale;
     final headDyDiff = lagged != null ? lagged.rootDy - rootDy : 0.0;
+    // 9-path round: the skull gets the same halfway-lag the crowns got in
+    // the mesh round — every R3 rater measured it phase-locked to the
+    // pocket ("the ring is gain-only"). Gains up 0.30/0.13 -> 0.38/0.18,
+    // clamps 4/2 -> 5/2.5: still less than half the pre-#73 excursions
+    // (0.44/9) that caused the bopping-heads report, and the chin-collar
+    // gates (swing < 13, max < 24.5) hold the line — probed after.
+    // Owner (GIF review, 2026-07-05): the outward gap is capped but the
+    // head "often all but disappears" — the DISAPPEAR side is the rise
+    // lag (skull dragged down while the body rises) plus the leveler's
+    // downward pull. Rise side cut to 0.10/1.5 (below even the pre-9-path
+    // values); the drop side keeps the panel's phase-lag at 0.38/5.
     final headDyFollow = headDyDiff < 0
-        ? _clampMagnitude(headDyDiff * 0.30 * cascade, 4)
-        : _clampMagnitude(headDyDiff * 0.13 * cascade, 2);
+        ? _clampMagnitude(headDyDiff * 0.38 * cascade, 5)
+        : _clampMagnitude(headDyDiff * 0.10 * cascade, 1.5);
     final neckDyFollow = _isDanceFamily(clip) && clip.duration > 0
         ? _clampMagnitude(
             (evaluator
@@ -1837,7 +1848,13 @@ class CharacterScene {
     // unbounded down-shift pressed the chin to within ~9 units of the
     // collar line).
     final liftFloor = clip.danceHeadLevelClampMin * baseScale;
-    final dropCeil = -liftFloor;
+    // Down at HALF the lift budget: the downward pull closes the collar
+    // over the chin (owner, GIF review: the head "often all but
+    // disappears"), so it gets half the headroom the lift does — for
+    // every clip, including pouncingCat (whose level-hold probe bound
+    // was relaxed 95 -> 98 to absorb the trade; still below the 99.5
+    // pre-#65 swing it guards against).
+    final dropCeil = -liftFloor * 0.5;
 
     // Stage 1 — neck level line, clamped to its natural gap-to-torso, then eased
     // back toward the un-leveled neck at the deep crouch.
