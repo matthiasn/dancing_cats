@@ -83,6 +83,29 @@ void main() {
     });
   });
 
+  testWidgets('affine whole-frame grades use the composited fast path', (
+    tester,
+  ) async {
+    Widget build(BackdropGrade grade) => Directionality(
+      textDirection: TextDirection.ltr,
+      child: GradeFilter(
+        grade: grade,
+        child: const ColoredBox(color: Color(0xFFCC2222)),
+      ),
+    );
+
+    await tester.pumpWidget(build(gradeFromWheels(saturation: 0.5)));
+    final render = tester.renderObject<RenderGradeFilter>(
+      find.byType(GradeFilter),
+    );
+    expect(render.alwaysNeedsCompositing, isTrue);
+
+    await tester.pumpWidget(
+      build(gradeFromWheels(gamma: const GradeWheel(master: 0.2))),
+    );
+    expect(render.alwaysNeedsCompositing, isFalse);
+  });
+
   testWidgets('the premultiplied variant grades and keeps alpha intact', (
     tester,
   ) async {

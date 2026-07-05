@@ -14,12 +14,15 @@ import 'package:flutter/widgets.dart';
 /// `master` node, opaque — the finishing pass; grain and captions composite
 /// after it).
 ///
-/// Neutral grade (or a not-yet-loaded shader, or an empty size) paints the
-/// child directly — the common ungraded frame costs exactly what it did
-/// before this widget existed. A non-neutral grade captures the child's layer
-/// tree into an image at the surface's device pixel ratio (no soft resample
-/// generation) and draws it back through the grade shader — the same
-/// offscreen-capture technique as the framework's `SnapshotWidget`.
+/// Neutral grade (or an empty size) paints the child directly — the common
+/// ungraded frame costs exactly what it did before this widget existed.
+/// Non-premultiplied affine grades (Slope/Offset/Saturation/Contrast, no Power)
+/// use a composited [ColorFilter] layer so the live player avoids per-frame
+/// image readback. Grades that need the shader path (Power/gamma curves or
+/// premultiplied-alpha children) capture the child's layer tree into an image
+/// at the surface's device pixel ratio and draw it back through the grade
+/// shader — the same offscreen-capture technique as the framework's
+/// `SnapshotWidget`.
 ///
 /// [repaintTick] must change whenever the child's animated content changes
 /// (the stage passes its clock): descendants inside their own repaint
@@ -96,6 +99,8 @@ class _GradeFilterState extends State<GradeFilter> {
     return _RawGradeFilter(
       grade: widget.grade,
       program: _program,
+      premultiplied: widget.premultiplied,
+      allowAffineColorFilter: widget.programLoader == null || _program != null,
       repaintTick: widget.repaintTick,
       // The root View widget always provides a MediaQuery, so this holds in
       // app and test trees alike.
@@ -109,6 +114,8 @@ class _RawGradeFilter extends SingleChildRenderObjectWidget {
   const _RawGradeFilter({
     required this.grade,
     required this.program,
+    required this.premultiplied,
+    required this.allowAffineColorFilter,
     required this.repaintTick,
     required this.pixelRatio,
     required super.child,
@@ -116,6 +123,8 @@ class _RawGradeFilter extends SingleChildRenderObjectWidget {
 
   final BackdropGrade grade;
   final ui.FragmentProgram? program;
+  final bool premultiplied;
+  final bool allowAffineColorFilter;
   final double repaintTick;
   final double pixelRatio;
 
@@ -123,6 +132,8 @@ class _RawGradeFilter extends SingleChildRenderObjectWidget {
   RenderObject createRenderObject(BuildContext context) => RenderGradeFilter(
     grade: grade,
     program: program,
+    premultiplied: premultiplied,
+    allowAffineColorFilter: allowAffineColorFilter,
     repaintTick: repaintTick,
     pixelRatio: pixelRatio,
   );
@@ -135,6 +146,8 @@ class _RawGradeFilter extends SingleChildRenderObjectWidget {
     renderObject
       ..grade = grade
       ..program = program
+      ..premultiplied = premultiplied
+      ..allowAffineColorFilter = allowAffineColorFilter
       ..repaintTick = repaintTick
       ..pixelRatio = pixelRatio;
   }
@@ -147,6 +160,8 @@ class RenderGradeFilter extends RenderProxyBox {
   RenderGradeFilter({
     required this._grade,
     required this._program,
+    required this._premultiplied,
+    required this._allowAffineColorFilter,
     required this._repaintTick,
     required this._pixelRatio,
   });
@@ -178,8 +193,8 @@ class RenderGradeFilter extends RenderProxyBox {
   set repaintTick(double value) {
     if (value == _repaintTick) return;
     _repaintTick = value;
-    // Only an ACTIVE grade snapshots the child; the neutral path delegates
-    // paint and lets descendants' own repaint boundaries do their job.
+    // Only an ACTIVE grade needs this render object to repaint; the neutral path
+    // delegates paint and lets descendants' own repaint boundaries do their job.
     if (!_grade.isNeutral && _program != null) markNeedsPaint();
   }
 
@@ -193,10 +208,52 @@ class RenderGradeFilter extends RenderProxyBox {
     markNeedsPaint();
   }
 
+  bool _premultiplied;
+
+  bool get premultiplied => _premultiplied;
+  set premultiplied(bool value) {
+    if (value == _premultiplied) return;
+    _premultiplied = value;
+    markNeedsPaint();
+  }
+
+  bool _allowAffineColorFilter;
+
+  bool get allowAffineColorFilter => _allowAffineColorFilter;
+  set allowAffineColorFilter(bool value) {
+    if (value == _allowAffineColorFilter) return;
+    _allowAffineColorFilter = value;
+    markNeedsPaint();
+  }
+
+  bool get _canUseColorFilter =>
+      _allowAffineColorFilter &&
+      !_premultiplied &&
+      _grade.power == BackdropGrade.identity.power;
+
+  @override
+  bool get alwaysNeedsCompositing =>
+      child != null && !_grade.isNeutral && _canUseColorFilter;
+
   @override
   void paint(PaintingContext context, Offset offset) {
+    if (_grade.isNeutral || size.isEmpty || child == null) {
+      super.paint(context, offset);
+      return;
+    }
+
+    if (_canUseColorFilter) {
+      layer = context.pushColorFilter(
+        offset,
+        ui.ColorFilter.matrix(_colorMatrixFor(_grade)),
+        super.paint,
+        oldLayer: layer as ColorFilterLayer?,
+      );
+      return;
+    }
+
     final program = _program;
-    if (_grade.isNeutral || program == null || size.isEmpty || child == null) {
+    if (program == null) {
       super.paint(context, offset);
       return;
     }
@@ -231,5 +288,43 @@ class RenderGradeFilter extends RenderProxyBox {
       ..drawRect(Offset.zero & imageSize, Paint()..shader = shader)
       ..restore();
     image.dispose();
+  }
+
+  List<double> _colorMatrixFor(BackdropGrade grade) {
+    const luma = [0.2126, 0.7152, 0.0722];
+    final slopes = [grade.slope.r, grade.slope.g, grade.slope.b];
+    final biases = [
+      grade.offset.r * grade.contrast + grade.pivot * (1 - grade.contrast),
+      grade.offset.g * grade.contrast + grade.pivot * (1 - grade.contrast),
+      grade.offset.b * grade.contrast + grade.pivot * (1 - grade.contrast),
+    ];
+    final sat = grade.saturation;
+    final desat = 1 - sat;
+
+    List<double> row(int channel) {
+      final out = <double>[];
+      for (var source = 0; source < 3; source++) {
+        final channelMix = channel == source ? sat : 0.0;
+        out.add(
+          (channelMix + desat * luma[source]) * grade.contrast * slopes[source],
+        );
+      }
+      final bias =
+          sat * biases[channel] +
+          desat *
+              (luma[0] * biases[0] + luma[1] * biases[1] + luma[2] * biases[2]);
+      return [...out, 0, bias * 255];
+    }
+
+    return [
+      ...row(0),
+      ...row(1),
+      ...row(2),
+      0,
+      0,
+      0,
+      1,
+      0,
+    ];
   }
 }

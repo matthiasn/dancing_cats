@@ -184,6 +184,15 @@ String get kDanceAppExportX264Preset =>
 double get kDanceAppExportWarmupSec =>
     double.tryParse(Platform.environment['DANCE_APP_EXPORT_WARMUP'] ?? '') ?? 2;
 
+/// Opt-in profiling hooks for measuring the live playback path. Kept behind
+/// env flags so normal interactive/export runs are unchanged.
+bool get kDanceAutoplay => Platform.environment['DANCE_AUTOPLAY'] == '1';
+bool get kDancePerfLog => Platform.environment['DANCE_PERF_LOG'] == '1';
+double get kDancePerfStartDelaySec =>
+    double.tryParse(Platform.environment['DANCE_PERF_START_DELAY'] ?? '') ?? 0;
+double get kDancePerfExitAfterSec =>
+    double.tryParse(Platform.environment['DANCE_PERF_EXIT_AFTER'] ?? '') ?? 0;
+
 /// Native review window for the audio demo. The content being judged is the
 /// stage image, so keep the desktop window itself 16:9 during choreography and
 /// scenery review. If the WM still letterboxes, those bars are intentionally
@@ -255,6 +264,10 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
 
   final CharacterRenderer _renderer = CharacterRenderer();
   final Player _player = Player();
+  // Surfaces libmpv playback errors instead of letting them fail silently — the
+  // symptom that hid a missing macOS `network.client` entitlement (libmpv's
+  // stream/protocol init fails under App Sandbox without it, killing audio).
+  StreamSubscription<String>? _playerErrorSub;
   final GlobalKey _stageBoundaryKey = GlobalKey();
 
   late final Ticker _ticker; // 60 fps repaint pump; time comes from the player.
@@ -328,6 +341,7 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
   bool _renderStarted = false;
   double _renderClockSeconds = 0;
   bool _appExportStarted = false;
+  _DanceFrameTimingProbe? _perfProbe;
   bool _backdropReadyForExport = false;
 
   double get _positionSec {
@@ -447,6 +461,9 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
         if (!audioFile.existsSync()) {
           throw StateError('audio file not found: $kDanceAudioPath');
         }
+        _playerErrorSub ??= _player.stream.error.listen(
+          (error) => _logDanceError('Audio playback error: $error'),
+        );
         await _player.open(Media(audioFile.path), play: false);
         await _player.setPlaylistMode(
           _loop ? PlaylistMode.loop : PlaylistMode.none,
@@ -522,10 +539,49 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
         _cuesStore = cuesStore;
         _lipSyncController = lipSyncController;
       });
+      if (!kDanceRenderOnly && kDanceAutoplay) {
+        if (kDanceRenderStartSec > 0) {
+          await _player.seek(
+            Duration(microseconds: (kDanceRenderStartSec * 1e6).round()),
+          );
+        }
+        await _player.play();
+        if (mounted) setState(() {});
+      }
+      _startPerfProbeIfRequested(
+        kDanceRenderOnly
+            ? 'render-only'
+            : kDanceAutoplay
+            ? 'live-autoplay'
+            : 'live-open',
+      );
       if (kDanceAppExport) unawaited(_exportFramesFromApp());
     } on Object catch (e, st) {
       _logDanceError('Could not start beat-synced demo.', e, st);
       if (mounted) setState(() => _error = '$e');
+    }
+  }
+
+  void _startPerfProbeIfRequested(String label) {
+    if (!kDancePerfLog || _perfProbe != null) return;
+    final probe = _DanceFrameTimingProbe(label);
+    _perfProbe = probe;
+    final delay = kDancePerfStartDelaySec;
+    void start() {
+      probe.start();
+      final exitAfter = kDancePerfExitAfterSec;
+      if (exitAfter > 0) {
+        Timer(Duration(milliseconds: (exitAfter * 1000).round()), () {
+          probe.printSummary('final');
+          exit(0);
+        });
+      }
+    }
+
+    if (delay <= 0) {
+      start();
+    } else {
+      Timer(Duration(milliseconds: (delay * 1000).round()), start);
     }
   }
 
@@ -626,6 +682,17 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
     }
     final image = await boundary.toImage();
     try {
+      // The encoder is told -s:v renderW×renderH; a capture of any other size
+      // would desync the raw-frame stride and roll the picture. Fail loudly
+      // rather than emit rolling video (see the export FittedBox in build).
+      if (image.width != kDanceRenderWidth ||
+          image.height != kDanceRenderHeight) {
+        throw StateError(
+          'captured ${image.width}x${image.height}, expected '
+          '${kDanceRenderWidth}x$kDanceRenderHeight — stage not pinned to the '
+          'render size',
+        );
+      }
       final data = await image.toByteData();
       if (data == null) throw StateError('failed to read raw RGBA frame');
       return Uint8List.fromList(
@@ -783,8 +850,10 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
 
   @override
   void dispose() {
+    _perfProbe?.dispose();
     HardwareKeyboard.instance.removeHandler(_handleGlobalKeyEvent);
     _ticker.dispose();
+    unawaited(_playerErrorSub?.cancel());
     unawaited(_player.dispose());
     final store = _gradeStore;
     _gradeController?.dispose();
@@ -897,7 +966,22 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
     }
     return Scaffold(
       backgroundColor: Colors.black,
-      body: kDanceRenderOnly
+      // Exact-frame app export captures the stage RepaintBoundary via toImage,
+      // so its pixel size must be exactly the requested render size. A desktop
+      // window can't always BE that size (macOS clamps the window to the
+      // screen), which would make toImage return the clamped size and desync the
+      // raw-frame stride against ffmpeg's -s:v (the frame "rolls"). Pin the
+      // captured stage to renderW×renderH regardless of the window; FittedBox
+      // just scales the on-screen preview to fit.
+      body: kDanceAppExport
+          ? FittedBox(
+              child: SizedBox(
+                width: kDanceRenderWidth.toDouble(),
+                height: kDanceRenderHeight.toDouble(),
+                child: stageView,
+              ),
+            )
+          : kDanceRenderOnly
           ? stageView
           : Column(
               children: [
@@ -1056,6 +1140,77 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
     final sixteenth = (((beat - idx) * 4).floor() + 1).clamp(1, 4);
     return '$bar.$beatInBar.$sixteenth';
   }
+}
+
+class _DanceFrameTimingProbe {
+  _DanceFrameTimingProbe(this.label);
+
+  final String label;
+  final List<int> _buildUs = [];
+  final List<int> _rasterUs = [];
+  final List<int> _totalUs = [];
+  late final TimingsCallback _callback = _record;
+  Timer? _periodic;
+
+  void start() {
+    SchedulerBinding.instance.addTimingsCallback(_callback);
+    stdout.writeln('dance perf: started label=$label');
+    _periodic = Timer.periodic(const Duration(seconds: 5), (_) {
+      printSummary('sample');
+    });
+  }
+
+  void dispose() {
+    _periodic?.cancel();
+    SchedulerBinding.instance.removeTimingsCallback(_callback);
+  }
+
+  void _record(List<ui.FrameTiming> timings) {
+    for (final timing in timings) {
+      _buildUs.add(timing.buildDuration.inMicroseconds);
+      _rasterUs.add(timing.rasterDuration.inMicroseconds);
+      _totalUs.add(timing.totalSpan.inMicroseconds);
+    }
+  }
+
+  void printSummary(String kind) {
+    final count = _totalUs.length;
+    if (count == 0) {
+      stdout.writeln('dance perf: $kind label=$label frames=0');
+      return;
+    }
+    final budgetUs = (1000000 / 60).round();
+    stdout.writeln(
+      'dance perf: $kind label=$label '
+      'frames=$count '
+      'build=${_summary(_buildUs)} '
+      'raster=${_summary(_rasterUs)} '
+      'total=${_summary(_totalUs)} '
+      'over16_build=${_overBudget(_buildUs, budgetUs)} '
+      'over16_raster=${_overBudget(_rasterUs, budgetUs)} '
+      'over16_total=${_overBudget(_totalUs, budgetUs)}',
+    );
+  }
+
+  String _summary(List<int> values) {
+    final sorted = [...values]..sort();
+    final avg = values.fold<int>(0, (a, b) => a + b) / values.length / 1000;
+    final p50 = _percentile(sorted, 0.50) / 1000;
+    final p95 = _percentile(sorted, 0.95) / 1000;
+    final max = sorted.last / 1000;
+    return 'avg=${avg.toStringAsFixed(2)}ms,'
+        'p50=${p50.toStringAsFixed(2)}ms,'
+        'p95=${p95.toStringAsFixed(2)}ms,'
+        'max=${max.toStringAsFixed(2)}ms';
+  }
+
+  int _percentile(List<int> sorted, double p) {
+    final index = ((sorted.length - 1) * p).round();
+    return sorted[index.clamp(0, sorted.length - 1)];
+  }
+
+  int _overBudget(List<int> values, int budgetUs) =>
+      values.where((v) => v > budgetUs).length;
 }
 
 /// The pillarbox scope dock: RESPONSE + PARADE mirrored at measuring size

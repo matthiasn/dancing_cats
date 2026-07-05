@@ -85,6 +85,12 @@ final class DanceFfmpegEncoder {
     'bt709',
     '-color_trc',
     'bt709',
+    // Force the three bt709 tags into the H.264 SPS VUI. The output-side
+    // color flags above only reliably carry the matrix (colorspace); the
+    // rgba->yuv420p auto-conversion drops primaries/transfer unless x264 is
+    // told directly, which leaves them `unknown` (not YouTube/Apple-clean).
+    '-x264-params',
+    'colorprim=bt709:transfer=bt709:colormatrix=bt709',
     '-c:a',
     'aac',
     '-b:a',
