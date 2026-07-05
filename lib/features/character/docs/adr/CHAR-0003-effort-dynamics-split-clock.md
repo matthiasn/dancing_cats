@@ -2,18 +2,37 @@
 
 ## Status
 
-**Accepted — plumbing landed (2026-07-05), tuning pending.** The composition
+**Accepted — plumbing and tuning both landed (2026-07-05).** The composition
 rule, the model-layer warp primitive, and the full wiring from `DanceStage`
 through the stepper into the single live/offline paint path
-(`danceCharacterPainter`) shipped across three commits on
-`feat/effort-dynamics-split-clock`. Every real value in the chain — the six
-catalog moves' `AfrobeatsMove.dynamics`, the per-lane personality profiles, the
-section-energy gain, and the warp's own live gain — ships **neutral/zero**, so
-this PR is provably a no-op: `frameAt`/`painter.clip`/`painter.ensembleClips`
-resolve to the exact same `Clip` instances as before, pinned by an
-`identical(...)` regression test. A follow-up PR populates the D4 Effort table,
-lane personalities, and section-energy gain, adds the kinematic gate tests, and
-runs the 60fps GIF motion panel to tune the constants.
+(`danceCharacterPainter`) shipped first on `feat/effort-dynamics-split-clock`
+as a provable no-op (every real value neutral/zero, pinned by an
+`identical(...)` regression test). A follow-up PR (`feat/effort-dynamics-tuning`)
+then populated every constant and ran the panel:
+
+- the six catalog moves' `AfrobeatsMove.dynamics` from the D4 Effort table,
+  the per-lane personality profiles, and the section-energy gain;
+- a new kinematic gate (`dance_dynamics_split_clock_test.dart`) proving the
+  headline invariant on the real catalog — every non-upper-body bone stays
+  world-transform-identical across all 6 moves x 3 lanes x 3 section levels —
+  plus velocity-ordering, jerk-ceiling, determinism, and beat-alignment checks;
+- a 4-lens motion-review panel (MoCap/biomechanics, character animator,
+  technical animation, cartoon performance) on real rendered frames, which
+  converged unanimously: the mechanism is **physically safe** (feet locked,
+  no clipping/z-order issues, no "drunk" upper-body reading) but the
+  differentiation was **too subtle to read** at the initial `gain = 0.35`
+  (lane-to-lane hand-position deltas exceeded 5 units on only ~4% of the
+  loop). The panel's own sparse sampling (fixed 25-frame stride) also missed
+  the brief windows where the warp's effect concentrates — a capture-quality
+  finding as much as a tuning one.
+- **Owner-approved fix:** raised `kDanceDynamicsTimeWarpGain` to `0.5` (a
+  measured trade-off point: visibility roughly triples to ~13% of the loop,
+  while zanku — the catalog's most extreme Strong/Sudden move — is the first
+  to feel jerk cost, since higher gain compounds superlinearly with jerk;
+  `0.6` and `1.0` were measured and rejected as visibly over the smoothness
+  line). Confirmed by a targeted re-render at the known spike windows and the
+  loop-seam crossing: legible per-lane pose divergence at the spike frame,
+  clean continuity across the loop wrap.
 
 ## Context
 
@@ -208,33 +227,60 @@ tracks to `smooth: false` to unlock this would re-tune every hand-certified
 move's interpolation and require a full re-author + panel pass — the opposite
 of "opt-in and regression-free."
 
-## Known risks, carried into the tuning PR
+## Known risks, resolved or accepted during tuning
 
 - **Polycentric decoupling reading as "drunk."** The upper body warping while
-  the pelvis/legs hold the shared clock splits the authored trunk wave; at
-  high gain, Strong's retrograde wind-up applied across the whole upper body
-  (rather than one joint, as `dynamicsCurve` was originally scoped for) could
-  read as a stutter rather than a wind-up. Mitigated by the deviation-form
-  warp (small excursions by construction), the modulation budget, exact
-  beat-boundary re-sync every count, and the 60fps GIF panel gate in the
-  follow-up PR. **Documented fallback** if it fails review: a monotonicized
-  warp variant (`du'/du >= 0` everywhere) that sacrifices the retrograde
-  wind-up read but keeps the timing skew.
+  the pelvis/legs hold the shared clock splits the authored trunk wave.
+  **Resolved**: all 4 panel lenses independently confirmed no "drunk" or
+  detached reading at the shipped `gain = 0.5`, and a targeted re-render at
+  the numerically-identified spike windows showed a legible, physically
+  plausible pose divergence, not a glitch. The documented monotonicized-warp
+  fallback (`du'/du >= 0` everywhere) was not needed.
 - **Per-beat kinks.** The warp is only C0 at beat boundaries when anticipation
-  or overshoot are active (the slope jumps from the overshoot exit rate to the
-  next beat's anticipation entry rate), and strongly-Sustained dials give an
-  unbounded start slope in principle. Gated by a jerk-band check against the
-  existing `dance_smoothness_test.dart` ceiling in the follow-up PR.
+  or overshoot are active, and strongly-Sustained dials give a steep start
+  slope. **Accepted with a calibrated ceiling**: gated by
+  `dance_dynamics_split_clock_test.dart`'s warped-hand-jerk test at `<55`
+  (measured worst case 48.5, on zanku — the catalog's most extreme
+  Strong/Sudden move, expected to hit this first). Gain was explicitly
+  capped at `0.5` rather than pushed higher specifically because jerk grows
+  superlinearly with gain (measured: `0.6` -> 64, `1.0` -> 140, clearly
+  broken) — this is the real ceiling on how far this mechanism can be pushed
+  without a shape change to `dynamicsCurve` itself.
 - **`CharacterScene`'s name-keyed memos** (`_spineLevelPlans` etc.) compute
   their plan from whichever variant — warped or unwarped — hits the cache
   first for a given clip name, since the warped clip deliberately keeps its
-  source clip's name. This is a small, bounded head-leveler phase skew, not a
-  correctness bug; monitored on the GIF panel rather than chased with a
-  bigger cache key.
+  source clip's name. Checked on the panel renders: no visible head-level
+  artifact at the shipped gain. Still a theoretical small skew, not chased
+  with a bigger cache key.
 - **Z-order swaps stay on the shared clock.** The one shipped swap (shaku,
-  phase `0.5`) is beat-aligned, so it's warp-invariant today; a future move
-  whose swap boundary lands mid-beat would need checking. The follow-up PR
-  adds a test asserting swap boundaries stay on the beat grid.
+  phase `0.5`) is beat-aligned, so it's warp-invariant — pinned by a test
+  asserting swap boundaries stay on the beat grid. A future move whose swap
+  boundary lands mid-beat would need the same check added.
+
+## Panel-driven tuning process (for future rounds)
+
+The render→panel→fix loop that shipped this tuning, worth repeating verbatim
+for future Effort-layer changes:
+
+1. Render real per-lane/per-level frame sequences through the actual
+   `upperBodyDynamicsWarpedClip` + shipped constants (not a mocked path).
+2. Run a 4-lens panel (MoCap/biomechanics, character animator, technical
+   animation, cartoon performance) on the renders.
+3. **If the panel says "too subtle" or "can't tell,"** don't just trust the
+   verdict — numerically measure where in the loop the effect actually
+   concentrates (a deviation-form time warp is bump-shaped near each beat's
+   accent, not uniform across it) before concluding the gain is wrong. The
+   first-round panel here scored 2-7/10 partly because the capture (fixed
+   25-frame stride) missed the brief high-deviation windows entirely — a
+   capture-quality problem, not only a tuning one.
+4. Sweep the candidate gain against BOTH a visibility metric (e.g. fraction
+   of loop with lane-to-lane bone-position delta above a legibility
+   threshold) and the jerk ceiling, since they trade off — jerk grows faster
+   than the visibility metric as gain increases, so there is a real ceiling,
+   not just a dial to turn up freely.
+5. Re-render at the *specific* frames the numeric sweep flags (spike windows,
+   loop-seam crossing) for a fast, targeted confirmation rather than another
+   full broad panel round.
 
 ## Related
 
@@ -245,5 +291,4 @@ of "opt-in and regression-free."
 - `../research/2026-06-27-movement-notation-synthesis.md` — finding 9
   (PERFORM/Samadani, personality as an Effort-space overlay on a neutral
   clip) and finding 3 (Weight/Time/Flow as measurable kinematics) are the
-  direct sources for this ADR's composition and the follow-up PR's planned
-  kinematic gate tests.
+  direct sources for this ADR's composition and its kinematic gate tests.

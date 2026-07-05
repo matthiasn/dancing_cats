@@ -202,11 +202,21 @@ void main() {
     // `dance_smoothness_test.dart` gates the UNWARPED zanku/azonto hand jerk
     // at <28 (rendered clip.clock jerk, no lane/level composition). Warping
     // adds a second source of jerk on top of the authored motion, so this is
-    // a fresh calibration, not a re-check of that gate. Worst measured case
-    // across all 6 catalogue moves x 3 lanes x {cold, hot} was zanku's lead
-    // lane at the hottest level: hand.L=26.3, hand.R=31.0 (every other
-    // combination — all of azonto and the rest of zanku — stayed under 25).
-    // 40 keeps real headroom above that worst case while still catching a
+    // a fresh calibration, not a re-check of that gate.
+    //
+    // The warp gain was raised from 0.35 to 0.5 after a 4-lens motion-review
+    // panel found the lane/level differentiation real but too subtle to read
+    // at 0.35 (lane-to-lane hand-position deltas exceeded 5 units on only
+    // ~4% of the loop). At 0.5, worst measured jerk across all 6 catalogue
+    // moves x 3 lanes at the hottest level is zanku's lead lane:
+    // hand.L=48.5, hand.R=48.4 (lane2 hand.R=41.3 is the next-worst; every
+    // azonto combination stayed under 34). zanku hits the ceiling hardest
+    // because its OWN move-base dial (Strong/Sudden, ADR D4) is already the
+    // catalog's most extreme, so its curve has the least headroom left
+    // before the warp's linear gain starts compounding superlinearly with
+    // jerk (owner-approved trade-off — a higher gain read better but grew
+    // jerk far faster: gain 0.6 -> 64, gain 1.0 -> 140, clearly broken). 55
+    // keeps real headroom above the 48.5 worst case while still catching a
     // regression back toward "stop-go" territory.
     test('the worst-case lane+level combination stays under the ceiling', () {
       final scene = CharacterScene(buildCatInSuitRig());
@@ -236,7 +246,7 @@ void main() {
                 .reduce(math.max);
             expect(
               worstJerk,
-              lessThan(40),
+              lessThan(55),
               reason:
                   '${clip.name} lane $lane $hand warped jerk should stay '
                   'well clear of stop-go territory even at full energy',

@@ -9,9 +9,15 @@ const int kDanceBeatsPerPhraseLoop = 8;
 
 /// Global strength of the upper-body Effort time warp. A perceptual dial
 /// (ADR CHAR-0001 D6) tuned by eye on rendered 60fps motion per ADR
-/// CHAR-0003's rollout: `0` was the plumbing PR's provable-no-op value;
-/// this is the tuning PR's starting point, subject to the panel gate.
-const double kDanceDynamicsTimeWarpGain = 0.35;
+/// CHAR-0003's rollout: `0` was the plumbing PR's provable-no-op value.
+/// `0.35` was the tuning PR's starting point; a 4-lens motion-review panel
+/// found the differentiation real but too subtle/intermittent to read at
+/// normal viewing scale (lane-to-lane hand-position deltas exceeded 5 units
+/// on only ~4% of the loop), so this raised to `0.5` (~13% of the loop),
+/// the owner-approved trade-off point before jerk cost on zanku (the
+/// catalog's most extreme Strong/Sudden move) grows too fast — see the
+/// warped-jerk ceiling note in `dance_dynamics_split_clock_test.dart`.
+const double kDanceDynamicsTimeWarpGain = 0.5;
 
 /// Returns [clip] with its [warpBoneIds] channels and hand IK targets wrapped
 /// in a beat-local Effort time warp for [effective] dynamics — every other

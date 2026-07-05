@@ -40,14 +40,17 @@ Each ADR contains: `Status`, `Date`, `Context`, `Decision`, `Consequences`,
   near-degenerate-reach artifact that tripped the gate and how it was
   actually fixed (choreography reach, not engine code).
 - [`CHAR-0003-effort-dynamics-split-clock.md`](./CHAR-0003-effort-dynamics-split-clock.md)
-  — **Accepted, plumbing landed / tuning pending.** Wires CHAR-0001's dormant
-  `DanceDynamics` layer into the live trio via a beat-local time warp applied
-  to upper-body channels only (feet/legs/root stay on the shared clock, so
-  the trio's per-member zero-time-offset invariant holds by construction).
-  Composes `effective = clamp(moveBase + budgetCap(catProfile +
-  sectionEnergy))` per cat per moment. Ships as a provable no-op (neutral
-  profiles, zero gain); a follow-up PR populates the real Effort table, lane
-  personalities, and section-energy gain, gated on a 60fps GIF motion panel.
+  — **Accepted/implemented.** Wires CHAR-0001's dormant `DanceDynamics` layer
+  into the live trio via a beat-local time warp applied to upper-body
+  channels only (feet/legs/root stay on the shared clock, so the trio's
+  per-member zero-time-offset invariant holds by construction). Composes
+  `effective = clamp(moveBase + budgetCap(catProfile + sectionEnergy))` per
+  cat per moment. Landed in two passes: plumbing as a provable no-op, then
+  tuning (the real D4 Effort table, lane personalities, section-energy gain,
+  and a live warp gain raised from `0.35` to `0.5` after a 4-lens motion
+  panel found the differentiation too subtle at the initial value) with a
+  new kinematic gate proving the headline support-bone-exact invariant on
+  the real catalog.
 
 ## Related research
 
