@@ -119,6 +119,13 @@ class DanceFrameComposer {
   final DancePlaybackStepper _stepper = DancePlaybackStepper();
   List<Offset> _dancerAnchors = const [];
 
+  // Mirrors `_StageLightsOverlayState._energyWeight`'s ease exactly (same
+  // rate, same non-dt-scaled `_follow` formula) so the offline render can't
+  // drift from the live player's floor-pool fade-in/out around an
+  // idle<->dance boundary — see that class's doc comment.
+  static const double _energyEase = 0.08;
+  double? _energyWeight;
+
   /// The framing the last [advance] settled on (after preroll). Lets debug tools
   /// label a frame with its camera zoom/pan.
   Shot get shot => _stepper.shot;
@@ -126,7 +133,13 @@ class DanceFrameComposer {
   /// Advances the stateful per-frame state (camera smoothing, singing mouths) by
   /// [dt] seconds at audio position [pos]. Call this WITHOUT rendering to preroll
   /// the camera before the first frame of interest.
-  void advance(double pos, double dt) => _stepper.advance(perf, cues, pos, dt);
+  void advance(double pos, double dt) {
+    _stepper.advance(perf, cues, pos, dt);
+    final energetic = (_stepper.stage ?? perf.stageAt(pos)).energetic;
+    final target = energetic ? 1.0 : 0.0;
+    final current = _energyWeight ?? target;
+    _energyWeight = current + (target - current) * _energyEase;
+  }
 
   /// Advances by [dt] then paints the frame at [pos] to a [ui.Image] (caller
   /// owns it and must `dispose()`). The raw image is what debug tools tile into
@@ -213,6 +226,7 @@ class DanceFrameComposer {
       footY: _dancerAnchors.length == _stageRig.count
           ? [for (final a in _dancerAnchors) a.dy]
           : null,
+      energyWeight: _energyWeight ?? (stage.energetic ? 1.0 : 0.0),
     ).paint(canvas, size);
     const SceneTexturePainter().paint(canvas, size);
 
