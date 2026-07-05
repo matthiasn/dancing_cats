@@ -360,13 +360,28 @@ final List<DanceBodyKey> _shakuGrooveCalm = _calmedGroove(_shakuLateralGain);
 /// character stands up out of the pocket mid-loop" — all four raters), so
 /// the whole pulse now rides ~5 units lower and the highest hip position
 /// keeps a visible knee bend.
-final List<DanceBodyKey> _shakuGrooveCommitted = _calmedGroove(0.25, sink: 11);
+///
+/// The R24 sync panel measured the residual rootDx wander (0.25) still
+/// SLOPING the square-wave plateaus — the lateral trace decayed -24 -> -6
+/// across bar 1 and climbed +2 -> +22 across bars 3-4, reading as a 4-bar
+/// one-way drift with a seam snap-back instead of park-and-commit. The
+/// twist life (pelvis/chest counter-rotation) keeps the 0.25 gain; only
+/// the root's own lateral drops to pure per-beat texture.
+final List<DanceBodyKey> _shakuGrooveCommitted = _calmedGroove(
+  0.25,
+  sink: 11,
+  rootDxGain: 0.1,
+);
 
-List<DanceBodyKey> _calmedGroove(double lateralGain, {double sink = 6}) => [
+List<DanceBodyKey> _calmedGroove(
+  double lateralGain, {
+  double sink = 6,
+  double? rootDxGain,
+}) => [
   for (final k in _shakuBodyGrooveKeys)
     DanceBodyKey(
       k.frame,
-      rootDx: k.rootDx == null ? null : k.rootDx! * lateralGain,
+      rootDx: k.rootDx == null ? null : k.rootDx! * (rootDxGain ?? lateralGain),
       rootDy: k.rootDy == null ? null : k.rootDy! + sink,
       rootRotation: k.rootRotation == null
           ? null
@@ -514,7 +529,12 @@ const _shakuFootLTargetKeys = [
   // not a translated sole.
   DanceIkTargetKey(0, x: -69, y: 103), // planted support, visible outside
   DanceIkTargetKey(13, x: -69, y: 103), // still exactly there
-  DanceIkTargetKey(14, x: -66, y: 97), // toe-led lift begins
+  DanceIkTargetKey(14, x: -66, y: 91), // toe-led lift, clears the floor
+  // R24 ornament: GHOST press on the 'and' of the handoff (beat 7.5) — the
+  // panel measured a 1.5-beat dead zone (beats 7.5-9) where neither foot
+  // articulates while the R foot plants; a half-height press keeps the
+  // free foot talking through the transfer.
+  DanceIkTargetKey(15, x: -58, y: 95),
   // Free phase re-authored as LIFTED tap-steps (R16 mocap: stance-width
   // changes "all while both feet render flat and weighted... replaced by
   // feet sliding on the floor"; coach: "the signature quick in-out
@@ -552,10 +572,14 @@ const _shakuFootRTargetKeys = [
   DanceIkTargetKey(0, x: 52, y: 96), // TAP on its own side on the downbeat
   DanceIkTargetKey(1, x: 36, y: 87), // lifted, travelling in
   DanceIkTargetKey(3, x: 58, y: 95), // TAP outboard
-  DanceIkTargetKey(5, x: 44, y: 86), // lifted
+  DanceIkTargetKey(4, x: 48, y: 88), // lifts clear, base stays broad
+  // R24 ornament: half-height GHOST on the 'and-a' before the inboard tap
+  // (idiomatic shaku legwork rides ~2 presses/s; the measured rate was 1.1).
+  DanceIkTargetKey(5, x: 44, y: 93),
   DanceIkTargetKey(6, x: 32, y: 96), // TAP inboard on the "and"
   DanceIkTargetKey(8, x: 50, y: 96), // back OUT and down on the count (base)
-  DanceIkTargetKey(9, x: 36, y: 87), // lifted, travelling in
+  DanceIkTargetKey(9, x: 36, y: 93), // GHOST press on the 'and' (R24)
+  DanceIkTargetKey(10, x: 44, y: 88), // lifts clear
   DanceIkTargetKey(11, x: 60, y: 95), // TAP outboard
   DanceIkTargetKey(13, x: 44, y: 87), // lifted toward the descent
   // Plants on the "and" BEFORE bar 2 (15, tension:1 = dead arrival), so
@@ -604,40 +628,49 @@ const _shakuHandLKeys = [
   DanceJointKey(1, rotation: 0.58),
   DanceJointKey(2, rotation: 0.62),
   DanceJointKey(3, rotation: 0.3),
+  // R24 ornament: wrist FLICK as each row-stroke lands at the hip — a
+  // 2-frame overshoot-and-settle snap ~15-20% past the stroke's arc, on
+  // the 'and' after each land (L lands on 4/12/20/28).
+  DanceJointKey(5, rotation: -0.52),
   DanceJointKey(6, rotation: -0.42),
   DanceJointKey(7, rotation: 0.32),
   DanceJointKey(9, rotation: -0.46),
   DanceJointKey(10, rotation: -0.42),
   DanceJointKey(11, rotation: 0.3),
+  DanceJointKey(13, rotation: -0.54), // flick (R24)
   DanceJointKey(14, rotation: -0.44),
   DanceJointKey(15, rotation: 0.24),
   DanceJointKey(17, rotation: 0.54),
   DanceJointKey(18, rotation: -0.42),
   DanceJointKey(19, rotation: 0.2),
+  DanceJointKey(21, rotation: -0.54), // flick (R24)
   DanceJointKey(22, rotation: -0.44),
   DanceJointKey(23, rotation: 0.24),
   DanceJointKey(27, rotation: 0.18),
-  DanceJointKey(29, rotation: -0.44),
+  DanceJointKey(29, rotation: -0.56), // flick under the generator pull (R24)
   DanceJointKey(31, rotation: 0.22),
   DanceJointKey(32, rotation: -0.12),
 ];
 const _shakuHandRKeys = [
   DanceJointKey(0, rotation: 0.12),
-  DanceJointKey(1, rotation: -0.54),
+  // R24: the seam follow-through sharpened into the same land-flick the
+  // panel prescribed for every row-stroke (R lands on 0/8/16/24).
+  DanceJointKey(1, rotation: -0.66),
   DanceJointKey(2, rotation: -0.6),
   DanceJointKey(3, rotation: -0.3),
   DanceJointKey(6, rotation: 0.42),
   DanceJointKey(7, rotation: -0.32),
-  DanceJointKey(9, rotation: 0.46),
+  DanceJointKey(9, rotation: 0.58), // flick (R24)
   DanceJointKey(10, rotation: 0.54),
   DanceJointKey(11, rotation: -0.3),
   DanceJointKey(14, rotation: 0.44),
   DanceJointKey(15, rotation: -0.24),
-  DanceJointKey(17, rotation: -0.42),
+  DanceJointKey(17, rotation: -0.54), // flick (R24)
   DanceJointKey(18, rotation: 0.54),
   DanceJointKey(19, rotation: -0.2),
   DanceJointKey(22, rotation: 0.44),
   DanceJointKey(23, rotation: -0.24),
+  DanceJointKey(25, rotation: 0.4), // flick (R24)
   DanceJointKey(27, rotation: -0.18),
   DanceJointKey(29, rotation: 0.44),
   DanceJointKey(31, rotation: -0.22),
@@ -690,23 +723,37 @@ const _shakuClavicleLKeys = [
   DanceJointKey(14, rotation: -0.05),
   DanceJointKey(16, rotation: -0.42),
   DanceJointKey(18, rotation: 0.08),
+  // R24 ornament: the pop riff swaps to the L shoulder for bars 3-4,
+  // tracking the tapping foot (see _shakuClavicleRKeys).
+  DanceJointKey(19, rotation: 0.24), // off-beat pop (L up = +)
   DanceJointKey(20, rotation: 0.15),
   DanceJointKey(22, rotation: -0.05),
+  DanceJointKey(23, rotation: -0.1), // off-beat pop off the drop approach
   DanceJointKey(24, rotation: -0.42),
   DanceJointKey(26, rotation: 0.08),
+  DanceJointKey(27, rotation: 0.24), // off-beat pop
   DanceJointKey(28, rotation: 0.15),
   DanceJointKey(30, rotation: -0.05),
+  DanceJointKey(31, rotation: -0.1), // off-beat pop into the seam
   DanceJointKey(32, rotation: -0.42),
 ];
 const _shakuClavicleRKeys = [
   DanceJointKey(0, rotation: -0.15), // POP up (see-saw) while L drops
   DanceJointKey(2, rotation: -0.05), // anticipates the next drop
+  // R24 ornament: off-beat shoulder POPS on the 'ands' of counts 2/4 in
+  // the bars where the R foot is the tapping foot — a quick up-hitch
+  // (~0.1 rad off the interpolated path) answering the taps, per the
+  // panel's "alternating pop/dip on the 'ands', same side as the foot".
+  DanceJointKey(3, rotation: -0.12),
   DanceJointKey(4, rotation: 0.42), // R DROP (R opens)
   DanceJointKey(6, rotation: -0.08), // release overshoot up
+  DanceJointKey(7, rotation: -0.22), // off-beat pop
   DanceJointKey(8, rotation: -0.15),
   DanceJointKey(10, rotation: -0.05),
+  DanceJointKey(11, rotation: -0.12), // off-beat pop
   DanceJointKey(12, rotation: 0.42),
   DanceJointKey(14, rotation: -0.08),
+  DanceJointKey(15, rotation: -0.22), // off-beat pop, hands the riff to L
   DanceJointKey(16, rotation: -0.15),
   DanceJointKey(18, rotation: -0.05),
   DanceJointKey(20, rotation: 0.42),
@@ -764,13 +811,26 @@ const _shakuHeadKeys = [
   // swinging the skull top every two frames). One smooth arc per count.
   DanceJointKey(0, rotation: 0.03),
   DanceJointKey(1, rotation: 0.09), // answers L's open, tilts toward it
+  // R24 ornament: a deliberate ECHO nod at ~35% amplitude two frames after
+  // each main tilt, consistent through ALL bars (the panel measured the
+  // second nod present in bars 1-2 and vanishing in 3-4). Unlike the R22
+  // jitter keys these are count-locked, one per main nod, same direction —
+  // a hesitation before the cross, not noise.
+  DanceJointKey(3, rotation: 0.03),
   DanceJointKey(5, rotation: -0.09), // answers R's open
+  DanceJointKey(7, rotation: -0.03),
   DanceJointKey(9, rotation: 0.09),
+  DanceJointKey(11, rotation: 0.03),
   DanceJointKey(13, rotation: -0.09),
+  DanceJointKey(15, rotation: -0.03),
   DanceJointKey(17, rotation: 0.1),
+  DanceJointKey(19, rotation: 0.035),
   DanceJointKey(21, rotation: -0.1),
+  DanceJointKey(23, rotation: -0.035),
   DanceJointKey(25, rotation: 0.1),
+  DanceJointKey(27, rotation: 0.035),
   DanceJointKey(29, rotation: -0.12), // tips INTO the generator pull
+  DanceJointKey(31, rotation: -0.04),
   DanceJointKey(32, rotation: 0.03), // == frame 0
 ];
 
@@ -859,11 +919,16 @@ const _shakuDabBodyKeys = [
 // Panel pass: make the wrist-crosses sit on a heavier pocket and give the
 // open-arm accents a visible downbeat instead of floating over the feet.
 const _shakuPanelBodyKeys = [
-  DanceBodyKey(0, rootDy: 6, pelvisRotation: -0.06, chestRotation: 0.05),
-  DanceBodyKey(1, rootDy: 11, pelvisRotation: -0.14, chestRotation: 0.16),
-  DanceBodyKey(2, rootDy: 10, pelvisRotation: -0.16, chestRotation: 0.18),
-  DanceBodyKey(3, rootDy: 6, pelvisRotation: -0.06, chestRotation: 0.05),
-  DanceBodyKey(5, rootDy: 10, pelvisRotation: -0.1, chestRotation: -0.14),
+  // R24 sync re-shape: the panel measured bar 1's accent hierarchy INVERTED
+  // (deepest sink at beat ~1.9 instead of just behind the bar line, which
+  // only reached ~50 world units vs 69 mid-bar) and the seam approach
+  // starved (f31 at 5 kills the dive into the final sink). Depth moves to
+  // the bar boundary: f0/f32 and f31 up, the f2-f5 shoulder down.
+  DanceBodyKey(0, rootDy: 13, pelvisRotation: -0.06, chestRotation: 0.05),
+  DanceBodyKey(1, rootDy: 14, pelvisRotation: -0.14, chestRotation: 0.16),
+  DanceBodyKey(2, rootDy: 8, pelvisRotation: -0.16, chestRotation: 0.18),
+  DanceBodyKey(3, rootDy: 4, pelvisRotation: -0.06, chestRotation: 0.05),
+  DanceBodyKey(5, rootDy: 4, pelvisRotation: -0.1, chestRotation: -0.14),
   DanceBodyKey(6, rootDy: 9, pelvisRotation: -0.1, chestRotation: -0.14),
   DanceBodyKey(7, rootDy: 5),
   DanceBodyKey(8, rootDy: 6, pelvisRotation: 0.06, chestRotation: -0.05),
@@ -873,10 +938,10 @@ const _shakuPanelBodyKeys = [
   DanceBodyKey(13, rootDy: 10, pelvisRotation: 0.1, chestRotation: 0.14),
   DanceBodyKey(14, rootDy: 9, pelvisRotation: 0.1, chestRotation: 0.14),
   DanceBodyKey(15, rootDy: 5),
-  DanceBodyKey(16, rootDy: 6, pelvisRotation: -0.06, chestRotation: 0.05),
-  DanceBodyKey(17, rootDy: 12, pelvisRotation: -0.15, chestRotation: 0.18),
-  DanceBodyKey(18, rootDy: 11, pelvisRotation: -0.17, chestRotation: 0.2),
-  DanceBodyKey(19, rootDy: 6, pelvisRotation: -0.06, chestRotation: 0.05),
+  DanceBodyKey(16, rootDy: 8, pelvisRotation: -0.06, chestRotation: 0.05),
+  DanceBodyKey(17, rootDy: 11, pelvisRotation: -0.15, chestRotation: 0.18),
+  DanceBodyKey(18, rootDy: 10, pelvisRotation: -0.17, chestRotation: 0.2),
+  DanceBodyKey(19, rootDy: 5, pelvisRotation: -0.06, chestRotation: 0.05),
   DanceBodyKey(21, rootDy: 10, pelvisRotation: -0.1, chestRotation: -0.14),
   DanceBodyKey(22, rootDy: 9, pelvisRotation: -0.1, chestRotation: -0.14),
   DanceBodyKey(23, rootDy: 5),
@@ -885,7 +950,7 @@ const _shakuPanelBodyKeys = [
   DanceBodyKey(26, rootDy: 11, pelvisRotation: 0.17, chestRotation: -0.2),
   DanceBodyKey(27, rootDy: 6, pelvisRotation: 0.06, chestRotation: -0.05),
   DanceBodyKey(29, rootDy: 10, pelvisRotation: 0.1, chestRotation: 0.14),
-  DanceBodyKey(30, rootDy: 9, pelvisRotation: 0.1, chestRotation: 0.14),
-  DanceBodyKey(31, rootDy: 5),
-  DanceBodyKey(32, rootDy: 6, pelvisRotation: -0.06, chestRotation: 0.05),
+  DanceBodyKey(30, rootDy: 12, pelvisRotation: 0.1, chestRotation: 0.14),
+  DanceBodyKey(31, rootDy: 11),
+  DanceBodyKey(32, rootDy: 13, pelvisRotation: -0.06, chestRotation: 0.05),
 ];
