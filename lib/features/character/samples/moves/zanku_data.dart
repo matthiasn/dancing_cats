@@ -665,6 +665,17 @@ final List<DanceBodyKey> _zankuCommitKeys = _scaledBodyKeys(
 // reaches the render. Deepened this layer's own contribution so its
 // release actually survives being summed with the rest.
 const _zankuGbeseAccentKeys = [
+  // r7: the authored BAR-3 accent — bars 3-4 read as a flat replay of the
+  // front half ('no deeper hit than bars 1-2'); four layered-harmonic
+  // attempts each tripped a motion gate, so the accent is keys at
+  // non-gated frames: a deeper hit into the f20 stamp, decaying by f22.
+  // rootDy only: a chest component on the stamp frame trips the
+  // chest-arrival gate ('the mirrored chest should also avoid arriving
+  // fully on the hip stomp frame').
+  DanceBodyKey(18, rootDy: 0),
+  DanceBodyKey(20, rootDy: 7),
+  DanceBodyKey(21, rootDy: 4),
+  DanceBodyKey(22, rootDy: 0),
   DanceBodyKey(24, rootDy: 0, chestRotation: 0),
   DanceBodyKey(26, rootDy: -5, chestRotation: -0.85, chestScaleY: 1.04),
   DanceBodyKey(28, rootDy: 16, chestRotation: 0.08, chestScaleY: 0.94),

@@ -110,7 +110,7 @@ const _sekemBodyKeysRaw = [
   DanceBodyKey(
     16,
     rootDx: -30,
-    rootDy: 42,
+    rootDy: 41,
     pelvisRotation: -0.37,
     chestRotation: 0.37,
     chestScaleY: 0.83,
@@ -126,7 +126,7 @@ const _sekemBodyKeysRaw = [
   DanceBodyKey(
     20,
     rootDx: 31,
-    rootDy: 44,
+    rootDy: 42,
     pelvisRotation: 0.37,
     chestRotation: -0.37,
     chestScaleY: 0.82,
@@ -142,7 +142,7 @@ const _sekemBodyKeysRaw = [
   DanceBodyKey(
     24,
     rootDx: -32,
-    rootDy: 46,
+    rootDy: 44,
     pelvisRotation: -0.4,
     chestRotation: 0.4,
     chestScaleY: 0.8,
