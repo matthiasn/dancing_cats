@@ -705,16 +705,16 @@ const _sekemHandLKeys = [
 // the two small counter-keys are dropped so each phrase side is one
 // clean answer-arc plus its echo.
 const _sekemHeadKeys = [
-  DanceJointKey(0, rotation: -0.09), // snaps with the R punch
-  DanceJointKey(2, rotation: -0.035), // echo through the recovery
+  DanceJointKey(0, rotation: -0.105), // snaps with the R punch (r5 gain, squash-gated)
+  DanceJointKey(2, rotation: -0.08), // echo through the recovery (r6 gain)
   DanceJointKey(6, rotation: 0.04), // gathers against the next punch
-  DanceJointKey(8, rotation: -0.09), // second punch
-  DanceJointKey(10, rotation: -0.035),
+  DanceJointKey(8, rotation: -0.105), // second punch
+  DanceJointKey(10, rotation: -0.08),
   DanceJointKey(14, rotation: 0.05), // loads the phrase swap
-  DanceJointKey(16, rotation: 0.12), // the L side takes the phrase (r4: ride the reclaim)
-  DanceJointKey(18, rotation: 0.05),
+  DanceJointKey(16, rotation: 0.12), // the L side takes the phrase (0.15 tripped the downbeat-squash gate)
+  DanceJointKey(18, rotation: 0.09), // r6: re-arm — bars 3-4 crests decayed to half
   DanceJointKey(24, rotation: 0.12),
-  DanceJointKey(26, rotation: 0.05),
+  DanceJointKey(26, rotation: 0.09),
   DanceJointKey(32, rotation: -0.09), // == frame 0
 ];
 

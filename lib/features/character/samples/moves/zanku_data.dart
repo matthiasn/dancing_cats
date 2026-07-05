@@ -150,13 +150,13 @@ const _zankuFootLTargetKeys = [
   DanceIkTargetKey(4, x: -62, y: 126, tension: 0.4), // plant end — swap
   DanceIkTargetKey(5, x: -46, y: 110), // compact pickup, not a stride
   DanceIkTargetKey(6, x: -83, y: 122), // heel-toe knock under hip
-  DanceIkTargetKey(7, x: -50, y: 124), // drag back under the knee
+  DanceIkTargetKey(7, x: -50, y: 125), // drag settles near-planted (r6)
   DanceIkTargetKey(8, x: -62, y: 126, tension: 1), // stamp
   DanceIkTargetKey(10, x: -62, y: 125, tension: 0.6),
   DanceIkTargetKey(12, x: -62, y: 126, tension: 0.4),
   DanceIkTargetKey(13, x: -46, y: 110),
   DanceIkTargetKey(14, x: -79, y: 121), // tighter rep (de-clone, R2)
-  DanceIkTargetKey(15, x: -50, y: 124),
+  DanceIkTargetKey(15, x: -50, y: 125),
   DanceIkTargetKey(16, x: -62, y: 126, tension: 1), // stamp
   DanceIkTargetKey(18, x: -62, y: 125, tension: 0.6),
   DanceIkTargetKey(20, x: -62, y: 126, tension: 0.4),
@@ -189,19 +189,19 @@ const _zankuFootRTargetKeys = [
   DanceIkTargetKey(0, x: 50, y: 123), // scrape from previous tap
   DanceIkTargetKey(1, x: 44, y: 110), // compact pickup
   DanceIkTargetKey(2, x: 83, y: 122), // heel-toe knock under hip
-  DanceIkTargetKey(3, x: 50, y: 124), // drag back under the knee
+  DanceIkTargetKey(3, x: 50, y: 125), // drag settles near-planted (r5)
   DanceIkTargetKey(4, x: 62, y: 126, tension: 1), // stamp/support
   DanceIkTargetKey(6, x: 62, y: 125, tension: 0.6), // planted, held
   DanceIkTargetKey(8, x: 50, y: 123),
   DanceIkTargetKey(9, x: 44, y: 110),
   DanceIkTargetKey(10, x: 80, y: 121), // tighter rep (de-clone, R2)
-  DanceIkTargetKey(11, x: 50, y: 124),
+  DanceIkTargetKey(11, x: 50, y: 125),
   DanceIkTargetKey(12, x: 62, y: 126, tension: 1), // stamp
   DanceIkTargetKey(14, x: 62, y: 125, tension: 0.6),
   DanceIkTargetKey(16, x: 50, y: 123),
   DanceIkTargetKey(17, x: 44, y: 110),
   DanceIkTargetKey(18, x: 86, y: 123), // wider rep (de-clone, R2)
-  DanceIkTargetKey(19, x: 50, y: 124),
+  DanceIkTargetKey(19, x: 50, y: 125),
   DanceIkTargetKey(20, x: 62, y: 126, tension: 1), // stamp
   DanceIkTargetKey(22, x: 62, y: 125, tension: 0.6),
   DanceIkTargetKey(24, x: 50, y: 123),
@@ -334,17 +334,17 @@ const _zankuClavicleLKeys = [
 // dances but the character doesn't").
 const _zankuHeadKeys = [
   DanceJointKey(0, rotation: 0.02),
-  DanceJointKey(1, rotation: 0.08), // answers the L stamp
+  DanceJointKey(1, rotation: 0.11), // answers the L stamp (r5: pointed crest)
   DanceJointKey(3, rotation: 0.032), // echo nod
-  DanceJointKey(5, rotation: -0.08), // answers the R stamp
+  DanceJointKey(5, rotation: -0.11), // answers the R stamp
   DanceJointKey(7, rotation: -0.032),
-  DanceJointKey(9, rotation: 0.07), // varied answer (de-clone, R2)
+  DanceJointKey(9, rotation: 0.1), // varied answer
   DanceJointKey(11, rotation: 0.028),
-  DanceJointKey(13, rotation: -0.08),
+  DanceJointKey(13, rotation: -0.11),
   DanceJointKey(15, rotation: -0.032),
-  DanceJointKey(17, rotation: 0.09), // varied answer
+  DanceJointKey(17, rotation: 0.12), // varied answer
   DanceJointKey(19, rotation: 0.038),
-  DanceJointKey(21, rotation: -0.08),
+  DanceJointKey(21, rotation: -0.11),
   DanceJointKey(23, rotation: -0.032),
   DanceJointKey(25, rotation: 0.09), // gathers against the kick side
   DanceJointKey(26, rotation: -0.1), // tips INTO the gbese

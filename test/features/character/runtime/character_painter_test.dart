@@ -1172,7 +1172,11 @@ void main() {
         // units) legitimately moves the trio's rendered centre a little
         // further between these two sampled camera beats. A true snap
         // still measures multiples of this band.
-        inInclusiveRange(-8, 56),
+        // 56 -> 60 (9-path r5): shaku's per-bar weight rock re-armed into the
+          // sway parks shifts the lead ~4px right at this beat — the bound
+          // tracks the character's shot range; the easing guard is the
+          // adjacent delta assertions, which are untouched.
+          inInclusiveRange(-8, 60),
         reason:
             'the second beat now starts with the push-in; any right truck '
             'should ease in without snapping the lead left',
