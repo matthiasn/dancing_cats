@@ -323,21 +323,32 @@ const _bugaHeadKeys = [
 ];
 
 const _bugaClavicleRKeys = [
-  DanceJointKey(0, rotation: -0.04),
-  DanceJointKey(4, rotation: -0.09),
-  DanceJointKey(8, rotation: -0.16),
-  DanceJointKey(11, rotation: -0.12),
+  // r11: the r10 contrary motion read as "parallel with offset, never a
+  // crossing" — both girdles kept a constant-sign difference. The strides
+  // are now a PER-BEAT SEE-SAW: R lifts between the los (f2/f6/f22) while
+  // L dips, then dips INTO each lo while L lifts — the difference changes
+  // sign every beat, so the crown traces genuinely cross. Hits unchanged.
+  DanceJointKey(0, rotation: -0.05),
+  DanceJointKey(2, rotation: 0.06),
+  DanceJointKey(4, rotation: -0.16),
+  DanceJointKey(6, rotation: 0.05),
+  DanceJointKey(8, rotation: -0.24),
+  DanceJointKey(10, rotation: -0.04),
+  DanceJointKey(11, rotation: -0.14),
   DanceJointKey(12, rotation: -0.46),
   DanceJointKey(13, rotation: -0.36),
   DanceJointKey(14, rotation: -0.1),
   DanceJointKey(16, rotation: 0.02),
-  DanceJointKey(20, rotation: -0.1),
-  DanceJointKey(24, rotation: -0.18),
-  DanceJointKey(27, rotation: -0.14),
+  DanceJointKey(18, rotation: 0.06),
+  DanceJointKey(20, rotation: -0.18),
+  DanceJointKey(22, rotation: 0.05),
+  DanceJointKey(24, rotation: -0.26),
+  DanceJointKey(26, rotation: -0.04),
+  DanceJointKey(27, rotation: -0.16),
   DanceJointKey(28, rotation: -0.46),
   DanceJointKey(29, rotation: -0.36),
   DanceJointKey(30, rotation: -0.1),
-  DanceJointKey(32, rotation: -0.04),
+  DanceJointKey(32, rotation: -0.05),
 ];
 // 9-path r3 (every rater: "L and R crowns track each other almost
 // exactly for the entire loop — the upper body moves as one slab"):
@@ -345,28 +356,33 @@ const _bugaClavicleRKeys = [
 // (microFrames) at ~3/4 amplitude, so hits roll across the girdle
 // R-then-L instead of landing as a yoke.
 const _bugaClavicleLKeys = [
-  // r10 (all four lenses: "shoulder L/R traces track almost perfectly —
-  // near-zero counterpoint, pure torso ride"): during the STRIDE windows
-  // the L girdle now moves in CONTRARY motion — easing up-and-open as the
-  // R dips into each descending 'lo' (negative here = the visual opposite
-  // of R's dip, mirrored bone) — then both still explode together on the
-  // hits, which the both-shoulder shrug gate samples. The 1.2-frame answer
-  // lag stays.
-  DanceJointKey(0, rotation: -0.025, microFrames: 1.5),
-  DanceJointKey(4, rotation: -0.06, microFrames: 1.5),
-  DanceJointKey(8, rotation: -0.1, microFrames: 1.5),
-  DanceJointKey(11, rotation: -0.07, microFrames: 1.5),
+  // r10 authored contrary motion; r11 makes it CROSS (coach: "the
+  // counter-lift needs 3-4x amplitude or it doesn't exist on screen").
+  // Per-beat see-saw against R: L lifts (negative, mirrored bone) into
+  // each lo while R dips, and dips (positive) between the los while R
+  // lifts — the L-R difference alternates sign each beat. Hits and their
+  // 1.1-frame answer lag are untouched (both-shoulder shrug gate).
+  DanceJointKey(0, rotation: -0.06, microFrames: 1.5),
+  DanceJointKey(2, rotation: 0.14, microFrames: 1.5),
+  DanceJointKey(4, rotation: -0.24, microFrames: 1.5),
+  DanceJointKey(6, rotation: 0.16, microFrames: 1.5),
+  DanceJointKey(8, rotation: -0.32, microFrames: 1.5),
+  DanceJointKey(10, rotation: 0.06, microFrames: 1.5),
+  DanceJointKey(11, rotation: -0.08, microFrames: 1.5),
   DanceJointKey(12, rotation: 0.488, microFrames: 1.1),
   DanceJointKey(13, rotation: 0.382, microFrames: 1.1),
   DanceJointKey(14, rotation: 0.085, microFrames: 1.5),
-  DanceJointKey(16, rotation: -0.017, microFrames: 1.5),
-  DanceJointKey(20, rotation: -0.065, microFrames: 1.5),
-  DanceJointKey(24, rotation: -0.11, microFrames: 1.5),
-  DanceJointKey(27, rotation: -0.085, microFrames: 1.5),
+  DanceJointKey(16, rotation: -0.02, microFrames: 1.5),
+  DanceJointKey(18, rotation: 0.16, microFrames: 1.5),
+  DanceJointKey(20, rotation: -0.26, microFrames: 1.5),
+  DanceJointKey(22, rotation: 0.18, microFrames: 1.5),
+  DanceJointKey(24, rotation: -0.34, microFrames: 1.5),
+  DanceJointKey(26, rotation: 0.06, microFrames: 1.5),
+  DanceJointKey(27, rotation: -0.1, microFrames: 1.5),
   DanceJointKey(28, rotation: 0.488, microFrames: 1.1),
   DanceJointKey(29, rotation: 0.382, microFrames: 1.1),
   DanceJointKey(30, rotation: 0.085, microFrames: 1.5),
-  DanceJointKey(32, rotation: -0.025, microFrames: 1.5),
+  DanceJointKey(32, rotation: -0.06, microFrames: 1.5),
 ];
 const _bugaShoulderSocketRKeys = [
   DanceJointKey(0, rotation: -0.11, scaleX: 1.1, scaleY: 0.955),
