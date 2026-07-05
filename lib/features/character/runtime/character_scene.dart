@@ -923,6 +923,19 @@ class CharacterScene {
     final contactForFloor = clip.enforceSoleFloor && _isDanceFamily(clip)
         ? _activeContactAt(clip, phase)
         : null;
+    // The clamp FADES at span edges like every other contact mechanism:
+    // at a support handoff the "floor" jumps from one foot to the other,
+    // and a hard clamp across that switch ticks the free foot's velocity
+    // at the boundary (measured 31 units/frame on zanku's per-beat spans).
+    var soleFloorFade = 0.0;
+    if (contactForFloor != null) {
+      final span = contactForFloor.span;
+      final spanLength = span.end - span.start;
+      final fade = (spanLength * 0.2).clamp(0.015, 0.04);
+      final fadeIn = smoothstep((contactForFloor.strengthPhase - span.start) / fade);
+      final fadeOut = smoothstep((span.end - contactForFloor.strengthPhase) / fade);
+      soleFloorFade = fadeIn < fadeOut ? fadeIn : fadeOut;
+    }
 
     // Solve the PLANTED foot before free feet: the free feet's sole floor
     // reads the support sole from the evolving pose, which must already
@@ -958,6 +971,7 @@ class CharacterScene {
               contactForFloor.span.bone,
             )?.y
           : null;
+      final soleFloorStrength = soleFloor == null ? 0.0 : soleFloorFade;
       final solved = _solveLimbTarget(
         target,
         sample,
@@ -965,7 +979,8 @@ class CharacterScene {
         weight,
         worldAnchor: planted ? (x: footAnchor.x, y: footAnchor.y) : null,
         anchorBlend: planted ? footAnchor.blend : 0,
-        soleFloorY: soleFloor,
+        soleFloorY: soleFloorStrength > 0 ? soleFloor : null,
+        soleFloorStrength: soleFloorStrength,
       );
       if (solved == null) continue;
 
@@ -998,7 +1013,8 @@ class CharacterScene {
           weight,
           worldAnchor: planted ? (x: footAnchor.x, y: footAnchor.y) : null,
           anchorBlend: planted ? footAnchor.blend : 0,
-          soleFloorY: soleFloor,
+          soleFloorY: soleFloorStrength > 0 ? soleFloor : null,
+          soleFloorStrength: soleFloorStrength,
         );
         if (refined != null) {
           final first = (
@@ -1366,6 +1382,7 @@ class CharacterScene {
     ({double x, double y})? worldAnchor,
     double anchorBlend = 0,
     double? soleFloorY,
+    double soleFloorStrength = 1,
   }) {
     final upper = rig.bone(target.upperBoneId);
     final lower = rig.bone(target.lowerBoneId);
@@ -1414,12 +1431,15 @@ class CharacterScene {
     // several units below the origin — the origin's floor is the sole
     // floor raised by that drop, so the shoe bottom (not the ankle) is
     // what never penetrates.
-    if (soleFloorY != null) {
+    if (soleFloorY != null && soleFloorStrength > 0) {
       final sole = _contactPoint(world, end.id);
       final soleDrop = sole == null ? 0.0 : sole.y - endWorld.origin.y;
       final originFloor = soleFloorY - (soleDrop > 0 ? soleDrop : 0);
       if (targetPoint.y > originFloor) {
-        targetPoint = (x: targetPoint.x, y: originFloor);
+        targetPoint = (
+          x: targetPoint.x,
+          y: targetPoint.y + (originFloor - targetPoint.y) * soleFloorStrength,
+        );
       }
     }
     final solution = solveTwoBoneIk(

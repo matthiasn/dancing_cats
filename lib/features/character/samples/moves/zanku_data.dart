@@ -149,13 +149,13 @@ const _zankuFootLTargetKeys = [
   DanceIkTargetKey(2, x: -62, y: 125, tension: 0.6), // planted, held
   DanceIkTargetKey(4, x: -62, y: 126, tension: 0.4), // plant end — swap
   DanceIkTargetKey(5, x: -46, y: 110), // compact pickup, not a stride
-  DanceIkTargetKey(6, x: -84, y: 124), // heel-toe knock under hip
+  DanceIkTargetKey(6, x: -83, y: 122), // heel-toe knock under hip
   DanceIkTargetKey(7, x: -50, y: 124), // drag back under the knee
   DanceIkTargetKey(8, x: -62, y: 126, tension: 1), // stamp
   DanceIkTargetKey(10, x: -62, y: 125, tension: 0.6),
   DanceIkTargetKey(12, x: -62, y: 126, tension: 0.4),
   DanceIkTargetKey(13, x: -46, y: 110),
-  DanceIkTargetKey(14, x: -84, y: 124),
+  DanceIkTargetKey(14, x: -83, y: 122),
   DanceIkTargetKey(15, x: -50, y: 124),
   DanceIkTargetKey(16, x: -62, y: 126, tension: 1), // stamp
   DanceIkTargetKey(18, x: -62, y: 125, tension: 0.6),
@@ -169,7 +169,7 @@ const _zankuFootLTargetKeys = [
   // a deeper, more committed step building into the gbese half of the
   // phrase rather than a fourth identical rep.
   DanceIkTargetKey(21, x: -40, y: 100),
-  DanceIkTargetKey(22, x: -92, y: 118),
+  DanceIkTargetKey(22, x: -88, y: 118),
   DanceIkTargetKey(23, x: -54, y: 117),
   DanceIkTargetKey(24, x: -64, y: 126, tension: 1), // stamp/support
   DanceIkTargetKey(
@@ -178,9 +178,9 @@ const _zankuFootLTargetKeys = [
     y: 125,
     tension: 0.6,
   ), // support holds while right kicks
-  DanceIkTargetKey(28, x: -86, y: 123), // exact-window heel-toe scrape
+  DanceIkTargetKey(28, x: -83, y: 123), // exact-window heel-toe scrape
   DanceIkTargetKey(29, x: -52, y: 123),
-  DanceIkTargetKey(30, x: -82, y: 123),
+  DanceIkTargetKey(30, x: -80, y: 123),
   DanceIkTargetKey(31, x: -52, y: 123),
   DanceIkTargetKey(32, x: -62, y: 126, tension: 1), // == frame 0
 ];
@@ -188,19 +188,19 @@ const _zankuFootLTargetKeys = [
 const _zankuFootRTargetKeys = [
   DanceIkTargetKey(0, x: 50, y: 123), // scrape from previous tap
   DanceIkTargetKey(1, x: 44, y: 110), // compact pickup
-  DanceIkTargetKey(2, x: 84, y: 124), // heel-toe knock under hip
+  DanceIkTargetKey(2, x: 83, y: 122), // heel-toe knock under hip
   DanceIkTargetKey(3, x: 50, y: 124), // drag back under the knee
   DanceIkTargetKey(4, x: 62, y: 126, tension: 1), // stamp/support
   DanceIkTargetKey(6, x: 62, y: 125, tension: 0.6), // planted, held
   DanceIkTargetKey(8, x: 50, y: 123),
   DanceIkTargetKey(9, x: 44, y: 110),
-  DanceIkTargetKey(10, x: 84, y: 124),
+  DanceIkTargetKey(10, x: 83, y: 122),
   DanceIkTargetKey(11, x: 50, y: 124),
   DanceIkTargetKey(12, x: 62, y: 126, tension: 1), // stamp
   DanceIkTargetKey(14, x: 62, y: 125, tension: 0.6),
   DanceIkTargetKey(16, x: 50, y: 123),
   DanceIkTargetKey(17, x: 44, y: 110),
-  DanceIkTargetKey(18, x: 84, y: 124),
+  DanceIkTargetKey(18, x: 83, y: 122),
   DanceIkTargetKey(19, x: 50, y: 124),
   DanceIkTargetKey(20, x: 62, y: 126, tension: 1), // stamp
   DanceIkTargetKey(22, x: 62, y: 125, tension: 0.6),
@@ -326,48 +326,83 @@ const _zankuClavicleLKeys = [
   DanceJointKey(30, rotation: -0.02),
   DanceJointKey(32, rotation: 0.03),
 ];
+// Head attitude — ported from the shaku ornament vocabulary (R28) in
+// zanku's own idiom: the skull answers each alternating STAMP one frame
+// after it lands (tilting toward the striking side), carries a ~40% echo
+// nod two frames later, tips INTO the gbese kick and recoils off the
+// slam. Before this channel zanku's head was runtime-only ("the body
+// dances but the character doesn't").
+const _zankuHeadKeys = [
+  DanceJointKey(0, rotation: 0.02),
+  DanceJointKey(1, rotation: 0.08), // answers the L stamp
+  DanceJointKey(3, rotation: 0.032), // echo nod
+  DanceJointKey(5, rotation: -0.08), // answers the R stamp
+  DanceJointKey(7, rotation: -0.032),
+  DanceJointKey(9, rotation: 0.08),
+  DanceJointKey(11, rotation: 0.032),
+  DanceJointKey(13, rotation: -0.08),
+  DanceJointKey(15, rotation: -0.032),
+  DanceJointKey(17, rotation: 0.08),
+  DanceJointKey(19, rotation: 0.032),
+  DanceJointKey(21, rotation: -0.08),
+  DanceJointKey(23, rotation: -0.032),
+  DanceJointKey(25, rotation: 0.09), // gathers against the kick side
+  DanceJointKey(26, rotation: -0.1), // tips INTO the gbese
+  DanceJointKey(28, rotation: -0.05), // recoils off the slam
+  DanceJointKey(30, rotation: 0.02),
+  DanceJointKey(32, rotation: 0.02), // == frame 0
+];
+
 const _zankuHandLKeys = [
   DanceJointKey(0, rotation: -0.18),
   DanceJointKey(2, rotation: -0.08),
   DanceJointKey(4, rotation: 0.32),
   DanceJointKey(5, rotation: 0.12),
   DanceJointKey(6, rotation: -0.12),
+  DanceJointKey(7, rotation: -0.28), // wrist flick (ornament port)
   DanceJointKey(8, rotation: -0.22),
   DanceJointKey(10, rotation: -0.06),
   DanceJointKey(12, rotation: 0.34),
   DanceJointKey(13, rotation: 0.1),
   DanceJointKey(14, rotation: -0.14),
+  DanceJointKey(15, rotation: -0.3), // wrist flick
   DanceJointKey(16, rotation: -0.24),
   DanceJointKey(18, rotation: -0.06),
   DanceJointKey(20, rotation: 0.3),
   DanceJointKey(21, rotation: 0.1),
   DanceJointKey(22, rotation: -0.12),
+  DanceJointKey(23, rotation: -0.28), // wrist flick
   DanceJointKey(24, rotation: -0.2),
   DanceJointKey(26, rotation: -0.04),
   DanceJointKey(28, rotation: 0.36),
   DanceJointKey(29, rotation: 0.12),
   DanceJointKey(30, rotation: -0.14),
+  DanceJointKey(31, rotation: -0.3), // wrist flick into the loop
   DanceJointKey(32, rotation: -0.18),
 ];
 const _zankuHandRKeys = [
   DanceJointKey(0, rotation: -0.36),
   DanceJointKey(1, rotation: -0.12),
   DanceJointKey(2, rotation: 0.14),
+  DanceJointKey(3, rotation: 0.32), // wrist flick (ornament port)
   DanceJointKey(4, rotation: 0.18),
   DanceJointKey(6, rotation: 0.08),
   DanceJointKey(8, rotation: -0.34),
   DanceJointKey(9, rotation: -0.12),
   DanceJointKey(10, rotation: 0.14),
+  DanceJointKey(11, rotation: 0.32), // wrist flick
   DanceJointKey(12, rotation: 0.22),
   DanceJointKey(14, rotation: 0.06),
   DanceJointKey(16, rotation: -0.32),
   DanceJointKey(17, rotation: -0.1),
   DanceJointKey(18, rotation: 0.14),
+  DanceJointKey(19, rotation: 0.32), // wrist flick
   DanceJointKey(20, rotation: 0.24),
   DanceJointKey(22, rotation: 0.06),
   DanceJointKey(24, rotation: -0.36),
   DanceJointKey(25, rotation: -0.12),
   DanceJointKey(26, rotation: 0.12),
+  DanceJointKey(27, rotation: 0.3), // wrist flick off the gbese
   DanceJointKey(28, rotation: 0.2),
   DanceJointKey(30, rotation: 0.06),
   DanceJointKey(32, rotation: -0.36),

@@ -785,8 +785,13 @@ class CatClips {
         supportFootWorldAnchor: true,
         supportFootWorldAnchorStrength: 0.9,
         danceHeadBobScale: 0.75,
+        // Ornament-port round: zanku joins the sole-floor ratchet — its
+        // heel-toe knocks were re-authored slightly inboard/up so the
+        // clamp's lift stays inside the hip envelope.
+        enforceSoleFloor: true,
         baseClip: base,
         jointTracks: {
+          CatBones.head: const DanceJointTrack(_zankuHeadKeys, smooth: true),
           CatBones.footL: const DanceJointTrack(_zankuFootLKeys, smooth: true),
           CatBones.footR: const DanceJointTrack(_zankuFootRKeys, smooth: true),
           CatBones.handL: const DanceJointTrack(_zankuHandLKeys, smooth: true),

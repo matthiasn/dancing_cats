@@ -608,8 +608,15 @@ const _shakuFootRTargetKeys = [
   // weight left, and the contact-lock's root correction fought the
   // return transfer with a ~9-unit rightward bump at f31 (the measured
   // seam snap-back all four R25 raters flagged).
-  DanceIkTargetKey(31, x: 58, y: 97), // peeling under the L recovery
-  DanceIkTargetKey(32, x: 52, y: 96), // peel into the loop-start brush
+  //
+  // R30: the peel is a real PREPARED STEP — airborne through the wrap
+  // (all four R29 raters measured the near-floor slide riding the
+  // half-locked landing's floor reference below the plant line, then
+  // snapping back in one sample at the seam; "author a real prepared
+  // weight-shift step across the seam"). The sole lifts clear at f31,
+  // travels in the air, and arrives at the f0 tap from above.
+  DanceIkTargetKey(31, x: 56, y: 84), // lifted clear, travelling through the wrap
+  DanceIkTargetKey(32, x: 52, y: 96), // == frame 0, tap arrives from above
 ];
 const _shakuFootLKeys = [
   DanceJointKey(0, rotation: 0.3),
@@ -738,7 +745,7 @@ const _shakuClaviclePopsR = [
 ];
 const _shakuClaviclePopsL = [
   DanceJointKey(19, rotation: 0.42),
-  DanceJointKey(23, rotation: 0.1),
+  DanceJointKey(23, rotation: 0.12),
   DanceJointKey(27, rotation: 0.42),
   DanceJointKey(31, rotation: 0.1),
 ];
@@ -789,11 +796,14 @@ const _shakuClavicleRKeys = [
   DanceJointKey(16, rotation: -0.15),
   DanceJointKey(18, rotation: -0.05),
   DanceJointKey(20, rotation: 0.42),
-  DanceJointKey(22, rotation: -0.08),
+  // R30: bars 3-4 release up-pops damped — the R crown's rebound was
+  // out-popping the L shoulder's authored pops in the answer bars
+  // (three R29 raters read bar 3's accent as still R-led).
+  DanceJointKey(22, rotation: -0.03),
   DanceJointKey(24, rotation: -0.15),
-  DanceJointKey(26, rotation: -0.05),
+  DanceJointKey(26, rotation: -0.02),
   DanceJointKey(28, rotation: 0.42),
-  DanceJointKey(30, rotation: -0.08),
+  DanceJointKey(30, rotation: -0.03),
   DanceJointKey(32, rotation: -0.15),
 ];
 // Deltoid/socket mass response so the dig reads as flesh, not a hinge: the
