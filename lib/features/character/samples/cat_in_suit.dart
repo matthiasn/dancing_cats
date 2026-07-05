@@ -863,6 +863,11 @@ class CatClips {
           extraChestLayers: const [
             SineChannel(bias: 0.17),
             SineChannel(
+              // NOTE (r6): the back-half-of-bar accent was tried here at
+              // 0.078-0.09 and as a root h4 — every variant tripped a
+              // stomp-pocket, chest-arrival, velocity, or jerk gate. The
+              // channel is saturated; the accent needs authored body keys
+              // (queued), not a layered harmonic.
               harmonicAmplitude: 0.055,
               harmonicMultiplier: 4,
               harmonicPhase: 0.0825,
@@ -985,6 +990,10 @@ class CatClips {
             // 9-path r3: per-touch lateral pulse — the lower body read as
             // 'planted while the arms churn' (weight one 0.8/s excursion).
             SineRootChannel(swayAmplitude: -4.5, swayHarmonic: 8),
+            // r6: lift the base groove under the (now-dominant) wheel —
+            // pocket 39.2 was the set's shallowest ('lift the base ~1.3x
+            // rather than touching the arms').
+            SineRootChannel(bobAmplitude: -6, bobPhase: 0.146875, bobHarmonic: 8),
             SineRootChannel(
               bobAmplitude: -0.04,
               bobPhase: 0.125,
@@ -1128,7 +1137,7 @@ class CatClips {
             // + a beat-level mini-bounce so mid-bar frames stop floating
             // (pocket was 0.8 ev/s over a 97.8 range).
             SineRootChannel(swayAmplitude: -5, swayHarmonic: 4),
-            SineRootChannel(bobAmplitude: -3, bobPhase: 0.09, bobHarmonic: 8),
+            SineRootChannel(bobAmplitude: -5.5, bobPhase: 0.09, bobHarmonic: 8),
           ],
           extraPelvisLayers: [
             SineChannel(

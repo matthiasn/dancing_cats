@@ -764,8 +764,22 @@ List<DanceJointKey> _mergedByFrame(
 ) => [...a, ...b]
   ..sort((x, y) => (x.frame + x.microFrames).compareTo(y.frame + y.microFrames));
 
+// r6: the L girdle ANSWERS the R by +0.7 frames on top of the shared
+// arm-lead — the r5 panel measured the crowns near-unison ('the pops
+// read as whole-torso rise, not shoulder articulation').
 final List<DanceJointKey> _shakuClavicleLLedKeys = _mergedByFrame(
-  _shoulderLed(_shakuClavicleLKeys),
+  [
+    for (final k in _shoulderLed(_shakuClavicleLKeys))
+      DanceJointKey(
+        k.frame,
+        rotation: k.rotation,
+        scaleX: k.scaleX,
+        scaleY: k.scaleY,
+        ease: k.ease,
+        tension: k.tension,
+        microFrames: k.microFrames + 0.7,
+      ),
+  ],
   _shakuClaviclePopsL,
 );
 final List<DanceJointKey> _shakuClavicleRLedKeys = _mergedByFrame(

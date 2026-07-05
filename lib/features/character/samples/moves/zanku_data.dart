@@ -150,13 +150,13 @@ const _zankuFootLTargetKeys = [
   DanceIkTargetKey(4, x: -62, y: 126, tension: 0.4), // plant end — swap
   DanceIkTargetKey(5, x: -46, y: 110), // compact pickup, not a stride
   DanceIkTargetKey(6, x: -83, y: 122), // heel-toe knock under hip
-  DanceIkTargetKey(7, x: -50, y: 124), // drag back under the knee
+  DanceIkTargetKey(7, x: -50, y: 125), // drag settles near-planted (r6)
   DanceIkTargetKey(8, x: -62, y: 126, tension: 1), // stamp
   DanceIkTargetKey(10, x: -62, y: 125, tension: 0.6),
   DanceIkTargetKey(12, x: -62, y: 126, tension: 0.4),
   DanceIkTargetKey(13, x: -46, y: 110),
   DanceIkTargetKey(14, x: -79, y: 121), // tighter rep (de-clone, R2)
-  DanceIkTargetKey(15, x: -50, y: 124),
+  DanceIkTargetKey(15, x: -50, y: 125),
   DanceIkTargetKey(16, x: -62, y: 126, tension: 1), // stamp
   DanceIkTargetKey(18, x: -62, y: 125, tension: 0.6),
   DanceIkTargetKey(20, x: -62, y: 126, tension: 0.4),
