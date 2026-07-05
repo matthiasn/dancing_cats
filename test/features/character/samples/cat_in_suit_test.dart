@@ -1574,16 +1574,21 @@ void main() {
         final p = frame / phrase.frameCount;
         final left = handL.sample(p);
         final right = handR.sample(p);
+        // -38 -> -44 (9-path r4, resolving the long-standing task-#43 ask):
+        // two panels measured the wheel dying INSIDE the torso outline
+        // ('the signature move never breaks the silhouette'). The wide grip
+        // now clears the chest edge; the lower bound still forbids the
+        // pointing-out read the original gate was built against.
         expect(
           left.x,
-          inExclusiveRange(-38, -18),
+          inExclusiveRange(-44, -18),
           reason:
               'Azonto frame $frame: the left paw should grip the mimed wheel '
               'in front of the body, not point out',
         );
         expect(
           right.x,
-          inExclusiveRange(18, 38),
+          inExclusiveRange(18, 44),
           reason:
               'Azonto frame $frame: the right paw should grip the mimed wheel '
               'in front of the body, not point out',

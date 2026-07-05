@@ -711,10 +711,10 @@ const _sekemHeadKeys = [
   DanceJointKey(8, rotation: -0.09), // second punch
   DanceJointKey(10, rotation: -0.035),
   DanceJointKey(14, rotation: 0.05), // loads the phrase swap
-  DanceJointKey(16, rotation: 0.09), // the L side takes the phrase
-  DanceJointKey(18, rotation: 0.035),
-  DanceJointKey(24, rotation: 0.09),
-  DanceJointKey(26, rotation: 0.035),
+  DanceJointKey(16, rotation: 0.12), // the L side takes the phrase (r4: ride the reclaim)
+  DanceJointKey(18, rotation: 0.05),
+  DanceJointKey(24, rotation: 0.12),
+  DanceJointKey(26, rotation: 0.05),
   DanceJointKey(32, rotation: -0.09), // == frame 0
 ];
 

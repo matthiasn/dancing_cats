@@ -619,19 +619,23 @@ class CatClips {
             // still ripple the parks.
             KeyframeRootChannel(
               [
-                RootKeyframe(p: 1 / 32, dx: -16, tension: 0.6),
-                RootKeyframe(p: 7 / 32, dx: -16, tension: 0.6),
-                RootKeyframe(p: 13 / 32, dx: -16, tension: 0.6),
+                // r4: the rock is authored INTO the parks (per-bar re-arm
+                // -12/-20/-13) — the sine rock's ripples sat under the 25%
+                // prominence floor on the plateaus and the back half read
+                // as one slow trough.
+                RootKeyframe(p: 1 / 32, dx: -12, tension: 0.6),
+                RootKeyframe(p: 7 / 32, dx: -20, tension: 0.6),
+                RootKeyframe(p: 13 / 32, dx: -13, tension: 0.6),
                 RootKeyframe(p: 15.25 / 32, dx: -1),
-                RootKeyframe(p: 17.75 / 32, dx: 17, tension: 0.6),
-                RootKeyframe(p: 23 / 32, dx: 17, tension: 0.6),
+                RootKeyframe(p: 17.75 / 32, dx: 13, tension: 0.6),
+                RootKeyframe(p: 23 / 32, dx: 21, tension: 0.6),
                 // The return starts a beat earlier than symmetry suggests:
                 // the support anchor keeps pulling toward the planted R
                 // foot until its span ends at f30.125 and follows ~1 frame
                 // behind, so the WORLD transfer lands f28.5-f0.5 (2.5
                 // beats, crossing ~f30.8 just after the L plant) — probe-
                 // matched to the outbound transfer's width.
-                RootKeyframe(p: 28.5 / 32, dx: 17, tension: 0.6),
+                RootKeyframe(p: 28.5 / 32, dx: 14, tension: 0.6),
                 RootKeyframe(p: 30.75 / 32, dx: -4),
               ],
               smooth: true,
@@ -648,7 +652,7 @@ class CatClips {
             // R27 coach: "the hips ride the gallop, not just drift" — a
             // small per-BAR rock into the active foot's taps on top of
             // the parked macro lean (h4 = one cycle per bar).
-            SineRootChannel(swayAmplitude: -4.5, swayHarmonic: 4),
+            SineRootChannel(swayAmplitude: -2.5, swayHarmonic: 4),
             // The pocket pulse, SHAPED (R19 mocap verdict: the symmetric
             // triangle wave "never SITS into a beat... one timing change
             // that converts the whole loop from keyframed to danced").
@@ -1423,6 +1427,9 @@ class CatClips {
             ),
           ],
           extraRootLayers: const [
+            // r4: lateral weight under the strides (range was 27.6 vs 97.8
+            // vertical — 'strides land on a laterally planted pelvis').
+            SineRootChannel(swayAmplitude: -5, swayHarmonic: 4),
             // 9-path round 2: keep-alive breath — the two ~1s lunge holds
             // read as pose freezes (R3: 'a freeze rather than a settled
             // hold'). A micro h16 bob keeps the mass breathing everywhere.
