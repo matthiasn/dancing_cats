@@ -792,6 +792,7 @@ class CharacterPainter extends CustomPainter {
             memberCentreX: memberCentreX,
             memberFloorY: memberFloorY,
             size: size,
+            memberScale: memberScale,
             rimDir: rimDir,
             glow: glow,
           );
@@ -859,10 +860,22 @@ class CharacterPainter extends CustomPainter {
     required double memberCentreX,
     required double memberFloorY,
     required Size size,
+    required double memberScale,
     required Offset rimDir,
     required Color? glow,
   }) {
-    final collarY = memberFloorY - size.height * 0.20;
+    // Every offset below is "distance up from the feet" expressed as a
+    // fraction of the REFERENCE character's height (memberScale == 1, e.g. a
+    // flanker at depth 0) — so it must scale with memberScale the same way
+    // the rest of this file's screen-space distances do (see footW/footH's
+    // `104 * memberScale` a few lines up in the caller). Without this, a
+    // hero-staged lead (memberScale ~1.4x via [_heroStaging]'s downstage
+    // depth bonus) gets the same FIXED pixel collar height as a
+    // reference-scale flanker, landing the face/body split (and the gel
+    // terminator, and the floor-pool bounce) well below the actual neckline
+    // — on the lead specifically, a hard clipRect seam across the torso
+    // instead of a hidden line at the collar.
+    final collarY = memberFloorY - size.height * 0.20 * memberScale;
     _paintFaceSeat(
       canvas,
       gradeBounds: gradeBounds,
@@ -870,6 +883,7 @@ class CharacterPainter extends CustomPainter {
       memberCentreX: memberCentreX,
       memberFloorY: memberFloorY,
       size: size,
+      memberScale: memberScale,
       rimDir: rimDir,
     );
     _paintBodySeatAndTwilightWrap(
@@ -880,6 +894,7 @@ class CharacterPainter extends CustomPainter {
       memberCentreX: memberCentreX,
       memberFloorY: memberFloorY,
       size: size,
+      memberScale: memberScale,
     );
     if (glow != null && glow.a > 0) {
       _paintGelTerminatorAndRim(
@@ -888,6 +903,7 @@ class CharacterPainter extends CustomPainter {
         memberCentreX: memberCentreX,
         memberFloorY: memberFloorY,
         size: size,
+        memberScale: memberScale,
         rimDir: rimDir,
         glow: glow,
       );
@@ -897,6 +913,7 @@ class CharacterPainter extends CustomPainter {
         memberCentreX: memberCentreX,
         memberFloorY: memberFloorY,
         size: size,
+        memberScale: memberScale,
         glow: glow,
       );
     }
@@ -914,13 +931,14 @@ class CharacterPainter extends CustomPainter {
     required double memberCentreX,
     required double memberFloorY,
     required Size size,
+    required double memberScale,
     required Offset rimDir,
   }) {
     final faceMid = Offset(
       memberCentreX,
-      memberFloorY - size.height * 0.32,
+      memberFloorY - size.height * 0.32 * memberScale,
     );
-    final faceReach = rimDir * (size.height * 0.13);
+    final faceReach = rimDir * (size.height * 0.13 * memberScale);
     canvas
       ..save()
       ..clipRect(
@@ -958,6 +976,7 @@ class CharacterPainter extends CustomPainter {
     required double memberCentreX,
     required double memberFloorY,
     required Size size,
+    required double memberScale,
   }) {
     canvas
       ..save()
@@ -980,7 +999,7 @@ class CharacterPainter extends CustomPainter {
         Paint()
           ..blendMode = BlendMode.srcATop
           ..shader = ui.Gradient.linear(
-            Offset(memberCentreX, memberFloorY - size.height * 0.52),
+            Offset(memberCentreX, memberFloorY - size.height * 0.52 * memberScale),
             Offset(memberCentreX, memberFloorY),
             [grade.skyWrap, const Color(0x00000000), grade.deckWrap],
             const [0.0, 0.52, 1.0],
@@ -1008,14 +1027,15 @@ class CharacterPainter extends CustomPainter {
     required double memberCentreX,
     required double memberFloorY,
     required Size size,
+    required double memberScale,
     required Offset rimDir,
     required Color glow,
   }) {
     final mid = Offset(
       memberCentreX,
-      memberFloorY - size.height * 0.28,
+      memberFloorY - size.height * 0.28 * memberScale,
     );
-    final reach = rimDir * (size.height * 0.32);
+    final reach = rimDir * (size.height * 0.32 * memberScale);
     final gelKey = (0.82 + 0.20 * glow.a).clamp(0.82, 0.96);
     canvas
       ..drawRect(
@@ -1075,6 +1095,7 @@ class CharacterPainter extends CustomPainter {
     required double memberCentreX,
     required double memberFloorY,
     required Size size,
+    required double memberScale,
     required Color glow,
   }) {
     final bounce = (0.07 + 0.08 * glow.a).clamp(0.07, 0.15);
@@ -1084,7 +1105,7 @@ class CharacterPainter extends CustomPainter {
         ..blendMode = BlendMode.srcATop
         ..shader = ui.Gradient.linear(
           Offset(memberCentreX, memberFloorY),
-          Offset(memberCentreX, memberFloorY - size.height * 0.20),
+          Offset(memberCentreX, memberFloorY - size.height * 0.20 * memberScale),
           [glow.withValues(alpha: bounce), const Color(0x00000000)],
           const [0.0, 1.0],
         ),
