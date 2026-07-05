@@ -494,7 +494,7 @@ const _shakuHandLTargetKeys = [
   DanceIkTargetKey(20, x: 23, y: -2, tension: 0.9),
   DanceIkTargetKey(22, x: -18, y: -28, tension: 0.5),
   DanceIkTargetKey(24, x: -70, y: -16, tension: 1),
-  DanceIkTargetKey(26, x: -2, y: -40, tension: 0.5),
+  DanceIkTargetKey(26, x: -12, y: -38, tension: 0.5), // outboard: no centre clump (9-path r4)
   DanceIkTargetKey(28, x: 24, y: -6, tension: 0.9), // rows low under the pull
   DanceIkTargetKey(30, x: -18, y: -30, tension: 0.5),
   DanceIkTargetKey(32, x: -66, y: -14, tension: 1), // == frame 0
