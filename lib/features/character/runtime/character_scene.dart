@@ -689,7 +689,12 @@ class CharacterScene {
   /// full ±0.42 clavicle see-saw translates the corner ~12 units vertically
   /// before skin weights (0.45–0.55) scale the rendered pop to roughly
   /// half. Tuned against the shoulder-line probe and rendered strips.
-  static const double _kShoulderLineGain = 1.3;
+  // 1.3 -> 1.15 (2026-07-05, owner: "the shoulder might be too bumpy at
+  // the top in many scenes"): the crown probe shows the levers never
+  // exceed the collar LINE, so the bumpiness is travel amplitude — a
+  // 12% trim keeps the see-saw and the R28 pops legible (probe: pops
+  // still 4.4-8.7 crown units) while calming the humps.
+  static const double _kShoulderLineGain = 1.15;
 
   /// Humeral-elevation → girdle coupling (the R14 mocap panel's ask: "~1° of
   /// clavicular elevation per 2° of humerus above ~30°"). When the solved
@@ -1672,8 +1677,23 @@ class CharacterScene {
     // neck, so lifting the neck alone opens an orange gap under the chin. Lift
     // the bridge fabric by a tapering fraction of the neck shift so the collar
     // follows the throat up instead of gapping.
+    // The bridge also follows a fraction of the chin's actual LATERAL
+    // offset (owner report 2026-07-05, screenshot: "the collar is flying
+    // around"): the collar fabric rides the leaning chest top while the
+    // firmness-v2 head holds the chin near-still above it — on zanku the
+    // fabric sheared ±44-55 units under the face (probe: 87-93 unit
+    // swings relative to the chest, double shaku's). Pinning the fabric
+    // partway toward the chin's measured x keeps the collar visually
+    // seated under the face while still riding the trunk. (The head's
+    // COUNTER term alone is useless here — zanku's shear is articulated
+    // chain lean, and its counter is only ±2.4 units.)
+    final shirtWorld = world[_kThroatBridgeAnchorBone];
+    final bridgeLateral = shirtWorld == null
+        ? 0.0
+        : (headWorld.origin.x - shirtWorld.origin.x) *
+              _kThroatBridgeLateralFraction;
     final bridgeTranslate = Affine2D.translation(
-      0,
+      bridgeLateral,
       (level.neckShiftY + neckDyFollow) * _kThroatBridgeFraction,
     );
     final neckId = level.neckId;
@@ -1694,6 +1714,16 @@ class CharacterScene {
   /// Fraction of the neck's level shift applied to the throat-bridge fabric
   /// (collar/tie/shirt) so it follows the lifted neck instead of gapping.
   static const double _kThroatBridgeFraction = 0.7;
+
+  /// The bridge bone whose position stands in for "where the collar sits"
+  /// when pinning the fabric toward the chin (rig-specific id, matching
+  /// [_kThroatBridgeBones]).
+  static const String _kThroatBridgeAnchorBone = 'shirt_v';
+
+  /// Fraction of the chin-to-collar lateral offset the throat-bridge
+  /// fabric closes each frame, keeping the collar seated under the face
+  /// as the chest leans away beneath it.
+  static const double _kThroatBridgeLateralFraction = 0.35;
 
   /// Collar/tie/shirt bones that bridge the neck to the chest — lifted a
   /// fraction of the neck shift to keep the throat closed under leveling.
