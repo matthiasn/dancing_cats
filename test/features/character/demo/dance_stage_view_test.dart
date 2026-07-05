@@ -254,15 +254,16 @@ void main() {
     });
 
     test(
-      'passes the stage clips through UNCHANGED while dynamics are neutral '
-      '(the split-clock Effort warp is a provable no-op pre-tuning — ADR '
-      'CHAR-0003)',
+      'warps each member clip when its composed dynamics are non-neutral '
+      '(ADR CHAR-0003 tuning)',
       () {
         final stage = _perf().stageAt(2);
         expect(
           stage.dynamics,
-          everyElement(DanceDynamics.neutral),
-          reason: 'the catalog and lane profiles are still neutral',
+          everyElement(isNot(DanceDynamics.neutral)),
+          reason:
+              'every catalog move now carries a real Effort character, so a '
+              'full-energy section composes to non-neutral for every lane',
         );
 
         final painter = danceCharacterPainter(
@@ -278,9 +279,16 @@ void main() {
           backlights: const [],
         );
 
-        expect(identical(painter.clip, stage.lead), isTrue);
+        expect(identical(painter.clip, stage.lead), isFalse);
         for (var i = 0; i < stage.ensemble.length; i++) {
-          expect(identical(painter.ensembleClips[i], stage.ensemble[i]), isTrue);
+          expect(
+            identical(painter.ensembleClips[i], stage.ensemble[i]),
+            isFalse,
+          );
+          // The warp reshapes sampling only — every other Clip field
+          // (crucially `name`, which the scene's memoized lookups are keyed
+          // on) stays exactly what stageAt authored.
+          expect(painter.ensembleClips[i].name, stage.ensemble[i].name);
         }
       },
     );

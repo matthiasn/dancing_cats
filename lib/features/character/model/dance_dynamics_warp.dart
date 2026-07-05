@@ -7,11 +7,11 @@ import 'package:dancing_cats/features/character/model/dance_dynamics.dart';
 /// boundaries regardless of dynamics.
 const int kDanceBeatsPerPhraseLoop = 8;
 
-/// Global strength of the upper-body Effort time warp. `0` (the value this
-/// ships with until the tuning commit) makes [upperBodyDynamicsWarpedClip]
-/// return its input clip unchanged — every call site downstream of this
-/// constant is already wired but inert.
-const double kDanceDynamicsTimeWarpGain = 0;
+/// Global strength of the upper-body Effort time warp. A perceptual dial
+/// (ADR CHAR-0001 D6) tuned by eye on rendered 60fps motion per ADR
+/// CHAR-0003's rollout: `0` was the plumbing PR's provable-no-op value;
+/// this is the tuning PR's starting point, subject to the panel gate.
+const double kDanceDynamicsTimeWarpGain = 0.35;
 
 /// Returns [clip] with its [warpBoneIds] channels and hand IK targets wrapped
 /// in a beat-local Effort time warp for [effective] dynamics — every other

@@ -219,13 +219,49 @@ void main() {
       expect(sectionEnergyDynamics(2), sectionEnergyDynamics(1));
     });
 
+    test('the shared gain is a real, nonzero ramp (ADR CHAR-0003 tuning)', () {
+      expect(kDanceSectionEnergyGain, isNot(DanceDynamics.neutral));
+    });
+
+    test('is monotonic in level on every axis', () {
+      final levels = [0.0, 0.25, 0.5, 0.75, 1.0];
+      final samples = levels.map(sectionEnergyDynamics).toList();
+      for (var i = 1; i < samples.length; i++) {
+        expect(samples[i].weight, greaterThanOrEqualTo(samples[i - 1].weight));
+        expect(samples[i].time, greaterThanOrEqualTo(samples[i - 1].time));
+        expect(samples[i].flow, greaterThanOrEqualTo(samples[i - 1].flow));
+      }
+    });
+
+    test('the hottest and coldest levels are exact opposites', () {
+      final hot = sectionEnergyDynamics(1);
+      final cold = sectionEnergyDynamics(0);
+      expect(hot.weight, closeTo(-cold.weight, 1e-12));
+      expect(hot.time, closeTo(-cold.time, 1e-12));
+      expect(hot.flow, closeTo(-cold.flow, 1e-12));
+    });
+
     test(
-      'the shared gain is currently neutral, so every level is a no-op '
-      '(pins the pre-tuning state; ADR CHAR-0003 turns this into a real ramp)',
+      'the shipped lane profiles + section gain stay under the modulation '
+      'budget, so no in-range composition can invert a defining Effort axis '
+      '(ADR CHAR-0003)',
       () {
-        expect(kDanceSectionEnergyGain, DanceDynamics.neutral);
-        for (final level in [0.0, 0.25, 0.5, 0.75, 1.0]) {
-          expect(sectionEnergyDynamics(level), DanceDynamics.neutral);
+        for (final lane in kDanceLaneDynamicsProfiles) {
+          for (final level in [0.0, 1.0]) {
+            final combined = lane + sectionEnergyDynamics(level);
+            expect(
+              combined.weight.abs(),
+              lessThan(kDanceDynamicsModulationBudget),
+            );
+            expect(
+              combined.time.abs(),
+              lessThan(kDanceDynamicsModulationBudget),
+            );
+            expect(
+              combined.flow.abs(),
+              lessThan(kDanceDynamicsModulationBudget),
+            );
+          }
         }
       },
     );

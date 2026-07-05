@@ -23,7 +23,6 @@ void main() {
         clip,
         DanceDynamics.neutral,
         warpBoneIds: {'torso'},
-        gain: 0.35,
       );
       expect(identical(warped, clip), isTrue);
     });
@@ -34,6 +33,7 @@ void main() {
         clip,
         _strong,
         warpBoneIds: {'torso'},
+        gain: 0,
       );
       expect(identical(warped, clip), isTrue);
     });
@@ -49,21 +49,39 @@ void main() {
         clip,
         _strong,
         warpBoneIds: {'torso'},
-        gain: 0.35,
       );
       expect(identical(warped, clip), isTrue);
     });
 
-    test('the default gain constant is zero (ships inert)', () {
-      final clip = _loopingClip();
-      final warped = upperBodyDynamicsWarpedClip(
-        clip,
-        _strong,
-        warpBoneIds: {'torso'},
-      );
-      expect(identical(warped, clip), isTrue);
-      expect(kDanceDynamicsTimeWarpGain, 0);
-    });
+    test(
+      'the default gain constant is live (ADR CHAR-0003 tuning) and the '
+      'default-gain call actually warps',
+      () {
+        final clip = _loopingClip(
+          channels: {
+            'torso': const KeyframeChannel(
+              [
+                Keyframe(p: 0),
+                Keyframe(p: 0.25, rotation: 1),
+                Keyframe(p: 0.5, rotation: -1),
+                Keyframe(p: 0.75, rotation: 0.5),
+                Keyframe(p: 1),
+              ],
+              smooth: true,
+              cyclic: true,
+            ),
+          },
+        );
+        final warped = upperBodyDynamicsWarpedClip(
+          clip,
+          _strong,
+          warpBoneIds: {'torso'},
+        );
+        expect(kDanceDynamicsTimeWarpGain, isNot(0));
+        expect(identical(warped, clip), isFalse);
+        expect(warped.channels['torso'], isA<PhaseWarpedJointChannel>());
+      },
+    );
   });
 
   group('upperBodyDynamicsWarpedClip — selective wrapping', () {
@@ -84,7 +102,6 @@ void main() {
         clip,
         _strong,
         warpBoneIds: {'torso'},
-        gain: 0.35,
       );
 
       expect(warped.channels['torso'], isA<PhaseWarpedJointChannel>());
@@ -112,7 +129,6 @@ void main() {
         clip,
         _strong,
         warpBoneIds: {'hand.R'},
-        gain: 0.35,
       );
 
       final byId = {for (final t in warped.limbTargets) t.endBoneId: t};
@@ -144,7 +160,6 @@ void main() {
         clip,
         const DanceDynamics(flow: 0.5),
         warpBoneIds: {'torso'},
-        gain: 0.35,
       );
 
       expect(warped.name, clip.name);
@@ -188,7 +203,6 @@ void main() {
         clip,
         _strong,
         warpBoneIds: {'torso'},
-        gain: 0.35,
       );
 
       for (var beat = 0; beat < kDanceBeatsPerPhraseLoop; beat++) {
@@ -224,7 +238,6 @@ void main() {
         clip,
         _strong,
         warpBoneIds: {'torso'},
-        gain: 0.35,
       );
 
       final justBefore = warped.channels['torso']!.sample(0.999).rotation;
