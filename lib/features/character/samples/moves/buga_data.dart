@@ -97,19 +97,25 @@ const _bugaBodyKeys = [
     chestScaleY: 1.16,
     chestScaleX: 0.97,
   ), // HIT — explode up, chest pops square
+  // r13 (three lenses: "the swell TOPS still park — at the bar-2/bar-4
+  // pocket crests the per-beat ripple dies for ~1.5-3 beats"): the crest
+  // hold gets an AUTHORED beat bounce — the h8 sine's ripple is absorbed
+  // by the contact hold exactly at the tall frames (the same
+  // hold-eats-sine mechanism as azonto's lateral no-op), so the dip is
+  // carved into the keys instead. f14 sits ON the beat.
   DanceBodyKey(
     14,
     rootDx: -5,
-    rootDy: 3,
+    rootDy: 13,
     rootRotation: 0.002,
     pelvisRotation: 0.05,
     chestRotation: -0.08,
     chestScaleY: 1.08,
-  ), // readable overshoot, already releasing
+  ), // beat bounce inside the tall hold
   DanceBodyKey(
     15,
     rootDx: -4,
-    rootDy: 6,
+    rootDy: 4,
     rootRotation: 0.002,
     pelvisRotation: 0.03,
     chestRotation: -0.05,
@@ -206,10 +212,11 @@ const _bugaBodyKeys = [
     chestScaleY: 1.16,
     chestScaleX: 0.97,
   ), // HIT
+  // r13: the bar-4 crest gets the same authored beat bounce as f14.
   DanceBodyKey(
     30,
     rootDx: 5,
-    rootDy: 3,
+    rootDy: 13,
     rootRotation: -0.002,
     pelvisRotation: -0.05,
     chestRotation: 0.08,
@@ -218,7 +225,7 @@ const _bugaBodyKeys = [
   DanceBodyKey(
     31,
     rootDx: 4,
-    rootDy: 6,
+    rootDy: 4,
     rootRotation: -0.002,
     pelvisRotation: -0.03,
     chestRotation: 0.05,
@@ -344,8 +351,8 @@ const _bugaClavicleRKeys = [
   DanceJointKey(13, rotation: -0.36),
   DanceJointKey(14, rotation: -0.1),
   DanceJointKey(16, rotation: -0.08),
-  DanceJointKey(18, rotation: 0.1),
-  DanceJointKey(20, rotation: -0.22),
+  DanceJointKey(18, rotation: 0.12),
+  DanceJointKey(20, rotation: -0.26),
   DanceJointKey(22, rotation: 0.08),
   DanceJointKey(24, rotation: -0.3),
   DanceJointKey(26, rotation: -0.04),
@@ -380,9 +387,12 @@ const _bugaClavicleLKeys = [
   DanceJointKey(13, rotation: 0.382, microFrames: 1.1),
   DanceJointKey(14, rotation: 0.085, microFrames: 1.5),
   DanceJointKey(16, rotation: -0.16, microFrames: 1.5),
-  DanceJointKey(18, rotation: 0.22, microFrames: 1.5),
-  DanceJointKey(20, rotation: -0.36, microFrames: 1.5),
-  DanceJointKey(22, rotation: 0.24, microFrames: 1.5),
+  // r13: mid-loop counter-keys deepened (mocap/rigging: the differential
+  // thins to near-tangent for ~2 beats mid-bar-3) — still under the 0.55
+  // envelope with smooth overshoot.
+  DanceJointKey(18, rotation: 0.26, microFrames: 1.5),
+  DanceJointKey(20, rotation: -0.42, microFrames: 1.5),
+  DanceJointKey(22, rotation: 0.28, microFrames: 1.5),
   DanceJointKey(24, rotation: -0.44, microFrames: 1.5),
   DanceJointKey(26, rotation: 0.1, microFrames: 1.5),
   DanceJointKey(27, rotation: -0.1, microFrames: 1.5),
