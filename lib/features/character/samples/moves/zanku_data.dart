@@ -155,7 +155,7 @@ const _zankuFootLTargetKeys = [
   DanceIkTargetKey(10, x: -62, y: 125, tension: 0.6),
   DanceIkTargetKey(12, x: -62, y: 126, tension: 0.4),
   DanceIkTargetKey(13, x: -46, y: 110),
-  DanceIkTargetKey(14, x: -83, y: 122),
+  DanceIkTargetKey(14, x: -79, y: 121), // tighter rep (de-clone, R2)
   DanceIkTargetKey(15, x: -50, y: 124),
   DanceIkTargetKey(16, x: -62, y: 126, tension: 1), // stamp
   DanceIkTargetKey(18, x: -62, y: 125, tension: 0.6),
@@ -194,13 +194,13 @@ const _zankuFootRTargetKeys = [
   DanceIkTargetKey(6, x: 62, y: 125, tension: 0.6), // planted, held
   DanceIkTargetKey(8, x: 50, y: 123),
   DanceIkTargetKey(9, x: 44, y: 110),
-  DanceIkTargetKey(10, x: 83, y: 122),
+  DanceIkTargetKey(10, x: 80, y: 121), // tighter rep (de-clone, R2)
   DanceIkTargetKey(11, x: 50, y: 124),
   DanceIkTargetKey(12, x: 62, y: 126, tension: 1), // stamp
   DanceIkTargetKey(14, x: 62, y: 125, tension: 0.6),
   DanceIkTargetKey(16, x: 50, y: 123),
   DanceIkTargetKey(17, x: 44, y: 110),
-  DanceIkTargetKey(18, x: 83, y: 122),
+  DanceIkTargetKey(18, x: 86, y: 123), // wider rep (de-clone, R2)
   DanceIkTargetKey(19, x: 50, y: 124),
   DanceIkTargetKey(20, x: 62, y: 126, tension: 1), // stamp
   DanceIkTargetKey(22, x: 62, y: 125, tension: 0.6),
@@ -338,12 +338,12 @@ const _zankuHeadKeys = [
   DanceJointKey(3, rotation: 0.032), // echo nod
   DanceJointKey(5, rotation: -0.08), // answers the R stamp
   DanceJointKey(7, rotation: -0.032),
-  DanceJointKey(9, rotation: 0.08),
-  DanceJointKey(11, rotation: 0.032),
+  DanceJointKey(9, rotation: 0.07), // varied answer (de-clone, R2)
+  DanceJointKey(11, rotation: 0.028),
   DanceJointKey(13, rotation: -0.08),
   DanceJointKey(15, rotation: -0.032),
-  DanceJointKey(17, rotation: 0.08),
-  DanceJointKey(19, rotation: 0.032),
+  DanceJointKey(17, rotation: 0.09), // varied answer
+  DanceJointKey(19, rotation: 0.038),
   DanceJointKey(21, rotation: -0.08),
   DanceJointKey(23, rotation: -0.032),
   DanceJointKey(25, rotation: 0.09), // gathers against the kick side
@@ -359,50 +359,50 @@ const _zankuHandLKeys = [
   DanceJointKey(4, rotation: 0.32),
   DanceJointKey(5, rotation: 0.12),
   DanceJointKey(6, rotation: -0.12),
-  DanceJointKey(7, rotation: -0.28), // wrist flick (ornament port)
+  DanceJointKey(7, rotation: -0.46), // wrist flick, render-scale (R2)
   DanceJointKey(8, rotation: -0.22),
   DanceJointKey(10, rotation: -0.06),
   DanceJointKey(12, rotation: 0.34),
   DanceJointKey(13, rotation: 0.1),
   DanceJointKey(14, rotation: -0.14),
-  DanceJointKey(15, rotation: -0.3), // wrist flick
+  DanceJointKey(15, rotation: -0.48), // wrist flick
   DanceJointKey(16, rotation: -0.24),
   DanceJointKey(18, rotation: -0.06),
   DanceJointKey(20, rotation: 0.3),
   DanceJointKey(21, rotation: 0.1),
   DanceJointKey(22, rotation: -0.12),
-  DanceJointKey(23, rotation: -0.28), // wrist flick
+  DanceJointKey(23, rotation: -0.46), // wrist flick
   DanceJointKey(24, rotation: -0.2),
   DanceJointKey(26, rotation: -0.04),
   DanceJointKey(28, rotation: 0.36),
   DanceJointKey(29, rotation: 0.12),
   DanceJointKey(30, rotation: -0.14),
-  DanceJointKey(31, rotation: -0.3), // wrist flick into the loop
+  DanceJointKey(31, rotation: -0.48), // wrist flick into the loop
   DanceJointKey(32, rotation: -0.18),
 ];
 const _zankuHandRKeys = [
   DanceJointKey(0, rotation: -0.36),
   DanceJointKey(1, rotation: -0.12),
   DanceJointKey(2, rotation: 0.14),
-  DanceJointKey(3, rotation: 0.32), // wrist flick (ornament port)
+  DanceJointKey(3, rotation: 0.5), // wrist flick, render-scale (R2)
   DanceJointKey(4, rotation: 0.18),
   DanceJointKey(6, rotation: 0.08),
   DanceJointKey(8, rotation: -0.34),
   DanceJointKey(9, rotation: -0.12),
   DanceJointKey(10, rotation: 0.14),
-  DanceJointKey(11, rotation: 0.32), // wrist flick
+  DanceJointKey(11, rotation: 0.5), // wrist flick
   DanceJointKey(12, rotation: 0.22),
   DanceJointKey(14, rotation: 0.06),
   DanceJointKey(16, rotation: -0.32),
   DanceJointKey(17, rotation: -0.1),
   DanceJointKey(18, rotation: 0.14),
-  DanceJointKey(19, rotation: 0.32), // wrist flick
+  DanceJointKey(19, rotation: 0.5), // wrist flick
   DanceJointKey(20, rotation: 0.24),
   DanceJointKey(22, rotation: 0.06),
   DanceJointKey(24, rotation: -0.36),
   DanceJointKey(25, rotation: -0.12),
   DanceJointKey(26, rotation: 0.12),
-  DanceJointKey(27, rotation: 0.3), // wrist flick off the gbese
+  DanceJointKey(27, rotation: 0.48), // wrist flick off the gbese
   DanceJointKey(28, rotation: 0.2),
   DanceJointKey(30, rotation: 0.06),
   DanceJointKey(32, rotation: -0.36),
