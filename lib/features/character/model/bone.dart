@@ -7,7 +7,7 @@ import 'dart:math' as math;
 /// engine and motion are identical either way; only the per-bone paint differs.
 /// This lets us validate the skeleton, cycles and face *before* investing in
 /// the offline rasterization + `drawAtlas` runtime described in the plan
-/// (`docs/implementation_plans/2026-06-22_bones_animation_framework.md`).
+/// (`2026-06-22_bones_animation_framework.md`, kept in the Lotti mother repo).
 enum BoneShapeKind {
   /// A stadium / pill shape — the default for limbs and torso segments.
   capsule,

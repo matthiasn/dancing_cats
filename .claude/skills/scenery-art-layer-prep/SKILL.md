@@ -87,7 +87,7 @@ feeds `lib/features/scenery/`.
 6. **Run targeted scenery checks.**
 
    ```bash
-   fvm flutter analyze lib/features/scenery lib/features/character/demo/character_dance_to_track_demo.dart
+   fvm flutter analyze lib/features/scenery lib/main.dart
    fvm flutter test test/features/scenery/runtime/scenery_shaders_test.dart \
      test/features/scenery/layers/cloud_parallax_layer_test.dart \
      test/features/scenery/model/backdrop_scene_test.dart \

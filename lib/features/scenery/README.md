@@ -1,9 +1,10 @@
 # Scenery
 
 Reusable animated backdrops for character/demo surfaces. The current production
-scene is the Lagos-inspired blue-hour waterfront used by
-`CharacterDanceToTrackDemo`: a generated bitmap plate split into full-frame WebP
-layers, with shader and canvas effects composited between those layers.
+scene is the Lagos-inspired blue-hour waterfront used by the dance-to-track app
+(`DanceToTrackApp` in `lib/main.dart`): a generated bitmap plate split into
+full-frame WebP layers, with shader and canvas effects composited between those
+layers.
 
 The module is deliberately independent from `features/character`. Consumers pass
 a clock and optional child into `LayeredBackdrop`; scenery code owns image/shader
@@ -18,7 +19,7 @@ concept-first, with diagrams, in
 
 ```mermaid
 flowchart TD
-  demo[CharacterDanceToTrackDemo] -->|audio position seconds| lb[LayeredBackdrop]
+  demo[DanceToTrackApp] -->|audio position seconds| lb[LayeredBackdrop]
   demo -->|screen-fixed final pass| texture[SceneTextureOverlay]
   self[Standalone use] -->|null timeSeconds| lb
   lb --> loader[async loaders]
@@ -111,7 +112,7 @@ The ordering is the important contract:
   show.
 - Foreground layers, currently the vignette, paint over the caller child.
 
-`CharacterDanceToTrackDemo` additionally paints `SceneTextureOverlay` in screen
+The dance-to-track app additionally paints `SceneTextureOverlay` in screen
 space, outside the backdrop camera transform and below the dancers. That pass is
 not an authored art layer: it is a final tiny grain/edge-sink treatment that
 keeps the whole viewport, including parallax side bands, from reading cleaner
@@ -308,7 +309,7 @@ checks.
 Focused checks for this feature:
 
 ```bash
-fvm flutter analyze lib/features/scenery lib/features/character/demo/character_dance_to_track_demo.dart test/features/scenery/layers/cloud_parallax_layer_test.dart test/features/scenery/model/backdrop_scene_test.dart test/features/scenery/scenery_assets_test.dart
+fvm flutter analyze lib/features/scenery lib/main.dart test/features/scenery/layers/cloud_parallax_layer_test.dart test/features/scenery/model/backdrop_scene_test.dart test/features/scenery/scenery_assets_test.dart
 fvm flutter test test/features/scenery/runtime/scenery_shaders_test.dart test/features/scenery/layers/cloud_parallax_layer_test.dart test/features/scenery/layers/drone_show_layer_test.dart test/features/scenery/model/backdrop_scene_test.dart test/features/scenery/scenery_assets_test.dart
 ```
 

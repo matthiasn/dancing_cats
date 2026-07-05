@@ -9,7 +9,8 @@
 /// so determinism and the film-strip "byte-identical renders" invariant hold for
 /// a fixed beat map.
 ///
-/// See `docs/implementation_plans/2026-06-27_dance_audio_analysis.md` (§3, §7).
+/// Design plan: `2026-06-27_dance_audio_analysis.md` (§3, §7), kept in the
+/// Lotti mother repo.
 library;
 
 /// The beat grid: detected beat timestamps plus which of them are bar downbeats.

@@ -9,7 +9,8 @@ pixels.
 
 This is **Phase 1** (proof of concept). The full design — including the offline,
 AI-assisted SVG → rig pipeline and the low-end `drawAtlas` runtime — lives in
-[`docs/implementation_plans/2026-06-22_bones_animation_framework.md`](../../../docs/implementation_plans/2026-06-22_bones_animation_framework.md).
+the plan `2026-06-22_bones_animation_framework.md`, which stayed in the Lotti
+mother repo (`docs/implementation_plans/`) when this feature was ejected.
 
 Durable design decisions for this feature live in its **own** ADR series under
 [`docs/adr/`](./docs/adr/) (numbered from `CHAR-0001`, kept separate from the
@@ -33,16 +34,16 @@ one camera shot together).
 | --- | --- |
 | Pure-Dart engine (math, FK, clips, face, autonomic) | ✅ built + unit-tested |
 | Hand-authored "cat in a suit" rig + base clips (walk/run/idle/dance/kick/sit/jump) | ✅ `samples/cat_in_suit.dart` |
-| Afrobeats dance-move catalog — 6 moves, each panel-certified **≥9.0/10** on all 3 lenses | ✅ `samples/cat_in_suit.dart`, [CHAR-0001](./docs/adr/CHAR-0001-dance-choreography-encoding-and-move-library.md), [Dance moves](#dance-moves--the-afrobeats-catalog) |
+| Afrobeats dance-move catalog — 6 moves, certified ≥9.0/10 by the original 3-lens panel; now being re-graded against a stricter 5-expert dense-frame panel (latest digest: 5–7/10, iterating) | ✅ `samples/cat_in_suit.dart`, [CHAR-0001](./docs/adr/CHAR-0001-dance-choreography-encoding-and-move-library.md), [Dance moves](#dance-moves--the-afrobeats-catalog), [docs/reviews/](./docs/reviews/) |
 | Frame-addressed dance phrase authoring | ✅ `model/dance_phrase.dart` |
 | `CustomPainter` runtime drawing bones + soft limb ribbons | ✅ `runtime/` |
 | Bendy ribbons for arms/legs/tail | ✅ shoulder→bicep→wrist, hip→quad→knee→calf→ankle, and 7-control tail surfaces |
 | Tapered tie (`taperedCapsule` shape) | ✅ 2-link draping tie |
 | Locomotion — the cat walks/runs across & turns at edges | ✅ `runtime/character_painter.dart` |
 | Ground floor + per-foot contact shadows | ✅ `runtime/character_painter.dart` |
-| Dance waterfront backdrop, stage lights, and drone-show scenery | ✅ `runtime/character_painter.dart`, `demo/character_dance_to_track_demo.dart`, `features/scenery/` |
+| Dance waterfront backdrop, stage lights, and drone-show scenery | ✅ `runtime/character_painter.dart`, `lib/main.dart`, `features/scenery/` |
 | Film-strip + frame-grid + onion + travel + live harness | ✅ `test/.../{film_strip,frame_grid}_test.dart` |
-| Interactive audio-backed dance demo | ✅ `demo/character_dance_to_track_demo.dart` |
+| Interactive audio-backed dance demo | ✅ `lib/main.dart` (`DanceToTrackApp`) + panels in `demo/` |
 | Offline audio beat-sync (beat map → on-beat dance) | ✅ `tools/dance_audio/`, `BeatMap`, `DanceToTrackApp` |
 | Offline AI rigging (SVG → rig) | ⛔ not started (Phase 2) |
 | Batched `drawAtlas` runtime + degradation ladder | ⛔ Phase 2 |
@@ -302,7 +303,7 @@ stateDiagram-v2
 
 ### Lip-sync — singing to a track
 
-`demo/character_dance_to_track_demo.dart` makes the trio sing along to a song.
+The dance-to-track app (`lib/main.dart`) makes the trio sing along to a song.
 The mouth shapes come from an **offline Rhubarb Lip Sync cue track** (real vocal
 phonemes; see the `dance-lipsync` skill and `tools/dance_audio/lipsync.py`), not
 a per-word guess: each cue letter maps to a viseme + opening, eased fast-attack /
@@ -538,9 +539,14 @@ the city/yacht redraw.
 
 Six Afrobeats/Amapiano moves ship as data in `samples/cat_in_suit.dart`, each a
 `CatClips` getter selectable in the demo's motion picker and in the showcase
-trio. Each was iterated to **≥9.0/10 on all three lenses** (afrobeats coach +
-rigging/mocap + physics) by the frame-by-frame expert panel (the loop below). The
-full decision record — encoding, catalog rationale, and the as-built outcome — is
+trio. Each was iterated to **≥9.0/10 on all three lenses** of the original
+acceptance panel (afrobeats coach + rigging/mocap + physics, the loop below).
+A later, deliberately stricter **5-expert dense-frame panel** (afrobeats /
+rigging / anatomy / director / movement) re-baselined the whole catalog much
+harder — its digests live in [`docs/reviews/`](./docs/reviews/) (latest round:
+5–7/10 across the moves) and drive the ongoing refinement PRs. The full
+decision record — encoding, catalog rationale, and the as-built outcome under
+the original bar — is
 [`docs/adr/CHAR-0001`](./docs/adr/CHAR-0001-dance-choreography-encoding-and-move-library.md).
 
 | Clip | Move | Signature (what reads in profile) | Leans on |
@@ -667,7 +673,7 @@ fvm flutter test test/features/character/
 ## Audio beat-sync (offline tooling + runtime player)
 
 The dance is authored on a normalized beat grid (`DancePhrase` frames).
-`demo/character_dance_to_track_demo.dart` is the interactive runtime surface: it
+The dance-to-track app (`lib/main.dart`) is the interactive runtime surface: it
 loads the offline beat-map JSON, opens the audio file, and maps audio playback
 position through `BeatLoopBinding.barAligned`, so the loop stays
 downbeat-anchored to the real track.
@@ -785,8 +791,9 @@ audio position (deterministic) and paints the pools directly — a cosmetic
 gel-phase/easing difference, never pose/move/beat/camera.
 
 Design rationale, the tooling survey, and the quality ladder (on-beat → bar-correct
-→ structure → choreography) live in
-[`docs/implementation_plans/2026-06-27_dance_audio_analysis.md`](../../../docs/implementation_plans/2026-06-27_dance_audio_analysis.md).
+→ structure → choreography) live in the plan
+`2026-06-27_dance_audio_analysis.md`, which stayed in the Lotti mother repo
+(`docs/implementation_plans/`) when this feature was ejected.
 
 ## Known Phase-1 limitations / next steps
 

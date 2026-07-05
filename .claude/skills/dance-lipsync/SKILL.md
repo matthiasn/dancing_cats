@@ -12,8 +12,7 @@ the mouths follow the actual phonemes (closures, F/V, rounding) instead of the
 crude per-word vowel guess. Deterministic JSON; nothing runs in the Flutter app.
 
 Tool: `tools/dance_audio/lipsync.py`. Engine: **Rhubarb Lip Sync 1.13.0**
-(permissive license). Demo it feeds:
-`lib/features/character/demo/character_dance_to_track_demo.dart`.
+(permissive license). Demo it feeds: the dance-to-track app in `lib/main.dart`.
 
 ## The mouth shapes (Rhubarb's alphabet)
 
