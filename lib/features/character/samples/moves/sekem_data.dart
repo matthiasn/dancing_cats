@@ -670,7 +670,33 @@ const _sekemHandLKeys = [
   DanceJointKey(30, rotation: 0.1),
   DanceJointKey(32, rotation: -0.08),
 ];
+// Head attitude — the ornament-port vocabulary in sekem's PUNCH idiom:
+// the skull snaps INTO each punch-past-the-hip with the shoulder that
+// throws it, carries a ~40% echo through the recovery, gathers against
+// the next dig, and swaps sides with the phrase (R punches bar 1, the
+// sternum-pinned side rides bar 2's digs). Sekem previously had no
+// authored head keys.
+const _sekemHeadKeys = [
+  DanceJointKey(0, rotation: -0.09), // snaps with the R punch
+  DanceJointKey(2, rotation: -0.035), // echo through the recovery
+  DanceJointKey(6, rotation: 0.04), // gathers against the next punch
+  DanceJointKey(8, rotation: -0.09), // second punch
+  DanceJointKey(10, rotation: -0.035),
+  DanceJointKey(14, rotation: 0.05), // loads the phrase swap
+  DanceJointKey(16, rotation: 0.09), // the L side takes the phrase
+  DanceJointKey(18, rotation: 0.035),
+  DanceJointKey(22, rotation: -0.04),
+  DanceJointKey(24, rotation: 0.09),
+  DanceJointKey(26, rotation: 0.035),
+  DanceJointKey(30, rotation: -0.04),
+  DanceJointKey(32, rotation: -0.09), // == frame 0
+];
+
 const _sekemHandRKeys = [
+  // NOTE (ornament port): wrist flicks were TRIED here and rejected by
+  // the tucked-paw quietness gate — an earlier panel round already
+  // removed sekem's "paddle flicks" deliberately. The punch snap lives
+  // in the IK tension; sekem's ornament budget is the head channel.
   DanceJointKey(0, rotation: -0.1),
   DanceJointKey(8, rotation: -0.06),
   DanceJointKey(14, rotation: -0.1),
