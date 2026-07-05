@@ -255,6 +255,10 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
 
   final CharacterRenderer _renderer = CharacterRenderer();
   final Player _player = Player();
+  // Surfaces libmpv playback errors instead of letting them fail silently — the
+  // symptom that hid a missing macOS `network.client` entitlement (libmpv's
+  // stream/protocol init fails under App Sandbox without it, killing audio).
+  StreamSubscription<String>? _playerErrorSub;
   final GlobalKey _stageBoundaryKey = GlobalKey();
 
   late final Ticker _ticker; // 60 fps repaint pump; time comes from the player.
@@ -447,6 +451,9 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
         if (!audioFile.existsSync()) {
           throw StateError('audio file not found: $kDanceAudioPath');
         }
+        _playerErrorSub ??= _player.stream.error.listen(
+          (error) => _logDanceError('Audio playback error: $error'),
+        );
         await _player.open(Media(audioFile.path), play: false);
         await _player.setPlaylistMode(
           _loop ? PlaylistMode.loop : PlaylistMode.none,
@@ -785,6 +792,7 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
   void dispose() {
     HardwareKeyboard.instance.removeHandler(_handleGlobalKeyEvent);
     _ticker.dispose();
+    unawaited(_playerErrorSub?.cancel());
     unawaited(_player.dispose());
     final store = _gradeStore;
     _gradeController?.dispose();
