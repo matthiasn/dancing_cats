@@ -2507,7 +2507,20 @@ class CharacterScene {
         ? (spanLength * 0.24).clamp(0.044, 0.058)
         : (clip.loop ? (spanLength * 0.2).clamp(0.018, 0.035) : 0.08);
     final fadeIn = smoothstep((p - span.start) / fade);
-    final fadeOut = smoothstep((span.end - p) / fade);
+    // Dance spans RELEASE over a longer tail than they engage: a dancer
+    // unloads the trailing foot across the last beat of its stance before
+    // the peel, so the root hold must let the weight DEPART early. With
+    // the symmetric ~1.5-frame fade the lock's x-correction fought the
+    // authored weight transfer until the span flipped and then let go all
+    // at once — measured as a ~9-unit rightward bump at f31 on shaku and
+    // the seam snap-back all four R25 raters flagged (probe: zeroing the
+    // x-hold alone turned the crammed 1.5-beat return into a clean
+    // 2.5-beat ease). Mid-span strength is unchanged, so the anti-skate
+    // hold the drift gates measure still applies through the stance.
+    final fadeOutWidth = dance
+        ? (spanLength * 0.5).clamp(0.044, 0.12)
+        : fade;
+    final fadeOut = smoothstep((span.end - p) / fadeOutWidth);
     final edge = fadeIn < fadeOut ? fadeIn : fadeOut;
     return (x: baseX * edge, y: baseY * edge);
   }

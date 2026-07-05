@@ -602,33 +602,44 @@ class CatClips {
             // transitions in ~2-3 frames, and parks over the right through
             // bar 2 — with the crossings phased one frame AFTER the plants
             // (feet step ON the count, weight arrives just behind them).
-            // R24 sync: crossings re-phased 14.5/30.5 -> 15.5/31.5 so the
-            // weight transfer lands just AFTER the plants (R foot f15,
-            // L foot f30) and ON the bar-line sinks — the panel measured
-            // the old transfer arriving BEFORE the foot it commits onto,
-            // and read the sway as phase-locked to nothing.
-            SineRootChannel(
-              swayAmplitude: -21,
-              swayPhase: 0.0234375,
-              leanAmplitude: -0.07,
+            // R26: the weight story as EXPLICIT authored keys — all four
+            // R25 raters measured the square-wave stack's return transfer
+            // crammed into ~1.5 beats at the seam (steepest lateral slope
+            // of the loop in its final half-beat) while the outbound
+            // transfer breathed over ~2.5. Keys give both transfers the
+            // same 5-frame (2.5-beat) ease, parks held genuinely flat,
+            // crossings kept just AFTER the plants (R f15 -> ~f16.1,
+            // L f30 -> ~f31.2), each transfer landing in its bar-line
+            // sink. The lean stays sinusoidal below; the h8 scallops
+            // still ripple the parks.
+            KeyframeRootChannel(
+              [
+                RootKeyframe(p: 1 / 32, dx: -16, tension: 0.6),
+                RootKeyframe(p: 7 / 32, dx: -16, tension: 0.6),
+                RootKeyframe(p: 13 / 32, dx: -16, tension: 0.6),
+                RootKeyframe(p: 15.25 / 32, dx: -1),
+                RootKeyframe(p: 17.75 / 32, dx: 17, tension: 0.6),
+                RootKeyframe(p: 23 / 32, dx: 17, tension: 0.6),
+                // The return starts a beat earlier than symmetry suggests:
+                // the support anchor keeps pulling toward the planted R
+                // foot until its span ends at f30.125 and follows ~1 frame
+                // behind, so the WORLD transfer lands f28.5-f0.5 (2.5
+                // beats, crossing ~f30.8 just after the L plant) — probe-
+                // matched to the outbound transfer's width.
+                RootKeyframe(p: 28.5 / 32, dx: 17, tension: 0.6),
+                RootKeyframe(p: 30.75 / 32, dx: -4),
+              ],
+              smooth: true,
+              cyclic: true,
             ),
-            SineRootChannel(
-              swayAmplitude: -7,
-              swayPhase: 0.0234375,
-              swayHarmonic: 3,
-            ),
-            SineRootChannel(
-              swayAmplitude: -4.2,
-              swayPhase: 0.0234375,
-              swayHarmonic: 5,
-            ),
+            SineRootChannel(leanAmplitude: -0.07),
             // Per-tap weight SCALLOPS on the plateaus (R22 mocap verdict:
             // "the pelvis never responds to a single contact... layer a
             // per-tap lateral pulse decaying over the beat, so the trace
             // becomes a plateau with beat-rate scallops instead of a flat
             // line"). The plateau keeps the committed side; this ripple
             // presses into and releases off the support with every tap.
-            SineRootChannel(swayAmplitude: -4, swayHarmonic: 8),
+            SineRootChannel(swayAmplitude: -3, swayHarmonic: 8),
             // The pocket pulse, SHAPED (R19 mocap verdict: the symmetric
             // triangle wave "never SITS into a beat... one timing change
             // that converts the whole loop from keyframed to danced").
