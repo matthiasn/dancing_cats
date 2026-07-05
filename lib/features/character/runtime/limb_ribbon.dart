@@ -260,24 +260,31 @@ List<_Sample> _sampleCentreline(
     final w2 = halfWidths[i + 1];
     final b1 = backHalfWidths[i];
     final b2 = backHalfWidths[i + 1];
-    // A segment's tension is the mean of its endpoint joints', so a profile
-    // like [soft shoulder ... firm elbow ... firm wrist] transitions without
-    // a visible kink at the joint where the values change.
-    final tension = jointTensions == null
-        ? _kCentrelineTension
-        : (jointTensions[i] + jointTensions[i + 1]) / 2;
     final last = i == n - 2;
     final steps = last ? samplesPerSegment : samplesPerSegment - 1;
     for (var s = 0; s <= steps; s++) {
       final t = s / samplesPerSegment;
+      // Tension blends CONTINUOUSLY along the segment toward each joint's
+      // own value (the old per-segment mean gave adjacent segments
+      // different constants, breaking tangent continuity exactly AT the
+      // joint — the rigging panel's "hard corner at the elbow" on an
+      // extended arm).
+      final tension = jointTensions == null
+          ? _kCentrelineTension
+          : jointTensions[i] + (jointTensions[i + 1] - jointTensions[i]) * t;
       final pt = _catmullRom(p0, p1, p2, p3, t, tension);
       final tan = _catmullRomTangent(p0, p1, p2, p3, t, tension);
       final len = tan.distance;
       final normal = len < 1e-6
           ? Offset.zero
           : Offset(-tan.dy / len, tan.dx / len);
+      // Width eases through each joint (smoothstep, zero slope at the
+      // stations) instead of lerping — a linear profile puts a derivative
+      // step in the OUTLINE at every joint, which reads as a conical
+      // corner once the limb straightens and there is no bend to hide it.
+      final tw = t * t * (3 - 2 * t);
       out.add(
-        _Sample(pt, normal, w1 + (w2 - w1) * t, b1 + (b2 - b1) * t),
+        _Sample(pt, normal, w1 + (w2 - w1) * tw, b1 + (b2 - b1) * tw),
       );
     }
   }
