@@ -21,7 +21,10 @@ void main() {
     // Each routine joins during its own re-author + panel round (the clamp
     // visibly changes tuned foot mechanics — zanku's floor scrape, for
     // one — so it is never enabled silently).
-    final clips = {'shaku': CatClips.shaku};
+    final clips = {
+      'shaku': CatClips.shaku,
+      'zanku': CatClips.zanku,
+    };
     const samples = 256;
     // The bones compare like-for-like (same rig geometry both sides), so
     // bone-origin heights are directly comparable. Tolerance covers sole
