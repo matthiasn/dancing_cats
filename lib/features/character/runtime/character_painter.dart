@@ -74,6 +74,16 @@ _kBacklightPasses = [
 /// Artistic value, not a design-system token: rendered scene grading, like the gels.
 const Color _kBodySeat = Color(0x1C0A1626);
 
+/// PRE-SHOW DIM: an extra darken over the WHOLE figure (face + body, unlike
+/// [_kBodySeat] which is body-only) that fades in as [_trioDanceWeight] falls
+/// toward 0 — the calm/idle sections read as visibly unlit, as if the stage
+/// light hasn't come up yet, rather than sharing the danced sections'
+/// brightness. Same dark navy hue as [_kBodySeat] (a deeper pull of the same
+/// colour, not a new material), but a much stronger alpha (~45% at full
+/// idle) since this is meant to read as a real "lights down" state, not a
+/// subtle seat.
+const Color _kPreShowDim = Color(0x730A1626);
+
 /// Cool blue-hour ambient BOUNCE that holds the body's shadow side at a low,
 /// readable floor (the water/sky fill a real dancer catches at twilight) instead
 /// of crushing it to a flat black void. Painted as the FAR stop of the gel
@@ -154,6 +164,51 @@ bool _isTrioDanceClip(Clip clip) => clip.transitionPlan != null
           clip.name == 'azonto' ||
           clip.name == 'buga' ||
           clip.name == 'sekem';
+
+/// Continuous 0..1 "how much dance staging should show" — [_isTrioDanceClip]
+/// as a weight instead of a boolean, so idle<->dance handoffs fade the
+/// energetic-only staging (hero pose, formation, backlight glow) in/out
+/// alongside the pose blend instead of snapping.
+///
+/// For a dance<->dance blend both sides already evaluate to 1.0, so this
+/// reduces to the exact same "stays on throughout" behaviour
+/// [_isTrioDanceClip]'s OR was written to guarantee (see its own doc comment)
+/// — this only changes anything when one side is NOT a named dance clip
+/// (idle<->dance), where an OR snaps to 1.0 the instant the blend clip
+/// appears rather than ramping with [ClipTransitionPlan.weight]. Idle<->dance
+/// transitions use `kDanceRestTransitionSeconds` (the long, calm settle) —
+/// several seconds — so snapping the staging on at the very start of that
+/// window, well before the pose has actually blended in, is what read as a
+/// "harsh" cut against the eased pose underneath it.
+double _trioDanceWeight(Clip clip) {
+  final plan = clip.transitionPlan;
+  if (plan == null) return _isTrioDanceClip(clip) ? 1.0 : 0.0;
+  final fromWeight = _trioDanceWeight(plan.from);
+  final toWeight = _trioDanceWeight(plan.to);
+  return fromWeight + (toWeight - fromWeight) * plan.weight;
+}
+
+/// Lerps a full dance [formation] toward identity (no spread, no scale
+/// change) by [weight] — see [_trioDanceWeight].
+({double dx, double dy, double scale}) _lerpFormation(
+  ({double dx, double dy, double scale}) formation,
+  double weight,
+) => (
+  dx: formation.dx * weight,
+  dy: formation.dy * weight,
+  scale: 1.0 + (formation.scale - 1.0) * weight,
+);
+
+/// Lerps a full [heroStage] toward identity (no depth/position bonus) by
+/// [weight] — see [_trioDanceWeight].
+({double depthBonus, double dy, double dx}) _lerpHeroStage(
+  ({double depthBonus, double dy, double dx}) heroStage,
+  double weight,
+) => (
+  depthBonus: heroStage.depthBonus * weight,
+  dy: heroStage.dy * weight,
+  dx: heroStage.dx * weight,
+);
 
 /// A [CustomPainter] that resolves and draws one frame of a [CharacterScene].
 ///
@@ -532,7 +587,11 @@ class CharacterPainter extends CustomPainter {
       // clip too, or the calm intro/outro cats look flat and ungraded next to
       // the danced sections.
       final trioCentre = baseMembers.length == 3;
-      final leadCentreOrder = _isTrioDanceClip(clip) && trioCentre;
+      // Continuous, not boolean: fades formation/hero-stage/glow in and out
+      // across an idle<->dance blend instead of snapping them on at the blend's
+      // first frame — see [_trioDanceWeight]'s doc comment.
+      final danceWeight = trioCentre ? _trioDanceWeight(clip) : 0.0;
+      final leadCentreOrder = danceWeight > 0;
       final order = trioCentre ? const [1, 0, 2] : null;
       final members = order == null
           ? baseMembers
@@ -583,19 +642,21 @@ class CharacterPainter extends CustomPainter {
                 memberClip.duration,
               )
             : memberClip.duration * i / members.length;
+        // Lerped identity->full by [danceWeight] (not a hard on/off) so an
+        // idle<->dance blend eases the formation spread in/out with the pose
+        // instead of popping it on at the blend's first frame.
         final formation = leadCentreOrder
-            ? _danceFormation(
-                i,
-                members.length,
-                timeSeconds,
-                memberClip.duration,
+            ? _lerpFormation(
+                _danceFormation(i, members.length, timeSeconds, memberClip.duration),
+                danceWeight,
               )
             : (dx: 0.0, dy: 0.0, scale: 1.0);
         // Opt-in hero staging (lead bigger/downstage, flankers smaller/upstage);
         // identity for every surface that doesn't request it. Decoupled from
-        // [bodyGrade] (colour) so it only moves geometry when asked.
+        // [bodyGrade] (colour) so it only moves geometry when asked. Also
+        // lerped by [danceWeight] — see the formation comment above.
         final heroStage = (leadCentreOrder && heroStaging)
-            ? _heroStaging(i, members.length)
+            ? _lerpHeroStage(_heroStaging(i, members.length), danceWeight)
             : (depthBonus: 0.0, dy: 0.0, dx: 0.0);
         final memberDepth =
             _roleStageDepth(i, members.length) + heroStage.depthBonus;
@@ -676,8 +737,13 @@ class CharacterPainter extends CustomPainter {
         // this lane (the lead-centre dance order keeps lane index == screen
         // position left→right). Aligned for free — it reuses the member's exact
         // transform, so the halo tracks the dancer through any camera/formation.
+        // Alpha scaled by [danceWeight] (not gated boolean) so the glow fades
+        // in/out across an idle<->dance blend instead of switching on at full
+        // strength the instant the blend clip appears.
         final glow = leadCentreOrder && i < memberBacklights.length
-            ? memberBacklights[i]
+            ? memberBacklights[i].withValues(
+                alpha: memberBacklights[i].a * danceWeight,
+              )
             : null;
         // This lane's light-source direction, shared by the rim halo (below) and
         // the gel torso-modelling in the front-body grade (further down).
@@ -806,6 +872,7 @@ class CharacterPainter extends CustomPainter {
             memberFloorY: memberFloorY,
             size: size,
             memberScale: memberScale,
+            danceWeight: danceWeight,
             rimDir: rimDir,
             glow: glow,
           );
@@ -874,9 +941,32 @@ class CharacterPainter extends CustomPainter {
     required double memberFloorY,
     required Size size,
     required double memberScale,
+    required double danceWeight,
     required Offset rimDir,
     required Color? glow,
   }) {
+    // PRE-SHOW DIM (owner, live): "the grading of the intro is too clean...
+    // stage light comes on when music starts" / "same for outro, stage
+    // light goes off again". Before this, the idle plate seat was IDENTICAL
+    // to the danced sections' (only the gel/rim/hero-staging faded with
+    // [danceWeight]) — the owner wants the calm sections to read as visibly
+    // darker, UNLIT, with the stage light switching on/off as a motivated
+    // reveal tied to the same blend the pose already eases through, not a
+    // separately-tuned brightness. A flat, uniform darken scaled by
+    // `1 - danceWeight` does exactly that: full dark at idle (danceWeight
+    // 0), fully gone once the dance is in full swing (danceWeight 1),
+    // ramping in lockstep with the pose blend and the gel/rim fade-in
+    // already wired to the same weight.
+    if (danceWeight < 1) {
+      canvas.drawRect(
+        gradeBounds,
+        Paint()
+          ..blendMode = BlendMode.srcATop
+          ..color = _kPreShowDim.withValues(
+            alpha: _kPreShowDim.a * (1 - danceWeight),
+          ),
+      );
+    }
     // Every offset below is "distance up from the feet" expressed as a
     // fraction of the REFERENCE character's height (memberScale == 1, e.g. a
     // flanker at depth 0) — so it must scale with memberScale the same way
@@ -1048,8 +1138,20 @@ class CharacterPainter extends CustomPainter {
       memberCentreX,
       memberFloorY - size.height * 0.28 * memberScale,
     );
-    final reach = rimDir * (size.height * 0.32 * memberScale);
-    final gelKey = (0.82 + 0.20 * glow.a).clamp(0.82, 0.96);
+    // Owner (live): "still pretty grey when music starts" even after the
+    // [danceStageRig] baseIntensity bump. Root cause: [_kRimDirections]'
+    // vectors are mostly vertical (raking the upper contour for the rim
+    // halo), so at the old reach (0.32) `mid + reach` — the gradient's
+    // brightest point — landed up near head height, well above the torso;
+    // the torso only ever caught the fading tail no matter how the stops
+    // moved. A flat uniform wash was tried and reverted (owner: "taking
+    // away contrast") — it fixed the coverage but flattened the very
+    // light/shadow modelling this gradient exists for. Fix instead by
+    // shortening `reach` (0.32 -> 0.22) so the gradient's own warm end
+    // sits ON the torso/shoulders rather than off the top of it — same
+    // directional contrast, just aimed at the body instead of past it.
+    final reach = rimDir * (size.height * 0.22 * memberScale);
+    final gelKey = (0.88 + 0.12 * glow.a).clamp(0.88, 1.0);
     canvas
       ..drawRect(
         gradeBounds,
@@ -1066,14 +1168,14 @@ class CharacterPainter extends CustomPainter {
               _kBodyShadowFloor, // cool ambient bounce, NOT a black crush
             ],
             // DIRECTIONAL terminator: the gel KEY commits to the
-            // source-facing side only (~0.40 of the axis), then breaks to
-            // a clear cool shadow core (down from a 0.74 wash that lit most
-            // of the body and read as a symmetric "amber column" with no
-            // lit-side/shadow-side modelling — a gaffer lens's blocker).
-            // The lit side reads as warm-keyed fabric; the camera-right
-            // side falls onto the deeper cool ambient floor, so the torso
-            // models as a volume lit from one direction, not a flat cutout.
-            const [0.0, 0.4, 0.82],
+            // source-facing side, then breaks to a clear cool shadow core
+            // (down from a 0.74 wash that lit most of the body and read as
+            // a symmetric "amber column" with no lit-side/shadow-side
+            // modelling — a gaffer lens's blocker). The lit side reads as
+            // warm-keyed fabric; the camera-right side falls onto the
+            // deeper cool ambient floor, so the torso models as a volume
+            // lit from one direction, not a flat cutout.
+            const [0.0, 0.62, 0.9],
           ),
       )
       ..drawRect(

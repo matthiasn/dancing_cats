@@ -203,12 +203,17 @@ class DanceStageView extends StatelessWidget {
                         child: SizedBox.expand(),
                       ),
                     // Floor pools under the feet, grounding each cat in its gel.
+                    // `energetic` fades the pools out during calm/idle
+                    // sections (owner: "the lights on the floor with the
+                    // gel should not be here yet") — see
+                    // [StageLightsOverlay.energetic].
                     if (useNewBackdrop)
                       StageLightsOverlay(
                         timeSeconds: lightsTimeSeconds,
                         beat: beat,
                         dancerAnchors: dancerAnchors,
                         rig: rig,
+                        energetic: stage.energetic,
                       ),
                     GradeFilter(
                       grade: castGrade,
@@ -323,8 +328,20 @@ AutonomicLayer danceAutonomic(int seed) => AutonomicLayer(
 
 /// The concert gel rig. The cycle period is the tempo (`60 / bpm`), so the gels
 /// rotate one colour per beat; the lead lane is locked to the hero gold.
-StageLightRig danceStageRig(double bpm) =>
-    StageLightRig(colorPeriod: bpm > 0 ? 60 / bpm : 0.5, leadGoldIndex: 1);
+///
+/// `baseIntensity` raised from [StageLightRig]'s class default (0.38 -> 0.75,
+/// after an 0.58 first pass still read as "pretty grey when music starts" —
+/// live owner feedback): at the default, the gel/rim only read as visible
+/// colour near a beat peak — most of a bar sat close to the dark
+/// plate-seat's shadow floor with no stage light showing at all (owner:
+/// dancing "too dark and grey... there SHOULD be stage light"). Bumped so
+/// the coloured key is always clearly present, with `beatBoost` still
+/// layering a real punch on top on the beat.
+StageLightRig danceStageRig(double bpm) => StageLightRig(
+  colorPeriod: bpm > 0 ? 60 / bpm : 0.5,
+  leadGoldIndex: 1,
+  baseIntensity: 0.75,
+);
 
 /// Per-cat rim/halo colours from the rig [samples]: screen order
 /// (left→center→right), the centre (lead) hotter so the hero owns the frame.

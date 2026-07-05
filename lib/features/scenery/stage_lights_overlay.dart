@@ -32,6 +32,7 @@ class StageLightsOverlay extends StatefulWidget {
     this.rig = const StageLightRig(),
     this.dancerAnchors = const [],
     this.reducedMotion = false,
+    this.energetic = true,
     super.key,
   });
 
@@ -52,6 +53,16 @@ class StageLightsOverlay extends StatefulWidget {
   /// Freeze to a static frame regardless of clock (test / explicit override).
   final bool reducedMotion;
 
+  /// Whether the performance is currently in an energetic (danced) section.
+  /// Owner: "the lights on the floor with the gel should not be here yet" —
+  /// during the calm/idle sections the floor pools used to show at full
+  /// strength (the rig has no notion of "the show hasn't started"), the same
+  /// anachronism the character painter's rim/gel had before it started
+  /// fading with its own dance-weight. This eases the pools' own brightness
+  /// toward 0 when false, toward full when true — see
+  /// [_StageLightsOverlayState]'s `_energyWeight`.
+  final bool energetic;
+
   @override
   State<StageLightsOverlay> createState() => _StageLightsOverlayState();
 }
@@ -64,8 +75,14 @@ class _StageLightsOverlayState extends State<StageLightsOverlay> {
   static const double _cutDistance = 0.18; // a jump this big reads as a cut
   static const double _cutEase = 0.5; // catch-up rate across a cut
 
+  // How fast the pools fade in/out around an idle<->dance boundary — a calm
+  // settle, not a snap, matching the pose/gel blend's own timescale rather
+  // than the tight per-frame foot-follow eases above.
+  static const double _energyEase = 0.08;
+
   List<double>? _aimX;
   List<double>? _floorY;
+  double? _energyWeight;
 
   double _follow(double current, double target, double base) {
     final rate = (target - current).abs() > _cutDistance ? _cutEase : base;
@@ -103,6 +120,10 @@ class _StageLightsOverlayState extends State<StageLightsOverlay> {
     } else {
       _aimX = _floorY = null;
     }
+    final energyTarget = widget.energetic ? 1.0 : 0.0;
+    _energyWeight = rm
+        ? energyTarget
+        : _follow(_energyWeight ?? energyTarget, energyTarget, _energyEase);
     return IgnorePointer(
       child: RepaintBoundary(
         child: CustomPaint(
@@ -110,6 +131,7 @@ class _StageLightsOverlayState extends State<StageLightsOverlay> {
           painter: StageLightsPainter(
             time: widget.timeSeconds,
             beat: widget.beat,
+            energyWeight: _energyWeight!,
             rig: widget.rig,
             reducedMotion: rm,
             aimX: following ? List<double>.of(_aimX!) : null,
@@ -137,6 +159,7 @@ class StageLightsPainter extends CustomPainter {
     this.footY,
     this.floorY = 0.82,
     this.poolRadius = 0.135,
+    this.energyWeight = 1.0,
   });
 
   /// Scene clock (seconds).
@@ -150,6 +173,11 @@ class StageLightsPainter extends CustomPainter {
 
   /// Static frame when true.
   final bool reducedMotion;
+
+  /// 0..1 overall pool brightness multiplier — see [StageLightsOverlay.energetic].
+  /// Default 1.0 (full strength) so every existing call site/test is
+  /// unaffected unless it opts in.
+  final double energyWeight;
 
   /// Per-light pool x (normalized), overriding the rig's swept target.
   final List<double>? aimX;
@@ -165,7 +193,7 @@ class StageLightsPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (size.isEmpty) return;
+    if (size.isEmpty || energyWeight <= 0) return;
     final w = size.width;
     final h = size.height;
     final lights = rig.sample(
@@ -180,7 +208,16 @@ class StageLightsPainter extends CustomPainter {
       final fy = (footY != null && i < footY!.length ? footY![i] : floorY) * h;
       final hasLead = rig.leadGoldIndex != null;
       final isLead = hasLead && i == rig.leadGoldIndex;
-      _paintPool(canvas, l, w, aim, fy, isLead: isLead, hasLead: hasLead);
+      _paintPool(
+        canvas,
+        l,
+        w,
+        aim,
+        fy,
+        isLead: isLead,
+        hasLead: hasLead,
+        energyWeight: energyWeight,
+      );
     }
   }
 
@@ -192,6 +229,7 @@ class StageLightsPainter extends CustomPainter {
     double fy, {
     required bool isLead,
     required bool hasLead,
+    required double energyWeight,
   }) {
     // Focal hierarchy: when a lead is designated, its warm pool must be the
     // hottest + largest puddle on the deck. The backups are crushed (~58%
@@ -204,7 +242,8 @@ class StageLightsPainter extends CustomPainter {
     // stays the darkest value under him (it was reading as a bright spotlight
     // decal that out-glowed its own AO). The lead still dominates via its larger
     // radius + longer forward run + warm gel, not raw luminance.
-    final i = l.intensity * (isLead ? 1.0 : (demoted ? 0.42 : 1.0));
+    final i =
+        l.intensity * (isLead ? 1.0 : (demoted ? 0.42 : 1.0)) * energyWeight;
     // Backups: desaturate HARDER toward a cool blue-hour slate (was a neutral
     // grey) so the flanking pools stop advertising themselves as candy magenta/
     // violet and instead read as cool ambient spill supporting the warm lead.
