@@ -2,6 +2,7 @@ import 'package:dancing_cats/features/character/demo/dance_performance.dart';
 import 'package:dancing_cats/features/character/demo/dance_playback_stepper.dart';
 import 'package:dancing_cats/features/character/model/beat_map.dart';
 import 'package:dancing_cats/features/character/model/clip.dart';
+import 'package:dancing_cats/features/character/model/dance_dynamics.dart';
 import 'package:dancing_cats/features/character/model/face.dart';
 import 'package:dancing_cats/features/character/samples/cat_in_suit.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -149,6 +150,40 @@ void main() {
             'be at the very start of its own bar 1, not mid-phrase',
       );
     });
+
+    test(
+      "before the track loads, dynamics are the idle stage's 3 neutrals",
+      () {
+        final stepper = DancePlaybackStepper()
+          ..advance(null, const [], 1, 0.016);
+        expect(stepper.stage?.dynamics, [
+          DanceDynamics.neutral,
+          DanceDynamics.neutral,
+          DanceDynamics.neutral,
+        ]);
+      },
+    );
+
+    test(
+      'the stage carries a 3-length dynamics list through holds and blends '
+      '(the catalog and lane profiles are still neutral pre-tuning, so this '
+      'pins the shape; ADR CHAR-0003 populates the numbers)',
+      () {
+        final perf = _perf(
+          sectionSpans: const [(start: 0, end: 6, section: 'chorus')],
+        );
+        final stepper = DancePlaybackStepper()
+          ..advance(perf, const [], 3.24, 0.016); // steady zanku
+        expect(stepper.stage?.dynamics.length, 3);
+
+        stepper.advance(perf, const [], 3.36, 0.016); // held, waiting for beat
+        expect(stepper.stage?.dynamics, everyElement(DanceDynamics.neutral));
+
+        stepper.advance(perf, const [], 3.52, 0.016); // blended zanku->buga
+        expect(stepper.stage?.lead.name, 'zanku->buga');
+        expect(stepper.stage?.dynamics, everyElement(DanceDynamics.neutral));
+      },
+    );
 
     test('in an energetic section the camera moves off its neutral hold', () {
       final perf = _perf();

@@ -4,6 +4,9 @@ import 'package:dancing_cats/features/character/demo/dance_camera_director.dart'
 import 'package:dancing_cats/features/character/demo/dance_lip_sync.dart';
 import 'package:dancing_cats/features/character/demo/dance_performance.dart';
 import 'package:dancing_cats/features/character/engine/autonomic.dart';
+import 'package:dancing_cats/features/character/model/clip.dart';
+import 'package:dancing_cats/features/character/model/dance_dynamics.dart';
+import 'package:dancing_cats/features/character/model/dance_dynamics_warp.dart';
 import 'package:dancing_cats/features/character/model/face.dart';
 import 'package:dancing_cats/features/character/runtime/character_painter.dart';
 import 'package:dancing_cats/features/character/runtime/character_renderer.dart';
@@ -395,11 +398,14 @@ CharacterPainter danceCharacterPainter({
     danceSingExpression(bgMouth, Expression.content, bgShape),
     danceSingExpression(bgMouth, Expression.happy, bgShape),
   ],
-  ensembleClips: stage.ensemble,
+  ensembleClips: [
+    for (var i = 0; i < stage.ensemble.length; i++)
+      _upperBodyWarped(stage.ensemble[i], stage.dynamics[i]),
+  ],
   synchronousEnsemble: stage.synchronous,
   singingHeadMotion: true,
   walkingPair: true,
-  clip: stage.lead,
+  clip: _upperBodyWarped(stage.lead, stage.dynamics.first),
   timeSeconds: stage.seconds,
   cameraOverride: shot,
   onDancerAnchors: useNewBackdrop ? onDancerAnchors : null,
@@ -420,6 +426,29 @@ CharacterPainter danceCharacterPainter({
   // should not add quarter-turn distortion during limb-attachment review.
   renderer: renderer,
 );
+
+/// Per-clip-instance cache of [upperBodyDynamicsWarpedClip] results, keyed by
+/// the effective dynamics that produced them. This is the single call site
+/// both the live player and every offline renderer go through, so it is the
+/// one place that needs to build the warped clip at all — `CharacterPainter`,
+/// `CharacterScene`, and `ClipEvaluator` are untouched; the warp travels
+/// entirely inside the channels a warped `Clip` carries.
+///
+/// At steady state (a static catalog clip, a per-section-constant effective
+/// dynamics) this builds each warped clip once and reuses it every frame; only
+/// transitions — whose blended clip is already a fresh instance per frame —
+/// pay the wrapper allocation, on top of the `blendedClip` work they already do.
+final Expando<Map<DanceDynamics, Clip>> _warpCache = Expando();
+
+Clip _upperBodyWarped(Clip clip, DanceDynamics dynamics) {
+  if (dynamics.isNeutral || kDanceDynamicsTimeWarpGain == 0) return clip;
+  final cache = _warpCache[clip] ??= {};
+  return cache[dynamics] ??= upperBodyDynamicsWarpedClip(
+    clip,
+    dynamics,
+    warpBoneIds: kDanceUpperBodyWarpBoneIds,
+  );
+}
 
 /// The karaoke caption: a short window of lyric words centred on the current
 /// one (highlighted). Empty when no word is active. Shared by the live player

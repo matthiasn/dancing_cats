@@ -1,6 +1,7 @@
 import 'package:dancing_cats/features/character/demo/dance_performance.dart';
 import 'package:dancing_cats/features/character/demo/dance_stage_view.dart';
 import 'package:dancing_cats/features/character/model/beat_map.dart';
+import 'package:dancing_cats/features/character/model/dance_dynamics.dart';
 import 'package:dancing_cats/features/character/model/face.dart';
 import 'package:dancing_cats/features/character/model/rig_spec.dart';
 import 'package:dancing_cats/features/character/runtime/character_painter.dart';
@@ -251,6 +252,38 @@ void main() {
       expect(painter.heroStaging, isTrue);
       expect(painter.danceViewProjection, isFalse);
     });
+
+    test(
+      'passes the stage clips through UNCHANGED while dynamics are neutral '
+      '(the split-clock Effort warp is a provable no-op pre-tuning — ADR '
+      'CHAR-0002)',
+      () {
+        final stage = _perf().stageAt(2);
+        expect(
+          stage.dynamics,
+          everyElement(DanceDynamics.neutral),
+          reason: 'the catalog and lane profiles are still neutral',
+        );
+
+        final painter = danceCharacterPainter(
+          cast: DanceCast.build(),
+          renderer: CharacterRenderer(antiAlias: false),
+          stage: stage,
+          shot: (zoom: 1.0, dx: 0.0, dy: 0.0),
+          leadMouth: 0,
+          bgMouth: 0,
+          leadShape: MouthShape.neutral,
+          bgShape: MouthShape.neutral,
+          scale: 1,
+          backlights: const [],
+        );
+
+        expect(identical(painter.clip, stage.lead), isTrue);
+        for (var i = 0; i < stage.ensemble.length; i++) {
+          expect(identical(painter.ensembleClips[i], stage.ensemble[i]), isTrue);
+        }
+      },
+    );
   });
 
   group('DanceStageView widget', () {
