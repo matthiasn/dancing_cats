@@ -2,6 +2,7 @@ import 'package:dancing_cats/features/character/demo/dance_camera_director.dart'
 import 'package:dancing_cats/features/character/demo/dance_camera_rig.dart';
 import 'package:dancing_cats/features/character/demo/dance_lip_sync.dart';
 import 'package:dancing_cats/features/character/demo/dance_performance.dart';
+import 'package:dancing_cats/features/character/model/beat_map.dart';
 import 'package:dancing_cats/features/character/model/clip.dart';
 import 'package:dancing_cats/features/character/model/face.dart';
 import 'package:dancing_cats/features/character/runtime/dance_timing.dart';
@@ -90,11 +91,20 @@ class DancePlaybackStepper {
   }
 
   DanceStage _stageWithTransition(
-    DanceStage raw,
+    DanceStage rawGlobal,
     double dt, {
     DancePerformance? perf,
     double pos = 0,
   }) {
+    // PHASE ALIGNMENT (transitions panel r2, the dominant remaining
+    // ceiling): the incoming move used to enter at whatever bar of its
+    // 4-bar phrase the GLOBAL grid dictated, so bar-1-loaded signatures
+    // (azonto's kick) could arrive a full bar late — "silhouette-anonymous"
+    // entries decided purely by grid luck. Every dance stage is re-anchored
+    // here on the first downbeat at/after its own choreo statement's start
+    // ([DanceStage.segmentStartSec]), so each entry opens on its own bar 1
+    // — the dancer takes the new move on the one.
+    final raw = _rebasedStage(perf, rawGlobal, pos);
     final previousRaw = _rawStage;
     if (previousRaw == null) {
       _rawStage = raw;
@@ -115,7 +125,7 @@ class DancePlaybackStepper {
       // amputated ballistic limbs mid-flight (azonto's kick at peak,
       // zanku's lifted stomp — "no dancer exits a kick like that"). For
       // dance->dance handoffs, HOLD the outgoing move — its clips keep
-      // dancing on the shared warped clock — until the next detected beat,
+      // dancing on their OWN phrase clock — until the next detected beat,
       // so the outgoing phrase resolves onto a count and the blend launches
       // from a landed pose. Rest transitions keep the immediate ease
       // (nothing musical to preserve).
@@ -127,7 +137,7 @@ class DancePlaybackStepper {
           _pendingFrom = from;
           _pendingUntil = nextBeat;
           _transition = null;
-          return _heldStage(from, raw);
+          return _heldStage(from, raw, _fromSeconds(perf, from, raw, pos));
         }
       }
       _pendingFrom = null;
@@ -138,7 +148,9 @@ class DancePlaybackStepper {
 
     final pending = _pendingFrom;
     if (pending != null) {
-      if (pos < _pendingUntil) return _heldStage(pending, raw);
+      if (pos < _pendingUntil) {
+        return _heldStage(pending, raw, _fromSeconds(perf, pending, raw, pos));
+      }
       _pendingFrom = null;
       _transition = _DanceStageTransition(from: pending, elapsed: 0);
     }
@@ -158,7 +170,73 @@ class DancePlaybackStepper {
     }
     _transition = transition.withElapsed(elapsed);
     final weight = smoothstep(elapsed / window);
-    return _blendStage(from: transition.from, to: raw, weight: weight);
+    // The outgoing side keeps its OWN phrase clock through the blend: the
+    // blended clip samples the from-channels at seconds + fromTimeShift, so
+    // neither side snaps phase at the cut even though their anchors differ.
+    final fromSeconds = _fromSeconds(perf, transition.from, raw, pos);
+    return _blendStage(
+      from: transition.from,
+      to: raw,
+      weight: weight,
+      fromTimeShiftSeconds: fromSeconds - raw.seconds,
+    );
+  }
+
+  /// [stage] with its warped clock re-anchored on the first downbeat at/after
+  /// its own choreo statement start. Idle stages and null [perf] pass through.
+  DanceStage _rebasedStage(DancePerformance? perf, DanceStage stage, double pos) {
+    if (perf == null || !stage.energetic) return stage;
+    final binding = _segmentBinding(perf, stage.segmentStartSec);
+    return (
+      lead: stage.lead,
+      ensemble: stage.ensemble,
+      seconds: perf.map.clipSecondsAt(
+        pos,
+        clipDuration: stage.lead.duration,
+        binding: binding,
+      ),
+      section: stage.section,
+      energetic: stage.energetic,
+      synchronous: stage.synchronous,
+      segmentStartSec: stage.segmentStartSec,
+    );
+  }
+
+  /// The outgoing side's clock at [pos] during a hold or blend — its own
+  /// segment anchor when both sides dance, else the incoming clock (rest
+  /// transitions keep the original shared-clock behavior).
+  double _fromSeconds(
+    DancePerformance? perf,
+    DanceStage from,
+    DanceStage to,
+    double pos,
+  ) {
+    if (perf == null || !from.energetic || !to.energetic) return to.seconds;
+    return perf.map.clipSecondsAt(
+      pos,
+      clipDuration: from.lead.duration,
+      binding: _segmentBinding(perf, from.segmentStartSec),
+    );
+  }
+
+  final Map<double, BeatLoopBinding> _segmentBindings = {};
+
+  /// The phrase binding anchored on the first downbeat at/after
+  /// [segmentStartSec]; falls back to the performance's global binding when
+  /// the segment starts past the last detected downbeat.
+  BeatLoopBinding _segmentBinding(DancePerformance perf, double segmentStartSec) {
+    return _segmentBindings.putIfAbsent(segmentStartSec, () {
+      final beats = perf.map.beatTimesSec;
+      for (final db in perf.map.downbeatIndices) {
+        if (beats[db] >= segmentStartSec - 0.05) {
+          return BeatLoopBinding(
+            loopLengthBeats: perf.binding.loopLengthBeats,
+            anchorBeatIndex: db,
+          );
+        }
+      }
+      return perf.binding;
+    });
   }
 }
 
@@ -175,15 +253,16 @@ const double kDanceMoveTransitionSeconds = 0.18;
 const double kDanceCutQuantizeMaxWaitSeconds = 0.75;
 
 /// The outgoing stage held during a quantized cut: the OLD trio keeps dancing
-/// on the NEW stage's shared warped clock (exactly the sampling the blend
-/// itself uses), so nothing pops while the boundary waits for its beat.
-DanceStage _heldStage(DanceStage from, DanceStage to) => (
+/// on its OWN phrase clock ([fromSeconds]) while the boundary waits for its
+/// beat, so nothing pops and the outgoing phrase finishes honestly.
+DanceStage _heldStage(DanceStage from, DanceStage to, double fromSeconds) => (
   lead: from.lead,
   ensemble: from.ensemble,
-  seconds: to.seconds,
+  seconds: fromSeconds,
   section: to.section,
   energetic: to.energetic,
   synchronous: to.synchronous,
+  segmentStartSec: from.segmentStartSec,
 );
 
 /// The first detected beat strictly after [pos], or null past the map's end.
@@ -288,6 +367,7 @@ DanceStage _blendStage({
   required DanceStage from,
   required DanceStage to,
   required double weight,
+  double fromTimeShiftSeconds = 0,
 }) => (
   lead: blendedClip(
     from: from.lead,
@@ -295,6 +375,7 @@ DanceStage _blendStage({
     weight: weight,
     name: '${from.lead.name}->${to.lead.name}',
     blendMask: _danceMoveBlendMask,
+    fromTimeShiftSeconds: fromTimeShiftSeconds,
   ),
   ensemble: [
     for (var i = 0; i < to.ensemble.length; i++)
@@ -304,10 +385,12 @@ DanceStage _blendStage({
         weight: weight,
         name: '${from.ensemble[i].name}->${to.ensemble[i].name}',
         blendMask: _danceMoveBlendMask,
+        fromTimeShiftSeconds: fromTimeShiftSeconds,
       ),
   ],
   seconds: to.seconds,
   section: to.section,
   energetic: to.energetic,
   synchronous: to.synchronous,
+  segmentStartSec: to.segmentStartSec,
 );

@@ -48,15 +48,28 @@ class BlendedJointChannel extends JointChannel {
     required this.weight,
     this.from,
     this.to,
+    this.fromTimeShift = 0,
+    this.fromDuration = 0,
   }) : assert(weight >= 0 && weight <= 1, 'weight must be in 0..1');
 
   final JointChannel? from;
   final JointChannel? to;
   final double weight;
 
+  /// Seconds ADDED to the outgoing side's sample time, wrapped into
+  /// [fromDuration] — lets a transition keep the outgoing clip on its OWN
+  /// phrase clock while the incoming clip enters on a re-anchored one (the
+  /// bar-1 entry alignment). Zero = both sides share the clock (the
+  /// original behavior).
+  final double fromTimeShift;
+
+  /// The outgoing clip's duration, for wrapping [fromTimeShift]; 0 = no wrap.
+  final double fromDuration;
+
   @override
   JointPose sample(double p) {
-    final a = from?.sample(p) ?? JointPose.identity;
+    final a = from?.sample(_shifted(p, fromTimeShift, fromDuration)) ??
+        JointPose.identity;
     final b = to?.sample(p) ?? JointPose.identity;
     return JointPose(
       rotation: _lerp(a.rotation, b.rotation, weight),
@@ -64,6 +77,14 @@ class BlendedJointChannel extends JointChannel {
       scaleY: _lerp(a.scaleY, b.scaleY, weight),
     );
   }
+}
+
+/// The outgoing side's shifted-and-wrapped sample time for a blended channel.
+double _shifted(double p, double shift, double duration) {
+  if (shift == 0) return p;
+  if (duration <= 0) return p + shift;
+  final t = (p + shift) % duration;
+  return t < 0 ? t + duration : t;
 }
 
 /// Maps the global 0..1 transition progress into a local blend window.
@@ -426,15 +447,21 @@ class BlendedIkTargetChannel extends IkTargetChannel {
     required this.weight,
     this.from,
     this.to,
+    this.fromTimeShift = 0,
+    this.fromDuration = 0,
   }) : assert(weight >= 0 && weight <= 1, 'weight must be in 0..1');
 
   final IkTargetChannel? from;
   final IkTargetChannel? to;
   final double weight;
 
+  /// See [BlendedJointChannel.fromTimeShift].
+  final double fromTimeShift;
+  final double fromDuration;
+
   @override
   IkTargetPose sample(double p) {
-    final a = from?.sample(p);
+    final a = from?.sample(_shifted(p, fromTimeShift, fromDuration));
     final b = to?.sample(p);
     if (a == null && b == null) {
       return const IkTargetPose(x: 0, y: 0, weight: 0);
@@ -718,15 +745,22 @@ class BlendedRootChannel extends RootChannel {
     required this.weight,
     this.from,
     this.to,
+    this.fromTimeShift = 0,
+    this.fromDuration = 0,
   }) : assert(weight >= 0 && weight <= 1, 'weight must be in 0..1');
 
   final RootChannel? from;
   final RootChannel? to;
   final double weight;
 
+  /// See [BlendedJointChannel.fromTimeShift].
+  final double fromTimeShift;
+  final double fromDuration;
+
   @override
   ({double dx, double dy, double rotation}) sample(double p) {
-    final a = from?.sample(p) ?? (dx: 0.0, dy: 0.0, rotation: 0.0);
+    final a = from?.sample(_shifted(p, fromTimeShift, fromDuration)) ??
+        (dx: 0.0, dy: 0.0, rotation: 0.0);
     final b = to?.sample(p) ?? (dx: 0.0, dy: 0.0, rotation: 0.0);
     return (
       dx: _lerp(a.dx, b.dx, weight),
@@ -1290,6 +1324,7 @@ Clip blendedClip({
   required double weight,
   String? name,
   ClipBlendMask blendMask = ClipBlendMask.full,
+  double fromTimeShiftSeconds = 0,
 }) {
   assert(weight >= 0 && weight <= 1, 'weight must be in 0..1');
   final channelIds = {...from.channels.keys, ...to.channels.keys};
@@ -1318,12 +1353,16 @@ Clip blendedClip({
           from: from.channels[id],
           to: to.channels[id],
           weight: blendMask.jointWeight(id, weight),
+          fromTimeShift: fromTimeShiftSeconds,
+          fromDuration: from.duration,
         ),
     },
     root: BlendedRootChannel(
       from: from.root,
       to: to.root,
       weight: rootWeight,
+      fromTimeShift: fromTimeShiftSeconds,
+      fromDuration: from.duration,
     ),
     locomotionSpeed: _lerp(
       from.locomotionSpeed,
@@ -1339,6 +1378,8 @@ Clip blendedClip({
           fromTargets[id],
           toTargets[id],
           blendMask.limbTargetWeight(id, weight),
+          fromTimeShift: fromTimeShiftSeconds,
+          fromDuration: from.duration,
         ),
     ],
     supportFootWorldAnchor: supportFootAnchorStrength > 0,
@@ -1412,8 +1453,10 @@ double _transitionSupportAnchorStrength(
 LimbIkTarget _blendLimbTarget(
   LimbIkTarget? from,
   LimbIkTarget? to,
-  double weight,
-) {
+  double weight, {
+  double fromTimeShift = 0,
+  double fromDuration = 0,
+}) {
   final template = weight < 0.5 ? from ?? to! : to ?? from!;
   return LimbIkTarget(
     upperBoneId: template.upperBoneId,
@@ -1424,6 +1467,8 @@ LimbIkTarget _blendLimbTarget(
       from: from?.channel,
       to: to?.channel,
       weight: weight,
+      fromTimeShift: fromTimeShift,
+      fromDuration: fromDuration,
     ),
     bendDirection: template.bendDirection,
   );
