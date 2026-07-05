@@ -326,25 +326,53 @@ void main() {
       );
     });
 
-    test('pre-chorus is a strictly monotonic crane-push, dead centre', () {
-      var prev = -1.0;
-      for (final p in [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]) {
-        final s = cameraShot(_ctx(section: 'pre-chorus', sectionPhase: p));
-        expect(s.dx, 0, reason: 'p=$p');
-        expect(s.dy, 0, reason: 'p=$p');
-        expect(s.zoom, greaterThan(prev), reason: 'p=$p');
-        prev = s.zoom;
-      }
-      expect(cameraShot(_ctx(section: 'pre-chorus')).zoom, closeTo(1.18, 1e-9));
-      // The crest sits UNDER the chorus homes, so the anticipated dolly keeps
-      // RISING through the drop — the old crest overshot the home and made the
-      // arrival zoom out exactly on the accent.
-      expect(
-        cameraShot(_ctx(section: 'pre-chorus', sectionPhase: 1)).zoom,
-        closeTo(1.32, 1e-9),
-      );
-      expect(1.32, lessThan(1.46)); // under the two-shot chorus register
-    });
+    test(
+      'pre-chorus is a strictly monotonic crane-push with a whisper of drift',
+      () {
+        var prev = -1.0;
+        for (final p in [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]) {
+          final s = cameraShot(_ctx(section: 'pre-chorus', sectionPhase: p));
+          // The zoom build itself stays monotonic (no breathe on this axis —
+          // a real oscillation risks the backwards accent this shot exists to
+          // avoid); only a small lateral drift keeps the frame alive.
+          expect(s.dx.abs(), lessThanOrEqualTo(kHookDriftRef), reason: 'p=$p');
+          expect(s.dy, 0, reason: 'p=$p');
+          expect(s.zoom, greaterThan(prev), reason: 'p=$p');
+          prev = s.zoom;
+        }
+        // The drift is genuinely alive across the phrase grid, not parked.
+        expect(
+          cameraShot(_ctx(section: 'pre-chorus', sectionPhase: 0.5)).dx,
+          greaterThan(0),
+        );
+        expect(
+          cameraShot(
+            _ctx(section: 'pre-chorus', sectionPhase: 0.5, phrasePhase: 0.5),
+          ).dx,
+          lessThan(0),
+        );
+        expect(
+          cameraShot(
+            _ctx(section: 'pre-chorus', phrasePhase: 0.5),
+          ).dx,
+          0,
+          reason: 'the drift feathers in from the section head like the '
+              'zoom breathe elsewhere',
+        );
+        expect(
+          cameraShot(_ctx(section: 'pre-chorus')).zoom,
+          closeTo(1.18, 1e-9),
+        );
+        // The crest sits UNDER the chorus homes, so the anticipated dolly
+        // keeps RISING through the drop — the old crest overshot the home
+        // and made the arrival zoom out exactly on the accent.
+        expect(
+          cameraShot(_ctx(section: 'pre-chorus', sectionPhase: 1)).zoom,
+          closeTo(1.32, 1e-9),
+        );
+        expect(1.32, lessThan(1.46)); // under the two-shot chorus register
+      },
+    );
 
     test('each chorus owns a distinct home keyed on its OCCURRENCE', () {
       // First chorus: centred (up to the launch's small rightward ease).
@@ -379,14 +407,19 @@ void main() {
         // The launch clock starts kCameraLaunchLeadSeconds before the boundary,
         // so the section opens already a touch into its launch-push…
         expect(start.zoom, inInclusiveRange(1.26, 1.33));
-        // …and the camera has visibly moved a couple of bars in.
+        // …and the camera has visibly moved a couple of bars in — toned down
+        // from the old 0.09 launch coefficient (the panel read the original
+        // push as a jump-cut against the section's otherwise calm hold), but
+        // kept just strong enough that the accent still outruns the approach
+        // glide (see the continuity regression test).
         expect(launched.zoom - start.zoom, greaterThan(0.02));
         // The slow drift-up carries the rest of the refrain.
-        expect(end.zoom, closeTo(1.37, 1e-9));
-        // The arc drifts out mid-section and returns, riding the launch's small
-        // rightward ease — the depth keeps sliding through the held hook.
-        expect(mid.dx, closeTo(20 - 18, 1e-9));
-        expect(end.dx, closeTo(-18, 1e-9));
+        expect(end.zoom, closeTo(1.355, 1e-9));
+        // The arc drifts out mid-section and returns, riding the launch's
+        // (toned-down) rightward ease plus the hook's small phrase drift —
+        // the depth keeps sliding through the held hook.
+        expect(mid.dx, closeTo(26, 1e-9));
+        expect(end.dx, closeTo(6, 1e-9));
       },
     );
 
