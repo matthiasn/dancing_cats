@@ -623,19 +623,19 @@ class CatClips {
                 // -12/-20/-13) — the sine rock's ripples sat under the 25%
                 // prominence floor on the plateaus and the back half read
                 // as one slow trough.
-                RootKeyframe(p: 1 / 32, dx: -12, tension: 0.6),
-                RootKeyframe(p: 7 / 32, dx: -20, tension: 0.6),
-                RootKeyframe(p: 13 / 32, dx: -13, tension: 0.6),
+                RootKeyframe(p: 1 / 32, dx: -9, tension: 0.6),
+                RootKeyframe(p: 7 / 32, dx: -22, tension: 0.6),
+                RootKeyframe(p: 13 / 32, dx: -10, tension: 0.6),
                 RootKeyframe(p: 15.25 / 32, dx: -1),
-                RootKeyframe(p: 17.75 / 32, dx: 13, tension: 0.6),
-                RootKeyframe(p: 23 / 32, dx: 21, tension: 0.6),
+                RootKeyframe(p: 17.75 / 32, dx: 10, tension: 0.6),
+                RootKeyframe(p: 23 / 32, dx: 23, tension: 0.6),
                 // The return starts a beat earlier than symmetry suggests:
                 // the support anchor keeps pulling toward the planted R
                 // foot until its span ends at f30.125 and follows ~1 frame
                 // behind, so the WORLD transfer lands f28.5-f0.5 (2.5
                 // beats, crossing ~f30.8 just after the L plant) — probe-
                 // matched to the outbound transfer's width.
-                RootKeyframe(p: 28.5 / 32, dx: 14, tension: 0.6),
+                RootKeyframe(p: 28.5 / 32, dx: 11, tension: 0.6),
                 RootKeyframe(p: 30.75 / 32, dx: -4),
               ],
               smooth: true,
@@ -648,7 +648,7 @@ class CatClips {
             // becomes a plateau with beat-rate scallops instead of a flat
             // line"). The plateau keeps the committed side; this ripple
             // presses into and releases off the support with every tap.
-            SineRootChannel(swayAmplitude: -3, swayHarmonic: 8),
+            SineRootChannel(swayAmplitude: -4.5, swayHarmonic: 8),
             // R27 coach: "the hips ride the gallop, not just drift" — a
             // small per-BAR rock into the active foot's taps on top of
             // the parked macro lean (h4 = one cycle per bar).
@@ -984,7 +984,7 @@ class CatClips {
           extraRootLayers: const [
             // 9-path r3: per-touch lateral pulse — the lower body read as
             // 'planted while the arms churn' (weight one 0.8/s excursion).
-            SineRootChannel(swayAmplitude: -3, swayHarmonic: 8),
+            SineRootChannel(swayAmplitude: -4.5, swayHarmonic: 8),
             SineRootChannel(
               bobAmplitude: -0.04,
               bobPhase: 0.125,
@@ -1121,6 +1121,14 @@ class CatClips {
               chestRotationGain: 0.94,
               chestScaleGain: 0.98,
             ),
+          ],
+          extraRootLayers: [
+            // r4/r5 (this time actually on buga — the first attempt's
+            // regex overshot into sekem): lateral weight under the strides
+            // + a beat-level mini-bounce so mid-bar frames stop floating
+            // (pocket was 0.8 ev/s over a 97.8 range).
+            SineRootChannel(swayAmplitude: -5, swayHarmonic: 4),
+            SineRootChannel(bobAmplitude: -3, bobPhase: 0.09, bobHarmonic: 8),
           ],
           extraPelvisLayers: [
             SineChannel(
@@ -1427,8 +1435,10 @@ class CatClips {
             ),
           ],
           extraRootLayers: const [
-            // r4: lateral weight under the strides (range was 27.6 vs 97.8
-            // vertical — 'strides land on a laterally planted pelvis').
+            // NOTE: this h4 layer was aimed at buga but a regex ran past
+            // buga's (then-nonexistent) extraRootLayers into THIS stack —
+            // and the r4 panel scored sekem's sway "best in the set" (8.7)
+            // WITH it. Kept deliberately; buga now has its own block.
             SineRootChannel(swayAmplitude: -5, swayHarmonic: 4),
             // 9-path round 2: keep-alive breath — the two ~1s lunge holds
             // read as pose freezes (R3: 'a freeze rather than a settled
