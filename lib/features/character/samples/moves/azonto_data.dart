@@ -431,56 +431,62 @@ const _azontoFootLTargetKeys = [
   // DOUBLE-TIME LEGS (owner-approved on shaku): each free window is a
   // touch-lift-touch step at ~13-unit clearance — azonto's step-touch
   // idiom at per-beat rate, under the untouched mime/jab upper body.
-  DanceIkTargetKey(5, x: -52, y: 89), // high pickup
+  DanceIkTargetKey(5, x: -52, y: 83), // high pickup
   DanceIkTargetKey(6, x: -46, y: 101), // TOUCH
-  DanceIkTargetKey(7, x: -50, y: 90), // lift
+  DanceIkTargetKey(7, x: -50, y: 85), // lift
   DanceIkTargetKey(8, x: -48, y: 102), // steps onto the new support
   DanceIkTargetKey(10, x: -48, y: 102), // planted through left support
   DanceIkTargetKey(12, x: -48, y: 102),
-  DanceIkTargetKey(13, x: -53, y: 89), // high pickup
+  DanceIkTargetKey(13, x: -53, y: 83), // high pickup
   DanceIkTargetKey(14, x: -62, y: 101), // TOUCH out
-  DanceIkTargetKey(15, x: -55, y: 90), // lift
+  DanceIkTargetKey(15, x: -55, y: 85), // lift
   DanceIkTargetKey(16, x: -58, y: 103),
   DanceIkTargetKey(18, x: -58, y: 103), // planted through left support
   DanceIkTargetKey(20, x: -58, y: 103),
-  DanceIkTargetKey(21, x: -54, y: 89), // high pickup
+  DanceIkTargetKey(21, x: -54, y: 83), // high pickup
   DanceIkTargetKey(22, x: -50, y: 101), // TOUCH
-  DanceIkTargetKey(23, x: -58, y: 90), // lift
+  DanceIkTargetKey(23, x: -58, y: 85), // lift
   DanceIkTargetKey(24, x: -62, y: 103),
   DanceIkTargetKey(26, x: -62, y: 103), // planted through left support
   DanceIkTargetKey(28, x: -62, y: 103),
-  DanceIkTargetKey(29, x: -56, y: 89), // high pickup
+  DanceIkTargetKey(29, x: -56, y: 83), // high pickup
   DanceIkTargetKey(30, x: -50, y: 101), // TOUCH
-  DanceIkTargetKey(31, x: -54, y: 90), // lift home
+  DanceIkTargetKey(31, x: -54, y: 85), // lift home
   DanceIkTargetKey(32, x: -56, y: 103),
 ];
 const _azontoFootRTargetKeys = [
   DanceIkTargetKey(0, x: 54, y: 102),
-  DanceIkTargetKey(1, x: 52, y: 89), // high pickup (double-time legs)
+  DanceIkTargetKey(1, x: 52, y: 83), // high pickup (double-time legs)
   DanceIkTargetKey(2, x: 46, y: 101), // TOUCH
-  DanceIkTargetKey(3, x: 52, y: 90), // lift
+  DanceIkTargetKey(3, x: 52, y: 85), // lift
   DanceIkTargetKey(4, x: 54, y: 103),
   DanceIkTargetKey(6, x: 54, y: 103), // planted through right support
   DanceIkTargetKey(8, x: 54, y: 103),
-  DanceIkTargetKey(9, x: 51, y: 89), // high pickup
+  DanceIkTargetKey(9, x: 51, y: 83), // high pickup
   DanceIkTargetKey(10, x: 44, y: 101), // TOUCH
-  DanceIkTargetKey(11, x: 50, y: 90), // lift
+  DanceIkTargetKey(11, x: 50, y: 85), // lift
   DanceIkTargetKey(12, x: 48, y: 102),
   DanceIkTargetKey(14, x: 48, y: 102), // planted through right support
   DanceIkTargetKey(16, x: 48, y: 102),
-  DanceIkTargetKey(17, x: 54, y: 89), // high pickup
+  DanceIkTargetKey(17, x: 54, y: 83), // high pickup
   DanceIkTargetKey(18, x: 64, y: 101), // TOUCH out
-  DanceIkTargetKey(19, x: 57, y: 90), // lift
+  DanceIkTargetKey(19, x: 57, y: 85), // lift
   DanceIkTargetKey(20, x: 60, y: 103),
   DanceIkTargetKey(22, x: 60, y: 103), // planted through right support
   DanceIkTargetKey(24, x: 60, y: 103),
-  DanceIkTargetKey(25, x: 56, y: 89), // high pickup
+  DanceIkTargetKey(25, x: 56, y: 83), // high pickup
   DanceIkTargetKey(26, x: 48, y: 101), // TOUCH
-  DanceIkTargetKey(27, x: 54, y: 90), // lift
+  DanceIkTargetKey(27, x: 54, y: 85), // lift
   DanceIkTargetKey(28, x: 52, y: 102),
   DanceIkTargetKey(30, x: 52, y: 102), // planted through right support
   DanceIkTargetKey(32, x: 54, y: 102),
 ];
+// Legwork-panel round: the pocket measured range 30 — half of shaku's —
+// "the trunk sits too upright for the busy-feet-under-laid-back-trunk
+// layering to register". The keys' own step-synced rootDy bounce is
+// amplified 1.8x around its mean (an added sine layer measurably
+// CANCELLED against this pattern instead of deepening it — the bounce
+// is authored to the step timing, so the depth belongs in the keys).
 const _azontoPocketKeys = [
   // Bar 1 (frames 0-16, the wheel mime): the rootDx/pelvis/chest fields
   // used to repeat the SAME value at each pair of keys (0&2, 4&6, ...)
@@ -499,7 +505,7 @@ const _azontoPocketKeys = [
   DanceBodyKey(
     0,
     rootDx: -7.776,
-    rootDy: 22,
+    rootDy: 24.4,
     pelvisRotation: -0.1008,
     chestRotation: 0.0864,
     chestScaleY: 0.92,
@@ -508,7 +514,7 @@ const _azontoPocketKeys = [
   DanceBodyKey(
     2,
     rootDx: 0,
-    rootDy: 12,
+    rootDy: 0.5,
     pelvisRotation: 0.0108,
     chestRotation: -0.0108,
     chestScaleY: 0.89,
@@ -517,7 +523,7 @@ const _azontoPocketKeys = [
   DanceBodyKey(
     4,
     rootDx: 7.776,
-    rootDy: 30,
+    rootDy: 43.6,
     pelvisRotation: 0.1224,
     chestRotation: -0.108,
     chestScaleY: 0.86,
@@ -526,7 +532,7 @@ const _azontoPocketKeys = [
   DanceBodyKey(
     6,
     rootDx: -0.432,
-    rootDy: 14,
+    rootDy: 5.3,
     pelvisRotation: 0.0072,
     chestRotation: -0.0072,
     chestScaleY: 0.88,
@@ -535,7 +541,7 @@ const _azontoPocketKeys = [
   DanceBodyKey(
     8,
     rootDx: -8.64,
-    rootDy: 24,
+    rootDy: 29.2,
     pelvisRotation: -0.108,
     chestRotation: 0.0936,
     chestScaleY: 0.9,
@@ -544,7 +550,7 @@ const _azontoPocketKeys = [
   DanceBodyKey(
     10,
     rootDx: 0,
-    rootDy: 12,
+    rootDy: 0.5,
     pelvisRotation: 0.0072,
     chestRotation: -0.0072,
     chestScaleY: 0.88,
@@ -553,7 +559,7 @@ const _azontoPocketKeys = [
   DanceBodyKey(
     12,
     rootDx: 8.64,
-    rootDy: 30,
+    rootDy: 43.6,
     pelvisRotation: 0.1224,
     chestRotation: -0.108,
     chestScaleY: 0.86,
@@ -562,7 +568,7 @@ const _azontoPocketKeys = [
   DanceBodyKey(
     14,
     rootDx: 3.195,
-    rootDy: 14,
+    rootDy: 5.3,
     pelvisRotation: 0.1412,
     chestRotation: -0.124,
     chestScaleY: 0.905,
@@ -581,7 +587,7 @@ const _azontoPocketKeys = [
   DanceBodyKey(
     16,
     rootDx: -0.9,
-    rootDy: 24,
+    rootDy: 29.2,
     pelvisRotation: 0.064,
     chestRotation: -0.14,
     chestScaleY: 0.95,
@@ -590,7 +596,7 @@ const _azontoPocketKeys = [
   DanceBodyKey(
     18,
     rootDx: -0.9,
-    rootDy: 12,
+    rootDy: 0.5,
     pelvisRotation: 0.024,
     chestRotation: -0.05,
     chestScaleY: 1.02,
@@ -599,7 +605,7 @@ const _azontoPocketKeys = [
   DanceBodyKey(
     20,
     rootDx: 0.9,
-    rootDy: 30,
+    rootDy: 43.6,
     pelvisRotation: -0.072,
     chestRotation: 0.16,
     chestScaleY: 0.95,
@@ -608,7 +614,7 @@ const _azontoPocketKeys = [
   DanceBodyKey(
     22,
     rootDx: 2.25,
-    rootDy: 14,
+    rootDy: 5.3,
     pelvisRotation: -0.07,
     chestRotation: 0.06,
     chestScaleY: 1.02,
@@ -618,7 +624,7 @@ const _azontoPocketKeys = [
   DanceBodyKey(
     24,
     rootDx: -0.99,
-    rootDy: 26,
+    rootDy: 34,
     pelvisRotation: 0.072,
     chestRotation: -0.16,
     chestScaleY: 0.95,
@@ -627,7 +633,7 @@ const _azontoPocketKeys = [
   DanceBodyKey(
     26,
     rootDx: -2.48,
-    rootDy: 12,
+    rootDy: 0.5,
     pelvisRotation: 0.06,
     chestRotation: -0.05,
     chestScaleY: 1.02,
@@ -636,7 +642,7 @@ const _azontoPocketKeys = [
   DanceBodyKey(
     28,
     rootDx: 0.99,
-    rootDy: 32,
+    rootDy: 48.4,
     pelvisRotation: -0.076,
     chestRotation: 0.17,
     chestScaleY: 0.95,
@@ -645,7 +651,7 @@ const _azontoPocketKeys = [
   DanceBodyKey(
     30,
     rootDx: 2.02,
-    rootDy: 14,
+    rootDy: 5.3,
     pelvisRotation: -0.07,
     chestRotation: 0.06,
     chestScaleY: 1.02,
@@ -654,7 +660,7 @@ const _azontoPocketKeys = [
   DanceBodyKey(
     32,
     rootDx: -2.02,
-    rootDy: 22,
+    rootDy: 24.4,
     pelvisRotation: -0.14,
     chestRotation: 0.12,
     chestScaleY: 0.92,
