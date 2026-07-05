@@ -97,15 +97,35 @@ const _bugaBodyKeys = [
     chestScaleY: 1.16,
     chestScaleX: 0.97,
   ), // HIT — explode up, chest pops square
+  // r13 (three lenses: "the swell TOPS still park — at the bar-2/bar-4
+  // pocket crests the per-beat ripple dies for ~1.5-3 beats"): the crest
+  // hold gets an AUTHORED beat bounce — the h8 sine's ripple is absorbed
+  // by the contact hold exactly at the tall frames (the same
+  // hold-eats-sine mechanism as azonto's lateral no-op), so the dip is
+  // carved into the keys instead. f14 sits ON the beat.
+  // r14 (coach, the one lens under 9: "the bar-2 crest breathes once then
+  // drifts near-flat ~1.5 beats — author a second on-beat dip-and-recover,
+  // slightly deeper"): the hold now undulates TWICE — a small settle notch
+  // right off the hit, then the deeper on-beat dip (13 -> 16, the
+  // animator's +10-15% ask) before the recover into the next lo.
+  DanceBodyKey(
+    13,
+    rootDx: -5,
+    rootDy: 5,
+    rootRotation: 0.002,
+    pelvisRotation: 0.05,
+    chestRotation: -0.09,
+    chestScaleY: 1.1,
+  ), // settle notch off the hit
   DanceBodyKey(
     14,
     rootDx: -5,
-    rootDy: 3,
+    rootDy: 16,
     rootRotation: 0.002,
     pelvisRotation: 0.05,
     chestRotation: -0.08,
     chestScaleY: 1.08,
-  ), // readable overshoot, already releasing
+  ), // beat bounce inside the tall hold
   DanceBodyKey(
     15,
     rootDx: -4,
@@ -206,10 +226,20 @@ const _bugaBodyKeys = [
     chestScaleY: 1.16,
     chestScaleX: 0.97,
   ), // HIT
+  // r13/r14: the bar-4 crest breathes the same double undulation as f13-15.
+  DanceBodyKey(
+    29,
+    rootDx: 5,
+    rootDy: 5,
+    rootRotation: -0.002,
+    pelvisRotation: -0.05,
+    chestRotation: 0.09,
+    chestScaleY: 1.1,
+  ), // settle notch off the hit
   DanceBodyKey(
     30,
     rootDx: 5,
-    rootDy: 3,
+    rootDy: 16,
     rootRotation: -0.002,
     pelvisRotation: -0.05,
     chestRotation: 0.08,
@@ -323,21 +353,37 @@ const _bugaHeadKeys = [
 ];
 
 const _bugaClavicleRKeys = [
-  DanceJointKey(0, rotation: -0.04),
-  DanceJointKey(4, rotation: -0.09),
-  DanceJointKey(8, rotation: -0.16),
-  DanceJointKey(11, rotation: -0.12),
+  // r11: the r10 contrary motion read as "parallel with offset, never a
+  // crossing" — both girdles kept a constant-sign difference. The strides
+  // are now a PER-BEAT SEE-SAW: R lifts between the los (f2/f6/f22) while
+  // L dips, then dips INTO each lo while L lifts — the difference changes
+  // sign every beat, so the crown traces genuinely cross. Hits unchanged.
+  // r12: every r11 lens confirmed the crossings but called the
+  // differential under-scaled against the ~119-unit common-mode crown
+  // wave (sign held 3-5 beats; ~2-beat dropout entering bar 3 where both
+  // sides' keys sat near zero). Amplitudes up ~35% and the bar-3 entry
+  // gets real values so the see-saw never rests.
+  DanceJointKey(0, rotation: -0.06),
+  DanceJointKey(2, rotation: 0.1),
+  DanceJointKey(4, rotation: -0.2),
+  DanceJointKey(6, rotation: 0.08),
+  DanceJointKey(8, rotation: -0.28),
+  DanceJointKey(10, rotation: -0.04),
+  DanceJointKey(11, rotation: -0.14),
   DanceJointKey(12, rotation: -0.46),
   DanceJointKey(13, rotation: -0.36),
   DanceJointKey(14, rotation: -0.1),
-  DanceJointKey(16, rotation: 0.02),
-  DanceJointKey(20, rotation: -0.1),
-  DanceJointKey(24, rotation: -0.18),
-  DanceJointKey(27, rotation: -0.14),
+  DanceJointKey(16, rotation: -0.08),
+  DanceJointKey(18, rotation: 0.12),
+  DanceJointKey(20, rotation: -0.26),
+  DanceJointKey(22, rotation: 0.08),
+  DanceJointKey(24, rotation: -0.3),
+  DanceJointKey(26, rotation: -0.04),
+  DanceJointKey(27, rotation: -0.16),
   DanceJointKey(28, rotation: -0.46),
   DanceJointKey(29, rotation: -0.36),
   DanceJointKey(30, rotation: -0.1),
-  DanceJointKey(32, rotation: -0.04),
+  DanceJointKey(32, rotation: -0.06),
 ];
 // 9-path r3 (every rater: "L and R crowns track each other almost
 // exactly for the entire loop — the upper body moves as one slab"):
@@ -345,28 +391,38 @@ const _bugaClavicleRKeys = [
 // (microFrames) at ~3/4 amplitude, so hits roll across the girdle
 // R-then-L instead of landing as a yoke.
 const _bugaClavicleLKeys = [
-  // r10 (all four lenses: "shoulder L/R traces track almost perfectly —
-  // near-zero counterpoint, pure torso ride"): during the STRIDE windows
-  // the L girdle now moves in CONTRARY motion — easing up-and-open as the
-  // R dips into each descending 'lo' (negative here = the visual opposite
-  // of R's dip, mirrored bone) — then both still explode together on the
-  // hits, which the both-shoulder shrug gate samples. The 1.2-frame answer
-  // lag stays.
-  DanceJointKey(0, rotation: -0.025, microFrames: 1.5),
-  DanceJointKey(4, rotation: -0.06, microFrames: 1.5),
-  DanceJointKey(8, rotation: -0.1, microFrames: 1.5),
-  DanceJointKey(11, rotation: -0.07, microFrames: 1.5),
+  // r10 authored contrary motion; r11 makes it CROSS (coach: "the
+  // counter-lift needs 3-4x amplitude or it doesn't exist on screen").
+  // Per-beat see-saw against R: L lifts (negative, mirrored bone) into
+  // each lo while R dips, and dips (positive) between the los while R
+  // lifts — the L-R difference alternates sign each beat. Hits and their
+  // 1.1-frame answer lag are untouched (both-shoulder shrug gate).
+  // r12: +35% with the bar-3 entry live (see the R-key comment); deepest
+  // key -0.44 + ~0.05 smooth overshoot stays under the 0.55 envelope.
+  DanceJointKey(0, rotation: -0.08, microFrames: 1.5),
+  DanceJointKey(2, rotation: 0.2, microFrames: 1.5),
+  DanceJointKey(4, rotation: -0.32, microFrames: 1.5),
+  DanceJointKey(6, rotation: 0.22, microFrames: 1.5),
+  DanceJointKey(8, rotation: -0.42, microFrames: 1.5),
+  DanceJointKey(10, rotation: 0.1, microFrames: 1.5),
+  DanceJointKey(11, rotation: -0.08, microFrames: 1.5),
   DanceJointKey(12, rotation: 0.488, microFrames: 1.1),
   DanceJointKey(13, rotation: 0.382, microFrames: 1.1),
   DanceJointKey(14, rotation: 0.085, microFrames: 1.5),
-  DanceJointKey(16, rotation: -0.017, microFrames: 1.5),
-  DanceJointKey(20, rotation: -0.065, microFrames: 1.5),
-  DanceJointKey(24, rotation: -0.11, microFrames: 1.5),
-  DanceJointKey(27, rotation: -0.085, microFrames: 1.5),
+  DanceJointKey(16, rotation: -0.16, microFrames: 1.5),
+  // r13: mid-loop counter-keys deepened (mocap/rigging: the differential
+  // thins to near-tangent for ~2 beats mid-bar-3) — still under the 0.55
+  // envelope with smooth overshoot.
+  DanceJointKey(18, rotation: 0.26, microFrames: 1.5),
+  DanceJointKey(20, rotation: -0.42, microFrames: 1.5),
+  DanceJointKey(22, rotation: 0.28, microFrames: 1.5),
+  DanceJointKey(24, rotation: -0.44, microFrames: 1.5),
+  DanceJointKey(26, rotation: 0.1, microFrames: 1.5),
+  DanceJointKey(27, rotation: -0.1, microFrames: 1.5),
   DanceJointKey(28, rotation: 0.488, microFrames: 1.1),
   DanceJointKey(29, rotation: 0.382, microFrames: 1.1),
   DanceJointKey(30, rotation: 0.085, microFrames: 1.5),
-  DanceJointKey(32, rotation: -0.025, microFrames: 1.5),
+  DanceJointKey(32, rotation: -0.08, microFrames: 1.5),
 ];
 const _bugaShoulderSocketRKeys = [
   DanceJointKey(0, rotation: -0.11, scaleX: 1.1, scaleY: 0.955),

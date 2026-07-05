@@ -587,7 +587,14 @@ const _azontoPocketKeys = [
   ),
   DanceBodyKey(
     14,
-    rootDx: 3.195,
+    // r11 panel (mocap, the one lens holding azonto at 8.9): "bar 2's
+    // exchange reads plateau-then-slide rather than a crisp crest — the
+    // energy is smeared across the bar." rootDx 3.195 -> -2: the crest
+    // now peaks at f12 and FALLS through f14 into bar 3's trough instead
+    // of shelving at +17..20 for the bar's whole second half. (-2 only
+    // moved the world value 20 -> 17 — the shelf is mostly support-anchor
+    // pull — so the key digs further; -6 lands the fall at ~14.)
+    rootDx: -6,
     rootDy: 5.3,
     pelvisRotation: 0.1412,
     chestRotation: -0.124,

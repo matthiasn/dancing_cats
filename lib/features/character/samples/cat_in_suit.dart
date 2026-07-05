@@ -631,12 +631,18 @@ class CatClips {
                 RootKeyframe(p: 1 / 32, dx: -8, tension: 0.6),
                 RootKeyframe(p: 4 / 32, dx: -22, tension: 0.6),
                 RootKeyframe(p: 7 / 32, dx: -9, tension: 0.6),
-                RootKeyframe(p: 10 / 32, dx: -22, tension: 0.6),
+                // r11: bar-2 dig one deeper (coach: "bar 2's dig is the
+                // shallowest of the four — mid-phrase the rock nearly
+                // flattens back into the old plateau").
+                RootKeyframe(p: 10 / 32, dx: -23, tension: 0.6),
                 RootKeyframe(p: 13 / 32, dx: -8, tension: 0.6),
                 RootKeyframe(p: 15.25 / 32, dx: -1),
                 RootKeyframe(p: 17.75 / 32, dx: 9, tension: 0.6),
                 RootKeyframe(p: 20 / 32, dx: 25, tension: 0.6),
-                RootKeyframe(p: 23 / 32, dx: 7, tension: 0.6),
+                // r11: 7 -> 6 (animator: "bars 3-4 digs flatten into the
+                // drift") — one more unit of dig depth without moving the
+                // park extremes the camera bound tracks.
+                RootKeyframe(p: 23 / 32, dx: 6, tension: 0.6),
                 RootKeyframe(p: 26 / 32, dx: 24, tension: 0.6),
                 // The return starts a beat earlier than symmetry suggests:
                 // the support anchor keeps pulling toward the planted R
@@ -1001,7 +1007,11 @@ class CatClips {
           extraRootLayers: const [
             // 9-path r3: per-touch lateral pulse — the lower body read as
             // 'planted while the arms churn' (weight one 0.8/s excursion).
-            SineRootChannel(swayAmplitude: -4.5, swayHarmonic: 8),
+            // r11: -4.5 -> -3.5 — the h4 exchange below now carries the
+            // per-bar weight story; at -4.5 the summed lateral slope swung
+            // the skull 20.5 against the collar (loose-head gate <20),
+            // the same trade shaku made in r10.
+            SineRootChannel(swayAmplitude: -3.5, swayHarmonic: 8),
             // r6: lift the base groove under the (now-dominant) wheel —
             // pocket 39.2 was the set's shallowest ('lift the base ~1.3x
             // rather than touching the arms').
@@ -1015,7 +1025,17 @@ class CatClips {
             // excursion across bars 1-2 / parked bar 3" every r9 lens
             // measured (0.9 ev/s). One full exchange per bar now steps the
             // pelvis with the step-touch instead of drifting under it.
-            SineRootChannel(swayAmplitude: -7, swayHarmonic: 4),
+            // r11: phase 0 -> 0.25, probe-computed — at phase 0 the h4
+            // trough landed exactly on bar-2's key crest (keys f8 -8.6 ->
+            // f10 0 exchange summed to a flat -8.6 -> -7: the panel's
+            // "bars 1-2 one continuous descent"). At 0.25 the sine crests
+            // WITH the keys at f0/f4/f8/f12 — the campaign's 4th confirmed
+            // phase-interference instance.
+            SineRootChannel(
+              swayAmplitude: -14,
+              swayPhase: 0.25,
+              swayHarmonic: 4,
+            ),
           ],
           extraPelvisLayers: const [SineChannel(harmonicAmplitude: 0.17)],
           extraChestLayers: const [
@@ -1163,7 +1183,10 @@ class CatClips {
             // + a beat-level mini-bounce so mid-bar frames stop floating
             // (pocket was 0.8 ev/s over a 97.8 range).
             SineRootChannel(swayAmplitude: -12, swayPhase: 0.125, swayHarmonic: 4),
-            SineRootChannel(bobAmplitude: -5.5, bobPhase: 0.09, bobHarmonic: 8),
+            // r12: -5.5 -> -9 (coach: "the pocket is one slow swell per
+            // two bars — add a per-beat bounce under the strides so the
+            // groove does not float between hits").
+            SineRootChannel(bobAmplitude: -9, bobPhase: 0.09, bobHarmonic: 8),
           ],
           extraPelvisLayers: [
             SineChannel(
