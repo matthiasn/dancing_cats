@@ -110,7 +110,7 @@ const _sekemBodyKeysRaw = [
   DanceBodyKey(
     16,
     rootDx: -30,
-    rootDy: 42,
+    rootDy: 41,
     pelvisRotation: -0.37,
     chestRotation: 0.37,
     chestScaleY: 0.83,
@@ -126,7 +126,7 @@ const _sekemBodyKeysRaw = [
   DanceBodyKey(
     20,
     rootDx: 31,
-    rootDy: 44,
+    rootDy: 42,
     pelvisRotation: 0.37,
     chestRotation: -0.37,
     chestScaleY: 0.82,
@@ -142,7 +142,7 @@ const _sekemBodyKeysRaw = [
   DanceBodyKey(
     24,
     rootDx: -32,
-    rootDy: 46,
+    rootDy: 44,
     pelvisRotation: -0.4,
     chestRotation: 0.4,
     chestScaleY: 0.8,
@@ -715,6 +715,10 @@ const _sekemHeadKeys = [
   DanceJointKey(18, rotation: 0.09), // r6: re-arm — bars 3-4 crests decayed to half
   DanceJointKey(24, rotation: 0.12),
   DanceJointKey(26, rotation: 0.09),
+  // r8: ONE clear authored head event in the back half — the skull snaps
+  // into the loop's deepest dig (f28) instead of wiggling through it.
+  DanceJointKey(28, rotation: 0.16),
+  DanceJointKey(30, rotation: 0.05),
   DanceJointKey(32, rotation: -0.09), // == frame 0
 ];
 
