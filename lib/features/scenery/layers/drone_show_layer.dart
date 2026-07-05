@@ -40,20 +40,40 @@ const double _textTransitionEnd = 0.74;
 const double _reducedMotionCycleProgress = 0.9;
 const double _bridgeClearY = 0.36;
 const int _ascentSpiralCount = 5;
-// The launch line is aligned to the police cordon's span on the bridge deck
+// The launch is aligned to the police cordon's span on the bridge deck
 // (BridgePoliceLayer's roadway, x ≈ 0.555→0.745): the drones stage on exactly
 // the stretch of road the police have cleared, so the line of unlit aircraft
 // reads as "drones on the closed road" instead of a stray dark bar poking out
 // to the left of the cordon. The row sits at road level just behind the
 // deck's railing-top edge (railing ≈ y 0.4646 on the 2026-07 plate), level
 // with the cordon's light bars.
-const double _launchStartX = 0.555;
-const double _launchSpanX = 0.19;
+//
+// It splits into TWO bases rather than one continuous line: a single line
+// across the full cordon span passed directly under the cable-stayed
+// pylon's fanned cables (measured on the shipped plate at x ≈ 0.60–0.705,
+// centred almost exactly on the cordon's midpoint) — drones launching
+// through rigging that would physically block their ascent. Each base
+// occupies one outer end of the cordon, clearing the cable fan with a
+// buffer on both sides; the rise→beam transit (already a per-drone lerp
+// keyed on the same `u`) then converges the two columns into the single
+// beam well above the bridge, with no other change needed to "unite" them.
+const double kDroneLaunchStartX = 0.555;
+const double kDroneLaunchEndX = 0.745;
+const double kDroneLaunchGapStartX = 0.595;
+const double kDroneLaunchGapEndX = 0.705;
 const double _launchBaseY = 0.4698;
 const double _launchSlopeY = 0.002;
 const double _ascentSpiralXRadius = 0.014;
 const double _ascentSpiralYRadius = 0.011;
 const double _ascentSpiralStretchY = 0.024;
+
+/// The cable-stayed pylon's crest, safely above BOTH mast tips
+/// (`bridgeTowerTops` y ≈ 0.3542/0.3590 on the 2026-07 plate): the ascent's
+/// lateral re-union (see [_launchPhasePoint]) is gated to only begin once a
+/// drone's y is already above this line, so the two launch bases never
+/// converge while still level with — and so visually crossing behind — the
+/// tower or its cables.
+const double _pylonCrestY = 0.352;
 
 /// Coarse segment in the repeatable drone-show choreography.
 enum DroneShowPhase { launch, beam, fan, formation }
@@ -329,9 +349,21 @@ bool _isDroneLit(int index, ui.Offset position, DroneShowPhase phase) {
   return position.dy <= threshold;
 }
 
+/// Maps a drone's global progress [u] (0..1) to its launch-base x: the first
+/// half of the population (u < 0.5) stages on the LEFT base, the rest on the
+/// RIGHT — the two bases bracket the cable-stayed pylon's fanned cables (see
+/// [kDroneLaunchGapStartX]/[kDroneLaunchGapEndX]) instead of one line running under them.
+double _launchX(double u) {
+  if (u < 0.5) {
+    return kDroneLaunchStartX + (u / 0.5) * (kDroneLaunchGapStartX - kDroneLaunchStartX);
+  }
+  final local = (u - 0.5) / 0.5;
+  return kDroneLaunchGapEndX + local * (kDroneLaunchEndX - kDroneLaunchGapEndX);
+}
+
 ui.Offset _launchPoint(int index, int count) {
   final u = count <= 1 ? 0.5 : index / (count - 1);
-  final x = _launchStartX + u * _launchSpanX;
+  final x = _launchX(u);
   final y = _launchBaseY + (u - 0.5) * _launchSlopeY;
   return ui.Offset(x, y);
 }
@@ -346,19 +378,53 @@ ui.Offset _launchPhasePoint(
   if (progress < _launchHoldProgress) return launch;
   final rawClimb = (progress - _launchHoldProgress) / (1 - _launchHoldProgress);
   final climb = smoothstep(rawClimb);
-  final base = ui.Offset.lerp(launch, rise, climb)!;
+  // Y always eases from launch to rise on `climb`, but X is GATED: it holds
+  // at the launch base's x (a pure vertical climb, still split left/right)
+  // until the drone has actually cleared the pylon's crest height, then
+  // eases across to the unified rise x over the remaining climb. Lerping X
+  // and Y together on the same `climb` (as before the two-base split) drew a
+  // straight diagonal from the split base toward the unified column — at the
+  // pylon's own height (still well below the crest) that diagonal cut
+  // directly across its shaft/cables, the exact overlap this whole change
+  // exists to avoid. Uniting only ABOVE the crest keeps the ascent honest:
+  // straight up past the tower, then a clean lateral join in open sky.
+  final crestClimb = ((_pylonCrestY - launch.dy) / (rise.dy - launch.dy))
+      .clamp(0.0, 1.0);
+  // `_easedTravel` (constant-velocity core, ~1.2x average peak) rather than a
+  // plain smoothstep (~1.5x average peak): the merge only has a short climb
+  // window to cover a real lateral distance, and a peaked profile pushed the
+  // instantaneous speed past the "still reads as a dolly, not a particle"
+  // budget the whole show is held to.
+  final lateralT = climb <= crestClimb
+      ? 0.0
+      : _easedTravel((climb - crestClimb) / (1 - crestClimb));
+  final base = ui.Offset(
+    ui.lerpDouble(launch.dx, rise.dx, lateralT)!,
+    ui.lerpDouble(launch.dy, rise.dy, climb)!,
+  );
   final envelope = math.sin(climb * math.pi).clamp(0.0, 1.0);
   if (envelope == 0) return base;
 
   final u = count <= 1 ? 0.5 : index / (count - 1);
+  // The spiral pods are computed per-BASE (on the drone's local progress
+  // within its own launch base) rather than across the full global `u`: a
+  // global 5-way split would give one pod straddling u=0.5 — half its
+  // drones on each base, spiralling through the cable gap between them.
+  final inLeftBase = u < 0.5;
+  final baseLocalU = inLeftBase ? u / 0.5 : (u - 0.5) / 0.5;
   final pod = math.min(
-    (u * _ascentSpiralCount).floor(),
+    (baseLocalU * _ascentSpiralCount).floor(),
     _ascentSpiralCount - 1,
   );
   final podStart = pod / _ascentSpiralCount;
-  final localU = ((u - podStart) * _ascentSpiralCount).clamp(0.0, 1.0);
+  final localU = ((baseLocalU - podStart) * _ascentSpiralCount).clamp(
+    0.0,
+    1.0,
+  );
+  final baseStartX = inLeftBase ? kDroneLaunchStartX : kDroneLaunchGapEndX;
+  final baseEndX = inLeftBase ? kDroneLaunchGapStartX : kDroneLaunchEndX;
   final podCenterX =
-      _launchStartX + (pod + 0.5) / _ascentSpiralCount * _launchSpanX;
+      baseStartX + (pod + 0.5) / _ascentSpiralCount * (baseEndX - baseStartX);
   final columned = ui.Offset.lerp(
     base,
     ui.Offset(podCenterX, base.dy),
@@ -376,12 +442,25 @@ ui.Offset _launchPhasePoint(
   );
 }
 
+/// How far the ascent's crest-gated join (see [_launchPhasePoint]) closes the
+/// gap between a launch base and the final beam column before handing the
+/// rest to the beam phase's own transit. 1.0 (fully joined right at the
+/// crest) demands covering the LEFT base's ~0.12 lateral distance inside the
+/// short climb window above the crest, which only fits at particle-fast
+/// speeds — the "still reads as a dolly" budget the whole show is held to.
+/// At 0.72 the two streams are already tight and clearly converging (not two
+/// columns either side of a wide gap) by the time they clear the tower,
+/// while lighting up; the beam phase — already well above the bridge, no
+/// structure left to cross behind — closes the small remaining gap into the
+/// single-file beam.
+const double _riseJoinFraction = 0.72;
+
 ui.Offset _risePoint(int index, int count) {
   final u = count <= 1 ? 0.5 : index / (count - 1);
-  return ui.Offset(
-    _launchStartX + u * _launchSpanX,
-    0.355 - u * 0.016,
-  );
+  final partial = ui.lerpDouble(_launchX(u), _beamX(u), _riseJoinFraction)!;
+  // y sits well above [_pylonCrestY] (both mast tips are 0.354–0.359) rather
+  // than just above it, leaving real room for the lateral join.
+  return ui.Offset(partial, 0.30 - u * 0.016);
 }
 
 /// Position curve 0..1 with smoothstep-eased edges around a constant-velocity
@@ -404,19 +483,21 @@ double _easedTravel(double p) {
   return travelled / (1 - edge);
 }
 
+/// The narrow "lightsaber" column's x for progress [u] — shared by
+/// [_risePoint] (where the two launch bases already reunite, dark, right
+/// above the bridge crown) and [_beamPoint] (which only extends it further
+/// up). Moved OFF the lead singer's screen axis (was x 0.61 ≈ dead on the
+/// lead in the centred and left-leaning framings): the beam's lower half
+/// used to cross the lead's ear line through the WHOLE chorus-2 approach (z
+/// 1.38–1.47 sweeps the crown up through the band), a bright rod through the
+/// star's head on the biggest drop of the piece. At x ~0.70 it stands over
+/// the water between the trio and the yacht, reading as a counterweight
+/// instead of a crown hazard.
+double _beamX(double u) => 0.70 + (u - 0.5) * 0.04;
+
 ui.Offset _beamPoint(int index, int count) {
   final u = count <= 1 ? 0.5 : index / (count - 1);
-  // Moved OFF the lead singer's screen axis (was x 0.61 ≈ dead on the lead in
-  // the centred and left-leaning framings) and lifted well into open sky: the
-  // beam's lower half used to cross the lead's ear line through the WHOLE
-  // chorus-2 approach (z 1.38–1.47 sweeps the crown up through the band), a
-  // bright rod through the star's head on the biggest drop of the piece. At
-  // x ~0.70 it stands over the water between the trio and the yacht, reading
-  // as a counterweight instead of a crown hazard.
-  return ui.Offset(
-    0.70 + (u - 0.5) * 0.04,
-    0.255 - u * 0.10,
-  );
+  return ui.Offset(_beamX(u), 0.255 - u * 0.10);
 }
 
 ui.Offset _fanPoint(int index, int count) {

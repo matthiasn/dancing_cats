@@ -131,6 +131,22 @@ void main() {
       }
     });
 
+    test('concentrates at the two launch bases, clear of the cable gap', () {
+      // Mirrors the drone launch bases: no unit closes off the stretch of
+      // road under the cable-stayed pylon's fanned cables, since the drones
+      // no longer stage there either.
+      final units = policeCordonPoints();
+      for (final unit in units) {
+        expect(
+          unit.position.dx <= 0.595 || unit.position.dx >= 0.705,
+          isTrue,
+          reason: 'x=${unit.position.dx} lands in the cable gap',
+        );
+      }
+      expect(units.any((u) => u.position.dx <= 0.595), isTrue);
+      expect(units.any((u) => u.position.dx >= 0.705), isTrue);
+    });
+
     test('is dominantly blue with a sparse pair of red accents', () {
       final reds = policeCordonPoints().where((u) => u.isRed).length;
       expect(reds, 2);

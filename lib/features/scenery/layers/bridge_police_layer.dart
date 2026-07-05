@@ -2,7 +2,12 @@ import 'dart:ui' as ui;
 
 import 'package:dancing_cats/features/scenery/layers/backdrop_layer.dart';
 import 'package:dancing_cats/features/scenery/layers/drone_show_layer.dart'
-    show kDroneShowCycleSeconds;
+    show
+        kDroneLaunchEndX,
+        kDroneLaunchGapEndX,
+        kDroneLaunchGapStartX,
+        kDroneLaunchStartX,
+        kDroneShowCycleSeconds;
 import 'package:dancing_cats/features/scenery/runtime/scenery_geometry.dart';
 import 'package:dancing_cats/features/scenery/runtime/scenery_math.dart';
 import 'package:flutter/rendering.dart';
@@ -115,21 +120,25 @@ class PoliceCordonUnit {
   final bool isRed;
 }
 
-/// Deterministic, evenly spaced cordon units along the bridge roadway.
+/// Deterministic cordon units concentrated at the drone show's two launch
+/// bases on the bridge roadway.
 ///
 /// The line straddles the painted railing-top edge of the deck (railing top
-/// ≈ y 0.4646 on the 2026-07 plate; light bars y ≈ 0.469-0.471 across
-/// x ≈ 0.555→0.745 — the same road the drones launch from), so each strobe
-/// reads as the roof bar of a vehicle standing ON the road: peeking over the
-/// parapet, neither embedded in the bridge girder nor floating above it. A
-/// small deterministic vertical jitter keeps the lamps natural rather than
-/// ruler straight. Most units are blue; a sparse few are red accents.
+/// ≈ y 0.4646 on the 2026-07 plate; light bars y ≈ 0.469-0.471 — the same
+/// road the drones launch from), so each strobe reads as the roof bar of a
+/// vehicle standing ON the road: peeking over the parapet, neither embedded
+/// in the bridge girder nor floating above it. Units cluster at the LEFT and
+/// RIGHT launch bases ([kDroneLaunchStartX]–[kDroneLaunchGapStartX] and
+/// [kDroneLaunchGapEndX]–[kDroneLaunchEndX]) rather than spreading evenly
+/// across the full former span: since the drones no longer stage under the
+/// cable-stayed pylon's fanned cables, a cordon light there would be closing
+/// off empty road. A small deterministic vertical jitter keeps the lamps
+/// natural rather than ruler straight. Most units are blue; a sparse few are
+/// red accents.
 List<PoliceCordonUnit> policeCordonPoints({
   int count = kBridgePoliceUnitCount,
 }) {
   if (count <= 0) return const [];
-  const startX = 0.555;
-  const endX = 0.745;
   const startY = 0.4693;
   const endY = 0.4713;
   return List<PoliceCordonUnit>.generate(count, (i) {
@@ -139,13 +148,25 @@ List<PoliceCordonUnit> policeCordonPoints({
     final isRed = i == (count * 0.3).round() || i == (count * 0.78).round();
     return PoliceCordonUnit(
       position: ui.Offset(
-        startX + u * (endX - startX),
+        _cordonX(u),
         startY + u * (endY - startY) + jitter,
       ),
       phase: hashUnit(i * 3 + 7) * 0.9,
       isRed: isRed,
     );
   }, growable: false);
+}
+
+/// Maps cordon progress [u] (0..1) to x, mirroring the drone launch bases'
+/// split (`_launchX` in drone_show_layer.dart) so the police lights and the
+/// drones close off exactly the same two stretches of road.
+double _cordonX(double u) {
+  if (u < 0.5) {
+    return kDroneLaunchStartX +
+        (u / 0.5) * (kDroneLaunchGapStartX - kDroneLaunchStartX);
+  }
+  final local = (u - 0.5) / 0.5;
+  return kDroneLaunchGapEndX + local * (kDroneLaunchEndX - kDroneLaunchGapEndX);
 }
 
 /// Cordon brightness for the drone-loop position [cycleProgress] (0..1).
