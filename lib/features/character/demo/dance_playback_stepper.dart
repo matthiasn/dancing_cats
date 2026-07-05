@@ -30,6 +30,8 @@ class DancePlaybackStepper {
   DanceStage? _stage;
   DanceStage? _rawStage;
   _DanceStageTransition? _transition;
+  DanceStage? _pendingFrom;
+  double _pendingUntil = 0;
 
   /// How far open the frontman's mouth is (0 = shut), eased toward the cue.
   double get leadMouth => _leadMouth;
@@ -80,14 +82,19 @@ class DancePlaybackStepper {
     _bgMouth = easeDanceMouth(_bgMouth, bgOn ? cue.open : 0.0, dt);
 
     final rawStage = perf?.stageAt(pos) ?? danceIdleStage(pos);
-    final stage = _stageWithTransition(rawStage, dt);
+    final stage = _stageWithTransition(rawStage, dt, perf: perf, pos: pos);
     final ctx = perf?.directorContext(pos, energetic: stage.energetic);
     final target = ctx == null ? _shot : cameraShot(ctx);
     _shot = _cameraRig.update(target: target, dt: dt);
     _stage = stage;
   }
 
-  DanceStage _stageWithTransition(DanceStage raw, double dt) {
+  DanceStage _stageWithTransition(
+    DanceStage raw,
+    double dt, {
+    DancePerformance? perf,
+    double pos = 0,
+  }) {
     final previousRaw = _rawStage;
     if (previousRaw == null) {
       _rawStage = raw;
@@ -98,12 +105,42 @@ class DancePlaybackStepper {
     if (_stageSignature(previousRaw) != _stageSignature(raw)) {
       final from = _stage ?? previousRaw;
       _rawStage = raw;
-      _transition = _canBlendStages(from, raw)
-          ? _DanceStageTransition(from: from, elapsed: 0)
-          : null;
-      if (_transition == null) return raw;
+      if (!_canBlendStages(from, raw)) {
+        _transition = null;
+        _pendingFrom = null;
+        return raw;
+      }
+      // BEAT-QUANTIZED CUT (transitions panel r1, all four lenses): the set
+      // list switches wherever the section/slot boundary falls, which
+      // amputated ballistic limbs mid-flight (azonto's kick at peak,
+      // zanku's lifted stomp — "no dancer exits a kick like that"). For
+      // dance->dance handoffs, HOLD the outgoing move — its clips keep
+      // dancing on the shared warped clock — until the next detected beat,
+      // so the outgoing phrase resolves onto a count and the blend launches
+      // from a landed pose. Rest transitions keep the immediate ease
+      // (nothing musical to preserve).
+      if (from.energetic && raw.energetic && perf != null) {
+        final nextBeat = _nextBeatAfter(perf, pos);
+        if (nextBeat != null &&
+            nextBeat - pos > dt &&
+            nextBeat - pos < kDanceCutQuantizeMaxWaitSeconds) {
+          _pendingFrom = from;
+          _pendingUntil = nextBeat;
+          _transition = null;
+          return _heldStage(from, raw);
+        }
+      }
+      _pendingFrom = null;
+      _transition = _DanceStageTransition(from: from, elapsed: 0);
     } else {
       _rawStage = raw;
+    }
+
+    final pending = _pendingFrom;
+    if (pending != null) {
+      if (pos < _pendingUntil) return _heldStage(pending, raw);
+      _pendingFrom = null;
+      _transition = _DanceStageTransition(from: pending, elapsed: 0);
     }
 
     final transition = _transition;
@@ -130,6 +167,40 @@ class DancePlaybackStepper {
 /// It is intentionally less than half a beat at 120 BPM: long enough to remove
 /// robotic pose cuts, short enough to preserve Afrobeats hits and foot plants.
 const double kDanceMoveTransitionSeconds = 0.18;
+
+/// The longest a dance->dance handoff may be HELD waiting for the next beat
+/// (the cut-quantize above). One beat at 120 BPM is 0.5s; the guard only
+/// matters on slow or gap-ridden beat maps, where waiting longer would make
+/// the section change read late.
+const double kDanceCutQuantizeMaxWaitSeconds = 0.75;
+
+/// The outgoing stage held during a quantized cut: the OLD trio keeps dancing
+/// on the NEW stage's shared warped clock (exactly the sampling the blend
+/// itself uses), so nothing pops while the boundary waits for its beat.
+DanceStage _heldStage(DanceStage from, DanceStage to) => (
+  lead: from.lead,
+  ensemble: from.ensemble,
+  seconds: to.seconds,
+  section: to.section,
+  energetic: to.energetic,
+  synchronous: to.synchronous,
+);
+
+/// The first detected beat strictly after [pos], or null past the map's end.
+double? _nextBeatAfter(DancePerformance perf, double pos) {
+  final beats = perf.map.beatTimesSec;
+  var lo = 0;
+  var hi = beats.length;
+  while (lo < hi) {
+    final mid = (lo + hi) >> 1;
+    if (beats[mid] <= pos) {
+      lo = mid + 1;
+    } else {
+      hi = mid;
+    }
+  }
+  return lo < beats.length ? beats[lo] : null;
+}
 
 /// The longer settle used when the trio eases into or out of REST (idle):
 /// nothing musical to preserve there, and a calm body change reads better.

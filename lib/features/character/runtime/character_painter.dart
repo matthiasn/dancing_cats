@@ -136,12 +136,24 @@ const List<Offset> _kRimDirections = [
 /// The live player cuts between these clips as section-level moves. If the gate
 /// only recognizes `shaku`, later sections silently fall back to flat pair
 /// staging and lose the quarter-turn/projection that gives the trio depth.
-bool _isTrioDanceClip(Clip clip) =>
-    clip.name == 'shaku' ||
-    clip.name == 'zanku' ||
-    clip.name == 'azonto' ||
-    clip.name == 'buga' ||
-    clip.name == 'sekem';
+///
+/// BLENDED transition clips (name `'from->to'`) must pass through their
+/// [Clip.transitionPlan], the same way the scene's `_isDanceFamily` does —
+/// the name gate alone dropped the ENTIRE concert staging layer (hero
+/// staging, formation, contact shadows, backlights, body grade, member
+/// parallax) for the 0.18s of every dance-to-dance handoff, then snapped it
+/// all back when the blend ended. The transitions panel read that dropout as
+/// a "crash-wide camera cut" at the boundary and a "pop back in" ~4 frames
+/// later, with flank pose/brightness snaps bracketing every handoff — the
+/// real camera was gliding smoothly the whole time.
+bool _isTrioDanceClip(Clip clip) => clip.transitionPlan != null
+    ? _isTrioDanceClip(clip.transitionPlan!.from) ||
+          _isTrioDanceClip(clip.transitionPlan!.to)
+    : clip.name == 'shaku' ||
+          clip.name == 'zanku' ||
+          clip.name == 'azonto' ||
+          clip.name == 'buga' ||
+          clip.name == 'sekem';
 
 /// A [CustomPainter] that resolves and draws one frame of a [CharacterScene].
 ///
