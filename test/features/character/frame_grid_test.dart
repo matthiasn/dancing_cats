@@ -1,11 +1,13 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:dancing_cats/features/character/demo/dance_performance.dart'
-    show kDanceRealTempoSpeedup;
+    show kDancePhraseBars, kDanceRealTempoSpeedup;
 import 'package:dancing_cats/features/character/demo/motion_trace_panel.dart';
 import 'package:dancing_cats/features/character/engine/autonomic.dart';
 import 'package:dancing_cats/features/character/model/affine2d.dart';
+import 'package:dancing_cats/features/character/model/beat_map.dart';
 import 'package:dancing_cats/features/character/model/bone.dart';
 import 'package:dancing_cats/features/character/model/clip.dart';
 import 'package:dancing_cats/features/character/model/face.dart';
@@ -214,8 +216,44 @@ void main() {
   // The phase-sample time for frame [i] of [n], matching the film-strip
   // convention: loops sample [0, span) (the wrap frame == frame 0, omitted),
   // one-shots sample [0, span] inclusive so the terminal pose is shown.
+  // PLAYBACK-TRUE SAMPLING (owner: "review timing should hard follow
+  // playback timing"): the live app warps clip time onto the track's
+  // DETECTED beats via clipSecondsAt, and real beats drift — so uniform
+  // authored-clock sampling diverges from what the audience sees wherever
+  // the track breathes. For looping clips, sample the strip cells at
+  // equal WALL-CLOCK intervals across one real beat-locked loop and map
+  // each instant through the same warp the shipped player uses. Falls
+  // back to uniform authored-clock sampling when the beat map is absent
+  // or for one-shot clips.
+  final beatMapFile = File('assets/sample_track/moving.json');
+  final beatMap = beatMapFile.existsSync()
+      ? BeatMap.fromJson(
+          jsonDecode(beatMapFile.readAsStringSync()) as Map<String, Object?>,
+        )
+      : null;
+  final binding = beatMap == null
+      ? null
+      : BeatLoopBinding.barAligned(beatMap, bars: kDancePhraseBars);
+
   double sampleTime(Clip clip, int i, int n, double span) {
     if (n <= 1) return 0;
+    final map = beatMap;
+    final bind = binding;
+    if (clip.loop && map != null && bind != null) {
+      final beats = map.beatTimesSec;
+      final anchor = bind.anchorBeatIndex;
+      final end = anchor + bind.loopLengthBeats;
+      if (end < beats.length) {
+        final wallStart = beats[anchor];
+        final wallLength = beats[end] - beats[anchor];
+        final wall = wallStart + wallLength * i / n;
+        return map.clipSecondsAt(
+          wall,
+          clipDuration: clip.duration,
+          binding: bind,
+        );
+      }
+    }
     return clip.loop ? span * i / n : span * i / (n - 1);
   }
 
