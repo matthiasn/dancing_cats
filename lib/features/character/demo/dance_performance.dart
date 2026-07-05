@@ -20,6 +20,7 @@ import 'package:dancing_cats/features/character/demo/dance_camera_director.dart'
 import 'package:dancing_cats/features/character/demo/dance_lip_sync.dart';
 import 'package:dancing_cats/features/character/model/beat_map.dart';
 import 'package:dancing_cats/features/character/model/clip.dart';
+import 'package:dancing_cats/features/character/model/dance_dynamics.dart';
 import 'package:dancing_cats/features/character/samples/cat_in_suit.dart';
 
 /// A structural energy section of the track, tagged energetic/calm with a
@@ -49,10 +50,36 @@ typedef DanceSectionSpan = ({double start, double end, String section});
 /// The lead move plus the three-cat ensemble (ensemble[0] is the lead's clip).
 typedef DanceTrio = ({Clip lead, List<Clip> ensemble});
 
+/// Per-lane Laban-Effort personality offsets, index-parallel to
+/// `DanceTrio.ensemble` (`[0]` lead, `[1]` backup-left, `[2]` backup-right).
+/// Composed with each move's base dynamics and the section-energy term via
+/// `effectiveDanceDynamics` in [DancePerformance.stageAt]. All-neutral until
+/// the tuning commit populates real personalities — see ADR CHAR-0003.
+const List<DanceDynamics> kDanceLaneDynamicsProfiles = [
+  DanceDynamics.neutral,
+  DanceDynamics.neutral,
+  DanceDynamics.neutral,
+];
+
+/// The per-axis Effort swing at the hottest section (`level == 1`); the
+/// coldest section (`level == 0`) gets the negated offset. Zero (a no-op)
+/// until the tuning commit — see ADR CHAR-0003.
+const DanceDynamics kDanceSectionEnergyGain = DanceDynamics.neutral;
+
+/// Maps the section's normalized 0..1 energy `level` to a continuous Effort
+/// offset: `0.5` (mid-energy) is neutral, `0` and `1` are the full swing in
+/// opposite directions. Continuous (not thresholded) so the same catalog move
+/// breathes with the song instead of only changing character at the discrete
+/// move-selection boundaries `choreoTrioByLevel` already has.
+DanceDynamics sectionEnergyDynamics(double level) =>
+    kDanceSectionEnergyGain.scale((level.clamp(0, 1) - 0.5) * 2);
+
 /// Everything the painter needs for one frame: the lead clip, the ensemble
 /// clips, the warped pose clock `seconds`, the active `section`, whether the
-/// section is energetic, and whether the trio dances in unison (`synchronous`)
-/// or canon (staggered phase, e.g. the Pouncing-Cat glide).
+/// section is energetic, whether the trio dances in unison (`synchronous`)
+/// or canon (staggered phase, e.g. the Pouncing-Cat glide), and each member's
+/// effective Laban-Effort `dynamics` (index-parallel to `ensemble`: `[0]` is
+/// the lead's, matching `ensemble[0]`).
 typedef DanceStage = ({
   Clip lead,
   List<Clip> ensemble,
@@ -66,6 +93,7 @@ typedef DanceStage = ({
   // instant so incoming moves open on their own bar 1 ("take the new move
   // on the one") instead of whatever bar the global grid dictates.
   double segmentStartSec,
+  List<DanceDynamics> dynamics,
 });
 
 /// Number of bars the looping dance phrase spans; the loop stays beat-locked
@@ -149,6 +177,11 @@ DanceStage danceIdleStage(double pos, {DanceSection? section}) => (
   energetic: false,
   synchronous: true,
   segmentStartSec: section?.start ?? 0,
+  dynamics: const [
+    DanceDynamics.neutral,
+    DanceDynamics.neutral,
+    DanceDynamics.neutral,
+  ],
 );
 
 /// Tags each detected section energetic/calm by its mean waveform energy
@@ -359,6 +392,7 @@ class DancePerformance {
         occ,
         sectionSeconds: lyric.seconds,
       );
+      final sectionDynamics = sectionEnergyDynamics(level);
       return (
         lead: trio.lead,
         ensemble: trio.ensemble,
@@ -371,6 +405,14 @@ class DancePerformance {
         energetic: section?.energetic ?? true,
         synchronous: true,
         segmentStartSec: segmentStartAt(pos),
+        dynamics: [
+          for (var i = 0; i < trio.ensemble.length; i++)
+            effectiveDanceDynamics(
+              moveBase: trio.ensemble[i].dynamics,
+              catProfile: kDanceLaneDynamicsProfiles[i],
+              sectionEnergy: sectionDynamics,
+            ),
+        ],
       );
     }
     return danceIdleStage(pos, section: section);

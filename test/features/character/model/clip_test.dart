@@ -1,4 +1,5 @@
 import 'package:dancing_cats/features/character/model/clip.dart';
+import 'package:dancing_cats/features/character/model/dance_dynamics.dart';
 import 'package:dancing_cats/features/character/model/easing.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -547,6 +548,47 @@ void main() {
 
       expect(clip.contactPinning, ContactPinning.lowestContact);
       expect(clip.locomotes, isFalse);
+    });
+
+    test('dynamics default to neutral for clips predating the Effort catalog', () {
+      const clip = Clip(name: 'plain', duration: 1, channels: {});
+      expect(clip.dynamics, DanceDynamics.neutral);
+    });
+
+    test('dynamics can be stamped explicitly (as assembleMoveClip does)', () {
+      const dynamics = DanceDynamics(weight: 0.7, time: 0.6, flow: -0.4);
+      const clip = Clip(
+        name: 'zanku',
+        duration: 1,
+        channels: {},
+        dynamics: dynamics,
+      );
+      expect(clip.dynamics, dynamics);
+    });
+
+    test('blendedClip lerps dynamics by the root blend weight', () {
+      const from = Clip(
+        name: 'from',
+        duration: 2,
+        channels: {},
+        dynamics: DanceDynamics(weight: -0.6, time: -0.4, flow: -0.2),
+      );
+      const to = Clip(
+        name: 'to',
+        duration: 2,
+        channels: {},
+        dynamics: DanceDynamics(weight: 0.6, time: 0.4, flow: 0.2),
+      );
+
+      expect(
+        blendedClip(from: from, to: to, weight: 0).dynamics,
+        from.dynamics,
+      );
+      expect(blendedClip(from: from, to: to, weight: 1).dynamics, to.dynamics);
+      final mid = blendedClip(from: from, to: to, weight: 0.5).dynamics;
+      expect(mid.weight, closeTo(0, 1e-9));
+      expect(mid.time, closeTo(0, 1e-9));
+      expect(mid.flow, closeTo(0, 1e-9));
     });
 
     test('blendedClip builds a sparse transition clip over both poses', () {

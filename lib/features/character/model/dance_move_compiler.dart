@@ -124,6 +124,7 @@ Clip assembleMoveClip(
     zOrderSwaps: descriptor.zOrderSwaps.isNotEmpty
         ? descriptor.zOrderSwaps
         : base?.zOrderSwaps ?? const [],
+    dynamics: descriptor.move.dynamics,
   );
 }
 

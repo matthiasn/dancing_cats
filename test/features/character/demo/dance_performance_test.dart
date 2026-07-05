@@ -1,5 +1,6 @@
 import 'package:dancing_cats/features/character/demo/dance_performance.dart';
 import 'package:dancing_cats/features/character/model/beat_map.dart';
+import 'package:dancing_cats/features/character/model/dance_dynamics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:glados/glados.dart' as glados;
 
@@ -203,7 +204,31 @@ void main() {
       expect(stage.seconds, 4.2);
       expect(stage.energetic, isFalse);
       expect(stage.synchronous, isTrue);
+      expect(stage.dynamics, hasLength(3));
+      expect(stage.dynamics, everyElement(DanceDynamics.neutral));
     });
+  });
+
+  group('sectionEnergyDynamics', () {
+    test('level 0.5 (mid-energy) is neutral', () {
+      expect(sectionEnergyDynamics(0.5), DanceDynamics.neutral);
+    });
+
+    test('clamps out-of-range levels to the 0..1 endpoints', () {
+      expect(sectionEnergyDynamics(-1), sectionEnergyDynamics(0));
+      expect(sectionEnergyDynamics(2), sectionEnergyDynamics(1));
+    });
+
+    test(
+      'the shared gain is currently neutral, so every level is a no-op '
+      '(pins the pre-tuning state; ADR CHAR-0003 turns this into a real ramp)',
+      () {
+        expect(kDanceSectionEnergyGain, DanceDynamics.neutral);
+        for (final level in [0.0, 0.25, 0.5, 0.75, 1.0]) {
+          expect(sectionEnergyDynamics(level), DanceDynamics.neutral);
+        }
+      },
+    );
   });
 
   group('DancePerformance.sectionAt', () {
@@ -346,6 +371,32 @@ void main() {
       );
       expect(perf.stageAt(2).synchronous, isTrue);
     });
+
+    test(
+      "composes each lane's dynamics from its move base, cat profile, and "
+      'section energy',
+      () {
+        final perf = _perf(
+          sections: const [
+            (start: 0, end: 6, label: 'A', energetic: true, level: 0.5),
+          ],
+        );
+        final stage = perf.stageAt(2);
+        final sectionDynamics = sectionEnergyDynamics(0.5);
+
+        expect(stage.dynamics, hasLength(3));
+        for (var i = 0; i < stage.dynamics.length; i++) {
+          expect(
+            stage.dynamics[i],
+            effectiveDanceDynamics(
+              moveBase: stage.ensemble[i].dynamics,
+              catProfile: kDanceLaneDynamicsProfiles[i],
+              sectionEnergy: sectionDynamics,
+            ),
+          );
+        }
+      },
+    );
   });
 
   group('DancePerformance.beatPulse', () {
@@ -532,6 +583,7 @@ void main() {
       (pos) {
         final stage = perf.stageAt(pos);
         expect(stage.ensemble.length, 3);
+        expect(stage.dynamics.length, 3);
         expect(stage.seconds.isFinite, isTrue);
         expect(stage.seconds, greaterThanOrEqualTo(0));
       },

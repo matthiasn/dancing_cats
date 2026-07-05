@@ -4,6 +4,7 @@ import 'package:dancing_cats/features/character/demo/dance_lip_sync.dart';
 import 'package:dancing_cats/features/character/demo/dance_performance.dart';
 import 'package:dancing_cats/features/character/model/beat_map.dart';
 import 'package:dancing_cats/features/character/model/clip.dart';
+import 'package:dancing_cats/features/character/model/dance_dynamics.dart';
 import 'package:dancing_cats/features/character/model/face.dart';
 import 'package:dancing_cats/features/character/runtime/dance_timing.dart';
 import 'package:dancing_cats/features/character/samples/cat_in_suit.dart';
@@ -33,6 +34,7 @@ class DancePlaybackStepper {
   _DanceStageTransition? _transition;
   DanceStage? _pendingFrom;
   double _pendingUntil = 0;
+  List<DanceDynamics>? _easedDynamics;
 
   /// How far open the frontman's mouth is (0 = shut), eased toward the cue.
   double get leadMouth => _leadMouth;
@@ -83,11 +85,44 @@ class DancePlaybackStepper {
     _bgMouth = easeDanceMouth(_bgMouth, bgOn ? cue.open : 0.0, dt);
 
     final rawStage = perf?.stageAt(pos) ?? danceIdleStage(pos);
-    final stage = _stageWithTransition(rawStage, dt, perf: perf, pos: pos);
+    final transitioned = _stageWithTransition(rawStage, dt, perf: perf, pos: pos);
+    final stage = _easedDynamicsStage(transitioned, dt);
     final ctx = perf?.directorContext(pos, energetic: stage.energetic);
     final target = ctx == null ? _shot : cameraShot(ctx);
     _shot = _cameraRig.update(target: target, dt: dt);
     _stage = stage;
+  }
+
+  /// Eases `stage.dynamics` toward its per-frame target over
+  /// [kDanceDynamicsEaseSeconds]. `_stageWithTransition`'s clip-name-keyed
+  /// blend already crossfades dynamics smoothly across a MOVE change, but a
+  /// section-level-only step (same clips, new `DanceSection.level`) fires no
+  /// clip transition at all — this is the one mechanism that also smooths
+  /// that case, so the Effort layer never pops independent of what triggered
+  /// the change. Offline exporters already **preroll** the stepper (see the
+  /// class doc), so this state settles identically live and offline.
+  DanceStage _easedDynamicsStage(DanceStage stage, double dt) {
+    final previous = _easedDynamics;
+    if (previous == null || previous.length != stage.dynamics.length) {
+      _easedDynamics = stage.dynamics;
+      return stage;
+    }
+    final k = (dt / kDanceDynamicsEaseSeconds).clamp(0.0, 1.0);
+    final eased = [
+      for (var i = 0; i < stage.dynamics.length; i++)
+        DanceDynamics.lerp(previous[i], stage.dynamics[i], k),
+    ];
+    _easedDynamics = eased;
+    return (
+      lead: stage.lead,
+      ensemble: stage.ensemble,
+      seconds: stage.seconds,
+      section: stage.section,
+      energetic: stage.energetic,
+      synchronous: stage.synchronous,
+      segmentStartSec: stage.segmentStartSec,
+      dynamics: eased,
+    );
   }
 
   DanceStage _stageWithTransition(
@@ -199,6 +234,7 @@ class DancePlaybackStepper {
       energetic: stage.energetic,
       synchronous: stage.synchronous,
       segmentStartSec: stage.segmentStartSec,
+      dynamics: stage.dynamics,
     );
   }
 
@@ -240,6 +276,13 @@ class DancePlaybackStepper {
   }
 }
 
+/// Time constant for easing `DanceStage.dynamics` toward its per-frame target
+/// (see `_easedDynamicsStage`). Roughly the move-transition window
+/// ([kDanceMoveTransitionSeconds]) — long enough to remove a section-level
+/// step, short enough that a real move change (which the clip blend already
+/// smooths) doesn't visibly lag its dynamics behind its pose.
+const double kDanceDynamicsEaseSeconds = 0.15;
+
 /// The short window used when one catalogue move changes to another.
 ///
 /// It is intentionally less than half a beat at 120 BPM: long enough to remove
@@ -263,6 +306,10 @@ DanceStage _heldStage(DanceStage from, DanceStage to, double fromSeconds) => (
   energetic: to.energetic,
   synchronous: to.synchronous,
   segmentStartSec: from.segmentStartSec,
+  // The outgoing trio keeps its OWN Effort character while it dances out the
+  // hold, not the new section's — it hasn't arrived at the new move/section
+  // yet, so nothing about it should read as already having changed.
+  dynamics: from.dynamics,
 );
 
 /// The first detected beat strictly after [pos], or null past the map's end.
@@ -393,4 +440,8 @@ DanceStage _blendStage({
   energetic: to.energetic,
   synchronous: to.synchronous,
   segmentStartSec: to.segmentStartSec,
+  dynamics: [
+    for (var i = 0; i < to.dynamics.length; i++)
+      DanceDynamics.lerp(from.dynamics[i], to.dynamics[i], weight),
+  ],
 );
