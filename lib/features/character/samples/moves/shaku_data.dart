@@ -549,21 +549,23 @@ const _shakuFootLTargetKeys = [
   // pocket is deep AND right-shifted, and a far cross-body tap from a
   // low pelvis over-rotates the hip past its 1.55 rad dancer envelope
   // (the validator caught 1.76 at the -34 tap).
-  DanceIkTargetKey(16, x: -54, y: 88), // lifted, travelling in
-  // R26: bars 3-4 re-spoken in the R foot's language — the R25 panel
-  // measured the L side as broad rounded ~1-beat waves ("the
-  // call-and-response answers in a different voice"). Taps arrive DEAD
-  // (tension) like the R side's, with half-height ghosts on the 'ands'
-  // between, mirroring bars 1-2's spike/ghost alternation.
-  DanceIkTargetKey(17, x: -42, y: 96, tension: 1), // TAP inboard, dead stop
-  DanceIkTargetKey(18, x: -48, y: 87), // lifts clear
-  DanceIkTargetKey(19, x: -52, y: 92, tension: 0.5), // GHOST on the 'and'
-  DanceIkTargetKey(21, x: -58, y: 95, tension: 1), // TAP outboard, dead stop
-  DanceIkTargetKey(22, x: -50, y: 87), // lifts clear
-  DanceIkTargetKey(23, x: -46, y: 92, tension: 0.5), // GHOST on the 'and'
+  DanceIkTargetKey(16, x: -54, y: 84), // high pickup after the handoff
+  // DOUBLE-TIME LEGS: bars 3-4 answer in the same per-beat in-out voice
+  // (see the R foot's note). Inboard taps stay at/outside -42: the hip
+  // envelope caught a -34 cross-body tap from the deep right-shifted
+  // bar-3 pelvis at 1.76 rad in R16.
+  DanceIkTargetKey(17, x: -42, y: 96, tension: 0.8), // TAP in
+  DanceIkTargetKey(18, x: -56, y: 82), // high pickup
+  DanceIkTargetKey(19, x: -64, y: 95, tension: 0.8), // TAP out wide
+  DanceIkTargetKey(20, x: -50, y: 81),
+  DanceIkTargetKey(21, x: -42, y: 96, tension: 0.8), // TAP in
+  DanceIkTargetKey(22, x: -54, y: 82),
+  DanceIkTargetKey(23, x: -60, y: 95, tension: 0.8), // TAP out
   DanceIkTargetKey(24, x: -52, y: 96, tension: 1), // down-OUT on the count
+  DanceIkTargetKey(25, x: -40, y: 82), // high pickup
   DanceIkTargetKey(26, x: -32, y: 96, tension: 1), // TAP inboard, "and"
-  DanceIkTargetKey(28, x: -54, y: 86), // lifted, swinging home
+  DanceIkTargetKey(27, x: -46, y: 83),
+  DanceIkTargetKey(28, x: -56, y: 87), // gathering home
   // The R14 rigging rater pixel-tracked the old 29→32 travel (y 94→98→103)
   // as a ~28px flat-contact DRAG across the loop seam — the sole never
   // visibly left the floor. Re-shaped as a real recovery step: the flick
@@ -578,21 +580,27 @@ const _shakuFootLTargetKeys = [
   DanceIkTargetKey(32, x: -69, y: 103, tension: 1), // == frame 0, planted
 ];
 const _shakuFootRTargetKeys = [
-  // Mirror of the L foot's tap-step vocabulary: lifted travel between
-  // quick floor taps, never a sole-level glide.
-  DanceIkTargetKey(0, x: 52, y: 96), // TAP on its own side on the downbeat
-  DanceIkTargetKey(1, x: 36, y: 87), // lifted, travelling in
-  DanceIkTargetKey(3, x: 58, y: 95), // TAP outboard
-  DanceIkTargetKey(4, x: 48, y: 88), // lifts clear, base stays broad
-  // R24 ornament: half-height GHOST on the 'and-a' before the inboard tap
-  // (idiomatic shaku legwork rides ~2 presses/s; the measured rate was 1.1).
-  DanceIkTargetKey(5, x: 44, y: 93),
-  DanceIkTargetKey(6, x: 32, y: 96), // TAP inboard on the "and"
-  DanceIkTargetKey(8, x: 50, y: 96), // back OUT and down on the count (base)
-  DanceIkTargetKey(9, x: 36, y: 93), // GHOST press on the 'and' (R24)
-  DanceIkTargetKey(10, x: 44, y: 88), // lifts clear
-  DanceIkTargetKey(11, x: 60, y: 95), // TAP outboard
-  DanceIkTargetKey(13, x: 44, y: 87), // lifted toward the descent
+  // DOUBLE-TIME LEGS (owner, 2026-07-05, after watching reference video:
+  // "some do feel faster, just not with the entire body... legs moving
+  // intermediately"): the free foot now taps EVERY BEAT in the signature
+  // in-out-in travel, with high pickups (~14 units of daylight — the old
+  // 9-unit travel sat under the trace's 25% prominence floor, which is
+  // why the legs measured 0.9 events/s and read slow). The trunk keeps
+  // its half-time pocket untouched: laid-back body, busy feet.
+  DanceIkTargetKey(0, x: 52, y: 96, tension: 0.8), // TAP out (downbeat)
+  DanceIkTargetKey(1, x: 38, y: 82), // high pickup
+  DanceIkTargetKey(2, x: 30, y: 95, tension: 0.8), // TAP in
+  DanceIkTargetKey(3, x: 46, y: 81), // high pickup
+  DanceIkTargetKey(4, x: 58, y: 95, tension: 0.8), // TAP out
+  DanceIkTargetKey(5, x: 42, y: 82),
+  DanceIkTargetKey(6, x: 32, y: 96, tension: 0.8), // TAP in
+  DanceIkTargetKey(7, x: 44, y: 81),
+  DanceIkTargetKey(8, x: 50, y: 96, tension: 0.8), // TAP out on the count
+  DanceIkTargetKey(9, x: 36, y: 82),
+  DanceIkTargetKey(10, x: 28, y: 95, tension: 0.8), // TAP in
+  DanceIkTargetKey(11, x: 48, y: 81),
+  DanceIkTargetKey(12, x: 60, y: 95, tension: 0.8), // TAP out wide
+  DanceIkTargetKey(13, x: 44, y: 84), // gathering toward the plant
   // Plants on the "and" BEFORE bar 2 (15, tension:1 = dead arrival), so
   // the foot is genuinely down when the contact span takes over at 14.5
   // and the committed weight sway arrives onto a planted shoe.
