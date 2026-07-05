@@ -25,6 +25,11 @@ void main() {
       'shaku': CatClips.shaku,
       'zanku': CatClips.zanku,
       'azonto': CatClips.azonto,
+      'sekem': CatClips.sekem,
+      // buga stays OUT for now: its stepped descents are the deepest in
+      // the catalogue and the clamp's lift trips the hip envelope at the
+      // second 'lo' — it joins after its own free-foot re-author round,
+      // the same path zanku took.
     };
     const samples = 256;
     // The bones compare like-for-like (same rig geometry both sides), so

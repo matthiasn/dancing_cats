@@ -1064,6 +1064,7 @@ class CatClips {
         supportFootWorldAnchorStrength: 0.9,
         baseClip: base,
         jointTracks: {
+          CatBones.head: const DanceJointTrack(_bugaHeadKeys, smooth: true),
           CatBones.clavicleR: const DanceJointTrack(
             _bugaClavicleRKeys,
             smooth: true,
@@ -1347,12 +1348,14 @@ class CatClips {
           featuredRegion: BodyRegion.chest,
         ),
         duration: base.duration,
+        enforceSoleFloor: true,
         contactPinning: base.contactPinning,
         supportFootWorldAnchor: true,
         supportFootWorldAnchorStrength: 0.9,
         danceHeadBobScale: 0.75,
         baseClip: base,
         jointTracks: {
+          CatBones.head: const DanceJointTrack(_sekemHeadKeys, smooth: true),
           CatBones.footL: const DanceJointTrack(_sekemFootLKeys, smooth: true),
           CatBones.footR: const DanceJointTrack(_sekemFootRKeys, smooth: true),
           CatBones.handL: const DanceJointTrack(_sekemHandLKeys, smooth: true),

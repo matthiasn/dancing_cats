@@ -292,6 +292,28 @@ const _bugaLegLowerKeys = [
 // key resolved to ~0.61 and tripped the joint-envelope gate. Re-check confirmed
 // the shrug now reads clearly, head not swallowed. See reviews/assets/
 // buga-shoulder-pop-before-after.png.
+// Head attitude — the ornament-port vocabulary in buga's SINK-AND-HIT
+// idiom: the chin dips a step deeper with each descending 'lo' (riding
+// the stepped floors), coils under the load, SNAPS up-and-back with the
+// BUGA hit alongside the shoulder shrug, and settles with a ~40% echo.
+// Bar 2 (A') digs and snaps a shade harder. Buga previously had no
+// authored head keys.
+const _bugaHeadKeys = [
+  DanceJointKey(0, rotation: 0.03), // first 'lo' — chin dips
+  DanceJointKey(4, rotation: 0.055), // second, deeper
+  DanceJointKey(8, rotation: 0.08), // third — coiled over the deep hold
+  DanceJointKey(11, rotation: 0.1), // loads under the hit
+  DanceJointKey(12, rotation: -0.1), // BUGA — snaps up-and-back
+  DanceJointKey(14, rotation: -0.04), // echo settle
+  DanceJointKey(16, rotation: 0.03), // bar 2 restarts the descent
+  DanceJointKey(20, rotation: 0.06),
+  DanceJointKey(24, rotation: 0.09), // A' digs deeper
+  DanceJointKey(27, rotation: 0.11),
+  DanceJointKey(28, rotation: -0.12), // the bigger BUGA
+  DanceJointKey(30, rotation: -0.05),
+  DanceJointKey(32, rotation: 0.03), // == frame 0
+];
+
 const _bugaClavicleRKeys = [
   DanceJointKey(0, rotation: -0.04),
   DanceJointKey(4, rotation: -0.09),
