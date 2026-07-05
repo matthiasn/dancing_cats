@@ -100,6 +100,13 @@ const double kCameraArriveLeadSeconds = 0.9;
 /// breathe's low point) so the clamp never flattens it mid-phrase.
 const double kCalmDriftRef = 35;
 
+/// Reference-px amplitude of the small phrase-locked lateral drift added to
+/// the chorus and pre-chorus homes. These sections already carry a committed
+/// lean/push, so the drift only needs to be a whisper — enough that the
+/// parallax planes are never fully parked, without disturbing the held
+/// two-shot identity or the pre-chorus's centred build.
+const double kHookDriftRef = 16;
+
 /// Reference-px endpoints of the verse's single cross-section truck: the
 /// camera slides from a touch off-centre on the dark side all the way ACROSS
 /// to the silver side, one deliberate dolly move deep enough (~270 px of
@@ -369,7 +376,7 @@ Shot _sectionShot(
     case 'bridge':
       return _bridgeShot(c, sectionPhase);
     case 'pre-chorus':
-      return _preChorusShot(sectionPhase);
+      return _preChorusShot(c, sectionPhase);
     case 'outro':
       return _outroShot(c, sectionPhase);
     default:
@@ -438,6 +445,10 @@ Shot _chorusShot(
 ) {
   final breathe =
       math.sin(c.phrasePhase * 2 * math.pi) * 0.015 * _breatheIn(sectionPhase);
+  // A quarter-phrase out of step with the breathe (mirrors the calm
+  // establish) so the hook is never simultaneously at rest on both axes.
+  final drift =
+      math.cos(c.phrasePhase * 2 * math.pi) * kHookDriftRef * _breatheIn(sectionPhase);
   final launch = _launch(launchSeconds);
   if (occurrence == 0) {
     // The establishing hook: the one true WIDE. The home sits LOW (1.26) so
@@ -447,9 +458,11 @@ Shot _chorusShot(
     // A slow drift-up then carries the rest of the refrain. The launch also
     // eases the frame a touch RIGHT (negative dx), giving the drop staging's
     // rightward surge room while keeping the silver backup clear of the edge.
-    final z = 1.26 + 0.09 * launch + 0.02 * smoothstep(sectionPhase);
+    // The launch itself was toned down from 0.09/18 — the panel read the
+    // original push as a jump-cut against the section's otherwise calm hold.
+    final z = 1.26 + 0.075 * launch + 0.02 * smoothstep(sectionPhase);
     final arc = math.sin(math.pi * sectionPhase) * 20;
-    return (zoom: z + breathe, dx: arc - 18 * launch, dy: 0);
+    return (zoom: z + breathe, dx: arc - 10 * launch + drift, dy: 0);
   }
   // Later refrains own a genuinely TIGHTER two-shot register — the piece's
   // second shot size (the panel read the old 1.36–1.41 leans as "one wide trio
@@ -462,13 +475,15 @@ Shot _chorusShot(
   // launch adds a small lateral drift INTO the lean, so the drop reads as a
   // diagonal (zoom + pan) even at this shot size.
   final left = occurrence.isOdd;
-  // Home 1.445 with a 0.055 launch: the drop's push crests ABOVE the approach
-  // glide's peak velocity, so the accent — not the runway — owns the phrase.
-  final z = 1.445 + 0.07 * launch + 0.015 * smoothstep(sectionPhase);
-  final launchDrift = (left ? 1 : -1) * 25 * launch;
+  // Home 1.445 with a 0.06 launch (toned down from 0.07 — the panel read the
+  // original push as a jump-cut against the section's otherwise calm hold):
+  // the drop's push still crests above the approach glide's peak velocity, so
+  // the accent — not the runway — owns the phrase.
+  final z = 1.445 + 0.06 * launch + 0.015 * smoothstep(sectionPhase);
+  final launchDrift = (left ? 1 : -1) * 15 * launch;
   return (
     zoom: z + breathe,
-    dx: _lean(z, left ? 0.60 : 0.54, left: left) + launchDrift,
+    dx: _lean(z, left ? 0.60 : 0.54, left: left) + launchDrift + drift,
     dy: 0,
   );
 }
@@ -536,9 +551,15 @@ Shot _bridgeShot(DanceCameraContext c, double sectionPhase) {
 /// just under the chorus homes so the anticipated dolly continues RISING
 /// through the drop into the refrain — one unbroken build, no reset and no
 /// backwards accent (the old crest overshot the chorus home, so the "drop
-/// punch" visibly zoomed OUT).
-Shot _preChorusShot(double sectionPhase) =>
-    (zoom: 1.18 + 0.14 * smoothstep(sectionPhase), dx: 0, dy: 0);
+/// punch" visibly zoomed OUT). The zoom itself stays untouched by any
+/// breathe (a real oscillation risks a mid-build dip, the exact "backwards
+/// accent" this shot exists to avoid) but a whisper of lateral drift keeps
+/// the parallax alive through the build instead of parking dead-still.
+Shot _preChorusShot(DanceCameraContext c, double sectionPhase) => (
+  zoom: 1.18 + 0.14 * smoothstep(sectionPhase),
+  dx: math.cos(c.phrasePhase * 2 * math.pi) * kHookDriftRef * _breatheIn(sectionPhase),
+  dy: 0,
+);
 
 /// Outro: one long pull-back that lands EXACTLY on the calm establish —
 /// breathe, drift and dy trim included — by three quarters of the section,
