@@ -1511,7 +1511,7 @@ class CharacterScene {
           )
         : null;
     final headDxFollow = lagged != null
-        ? _clampMagnitude((lagged.rootDx - rootDx) * 0.22, 5)
+        ? _clampMagnitude((lagged.rootDx - rootDx) * 0.12, 2.5)
         : 0.0;
     // The BOUNCE CASCADE — R20's unanimous finding across all four panel
     // lenses: the skull's vertical trace was "a near pixel-clone" of the
@@ -1698,7 +1698,12 @@ class CharacterScene {
     // "level through the compress") mean what their descriptors say. Only
     // the UPWARD direction is bounded — the downward pull closes the
     // collar, never opens it.
+    // Symmetric: the same budget bounds the DOWNWARD pull (2026-07-05,
+    // owner: "neck often disappears altogether" — at bounce tops the
+    // unbounded down-shift pressed the chin to within ~9 units of the
+    // collar line).
     final liftFloor = clip.danceHeadLevelClampMin * baseScale;
+    final dropCeil = -liftFloor;
 
     // Stage 1 — neck level line, clamped to its natural gap-to-torso, then eased
     // back toward the un-leveled neck at the deep crouch.
@@ -1710,7 +1715,7 @@ class CharacterScene {
     );
     final neckLeveledY = torsoY + neckGap;
     final neckFinalY = neckY + (neckLeveledY - neckY) * ease;
-    final neckShiftY = math.max(neckFinalY - neckY, liftFloor);
+    final neckShiftY = (neckFinalY - neckY).clamp(liftFloor, dropCeil);
 
     // Stage 2 — head level line, clamped to its natural gap against the fully
     // leveled neck, then eased alongside it (same factor) so the head-neck gap
@@ -1725,7 +1730,8 @@ class CharacterScene {
     );
     final headLeveledY = neckLeveledY + headGap;
     final headFinalY = headY + (headLeveledY - headY) * ease;
-    final headExtraShiftY = math.max(headFinalY - headY, liftFloor) - neckShiftY;
+    final headExtraShiftY =
+        (headFinalY - headY).clamp(liftFloor, dropCeil) - neckShiftY;
 
     return (
       neckShiftY: neckShiftY,
@@ -1816,8 +1822,15 @@ class CharacterScene {
     // loose one: the head now travels WITH the pelvis, the join never gaps, and
     // the ears no longer fan as the onion "sweep" because the rotation pass —
     // not this translate — does the de-bobbling.
+    //
+    // HALVED AGAIN 2026-07-05 (owner, live: "heads are terribly loose"): a
+    // probe of the skull's lateral offset from the collar fabric measured
+    // 13-23 unit swings across the catalogue — this counter (plus the
+    // lagged dx follow) was parking the skull up to ~11 units off-center at
+    // every sway extreme. Half the fraction keeps the inertial read; the
+    // skull now rides within a few units of the collar line.
     const neutralDanceRootDx = 0.0;
-    final fraction = 0.14 + (1 - headBobScale) * 0.20;
+    final fraction = 0.07 + (1 - headBobScale) * 0.10;
     return -(rootDx - neutralDanceRootDx) * fraction;
   }
 
