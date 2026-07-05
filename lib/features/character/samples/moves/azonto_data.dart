@@ -135,13 +135,13 @@ const _azontoHandLTargetKeys = [
   // ~0.23), still a real ~35% bigger visible excursion than before while
   // clearing both the near-degenerate zone and the straight-elbow ceiling.
   DanceIkTargetKey(0, x: -22, y: -10), // wide reach, held
-  DanceIkTargetKey(2, x: -30, y: -20, tension: 0.2), // turning
+  DanceIkTargetKey(2, x: -33, y: -20, tension: 0.2), // turning
   DanceIkTargetKey(4, x: -37, y: -31, tension: 0.6), // narrower reach, held
-  DanceIkTargetKey(6, x: -30, y: -20, tension: 0.2), // turning back
+  DanceIkTargetKey(6, x: -33, y: -20, tension: 0.2), // turning back
   DanceIkTargetKey(8, x: -22, y: -10, tension: 0.6), // wide again
-  DanceIkTargetKey(10, x: -30, y: -20, tension: 0.2),
+  DanceIkTargetKey(10, x: -33, y: -20, tension: 0.2),
   DanceIkTargetKey(12, x: -37, y: -31, tension: 0.6), // narrower again
-  DanceIkTargetKey(14, x: -30, y: -20, tension: 0.8), // into bar 2
+  DanceIkTargetKey(14, x: -33, y: -20, tension: 0.8), // into bar 2
   // Bar 2 jabs (beats 5-8, alternating L,R,L,R): fire to near-full
   // extension PAST the opposite shoulder line in one beat-quarter, hold a
   // frame, recoil; the idle paw chambers at the OWN-side hip crest.
@@ -254,13 +254,13 @@ const _azontoHandRTargetKeys = [
   // R10 follow-up: widened to match hand.L's bigger reach-ratio swing
   // (see that comment above) — same mirrored values.
   DanceIkTargetKey(0, x: 37, y: -31, tension: 0.6), // narrower reach, held
-  DanceIkTargetKey(2, x: 30, y: -20, tension: 0.2),
+  DanceIkTargetKey(2, x: 33, y: -20, tension: 0.2),
   DanceIkTargetKey(4, x: 22, y: -10, tension: 0.6), // wide reach, held
-  DanceIkTargetKey(6, x: 30, y: -20, tension: 0.2),
+  DanceIkTargetKey(6, x: 33, y: -20, tension: 0.2),
   DanceIkTargetKey(8, x: 37, y: -31, tension: 0.6), // narrower again
-  DanceIkTargetKey(10, x: 30, y: -20, tension: 0.2),
+  DanceIkTargetKey(10, x: 33, y: -20, tension: 0.2),
   DanceIkTargetKey(12, x: 22, y: -10, tension: 0.6), // wide again
-  DanceIkTargetKey(14, x: 30, y: -20, tension: 0.2), // into bar 2
+  DanceIkTargetKey(14, x: 33, y: -20, tension: 0.2), // into bar 2
   // Bar 2: chambered at the own-side hip while the left jabs, then the
   // answering cross jab.
   DanceIkTargetKey(16, x: 26, y: -10, tension: 0.8), // chamber at the hip

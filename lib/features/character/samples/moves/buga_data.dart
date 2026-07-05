@@ -339,22 +339,27 @@ const _bugaClavicleRKeys = [
   DanceJointKey(30, rotation: -0.1),
   DanceJointKey(32, rotation: -0.04),
 ];
+// 9-path r3 (every rater: "L and R crowns track each other almost
+// exactly for the entire loop — the upper body moves as one slab"):
+// the L shoulder now ANSWERS the R — every key rides ~1.2 frames later
+// (microFrames) at ~3/4 amplitude, so hits roll across the girdle
+// R-then-L instead of landing as a yoke.
 const _bugaClavicleLKeys = [
-  DanceJointKey(0, rotation: 0.04),
-  DanceJointKey(4, rotation: 0.09),
-  DanceJointKey(8, rotation: 0.16),
-  DanceJointKey(11, rotation: 0.12),
-  DanceJointKey(12, rotation: 0.46),
-  DanceJointKey(13, rotation: 0.36),
-  DanceJointKey(14, rotation: 0.1),
-  DanceJointKey(16, rotation: -0.02),
-  DanceJointKey(20, rotation: 0.1),
-  DanceJointKey(24, rotation: 0.18),
-  DanceJointKey(27, rotation: 0.14),
-  DanceJointKey(28, rotation: 0.46),
-  DanceJointKey(29, rotation: 0.36),
-  DanceJointKey(30, rotation: 0.1),
-  DanceJointKey(32, rotation: 0.04),
+  DanceJointKey(0, rotation: 0.03, microFrames: 0.8),
+  DanceJointKey(4, rotation: 0.0675, microFrames: 0.8),
+  DanceJointKey(8, rotation: 0.12, microFrames: 0.8),
+  DanceJointKey(11, rotation: 0.09, microFrames: 0.8),
+  DanceJointKey(12, rotation: 0.46, microFrames: 0.8),
+  DanceJointKey(13, rotation: 0.36, microFrames: 0.8),
+  DanceJointKey(14, rotation: 0.075, microFrames: 0.8),
+  DanceJointKey(16, rotation: -0.015, microFrames: 0.8),
+  DanceJointKey(20, rotation: 0.075, microFrames: 0.8),
+  DanceJointKey(24, rotation: 0.135, microFrames: 0.8),
+  DanceJointKey(27, rotation: 0.105, microFrames: 0.8),
+  DanceJointKey(28, rotation: 0.46, microFrames: 0.8),
+  DanceJointKey(29, rotation: 0.36, microFrames: 0.8),
+  DanceJointKey(30, rotation: 0.075, microFrames: 0.8),
+  DanceJointKey(32, rotation: 0.03, microFrames: 0.8),
 ];
 const _bugaShoulderSocketRKeys = [
   DanceJointKey(0, rotation: -0.11, scaleX: 1.1, scaleY: 0.955),

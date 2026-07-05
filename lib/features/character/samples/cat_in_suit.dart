@@ -648,7 +648,7 @@ class CatClips {
             // R27 coach: "the hips ride the gallop, not just drift" — a
             // small per-BAR rock into the active foot's taps on top of
             // the parked macro lean (h4 = one cycle per bar).
-            SineRootChannel(swayAmplitude: -2.5, swayHarmonic: 4),
+            SineRootChannel(swayAmplitude: -4.5, swayHarmonic: 4),
             // The pocket pulse, SHAPED (R19 mocap verdict: the symmetric
             // triangle wave "never SITS into a beat... one timing change
             // that converts the whole loop from keyframed to danced").
@@ -978,6 +978,9 @@ class CatClips {
             ),
           ],
           extraRootLayers: const [
+            // 9-path r3: per-touch lateral pulse — the lower body read as
+            // 'planted while the arms churn' (weight one 0.8/s excursion).
+            SineRootChannel(swayAmplitude: -3, swayHarmonic: 8),
             SineRootChannel(
               bobAmplitude: -0.04,
               bobPhase: 0.125,
