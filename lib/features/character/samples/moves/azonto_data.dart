@@ -229,16 +229,25 @@ const _azontoHandLTargetKeys = [
   // [IkTargetPose.bendDirection]), so switching it mid-swing snaps the
   // elbow to the OTHER solution in one frame while the wrist keeps moving
   // continuously, which is exactly the "stop-go"/jerk signature those gates
-  // exist to catch. Reverted. bendDirection is kept ONLY at the peak (16),
-  // below — confirmed geometrically inert there (see above) but at least
-  // harmless, since nothing before it in this segment ever used the
-  // opposite sign.
+  // exist to catch. Reverted.
+  //
+  // A later attempt kept `bendDirection` at ONLY the peak key (16),
+  // reasoning it was geometrically inert there: a probe showed the two bend
+  // solutions converge to nearly the same elbow position at this key's
+  // full-reach extension, so flipping the solver's preference "shouldn't"
+  // change anything visible. That reasoning was wrong — live rendering
+  // showed the arm rendering as an impossible pose (appearing to terminate
+  // near the collar with no visible hand) during this exact jab. The
+  // "converges in the solved pose" probe didn't account for how the
+  // discrete flip interacts with the interpolated approach into the peak,
+  // where the two solutions have NOT yet converged. Removed entirely —
+  // never trust the geometric-convergence argument alone here again;
+  // render and look.
   DanceIkTargetKey(14, x: -33, y: -20, tension: 0.8), // into bar 2
-  DanceIkTargetKey(16, x: 33, y: -50, tension: 1, bendDirection: -1), // JAB past the far line
-  DanceIkTargetKey(17, x: 32, y: -48, tension: 1), // hold — still flipped
-  // (bend direction is held from a segment's start key, so 16-17 shares the
-  // flip; leaving 17 itself unset means the very next segment, 17->19, goes
-  // straight back to the rig default for the recoil's cross-body swing)
+  DanceIkTargetKey(16, x: 33, y: -50, tension: 1), // JAB past the far line
+  DanceIkTargetKey(17, x: 32, y: -48, tension: 1), // hold
+  // (leaving 17 itself with no override means the very next segment, 17->19,
+  // goes straight back to the rig default for the recoil's cross-body swing)
   // R1: a y-only lift (-44 -> -58, keeping x on the SAME side as hand.R's
   // simultaneous "loads" key) was tried and panel-rejected (3 reviewers,
   // avg 4.3/10): raising y moved this hand further INTO the torso
@@ -265,8 +274,8 @@ const _azontoHandLTargetKeys = [
   DanceIkTargetKey(20, x: -26, y: -10, tension: 0.8), // chamber at the hip
   DanceIkTargetKey(22, x: -27, y: -12, tension: 0.5),
   DanceIkTargetKey(23, x: -10, y: -34, tension: 0.4), // loads
-  DanceIkTargetKey(24, x: 33, y: -50, tension: 1, bendDirection: -1), // JAB
-  DanceIkTargetKey(25, x: 32, y: -48, tension: 1), // hold — still flipped
+  DanceIkTargetKey(24, x: 33, y: -50, tension: 1), // JAB
+  DanceIkTargetKey(25, x: 32, y: -48, tension: 1), // hold
   DanceIkTargetKey(
     27,
     x: -20,
@@ -297,15 +306,13 @@ const _azontoHandRTargetKeys = [
   // answering cross jab.
   DanceIkTargetKey(16, x: 26, y: -10, tension: 0.8), // chamber at the hip
   DanceIkTargetKey(18, x: 27, y: -12, tension: 0.5),
-  // R follow-up (task #46, transitions r4 panel): mirrors hand.L's fix above
-  // (see that comment for the full render-pipeline probe, the reach-widen
-  // dead end, and why the flip has to land on the WINDUP key, not just the
-  // peak). Mirrored sign: hand.R's own rig default here is -1, so the flip
-  // is +1. Only this windup key and the strike key itself flip; the very
-  // next segment (into the recoil at 23) goes straight back to the default.
+  // Mirrors hand.L's jab above — see that comment for the full history: a
+  // `bendDirection` override was tried here too and reverted for the same
+  // reason (live rendering showed an impossible arm pose the "geometrically
+  // inert at full reach" probe didn't predict).
   DanceIkTargetKey(19, x: 10, y: -34, tension: 0.4), // loads
-  DanceIkTargetKey(20, x: -33, y: -50, tension: 1, bendDirection: 1), // JAB past the far line
-  DanceIkTargetKey(21, x: -32, y: -48, tension: 1), // hold — still flipped
+  DanceIkTargetKey(20, x: -33, y: -50, tension: 1), // JAB past the far line
+  DanceIkTargetKey(21, x: -32, y: -48, tension: 1), // hold
   // Mirrors hand.L's opposite-side recoil fix above (see that comment):
   // swapped to hand.R's OWN (positive) side so it doesn't stack with
   // hand.L's simultaneous "loads" key (also on L's own, negative side).
@@ -320,8 +327,8 @@ const _azontoHandRTargetKeys = [
   DanceIkTargetKey(24, x: 26, y: -10, tension: 0.8), // chamber
   DanceIkTargetKey(26, x: 27, y: -12, tension: 0.5),
   DanceIkTargetKey(27, x: 10, y: -34, tension: 0.4),
-  DanceIkTargetKey(28, x: -33, y: -50, tension: 1, bendDirection: 1), // JAB
-  DanceIkTargetKey(29, x: -32, y: -48, tension: 1), // hold — still flipped
+  DanceIkTargetKey(28, x: -33, y: -50, tension: 1), // JAB
+  DanceIkTargetKey(29, x: -32, y: -48, tension: 1), // hold
   DanceIkTargetKey(31, x: 29, y: 0, tension: 0.6), // settles to the wheel
   DanceIkTargetKey(32, x: 32, y: 10, tension: 0.6), // == frame 0
 ];
