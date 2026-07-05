@@ -592,14 +592,19 @@ class _DanceMoveInspectorDialogState extends State<_DanceMoveInspectorDialog>
                     : 'KEYFRAMES ($_frameCount, ${clip.loop ? "loop" : "one-shot"})',
               ),
               const SizedBox(width: 10),
-              Text(
-                _showTraces
-                    ? 'pocket bounce · weight sway · head ride · sole height'
-                    : 'tap a frame to preview it on stage',
-                style: const TextStyle(
-                  color: _Chrome.textLow,
-                  fontSize: 10,
-                  fontStyle: FontStyle.italic,
+              // Flexible + ellipsis: the traces label plus this hint can
+              // exceed the row at narrow widths — the hint yields first.
+              Flexible(
+                child: Text(
+                  _showTraces
+                      ? 'pocket bounce · weight sway · head ride · sole height'
+                      : 'tap a frame to preview it on stage',
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: _Chrome.textLow,
+                    fontSize: 10,
+                    fontStyle: FontStyle.italic,
+                  ),
                 ),
               ),
               const Spacer(),
