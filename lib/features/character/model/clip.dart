@@ -1180,14 +1180,15 @@ class Clip {
   /// Pouncing Cat glide). Opt-in per clip.
   final double danceHeadBobScale;
 
-  /// Floor for the vertical head-position counter's clamp (see
-  /// `CharacterScene._danceHeadVerticalCounter`), in world units. The shared
-  /// default (-2) deliberately caps the counter tiny so a groove extreme
-  /// never visibly lifts the skull off the neck — correct for clips whose
-  /// intent is "the head rides the bob" but wrong for a clip whose whole
-  /// premise is a head that stays level THROUGH a big compress (e.g.
-  /// pouncingCat's Amapiano contrast): `danceHeadBobScale: 0` alone doesn't
-  /// achieve that, since this clamp still caps the correction regardless.
+  /// LIFT BUDGET for the spine leveler (see
+  /// `CharacterScene._spineLevelShifts`), in local units, negative = up: the
+  /// most the leveling may hold the skull/neck ABOVE where they would ride
+  /// un-leveled. The shared default (-2) deliberately caps the lift tiny so a
+  /// groove extreme never visibly lifts the skull off the neck — correct for
+  /// clips whose intent is "the head rides the bob" but wrong for a clip
+  /// whose whole premise is a head that stays level THROUGH a big compress
+  /// (e.g. pouncingCat's Amapiano contrast): `danceHeadBobScale: 0` alone
+  /// doesn't achieve that, since this budget still caps the lift regardless.
   /// Opt-in per clip; more negative allows a bigger upward correction.
   final double danceHeadLevelClampMin;
 

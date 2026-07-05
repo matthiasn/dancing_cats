@@ -1530,11 +1530,24 @@ class CharacterScene {
     // like the rotation follow above, so a clip whose PREMISE is a tight,
     // level skull (pouncingCat, bob scale 0) opts out entirely instead of
     // reading its 75-unit crouch differential as a rubber throat.
+    //
+    // RE-TUNED 2026-07-05 (owner, with screenshots: "heads bopping around
+    // like crazy" — the skull floating a chin-height off the collar): the
+    // original gains/clamps (0.44/9, 0.19/4, neck 0.22/5) were tuned before
+    // the R21 pocket deepened to a ~55-unit swing, after which the lagged
+    // difference SATURATED the clamps on every count — a measured 18-unit
+    // chin-to-collar pump per beat (probe: visible gap 10..28, opening on
+    // every trough). The artifact is the DIFFERENTIAL between the skull's
+    // follow and the collar fabric (which rides the chest at only 0.7 of
+    // the NECK's shift), so the compression read survives at half the
+    // excursion: the lag TIMING carries the spring, not the amplitude.
+    // These values hold the gap pump under ~8 units at full bob scale
+    // (measured 2-7 residual with the follows zeroed entirely).
     final cascade = clip.danceHeadBobScale;
     final headDyDiff = lagged != null ? lagged.rootDy - rootDy : 0.0;
     final headDyFollow = headDyDiff < 0
-        ? _clampMagnitude(headDyDiff * 0.44 * cascade, 9)
-        : _clampMagnitude(headDyDiff * 0.19 * cascade, 4);
+        ? _clampMagnitude(headDyDiff * 0.30 * cascade, 4)
+        : _clampMagnitude(headDyDiff * 0.13 * cascade, 2);
     final neckDyFollow = _isDanceFamily(clip) && clip.duration > 0
         ? _clampMagnitude(
             (evaluator
@@ -1544,9 +1557,9 @@ class CharacterScene {
                         )
                         .rootDy -
                     rootDy) *
-                0.22 *
+                0.15 *
                 cascade,
-            5,
+            3,
           )
         : 0.0;
     final headHorizontalCounter = _isDanceFamily(clip)
@@ -1677,6 +1690,16 @@ class CharacterScene {
             .clamp(0.0, 1.0);
     final ease = 1 - _kDeepCrouchEase * crouchNorm; // 1 on holds, <1 deep
 
+    // Per-clip LIFT BUDGET ([Clip.danceHeadLevelClampMin], local units,
+    // negative = up): the most the leveling may hold the skull/neck ABOVE
+    // where they would ride un-leveled. Honored by the pre-#65 vertical
+    // counter and silently dropped in the leveler rewrite; restored so the
+    // per-clip taste calls (shaku -5 "rides the crouch", pouncingCat -20
+    // "level through the compress") mean what their descriptors say. Only
+    // the UPWARD direction is bounded — the downward pull closes the
+    // collar, never opens it.
+    final liftFloor = clip.danceHeadLevelClampMin * baseScale;
+
     // Stage 1 — neck level line, clamped to its natural gap-to-torso, then eased
     // back toward the un-leveled neck at the deep crouch.
     final neckTargetY = base.transformPoint(plan.neckMeanX, plan.neckMeanY).y;
@@ -1687,11 +1710,13 @@ class CharacterScene {
     );
     final neckLeveledY = torsoY + neckGap;
     final neckFinalY = neckY + (neckLeveledY - neckY) * ease;
-    final neckShiftY = neckFinalY - neckY;
+    final neckShiftY = math.max(neckFinalY - neckY, liftFloor);
 
     // Stage 2 — head level line, clamped to its natural gap against the fully
     // leveled neck, then eased alongside it (same factor) so the head-neck gap
-    // stays inside its natural band at every crouch depth.
+    // stays inside its natural band at every crouch depth. The head's TOTAL
+    // shift shares the neck's lift budget: when both floors bind, the extra
+    // shift is zero and the skull rides the crouch together with the neck.
     final headTargetY = base.transformPoint(plan.headMeanX, plan.headMeanY).y;
     final headDesiredY = headY + (headTargetY - headY) * _kSpineLevelStrength;
     final headGap = (headDesiredY - neckLeveledY).clamp(
@@ -1700,7 +1725,7 @@ class CharacterScene {
     );
     final headLeveledY = neckLeveledY + headGap;
     final headFinalY = headY + (headLeveledY - headY) * ease;
-    final headExtraShiftY = (headFinalY - headY) - neckShiftY;
+    final headExtraShiftY = math.max(headFinalY - headY, liftFloor) - neckShiftY;
 
     return (
       neckShiftY: neckShiftY,
