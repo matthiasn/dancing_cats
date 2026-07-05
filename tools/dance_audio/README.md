@@ -6,8 +6,9 @@ character dance can land on the real beat instead of a guessed constant BPM.
 **This is not shipped inside the app.** It runs offline on the authoring machine
 and emits a data artifact the Flutter/Dart side consumes. The in-repo consumer is
 [`lib/features/character/model/beat_map.dart`](../../lib/features/character/model/beat_map.dart)
-(`BeatMap`); the full design and the quality ladder live in the plan,
-[`docs/implementation_plans/2026-06-27_dance_audio_analysis.md`](../../docs/implementation_plans/2026-06-27_dance_audio_analysis.md).
+(`BeatMap`); the full design and the quality ladder live in the plan
+`2026-06-27_dance_audio_analysis.md`, which stayed in the Lotti mother repo
+(`docs/implementation_plans/`) when this feature was ejected.
 
 ## Pipeline
 

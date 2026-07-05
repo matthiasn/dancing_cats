@@ -6,8 +6,8 @@ import 'package:flutter/material.dart';
 /// "single large video" stage. Extracted from the demo entrypoint so it can be
 /// screenshot-reviewed and unit-tested in isolation, and kept self-contained
 /// (no design-system import) so the character feature stays cleanly ejectable —
-/// see `character_dance_to_track_demo.dart`'s header. These are demo-only chrome
-/// values, not product design tokens.
+/// see the header of `lib/main.dart` (the dance-to-track app). These are
+/// demo-only chrome values, not product design tokens.
 ///
 /// The bar is purely presentational: it renders the supplied state and reports
 /// intent through callbacks. All playback/seek behavior lives in the page.

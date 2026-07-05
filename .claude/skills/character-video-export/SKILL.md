@@ -275,7 +275,7 @@ bash -n tools/character_video_export/export_dance_video_capture.sh
 bash -n tools/character_video_export/export_dance_video.sh
 fvm flutter analyze \
   lib/features/scenery/layered_backdrop.dart \
-  lib/features/character/demo/character_dance_to_track_demo.dart \
+  lib/main.dart \
   test/features/scenery/layered_backdrop_test.dart \
   test/features/character/dance_video_export_test.dart
 ```

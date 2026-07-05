@@ -33,8 +33,8 @@ import 'package:media_kit/media_kit.dart';
 import 'package:window_manager/window_manager.dart';
 
 /// Beat-synced dance demo — the first wiring of the offline beat map into live
-/// playback (see `docs/implementation_plans/2026-06-27_dance_audio_analysis.md`
-/// §15). A dev tool, not a product surface.
+/// playback (design plan `2026-06-27_dance_audio_analysis.md` §15, kept in the
+/// Lotti mother repo). A dev tool, not a product surface.
 ///
 /// It plays a track (looped) and locks the looping dance phrase to the detected
 /// beats/downbeats: each frame the dance time is the audio playback position
@@ -53,7 +53,7 @@ import 'package:window_manager/window_manager.dart';
 ///
 /// Run it (defaults to local dev files; override with --dart-define):
 /// ```sh
-/// fvm flutter run -d linux -t lib/features/character/demo/character_dance_to_track_demo.dart \
+/// fvm flutter run -d linux \
 ///   --dart-define=DANCE_AUDIO=/abs/track.mp3 \
 ///   --dart-define=DANCE_BEATMAP=/abs/full_track_beatmap.json
 /// ```

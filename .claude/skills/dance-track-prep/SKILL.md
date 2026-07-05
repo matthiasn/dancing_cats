@@ -12,8 +12,7 @@ waveform / sections) and **word-level lyric timestamps** (optionally
 force-aligned to provided lyrics, with lead vs background tags). Everything is
 deterministic JSON; nothing runs inside the Flutter app.
 
-Demo it drives: `lib/features/character/demo/character_dance_to_track_demo.dart`.
-Design: `docs/implementation_plans/2026-06-27_dance_audio_analysis.md`.
+Demo it drives: the dance-to-track app in `lib/main.dart`.
 
 ## Tools (all under `tools/dance_audio/`)
 
@@ -119,7 +118,7 @@ cat shows them. Without a cue file the mouths simply stay closed.
 ### 5. Run the demo on the new song
 
 ```bash
-fvm flutter run -d <device> -t lib/features/character/demo/character_dance_to_track_demo.dart \
+fvm flutter run -d <device> \
   --dart-define=DANCE_AUDIO=/abs/song.mp3 \
   --dart-define=DANCE_BEATMAP=/abs/tools/dance_audio/out/song.json \
   --dart-define=DANCE_WORDS=/abs/tools/dance_audio/out/song.words.json \
