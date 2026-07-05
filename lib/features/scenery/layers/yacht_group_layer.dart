@@ -29,6 +29,12 @@ import 'package:flutter/rendering.dart';
 class YachtGroupLayer implements BackdropLayer {
   const YachtGroupLayer();
 
+  /// Constant downward placement offset for the whole group, as a fraction of
+  /// the cover-fit art height. The de-baked hull art sits a touch high against
+  /// the 2026-07 plate's water/pier line, so the group rests slightly lower in
+  /// frame. Placement, not motion: applied under reduce-motion too.
+  static const double sinkFraction = 0.02;
+
   /// Light cool exposure pull on the hull (BlendMode.modulate), preserved from
   /// when the yacht was a flat scene layer.
   static const _hullModulate = Color(0xFFD0D5DE);
@@ -46,13 +52,14 @@ class YachtGroupLayer implements BackdropLayer {
 
   @override
   void paint(Canvas canvas, BackdropContext ctx) {
-    final moving = !ctx.reducedMotion;
-    if (moving) {
-      final cover = coverFit(ctx.size);
+    final cover = coverFit(ctx.size);
+    canvas
+      ..save()
+      ..translate(0, sinkFraction * cover.height);
+    if (!ctx.reducedMotion) {
       final motion = yachtWaveMotion(ctx.timeSeconds);
       final pivot = cover.project(_rockPivot.dx, _rockPivot.dy);
       canvas
-        ..save()
         ..translate(0, motion.heave * _heaveHeightFraction * cover.height)
         ..translate(pivot.dx, pivot.dy)
         ..rotate(motion.roll * _rollRadians)
@@ -63,7 +70,7 @@ class YachtGroupLayer implements BackdropLayer {
       modulate: _hullModulate,
     ).paint(canvas, ctx);
     const YachtLightsLayer().paint(canvas, ctx);
-    if (moving) canvas.restore();
+    canvas.restore();
   }
 }
 

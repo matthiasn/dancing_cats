@@ -41,10 +41,11 @@ void main() {
     );
     final data = await image.toByteData();
     image.dispose();
+    // The lamp anchor sits at (0.667, 0.578) of this aspect-matching viewport,
+    // shifted down by the group's resting sink.
+    final lampY = (0.578 + YachtGroupLayer.sinkFraction) * size.height;
     final i =
-        ((0.578 * size.height).round() * size.width.toInt() +
-            (0.667 * size.width).round()) *
-        4;
+        (lampY.round() * size.width.toInt() + (0.667 * size.width).round()) * 4;
     final navLampLit =
         data!.getUint8(i) + data.getUint8(i + 1) + data.getUint8(i + 2);
     expect(navLampLit, greaterThan(30), reason: 'group drew the nav lamps');
