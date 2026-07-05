@@ -36,37 +36,65 @@ void main() {
       final clip = entry.value;
       var lo = double.infinity;
       var hi = double.negativeInfinity;
+      var xLo = double.infinity;
+      var xHi = double.negativeInfinity;
       for (var i = 0; i < samples; i++) {
         final frame = scene.frameAt(
           clip: clip,
           timeSeconds: clip.duration * i / samples,
         );
-        final gap = frame.world[CatBones.shirtV]!.ty -
-            frame.world[CatBones.head]!.ty;
+        final head = frame.world[CatBones.head]!;
+        final shirt = frame.world[CatBones.shirtV]!;
+        final gap = shirt.ty - head.ty;
         lo = gap < lo ? gap : lo;
         hi = gap > hi ? gap : hi;
+        final offX = head.tx - shirt.tx;
+        xLo = offX < xLo ? offX : xLo;
+        xHi = offX > xHi ? offX : xHi;
       }
       expect(
         hi,
-        lessThan(26),
+        lessThan(24.5),
         reason:
             '${entry.key}: the chin sits ${hi.toStringAsFixed(1)} above the '
             'collar at its widest — the skull is visibly off the body',
       );
       expect(
         hi - lo,
-        lessThan(16),
+        lessThan(13),
         reason:
             '${entry.key}: the chin-to-collar gap swings '
             '${(hi - lo).toStringAsFixed(1)} units over the loop — the neck '
             'is pumping, not articulating',
       );
+      // Firmness v2 (owner: "neck often disappears altogether"): the collar
+      // may never swallow the chin — the leveler's downward pull is bounded
+      // by the same per-clip budget as its lift.
       expect(
         lo,
-        greaterThan(0),
+        greaterThan(10),
         reason:
-            '${entry.key}: the chin dips ${lo.toStringAsFixed(1)} — at or '
-            'below the collar line',
+            '${entry.key}: the chin dips to ${lo.toStringAsFixed(1)} above '
+            'the collar line — the neck visibly disappears',
+      );
+      // Firmness v2 (owner: "heads are terribly loose"): the skull stays
+      // near the collar's centerline. Bounds leave room for authored lean
+      // vocabulary (zanku gbese kick trails to ~10.6) but catch the old
+      // lateral-counter parking (up to ~13 off-center, 23-unit swings).
+      expect(
+        xHi - xLo,
+        lessThan(20),
+        reason:
+            '${entry.key}: the skull wanders ${(xHi - xLo).toStringAsFixed(1)} '
+            'units laterally against the collar — a loose head, not a lean',
+      );
+      expect(
+        xHi.abs() > xLo.abs() ? xHi.abs() : xLo.abs(),
+        lessThan(13),
+        reason:
+            '${entry.key}: the skull parks '
+            '${(xHi.abs() > xLo.abs() ? xHi : xLo).toStringAsFixed(1)} '
+            'off the collar centerline at its extreme',
       );
     }
   });
