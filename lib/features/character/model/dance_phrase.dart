@@ -325,6 +325,7 @@ class DancePhrase {
     Ease ease = Ease.easeInOut,
     double microFrames = 0,
     double tension = 0,
+    int? bendDirection,
   }) => IkTargetKeyframe(
     p: phaseOfFrame(frame, microFrames: microFrames),
     x: x,
@@ -332,6 +333,7 @@ class DancePhrase {
     weight: weight,
     ease: ease,
     tension: tension,
+    bendDirection: bendDirection,
   );
 
   KeyframeIkTargetChannel ikTargetChannel(
@@ -987,7 +989,11 @@ class DanceIkTargetKey {
     this.ease = Ease.easeInOut,
     this.microFrames = 0,
     this.tension = 0,
-  });
+    this.bendDirection,
+  }) : assert(
+         bendDirection == null || bendDirection == -1 || bendDirection == 1,
+         'bendDirection must be null, -1 or 1',
+       );
 
   final int frame;
   final double x;
@@ -1002,6 +1008,11 @@ class DanceIkTargetKey {
   /// stop-go everywhere).
   final double tension;
 
+  /// Overrides which side of the shoulder->target line the elbow bends
+  /// toward, from this key until the next key that also sets it — see
+  /// [IkTargetPose.bendDirection]. `null` keeps the limb's own default.
+  final int? bendDirection;
+
   IkTargetKeyframe toIkTargetKeyframe(
     DancePhrase phrase, {
     double microFrames = 0,
@@ -1013,6 +1024,7 @@ class DanceIkTargetKey {
     ease: ease,
     microFrames: this.microFrames + microFrames,
     tension: tension,
+    bendDirection: bendDirection,
   );
 }
 

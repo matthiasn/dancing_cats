@@ -415,7 +415,12 @@ class KeyframeChannel extends JointChannel {
 /// so choreography can say "put this hand near the chest" instead of solving
 /// shoulder and elbow angles by eye.
 class IkTargetPose {
-  const IkTargetPose({required this.x, required this.y, this.weight = 1});
+  const IkTargetPose({
+    required this.x,
+    required this.y,
+    this.weight = 1,
+    this.bendDirection,
+  });
 
   final double x;
   final double y;
@@ -423,6 +428,16 @@ class IkTargetPose {
   /// Blend amount for the IK solve. `0` leaves authored FK unchanged, `1`
   /// fully hits the target when it is reachable.
   final double weight;
+
+  /// Per-sample override of [LimbIkTarget.bendDirection]. `null` means "no
+  /// override, use the limb's own default" — every existing channel keeps
+  /// producing `null` and is byte-identical to before this field existed.
+  /// A two-bone solve only has two elbow solutions for a given target
+  /// (there is no continuous "pole vector" in a planar rig); this lets a
+  /// specific keyframe pick the other one — e.g. a cross-body reach whose
+  /// default solution folds the elbow across the torso can flip to the
+  /// solution that swings it out to the side instead.
+  final int? bendDirection;
 }
 
 sealed class IkTargetChannel {
@@ -468,7 +483,12 @@ class LayeredIkTargetChannel extends IkTargetChannel {
       x += offset.x * offset.weight;
       y += offset.y * offset.weight;
     }
-    return IkTargetPose(x: x, y: y, weight: base.weight);
+    return IkTargetPose(
+      x: x,
+      y: y,
+      weight: base.weight,
+      bendDirection: base.bendDirection,
+    );
   }
 }
 
@@ -502,6 +522,7 @@ class BlendedIkTargetChannel extends IkTargetChannel {
         x: b!.x,
         y: b.y,
         weight: b.weight * weight,
+        bendDirection: b.bendDirection,
       );
     }
     if (b == null) {
@@ -509,12 +530,16 @@ class BlendedIkTargetChannel extends IkTargetChannel {
         x: a.x,
         y: a.y,
         weight: a.weight * (1 - weight),
+        bendDirection: a.bendDirection,
       );
     }
     return IkTargetPose(
       x: _lerp(a.x, b.x, weight),
       y: _lerp(a.y, b.y, weight),
       weight: _lerp(a.weight, b.weight, weight).clamp(0.0, 1.0),
+      // Bend direction is a discrete either/or, not something to lerp — pick
+      // whichever side of the blend currently dominates.
+      bendDirection: weight >= 0.5 ? b.bendDirection : a.bendDirection,
     );
   }
 }
@@ -564,6 +589,8 @@ class SoftenedIkTargetChannel extends IkTargetChannel {
       y: before.y * 0.25 + centre.y * 0.5 + after.y * 0.25,
       weight: (before.weight * 0.25 + centre.weight * 0.5 + after.weight * 0.25)
           .clamp(0.0, 1.0),
+      // Discrete, not averaged — the centre sample governs.
+      bendDirection: centre.bendDirection,
     );
   }
 
@@ -578,9 +605,14 @@ class IkTargetKeyframe {
     this.weight = 1,
     this.ease = Ease.easeInOut,
     this.tension = 0,
+    this.bendDirection,
   }) : assert(
          tension >= -1 && tension <= 1,
          'tension must be in -1..1',
+       ),
+       assert(
+         bendDirection == null || bendDirection == -1 || bendDirection == 1,
+         'bendDirection must be null, -1 or 1',
        );
 
   final double p;
@@ -591,6 +623,11 @@ class IkTargetKeyframe {
 
   /// Smooth-path tangent tension at this key — see [Keyframe.tension].
   final double tension;
+
+  /// Overrides [LimbIkTarget.bendDirection] from this key until the next key
+  /// that also sets it. `null` (the default) leaves the limb's own default
+  /// in effect — see [IkTargetPose.bendDirection].
+  final int? bendDirection;
 }
 
 class KeyframeIkTargetChannel extends IkTargetChannel {
@@ -629,6 +666,9 @@ class KeyframeIkTargetChannel extends IkTargetChannel {
             x: _spline(i, local, span, (k) => k.x),
             y: _spline(i, local, span, (k) => k.y),
             weight: _spline(i, local, span, (k) => k.weight).clamp(0.0, 1.0),
+            // Held from the segment's start key, not interpolated — see
+            // [IkTargetPose.bendDirection].
+            bendDirection: k0.bendDirection,
           );
         }
         final t = k1.ease.apply(local);
@@ -636,14 +676,19 @@ class KeyframeIkTargetChannel extends IkTargetChannel {
           x: k0.x + (k1.x - k0.x) * t,
           y: k0.y + (k1.y - k0.y) * t,
           weight: k0.weight + (k1.weight - k0.weight) * t,
+          bendDirection: k0.bendDirection,
         );
       }
     }
     return const IkTargetPose(x: 0, y: 0, weight: 0);
   }
 
-  IkTargetPose _poseOf(IkTargetKeyframe key) =>
-      IkTargetPose(x: key.x, y: key.y, weight: key.weight);
+  IkTargetPose _poseOf(IkTargetKeyframe key) => IkTargetPose(
+    x: key.x,
+    y: key.y,
+    weight: key.weight,
+    bendDirection: key.bendDirection,
+  );
 
   IkTargetPose _sampleCyclic(double p) {
     final cyclicKeys = _normalizedCyclicKeys(keys, (key) => key.p);
@@ -673,6 +718,7 @@ class KeyframeIkTargetChannel extends IkTargetChannel {
           (key) => key.tension,
           segment,
         ).clamp(0.0, 1.0),
+        bendDirection: k0.bendDirection,
       );
     }
     final t = k1.ease.apply(segment.local);
@@ -680,6 +726,7 @@ class KeyframeIkTargetChannel extends IkTargetChannel {
       x: k0.x + (k1.x - k0.x) * t,
       y: k0.y + (k1.y - k0.y) * t,
       weight: k0.weight + (k1.weight - k0.weight) * t,
+      bendDirection: k0.bendDirection,
     );
   }
 

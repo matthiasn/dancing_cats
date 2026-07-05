@@ -141,7 +141,6 @@ const _azontoHandLTargetKeys = [
   DanceIkTargetKey(8, x: -22, y: -10, tension: 0.6), // wide again
   DanceIkTargetKey(10, x: -33, y: -20, tension: 0.2),
   DanceIkTargetKey(12, x: -42, y: -31, tension: 0.6), // narrower again
-  DanceIkTargetKey(14, x: -33, y: -20, tension: 0.8), // into bar 2
   // Bar 2 jabs (beats 5-8, alternating L,R,L,R): fire to near-full
   // extension PAST the opposite shoulder line in one beat-quarter, hold a
   // frame, recoil; the idle paw chambers at the OWN-side hip crest.
@@ -205,8 +204,41 @@ const _azontoHandLTargetKeys = [
   // INTO it overshoot past (10,-44) then settle back, the same
   // anticipation/overshoot pattern already used on the wheel's OUT-point
   // keys elsewhere in this file — a real spring-back instead of a dead stop.
-  DanceIkTargetKey(16, x: 33, y: -50, tension: 1), // JAB past the far line
-  DanceIkTargetKey(17, x: 32, y: -48, tension: 1), // hold
+  // R follow-up (task #46, transitions r4 panel — buga->azonto/sekem->azonto
+  // both scored the jab a 3-4/10). Re-tried widening the reach further
+  // (33->44) on the theory that a `CharacterScene.frameAt` probe showed
+  // reachRatio only ~0.86 at frame 16 — that theory was WRONG, the same
+  // mistake a prior round already made and documented above: probing world
+  // bone positions directly (not through `MotionConstraintValidator`, which
+  // samples the smooth cyclic spline at high density and catches an
+  // inter-keyframe OVERSHOOT the 32-key-aligned coarse check misses) gives
+  // an optimistic number. Re-checked with the validator itself at matching
+  // density: the baseline (33,-50) already peaks at reachRatio ~1.01
+  // between frames 16 and 17 (the Catmull-Rom curve overshoots past both
+  // keyframes' own values) — there is genuinely NO room to widen, exactly
+  // as documented above. Reverted the widen for good.
+  //
+  // A follow-up tried applying the flip at the WINDUP key (14) instead of
+  // just the peak (16), on the theory that the arm is still well bent
+  // during the approach (where the two bend solutions genuinely diverge),
+  // so flipping there should swing the elbow outward through the whole
+  // approach. That broke three separate motion-quality gates
+  // (`dance_angular_motion_test`, `dance_smoothness_test`,
+  // `temporal_motion_analyzer_test`) — a real kinematic pop, not a test
+  // nuisance: `bendDirection` is a discrete either/or (see
+  // [IkTargetPose.bendDirection]), so switching it mid-swing snaps the
+  // elbow to the OTHER solution in one frame while the wrist keeps moving
+  // continuously, which is exactly the "stop-go"/jerk signature those gates
+  // exist to catch. Reverted. bendDirection is kept ONLY at the peak (16),
+  // below — confirmed geometrically inert there (see above) but at least
+  // harmless, since nothing before it in this segment ever used the
+  // opposite sign.
+  DanceIkTargetKey(14, x: -33, y: -20, tension: 0.8), // into bar 2
+  DanceIkTargetKey(16, x: 33, y: -50, tension: 1, bendDirection: -1), // JAB past the far line
+  DanceIkTargetKey(17, x: 32, y: -48, tension: 1), // hold — still flipped
+  // (bend direction is held from a segment's start key, so 16-17 shares the
+  // flip; leaving 17 itself unset means the very next segment, 17->19, goes
+  // straight back to the rig default for the recoil's cross-body swing)
   // R1: a y-only lift (-44 -> -58, keeping x on the SAME side as hand.R's
   // simultaneous "loads" key) was tried and panel-rejected (3 reviewers,
   // avg 4.3/10): raising y moved this hand further INTO the torso
@@ -233,8 +265,8 @@ const _azontoHandLTargetKeys = [
   DanceIkTargetKey(20, x: -26, y: -10, tension: 0.8), // chamber at the hip
   DanceIkTargetKey(22, x: -27, y: -12, tension: 0.5),
   DanceIkTargetKey(23, x: -10, y: -34, tension: 0.4), // loads
-  DanceIkTargetKey(24, x: 33, y: -50, tension: 1), // JAB
-  DanceIkTargetKey(25, x: 32, y: -48, tension: 1),
+  DanceIkTargetKey(24, x: 33, y: -50, tension: 1, bendDirection: -1), // JAB
+  DanceIkTargetKey(25, x: 32, y: -48, tension: 1), // hold — still flipped
   DanceIkTargetKey(
     27,
     x: -20,
@@ -265,9 +297,15 @@ const _azontoHandRTargetKeys = [
   // answering cross jab.
   DanceIkTargetKey(16, x: 26, y: -10, tension: 0.8), // chamber at the hip
   DanceIkTargetKey(18, x: 27, y: -12, tension: 0.5),
+  // R follow-up (task #46, transitions r4 panel): mirrors hand.L's fix above
+  // (see that comment for the full render-pipeline probe, the reach-widen
+  // dead end, and why the flip has to land on the WINDUP key, not just the
+  // peak). Mirrored sign: hand.R's own rig default here is -1, so the flip
+  // is +1. Only this windup key and the strike key itself flip; the very
+  // next segment (into the recoil at 23) goes straight back to the default.
   DanceIkTargetKey(19, x: 10, y: -34, tension: 0.4), // loads
-  DanceIkTargetKey(20, x: -33, y: -50, tension: 1), // JAB past the far line
-  DanceIkTargetKey(21, x: -32, y: -48, tension: 1), // hold
+  DanceIkTargetKey(20, x: -33, y: -50, tension: 1, bendDirection: 1), // JAB past the far line
+  DanceIkTargetKey(21, x: -32, y: -48, tension: 1), // hold — still flipped
   // Mirrors hand.L's opposite-side recoil fix above (see that comment):
   // swapped to hand.R's OWN (positive) side so it doesn't stack with
   // hand.L's simultaneous "loads" key (also on L's own, negative side).
@@ -282,8 +320,8 @@ const _azontoHandRTargetKeys = [
   DanceIkTargetKey(24, x: 26, y: -10, tension: 0.8), // chamber
   DanceIkTargetKey(26, x: 27, y: -12, tension: 0.5),
   DanceIkTargetKey(27, x: 10, y: -34, tension: 0.4),
-  DanceIkTargetKey(28, x: -33, y: -50, tension: 1), // JAB
-  DanceIkTargetKey(29, x: -32, y: -48, tension: 1),
+  DanceIkTargetKey(28, x: -33, y: -50, tension: 1, bendDirection: 1), // JAB
+  DanceIkTargetKey(29, x: -32, y: -48, tension: 1), // hold — still flipped
   DanceIkTargetKey(31, x: 29, y: 0, tension: 0.6), // settles to the wheel
   DanceIkTargetKey(32, x: 32, y: 10, tension: 0.6), // == frame 0
 ];
@@ -618,7 +656,16 @@ const _azontoPocketKeys = [
     pelvisRotation: 0.064,
     chestRotation: -0.14,
     chestScaleY: 0.95,
-    chestScaleX: 1.04,
+    // R follow-up (task #46, transitions r4 panel): narrowed from 1.04 at
+    // exactly this jab beat — see the render-pipeline probe on
+    // `_azontoHandLTargetKeys` above. Reach is confirmed maxed out and
+    // bendDirection is confirmed inert at this reach, so the only
+    // remaining, non-discontinuous lever is shrinking the jacket
+    // silhouette itself right when the mitt needs to clear it, instead of
+    // pushing the mitt further out. This is a smooth per-frame scale
+    // value (not an IK target), so it can't introduce the kind of
+    // discrete pop a bendDirection flip did.
+    chestScaleX: 0.88,
   ),
   DanceBodyKey(
     18,
@@ -636,7 +683,16 @@ const _azontoPocketKeys = [
     pelvisRotation: -0.072,
     chestRotation: 0.16,
     chestScaleY: 0.95,
-    chestScaleX: 1.04,
+    // R follow-up (task #46, transitions r4 panel): narrowed from 1.04 at
+    // exactly this jab beat — see the render-pipeline probe on
+    // `_azontoHandLTargetKeys` above. Reach is confirmed maxed out and
+    // bendDirection is confirmed inert at this reach, so the only
+    // remaining, non-discontinuous lever is shrinking the jacket
+    // silhouette itself right when the mitt needs to clear it, instead of
+    // pushing the mitt further out. This is a smooth per-frame scale
+    // value (not an IK target), so it can't introduce the kind of
+    // discrete pop a bendDirection flip did.
+    chestScaleX: 0.88,
   ),
   DanceBodyKey(
     22,
@@ -655,7 +711,16 @@ const _azontoPocketKeys = [
     pelvisRotation: 0.072,
     chestRotation: -0.16,
     chestScaleY: 0.95,
-    chestScaleX: 1.04,
+    // R follow-up (task #46, transitions r4 panel): narrowed from 1.04 at
+    // exactly this jab beat — see the render-pipeline probe on
+    // `_azontoHandLTargetKeys` above. Reach is confirmed maxed out and
+    // bendDirection is confirmed inert at this reach, so the only
+    // remaining, non-discontinuous lever is shrinking the jacket
+    // silhouette itself right when the mitt needs to clear it, instead of
+    // pushing the mitt further out. This is a smooth per-frame scale
+    // value (not an IK target), so it can't introduce the kind of
+    // discrete pop a bendDirection flip did.
+    chestScaleX: 0.88,
   ),
   DanceBodyKey(
     26,
@@ -673,7 +738,16 @@ const _azontoPocketKeys = [
     pelvisRotation: -0.076,
     chestRotation: 0.17,
     chestScaleY: 0.95,
-    chestScaleX: 1.04,
+    // R follow-up (task #46, transitions r4 panel): narrowed from 1.04 at
+    // exactly this jab beat — see the render-pipeline probe on
+    // `_azontoHandLTargetKeys` above. Reach is confirmed maxed out and
+    // bendDirection is confirmed inert at this reach, so the only
+    // remaining, non-discontinuous lever is shrinking the jacket
+    // silhouette itself right when the mitt needs to clear it, instead of
+    // pushing the mitt further out. This is a smooth per-frame scale
+    // value (not an IK target), so it can't introduce the kind of
+    // discrete pop a bendDirection flip did.
+    chestScaleX: 0.88,
   ),
   DanceBodyKey(
     30,
