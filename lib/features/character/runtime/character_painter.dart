@@ -188,6 +188,19 @@ double _trioDanceWeight(Clip clip) {
   return fromWeight + (toWeight - fromWeight) * plan.weight;
 }
 
+/// Pushes [color] toward full HSL saturation by [amount] (0..1 fraction of
+/// its remaining headroom) without touching hue or lightness — see the
+/// `glow` assignment's doc comment for why this rides `danceWeight`.
+Color _saturated(Color color, double amount) {
+  if (amount <= 0) return color;
+  final hsl = HSLColor.fromColor(color);
+  final boosted = (hsl.saturation + (1 - hsl.saturation) * amount).clamp(
+    0.0,
+    1.0,
+  );
+  return hsl.withSaturation(boosted).toColor().withValues(alpha: color.a);
+}
+
 /// Lerps a full dance [formation] toward identity (no spread, no scale
 /// change) by [weight] — see [_trioDanceWeight].
 ({double dx, double dy, double scale}) _lerpFormation(
@@ -739,9 +752,17 @@ class CharacterPainter extends CustomPainter {
         // transform, so the halo tracks the dancer through any camera/formation.
         // Alpha scaled by [danceWeight] (not gated boolean) so the glow fades
         // in/out across an idle<->dance blend instead of switching on at full
-        // strength the instant the blend clip appears.
+        // strength the instant the blend clip appears. Saturation is ALSO
+        // boosted by danceWeight (owner, live: "some more color intensity
+        // when in the stage light") — kStageGelCycle's colours are
+        // deliberately pulled back ~20% from neon so they read as ambient
+        // light belonging to the blue-hour plate; that's the right base
+        // palette, but under a live stage light the gel should read as more
+        // vivid than its resting tone, not just present. Scaling the boost
+        // by danceWeight (not a flat lift) keeps that vividness tied to the
+        // light actually being ON, same as its alpha.
         final glow = leadCentreOrder && i < memberBacklights.length
-            ? memberBacklights[i].withValues(
+            ? _saturated(memberBacklights[i], 0.5 * danceWeight).withValues(
                 alpha: memberBacklights[i].a * danceWeight,
               )
             : null;

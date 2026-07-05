@@ -753,6 +753,139 @@ void main() {
         );
       });
     });
+
+    // Regression guard for the idle body-grade fix: bodyGrade used to be
+    // gated on the same clip-name check as the energetic-only staging
+    // (hero pose, formation, rim glow), so it silently dropped out during
+    // the idle clip. It must now apply regardless of clip name.
+    testWidgets('bodyGrade seats the idle (non-dance) clip too', (
+      tester,
+    ) async {
+      await tester.runAsync(() async {
+        final plain = await pixels(trio(lead: CatClips.idle));
+        final graded = await pixels(
+          trio(
+            lead: CatClips.idle,
+            bodyGrade: const (
+              skyWrap: Color(0xAA1F3354),
+              deckWrap: Color(0xAA3A2616),
+            ),
+          ),
+        );
+        var change = 0;
+        for (var i = 0; i < plain.length; i += 4) {
+          if (plain[i + 3] == 0 && graded[i + 3] == 0) continue;
+          change +=
+              (graded[i] - plain[i]).abs() +
+              (graded[i + 1] - plain[i + 1]).abs() +
+              (graded[i + 2] - plain[i + 2]).abs();
+        }
+        expect(
+          change,
+          greaterThan(1000),
+          reason: 'the idle clip must be seated into the plate too, not just '
+              'the named dance moves',
+        );
+      });
+    });
+
+    // Regression guard for the pre-show dim: the idle clip should read
+    // visibly DARKER than a danced clip under the identical grade, since
+    // the stage light hasn't "come up" yet at danceWeight 0.
+    testWidgets('the pre-show dim darkens the idle clip vs. a danced one', (
+      tester,
+    ) async {
+      await tester.runAsync(() async {
+        const grade = (
+          skyWrap: Color(0xAA1F3354),
+          deckWrap: Color(0xAA3A2616),
+        );
+        final idle = await pixels(
+          trio(lead: CatClips.idle, bodyGrade: grade),
+        );
+        final dancing = await pixels(
+          trio(lead: CatClips.shaku, bodyGrade: grade),
+        );
+        var idleLuma = 0;
+        var idlePixels = 0;
+        var danceLuma = 0;
+        var dancePixels = 0;
+        for (var i = 0; i < idle.length; i += 4) {
+          if (idle[i + 3] != 0) {
+            idleLuma += idle[i] + idle[i + 1] + idle[i + 2];
+            idlePixels++;
+          }
+          if (dancing[i + 3] != 0) {
+            danceLuma += dancing[i] + dancing[i + 1] + dancing[i + 2];
+            dancePixels++;
+          }
+        }
+        expect(idlePixels, greaterThan(0));
+        expect(dancePixels, greaterThan(0));
+        expect(
+          idleLuma / idlePixels,
+          lessThan(danceLuma / dancePixels),
+          reason:
+              'the pre-show dim should make the idle figure read darker than '
+              'the same grade applied to a danced clip',
+        );
+      });
+    });
+
+    // Regression guard for the harsh idle<->dance transition fix: the
+    // energetic-only staging (backlight glow here) must fade CONTINUOUSLY
+    // with the blend weight, not snap on the instant a blended clip appears.
+    testWidgets(
+      'backlight glow is a fraction of full strength mid-blend, not snapped on',
+      (tester) async {
+        await tester.runAsync(() async {
+          Future<int> newRimPixelCount(Clip lead) async {
+            final plain = await pixels(trio(lead: lead));
+            final lit = await pixels(trio(lead: lead, backlights: gels));
+            var count = 0;
+            for (var i = 0; i < plain.length; i += 4) {
+              if (lit[i + 3] != 0 && plain[i + 3] == 0) count++;
+            }
+            return count;
+          }
+
+          final idleRim = await newRimPixelCount(CatClips.idle);
+          final danceRim = await newRimPixelCount(CatClips.shaku);
+          final blended = blendedClip(
+            from: CatClips.idle,
+            to: CatClips.shaku,
+            weight: 0.5,
+          );
+          final midRim = await newRimPixelCount(blended);
+
+          expect(
+            idleRim,
+            0,
+            reason: 'the idle clip alone must show no rim glow at all',
+          );
+          expect(
+            danceRim,
+            greaterThan(0),
+            reason: 'a steady dance clip shows full rim glow',
+          );
+          expect(
+            midRim,
+            greaterThan(0),
+            reason:
+                'a half-blended idle<->dance clip must show SOME glow — if '
+                'this is 0 the fade snapped to off instead of lerping',
+          );
+          expect(
+            midRim,
+            lessThan(danceRim),
+            reason:
+                'a half-blended clip must show LESS glow than the fully '
+                'danced clip — if this is >= danceRim the fade snapped to '
+                'full strength instead of lerping',
+          );
+        });
+      },
+    );
   });
 
   testWidgets('dance trio clears the dark backup during the finish', (
