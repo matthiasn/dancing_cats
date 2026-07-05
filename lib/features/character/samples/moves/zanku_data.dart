@@ -348,7 +348,8 @@ const _zankuHeadKeys = [
   // — pocket-only by gate necessity, so the follow-through rides the
   // rotation channel instead).
   DanceJointKey(20, rotation: -0.09),
-  DanceJointKey(22, rotation: -0.03),
+  DanceJointKey(22, rotation: -0.045),
+  DanceJointKey(23, rotation: -0.015), // r9: one more settle frame
   DanceJointKey(21, rotation: -0.11),
   DanceJointKey(23, rotation: -0.032),
   DanceJointKey(25, rotation: 0.09), // gathers against the kick side

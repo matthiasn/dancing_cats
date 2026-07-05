@@ -714,7 +714,7 @@ const _sekemHeadKeys = [
   DanceJointKey(16, rotation: 0.12), // the L side takes the phrase (0.15 tripped the downbeat-squash gate)
   DanceJointKey(18, rotation: 0.09), // r6: re-arm — bars 3-4 crests decayed to half
   DanceJointKey(24, rotation: 0.12),
-  DanceJointKey(26, rotation: 0.09),
+  // (f26 ripple dropped in r9 — it diluted the single-event read.)
   // r8: ONE clear authored head event in the back half — the skull snaps
   // into the loop's deepest dig (f28) instead of wiggling through it.
   DanceJointKey(28, rotation: 0.16),
