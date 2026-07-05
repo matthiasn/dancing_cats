@@ -199,13 +199,19 @@ void main() {
     // fail, the leveler regressed or was removed.
     expect(
       m.headSwing,
-      lessThan(95),
+      // 95 -> 98 (disappearing-neck fix): the leveler's downward budget is
+        // halved catalogue-wide so the collar can't swallow the chin; pounce
+        // trades ~2 units of head-level hold, still below the 99.5 pre-#65
+        // swing this bound guards against.
+        lessThan(98),
       reason: 'spine leveler should hold pounce head-swing below the pre-fix '
           '99.5 units',
     );
     expect(
       m.coupling,
-      lessThan(1.28),
+      // 1.28 -> 1.32 (same disappearing-neck trade as the swing bound above;
+        // still below the 1.34 pre-#65 coupling this guards against).
+        lessThan(1.32),
       reason: 'head should ride at/under the pre-fix 1.34 head/hips coupling',
     );
     final headNeckMax = headNeck.reduce(math.max);
