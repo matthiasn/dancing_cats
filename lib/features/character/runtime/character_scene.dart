@@ -964,6 +964,82 @@ class CharacterScene {
     };
   }
 
+  /// Fraction of a 32-frame phrase step over which a hand target's ARRIVAL
+  /// velocity into a keyframe is measured (see [_handTargetFollowThrough]).
+  static const double _kFollowArrivalWindow = 0.4;
+  static const double _kFollowProbeEps = 1 / (32 * 48);
+
+  /// Minimum arrival speed (target units per unit phase) for a keyframe to
+  /// count as a "hit" worth a follow-through — skips holds and micro-moves.
+  static const double _kFollowMinArrivalSpeed = 80;
+
+  /// A hit "stops" (earns a follow-through) when its outgoing speed is at most
+  /// this fraction of its arrival speed — a fast-in / ~stopped-out arrival.
+  static const double _kFollowMaxOutgoingRatio = 0.5;
+
+  /// How far a hand overshoots past a hit at the follow-through peak, as a
+  /// fraction of its arrival-window travel. Perceptual dial.
+  static const double _kFollowGain = 1;
+
+  /// Cap (target-space units) on the arrival-window travel that scales the
+  /// overshoot. An extreme hit into a near-degenerate elbow (zanku's volatile
+  /// two-bone reach) would otherwise drive a jerk spike; capping the driving
+  /// travel scales the whole envelope down uniformly, so it bounds the
+  /// amplitude without breaking the C1 shape or touching normal hits.
+  static const double _kFollowMaxArrivalTravel = 9;
+
+  /// Peak of the C1 envelope `u²·(1-u)³` (at u = 0.4) inverted, so multiplying
+  /// by it normalises the envelope's peak to 1.
+  static const double _kFollowEnvNorm = 28.935;
+
+  /// Damped follow-through in HAND-TARGET space. After a hand IK target
+  /// decelerates into a keyframe hit (fast arrival, ~stopped departure), the
+  /// target briefly overshoots PAST the hit in the arrival direction, then
+  /// returns — so the two-bone IK solver tracks a smooth overshooting target
+  /// and the whole arm follows through, instead of perturbing the post-IK
+  /// elbow rotation (which fought the joint-limit clamp / the near-degenerate
+  /// elbow and injected an amplitude-independent jerk spike). The envelope
+  /// `u²·(1-u)³` is zero with zero slope at BOTH keyframe ends, so it perturbs
+  /// only the interpolated region and every authored hit still lands on its
+  /// beat — a pure function of phase (channel re-sampled, no per-frame state).
+  (double, double) _handTargetFollowThrough(
+    IkTargetChannel channel,
+    double phase,
+  ) {
+    const frameCount = 32;
+    final frameLocal = phase * frameCount;
+    final frameIndex = frameLocal.floor();
+    final u = frameLocal - frameIndex;
+    if (u <= 1e-6 || u >= 1 - 1e-6) return (0, 0);
+    double wrap(double p) {
+      final q = p - p.floorToDouble();
+      return q < 0 ? q + 1 : q;
+    }
+
+    final t0 = frameIndex / frameCount;
+    const arrivalPhase = _kFollowArrivalWindow / frameCount;
+    final approach = channel.sample(wrap(t0 - arrivalPhase));
+    final at = channel.sample(wrap(t0));
+    final after = channel.sample(wrap(t0 + _kFollowProbeEps));
+    final adx = at.x - approach.x;
+    final ady = at.y - approach.y;
+    final arrivalSpeed = math.sqrt(adx * adx + ady * ady) / arrivalPhase;
+    if (arrivalSpeed < _kFollowMinArrivalSpeed) return (0, 0);
+    final odx = after.x - at.x;
+    final ody = after.y - at.y;
+    final outgoingSpeed = math.sqrt(odx * odx + ody * ody) / _kFollowProbeEps;
+    if (outgoingSpeed > arrivalSpeed * _kFollowMaxOutgoingRatio) return (0, 0);
+    // Cap the driving travel so an extreme reach can't spike jerk (uniform
+    // scale — preserves the C1 envelope).
+    final travel = math.sqrt(adx * adx + ady * ady);
+    final cap = travel > _kFollowMaxArrivalTravel
+        ? _kFollowMaxArrivalTravel / travel
+        : 1.0;
+    final env =
+        _kFollowGain * _kFollowEnvNorm * u * u * math.pow(1 - u, 3).toDouble();
+    return (env * adx * cap, env * ady * cap);
+  }
+
   Pose _limbTargetedPose(Clip clip, double timeSeconds, Pose pose) {
     if (clip.limbTargets.isEmpty) return pose;
 
@@ -1031,8 +1107,20 @@ class CharacterScene {
         return rank(a).compareTo(rank(b));
       });
     for (final target in orderedTargets) {
-      final sample =
+      var sample =
           clearedHands[target.endBoneId] ?? target.channel.sample(phase);
+      // Hand-target-space follow-through: overshoot the smooth target the
+      // solver tracks, so the whole arm settles coherently after a hit.
+      if (_isHandBone(target.endBoneId) && _isDanceFamily(clip)) {
+        final (fdx, fdy) = _handTargetFollowThrough(target.channel, phase);
+        if (fdx != 0 || fdy != 0) {
+          sample = IkTargetPose(
+            x: sample.x + fdx,
+            y: sample.y + fdy,
+            weight: sample.weight,
+          );
+        }
+      }
       final weight = sample.weight.clamp(0.0, 1.0);
       if (weight <= 0) continue;
 
