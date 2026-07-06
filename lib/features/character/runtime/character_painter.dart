@@ -212,6 +212,57 @@ Color _saturated(Color color, double amount) {
   scale: 1.0 + (formation.scale - 1.0) * weight,
 );
 
+/// `CharacterPainter._danceFormation`, but cross-fades across a dance<->dance
+/// move change instead of hard-switching clocks at the transition's first
+/// frame.
+///
+/// A [Clip.transitionPlan] blend keeps a single shared clock (`timeSeconds`
+/// == the INCOMING clip's own seconds — see `blendedClip`'s `seconds:
+/// to.seconds`), so sampling `_danceFormation` directly at that clock reads
+/// the OUTGOING clip's formation at the wrong phase for the whole transition,
+/// then snaps to the incoming clip's phase at the very first blended frame —
+/// independent of the 0.18s pose blend still mostly showing the outgoing
+/// pose. `_danceFormation`'s pulses (`_pulse`/`_holdPulse`) are deliberately
+/// sharp step functions, so this clock mismatch can pop the whole trio's
+/// on-screen spacing in a single frame even while the joints themselves are
+/// barely blended (confirmed via transitions-r6 pixel-diff: shaku->buga's
+/// single worst adjacent-frame delta in a 2.5s window landed exactly here).
+/// Fix: evaluate each side on its OWN clock/duration, then lerp by the same
+/// [ClipTransitionPlan.weight] the pose blend already uses.
+({double dx, double dy, double scale}) _danceFormationAcrossBlend(
+  int index,
+  int memberCount,
+  double timeSeconds,
+  Clip memberClip,
+) {
+  final plan = memberClip.transitionPlan;
+  if (plan == null) {
+    return CharacterPainter._danceFormation(
+      index,
+      memberCount,
+      timeSeconds,
+      memberClip.duration,
+    );
+  }
+  final from = CharacterPainter._danceFormation(
+    index,
+    memberCount,
+    timeSeconds + plan.fromTimeShiftSeconds,
+    plan.from.duration,
+  );
+  final to = CharacterPainter._danceFormation(
+    index,
+    memberCount,
+    timeSeconds,
+    plan.to.duration,
+  );
+  return (
+    dx: from.dx + (to.dx - from.dx) * plan.weight,
+    dy: from.dy + (to.dy - from.dy) * plan.weight,
+    scale: from.scale + (to.scale - from.scale) * plan.weight,
+  );
+}
+
 /// Lerps a full [heroStage] toward identity (no depth/position bonus) by
 /// [weight] — see [_trioDanceWeight].
 ({double depthBonus, double dy, double dx}) _lerpHeroStage(
@@ -660,7 +711,7 @@ class CharacterPainter extends CustomPainter {
         // instead of popping it on at the blend's first frame.
         final formation = leadCentreOrder
             ? _lerpFormation(
-                _danceFormation(i, members.length, timeSeconds, memberClip.duration),
+                _danceFormationAcrossBlend(i, members.length, timeSeconds, memberClip),
                 danceWeight,
               )
             : (dx: 0.0, dy: 0.0, scale: 1.0);

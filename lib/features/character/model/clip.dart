@@ -1229,10 +1229,19 @@ class ClipTransitionPlan {
     required this.from,
     required this.to,
     required this.weight,
+    this.fromTimeShiftSeconds = 0,
   }) : assert(weight >= 0 && weight <= 1, 'weight must be in 0..1');
 
   final Clip from;
   final Clip to;
+
+  /// Added to the shared clock to recover [from]'s OWN phrase-clock seconds
+  /// during the blend (mirrors the shift already applied when sampling
+  /// [from]'s channels — see [blendedClip]'s own parameter of the same
+  /// name). Anything that derives a time-varying value from this transition
+  /// plan (e.g. a dance formation) needs `from`'s own clock, not the shared
+  /// one, or it silently reads `from`'s motion at the wrong phase.
+  final double fromTimeShiftSeconds;
   final double weight;
 }
 
@@ -1485,7 +1494,26 @@ Clip blendedClip({
     enforceSoleFloor: rootWeight < 0.5
         ? from.enforceSoleFloor
         : to.enforceSoleFloor,
-    transitionPlan: ClipTransitionPlan(from: from, to: to, weight: weight),
+    // A blended clip used to silently drop BOTH sides' z-order swap windows
+    // (this field had no entry above and so fell back to the empty default,
+    // popping a hand/limb whose paint order was swapped for the outgoing
+    // move's current beat back to the rig's static order the instant a
+    // transition began — a real pop confirmed via transitions-r6 pixel-diff,
+    // even though nothing about the POSE changed). This value is only a
+    // fallback for any caller reading `clip.zOrderSwaps` directly; the
+    // render path (`CharacterScene._activeZOrderSwaps`) evaluates `from`/`to`
+    // against their OWN clocks via [transitionPlan] instead of trusting this
+    // field, since evaluating either side's window against the WRONG clock
+    // (the shared blend clock) reads it as permanently inactive — same
+    // midpoint-switch pattern as [enforceSoleFloor] above, but see that
+    // method's own doc comment for why the clock still has to be per-side.
+    zOrderSwaps: rootWeight < 0.5 ? from.zOrderSwaps : to.zOrderSwaps,
+    transitionPlan: ClipTransitionPlan(
+      from: from,
+      to: to,
+      weight: weight,
+      fromTimeShiftSeconds: fromTimeShiftSeconds,
+    ),
     dynamics: DanceDynamics.lerp(from.dynamics, to.dynamics, rootWeight),
   );
 }
