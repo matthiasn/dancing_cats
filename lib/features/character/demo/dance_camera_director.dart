@@ -145,18 +145,46 @@ const double kMoveCutNudgeZoom = 0.022;
 /// rig's smoothing exists to absorb OTHER systems' steps (seeks, the energy
 /// gate), not to launder a fresh one this file introduces itself. Without an
 /// attack ramp the TARGET would jump by the full [kMoveCutNudgeZoom] in the
-/// single frame [DanceCameraContext.secondsSinceMoveCut] first reads 0 — the
-/// rig happens to smooth that into an acceptable EASED output, but the
-/// existing "director TARGET never steps" contract wouldn't actually hold if
-/// exercised against a real cut. This ramp keeps the per-frame target delta
-/// under that contract's existing per-frame budget at 60fps.
-const double kMoveCutNudgeAttackSeconds = 0.15;
+/// single frame [DanceCameraContext.secondsSinceMoveCut] first reads 0,
+/// breaking the "director TARGET never steps" contract. This ramp keeps the
+/// per-frame target delta under that contract's existing per-frame budget at
+/// 60fps.
+///
+/// The caller (`DancePlaybackStepper.advance`) applies this nudge to the
+/// camera's output AFTER the rig's own smoothing rather than folding it into
+/// the rig's target: a cinematography panel review measured that running it
+/// through the rig's `kDanceCameraSmoothTime` (0.5s) — comparable to this
+/// nudge's own ~0.5s total width — cut its peak by roughly two-thirds and
+/// pushed the peak a third of a second late, reading on screen as either "no
+/// push-in at all" or "a slow creep that keeps growing," never the crisp
+/// on-the-beat acknowledgment it's meant to be. This function's own
+/// attack/decay shape already keeps it smooth; it doesn't need, and doesn't
+/// survive, a second independent low-pass filter stacked on top.
+///
+/// Because it now reaches the screen at full, unattenuated amplitude, its own
+/// peak velocity (a smoothstep ramp's steepest slope is `1.5 * amplitude /
+/// duration`) must itself respect the project's dolly-speed ceiling
+/// (`dance_camera_continuity_test.dart`'s `< 0.20` zoom/s bound) — 0.15s gave
+/// ~0.22 zoom/s, just over. 0.18s brings it to ~0.183, with headroom for
+/// whatever the base shot is doing at the same instant.
+const double kMoveCutNudgeAttackSeconds = 0.18;
 
 /// Seconds the move-cut nudge takes to decay back to zero AFTER the attack.
 /// Short relative to even the fastest dance-move cut spacing (multiple beats
 /// at any authored tempo), so it can never still be live when the next cut
 /// lands and stack into a bigger, untuned bump.
 const double kMoveCutNudgeDecaySeconds = 0.35;
+
+/// Seconds of margin [cameraShot] fades the move-cut nudge out over near a
+/// section-launch window or an upcoming section boundary (see the fade in
+/// [cameraShot]'s return). Matches the nudge's own full lifetime (attack +
+/// decay) rather than just its attack: a cut can land anywhere relative to a
+/// boundary, so the nudge might be at ANY point in its curve — mid-decay, not
+/// just mid-attack — when a boundary arrives, and the fade must be wide
+/// enough to reach zero before the boundary regardless of where in its curve
+/// the nudge currently sits.
+const double _kMoveCutNudgeGuardSeconds =
+    kMoveCutNudgeAttackSeconds + kMoveCutNudgeDecaySeconds;
 
 /// A fast, self-contained zoom "hit" that ramps up over
 /// [kMoveCutNudgeAttackSeconds] then eases back to zero over
@@ -390,22 +418,10 @@ Shot cameraShot(DanceCameraContext c) {
     c.sectionPhase,
     launchSeconds: launchSeconds,
   );
-  // Whether a SECTION-level boundary event (a chorus-style launch just fired,
-  // or the anticipated glide into the next section is already under way) is
-  // active right now — both are deliberate, precisely-timed camera moves of
-  // their own (see the library doc's "anticipated, never punched" rule), so
-  // the much smaller move-cut nudge below defers to them entirely rather than
-  // stacking into their tuned crest/arrival timing. A dance-move segment
-  // often starts exactly on a section boundary (verified: the continuity
-  // test's chorus-drop crest-timing assertion failed once the nudge was added
-  // unconditionally), so this is not a rare edge case.
-  final sectionEventActive = launchSeconds < _kLaunchWindowSeconds;
   final next = c.nextSection;
-  var anticipating = false;
   if (next != null) {
     final window = cameraAnticipationWindow(next, c.nextOccurrence);
     if (c.secondsToNext < window) {
-      anticipating = true;
       // Glide begins [window] seconds out and PARKS on the next home
       // kCameraArriveLeadSeconds early, so the rig's settle lands on the beat
       // — then the next section's LAUNCH clock starts running
@@ -429,9 +445,33 @@ Shot cameraShot(DanceCameraContext c) {
   // Zoom-linked headroom trim for the tight registers (see [tightShotDrop]),
   // plus the move-cut nudge (see [_moveCutNudge]) — both additive, applied
   // after section blending so they're continuous wherever the base shot is.
-  final nudge = sectionEventActive || anticipating
-      ? 0.0
-      : _moveCutNudge(c.secondsSinceMoveCut);
+  //
+  // A SECTION-level boundary event (a chorus-style launch just fired, or the
+  // boundary itself is imminent) is a deliberate, precisely-timed camera move
+  // of its own (see the library doc's "anticipated, never punched" rule), so
+  // the much smaller move-cut nudge defers to it rather than stacking into
+  // its tuned crest/arrival timing. A dance-move segment often starts exactly
+  // on a section boundary (verified: the continuity test's chorus-drop
+  // crest-timing assertion failed once the nudge was added unconditionally),
+  // so this is not a rare edge case — which is exactly why the deference
+  // below is a smooth FADE, not a hard on/off: [_moveCutNudge] can be
+  // anywhere in its own decay when a launch window opens or a boundary
+  // arrives, and a hard cut would snap it to/from zero in one frame — a
+  // bigger, sharper pop than the jump-cut it exists to fix (caught by a
+  // cinematography panel once the nudge was moved to apply post-rig-smoothing
+  // — see [DancePlaybackStepper.advance] — which stopped a slow filter from
+  // laundering exactly this kind of step).
+  final postLaunchFade = smoothstep(
+    ((launchSeconds - _kLaunchWindowSeconds) / _kMoveCutNudgeGuardSeconds)
+        .clamp(0.0, 1.0),
+  );
+  final preBoundaryFade = c.secondsToNext.isFinite
+      ? smoothstep(
+          (c.secondsToNext / _kMoveCutNudgeGuardSeconds).clamp(0.0, 1.0),
+        )
+      : 1.0;
+  final nudge =
+      _moveCutNudge(c.secondsSinceMoveCut) * postLaunchFade * preBoundaryFade;
   return (
     zoom: shot.zoom + nudge,
     dx: shot.dx,
