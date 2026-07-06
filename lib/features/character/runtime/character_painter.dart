@@ -112,6 +112,9 @@ const Color _kFaceKeySeat = Color(0x2814233B);
 /// flat-tan-sticker read.
 const Color _kFaceCoolFill = Color(0x52223E5C);
 
+Color _alphaScaled(Color color, double factor) =>
+    color.withValues(alpha: color.a * factor.clamp(0.0, 1.0));
+
 /// Deep, cool floor occlusion pressed under each dancer's feet (a radial fading
 /// to clear) so the trio is GROUNDED on the painted deck — a real contact shadow
 /// the figure occludes the floor with — instead of floating over the additive
@@ -1070,30 +1073,33 @@ class CharacterPainter extends CustomPainter {
       size: size,
       memberScale: memberScale,
     );
+    final collarFeather = 18 * memberScale;
     _paintFaceSeat(
       canvas,
       gradeBounds: gradeBounds,
       collarY: collarY,
+      collarFeather: collarFeather,
       memberCentreX: memberCentreX,
       memberFloorY: memberFloorY,
       size: size,
       memberScale: memberScale,
-      rimDir: rimDir,
     );
     _paintBodySeatAndTwilightWrap(
       canvas,
       grade: grade,
       gradeBounds: gradeBounds,
       collarY: collarY,
+      collarFeather: collarFeather,
       memberCentreX: memberCentreX,
       memberFloorY: memberFloorY,
       size: size,
       memberScale: memberScale,
     );
     if (glow != null && glow.a > 0) {
-      canvas
-        ..save()
-        ..clipRect(_bodyGradeRect(gradeBounds, collarY));
+      canvas.saveLayer(
+        gradeBounds,
+        Paint()..blendMode = BlendMode.srcATop,
+      );
       _paintGelTerminatorAndRim(
         canvas,
         gradeBounds: gradeBounds,
@@ -1103,6 +1109,7 @@ class CharacterPainter extends CustomPainter {
         memberScale: memberScale,
         rimDir: rimDir,
         glow: glow,
+        blendMode: BlendMode.srcOver,
       );
       _paintFloorPoolBounce(
         canvas,
@@ -1112,6 +1119,13 @@ class CharacterPainter extends CustomPainter {
         size: size,
         memberScale: memberScale,
         glow: glow,
+        blendMode: BlendMode.srcOver,
+      );
+      _paintBodyFadeMask(
+        canvas,
+        gradeBounds: gradeBounds,
+        fadeStart: collarY - collarFeather * 0.5,
+        fadeEnd: collarY + collarFeather * 2.5,
       );
       canvas.restore();
     }
@@ -1134,96 +1148,105 @@ class CharacterPainter extends CustomPainter {
     return memberFloorY - size.height * 0.20 * memberScale;
   }
 
-  Rect _bodyGradeRect(Rect gradeBounds, double collarY) => Rect.fromLTRB(
-    gradeBounds.left,
-    collarY,
-    gradeBounds.right,
-    gradeBounds.bottom,
-  );
+  void _paintBodyFadeMask(
+    Canvas canvas, {
+    required Rect gradeBounds,
+    required double fadeStart,
+    required double fadeEnd,
+  }) {
+    canvas.drawRect(
+      gradeBounds,
+      Paint()
+        ..blendMode = BlendMode.dstIn
+        ..shader = ui.Gradient.linear(
+          Offset(0, fadeStart),
+          Offset(0, fadeEnd),
+          const [Color(0x00FFFFFF), Color(0xFFFFFFFF)],
+        ),
+    );
+  }
 
-  /// FACE grade — above the collar. A SOFT warm-key→cool-fill split along
-  /// this lane's gel direction: the key side keeps the warm muzzle tone the
-  /// rim reads against, the shadow side cools toward the blue-hour ambient.
-  /// Broad stops + low contrast so the break never resolves into a hard
-  /// line that swims as the head bobs (the "face is all off" failure).
+  /// FACE grade — above the collar, fading out through the collar/tie knot
+  /// instead of clipping on a horizontal seam.
   void _paintFaceSeat(
     Canvas canvas, {
     required Rect gradeBounds,
     required double collarY,
+    required double collarFeather,
     required double memberCentreX,
     required double memberFloorY,
     required Size size,
     required double memberScale,
-    required Offset rimDir,
   }) {
-    final faceMid = Offset(
-      memberCentreX,
-      memberFloorY - size.height * 0.32 * memberScale,
-    );
-    final faceReach = rimDir * (size.height * 0.13 * memberScale);
-    canvas
-      ..save()
-      ..clipRect(
-        Rect.fromLTRB(
-          gradeBounds.left,
-          gradeBounds.top,
-          gradeBounds.right,
-          collarY,
+    final faceTop = memberFloorY - size.height * 0.46 * memberScale;
+    final fadeStart = collarY - collarFeather;
+    final fadeEnd = collarY + collarFeather;
+    final span = math.max(1, fadeEnd - faceTop);
+    final fadeStartStop = ((fadeStart - faceTop) / span).clamp(0.15, 0.9);
+    final midStop = math.max(0.05, fadeStartStop * 0.55);
+    canvas.drawRect(
+      gradeBounds,
+      Paint()
+        ..blendMode = BlendMode.srcATop
+        ..shader = ui.Gradient.linear(
+          Offset(memberCentreX, faceTop),
+          Offset(memberCentreX, fadeEnd),
+          [
+            _kFaceKeySeat,
+            _kFaceSeat,
+            _kFaceCoolFill,
+            _alphaScaled(_kFaceCoolFill, 0),
+          ],
+          [0.0, midStop, fadeStartStop, 1.0],
         ),
-      )
-      ..drawRect(
-        gradeBounds,
-        Paint()
-          ..blendMode = BlendMode.srcATop
-          ..shader = ui.Gradient.linear(
-            faceMid + faceReach, // key side (toward the gel source)
-            faceMid - faceReach, // shadow side
-            const [_kFaceKeySeat, _kFaceSeat, _kFaceCoolFill],
-            const [0.0, 0.5, 1.0],
-          ),
-      )
-      ..restore();
+    );
   }
 
-  /// BODY seat + twilight wrap — below the collar. Seats the body DOWN
-  /// toward the plate's shadow floor (cool, desaturate, crush) — the
-  /// opposite of the old lift; the wrap + gel (see [_paintGelTerminatorAndRim])
-  /// model a lit side back onto the now-darker figure so it reads as volume,
-  /// not a flat black silhouette.
+  /// BODY seat + twilight wrap, faded in through the collar/tie area. A hard
+  /// clip here draws a visible horizontal line across the knot and muzzle.
   void _paintBodySeatAndTwilightWrap(
     Canvas canvas, {
     required ({Color skyWrap, Color deckWrap}) grade,
     required Rect gradeBounds,
     required double collarY,
+    required double collarFeather,
     required double memberCentreX,
     required double memberFloorY,
     required Size size,
     required double memberScale,
   }) {
-    canvas
-      ..save()
-      ..clipRect(_bodyGradeRect(gradeBounds, collarY))
-      ..drawRect(
-        gradeBounds,
-        Paint()
-          ..blendMode = BlendMode.srcATop
-          ..color = _kBodySeat,
-      )
-      ..drawRect(
-        gradeBounds,
-        Paint()
-          ..blendMode = BlendMode.srcATop
-          ..shader = ui.Gradient.linear(
-            Offset(
-              memberCentreX,
-              memberFloorY - size.height * 0.52 * memberScale,
-            ),
-            Offset(memberCentreX, memberFloorY),
-            [grade.skyWrap, const Color(0x00000000), grade.deckWrap],
-            const [0.0, 0.52, 1.0],
-          ),
-      )
-      ..restore();
+    final fadeStart = collarY - collarFeather;
+    final fadeEnd = collarY + collarFeather;
+    canvas.drawRect(
+      gradeBounds,
+      Paint()
+        ..blendMode = BlendMode.srcATop
+        ..shader = ui.Gradient.linear(
+          Offset(memberCentreX, fadeStart),
+          Offset(memberCentreX, fadeEnd),
+          [_alphaScaled(_kBodySeat, 0), _kBodySeat],
+        ),
+    );
+
+    final span = math.max(1, memberFloorY - fadeStart);
+    final fullStop = ((fadeEnd - fadeStart) / span).clamp(0.02, 0.35);
+    final clearStop = math.max(fullStop + 0.14, 0.52).clamp(0.0, 0.92);
+    canvas.drawRect(
+      gradeBounds,
+      Paint()
+        ..blendMode = BlendMode.srcATop
+        ..shader = ui.Gradient.linear(
+          Offset(memberCentreX, fadeStart),
+          Offset(memberCentreX, memberFloorY),
+          [
+            _alphaScaled(grade.skyWrap, 0),
+            grade.skyWrap,
+            const Color(0x00000000),
+            grade.deckWrap,
+          ],
+          [0.0, fullStop, clearStop, 1.0],
+        ),
+    );
   }
 
   /// GENTLE beat breath. The gel key is the SAME stage light that pulses
@@ -1249,6 +1272,7 @@ class CharacterPainter extends CustomPainter {
     required double memberScale,
     required Offset rimDir,
     required Color glow,
+    BlendMode blendMode = BlendMode.srcATop,
   }) {
     final mid = Offset(
       memberCentreX,
@@ -1272,7 +1296,7 @@ class CharacterPainter extends CustomPainter {
       ..drawRect(
         gradeBounds,
         Paint()
-          ..blendMode = BlendMode.srcATop
+          ..blendMode = blendMode
           ..shader = ui.Gradient.linear(
             mid + reach, // lit, source-facing side
             mid - reach, // shadow side
@@ -1297,7 +1321,7 @@ class CharacterPainter extends CustomPainter {
       ..drawRect(
         gradeBounds,
         Paint()
-          ..blendMode = BlendMode.srcATop
+          ..blendMode = blendMode
           ..shader = ui.Gradient.linear(
             mid + reach, // lit edge — hot
             mid - reach, // shadow side — gone
@@ -1328,12 +1352,13 @@ class CharacterPainter extends CustomPainter {
     required Size size,
     required double memberScale,
     required Color glow,
+    BlendMode blendMode = BlendMode.srcATop,
   }) {
     final bounce = (0.07 + 0.08 * glow.a).clamp(0.07, 0.15);
     canvas.drawRect(
       gradeBounds,
       Paint()
-        ..blendMode = BlendMode.srcATop
+        ..blendMode = blendMode
         ..shader = ui.Gradient.linear(
           Offset(memberCentreX, memberFloorY),
           Offset(
