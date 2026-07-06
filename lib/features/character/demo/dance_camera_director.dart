@@ -134,6 +134,33 @@ const double kTightShotDropRef = 26;
 double tightShotDrop(double zoom) =>
     kTightShotDropRef * smoothstep(((zoom - 1.38) / 0.08).clamp(0.0, 1.0));
 
+/// Additive zoom amplitude of the move-cut "hit" (see [DanceCameraContext.
+/// secondsSinceMoveCut]) — small enough to read as a camera acknowledging an
+/// edit, not a fresh accent competing with the section's own push.
+const double kMoveCutNudgeZoom = 0.022;
+
+/// Seconds the move-cut nudge takes to decay back to zero. Short relative to
+/// even the fastest dance-move cut spacing (multiple beats at any authored
+/// tempo), so it can never still be live when the next cut lands and stack
+/// into a bigger, untuned bump.
+const double kMoveCutNudgeSeconds = 0.32;
+
+/// A fast, self-contained zoom "hit" at [secondsSinceMoveCut] == 0, easing
+/// back to zero over [kMoveCutNudgeSeconds] — the camera's only
+/// acknowledgment of a dance-to-dance move cut. Deliberately NOT a change to
+/// any section's own continuous treatment (see the library doc's "anticipated,
+/// never punched" rule for SECTION boundaries): move cuts are far more
+/// frequent and were getting zero camera language at all, which the
+/// cinematography panel unanimously read as an accidental jump-cut. Additive
+/// and fast enough (a third of a second) to never fight the section's own,
+/// much slower build.
+double _moveCutNudge(double secondsSinceMoveCut) {
+  if (secondsSinceMoveCut.isInfinite || secondsSinceMoveCut < 0) return 0;
+  final decay =
+      1 - smoothstep((secondsSinceMoveCut / kMoveCutNudgeSeconds).clamp(0.0, 1.0));
+  return kMoveCutNudgeZoom * decay;
+}
+
 /// Seconds of anticipation for a boundary INTO [next] (at [nextOccurrence]).
 /// Big lateral re-stagings need a longer runway to stay at dolly speeds AND
 /// slow enough that the drop's own launch-push — not the approach — owns the
@@ -181,6 +208,7 @@ class DanceCameraContext {
     this.secondsToNext = double.infinity,
     this.nextSection,
     this.nextOccurrence = 0,
+    this.secondsSinceMoveCut = double.infinity,
   });
 
   /// Section label (lower-case: intro/verse/pre-chorus/chorus/post-chorus/
@@ -224,6 +252,19 @@ class DanceCameraContext {
 
   /// [occurrence] of the next section.
   final int nextOccurrence;
+
+  /// Seconds since the most recent dance-to-dance MOVE cut (shaku->buga and
+  /// the like) landed — infinity when there hasn't been one (or it's an
+  /// idle<->dance handoff, which gets its own long, calm settle and no camera
+  /// punctuation). Drives [_moveCutNudge]. This is a different clock from
+  /// [secondsToNext]/[nextSection]: those track SECTION boundaries (verse ->
+  /// chorus, seconds to minutes apart), which the director anticipates with
+  /// a slow continuous glide by deliberate design (see the library doc — no
+  /// punches). Individual dance-move changes happen far more often, inside
+  /// one section, and got no camera acknowledgment at all; the cinematography
+  /// panel unanimously read a fully static camera through every such cut as
+  /// an accidental jump-cut rather than a directed edit.
+  final double secondsSinceMoveCut;
 }
 
 /// Builds the context from the absolute (fractional) beat and the loop binding.
@@ -244,6 +285,7 @@ DanceCameraContext cameraContext({
   double secondsToNext = double.infinity,
   String? nextSection,
   int nextOccurrence = 0,
+  double secondsSinceMoveCut = double.infinity,
 }) {
   final rel = beat - anchorBeat;
   var phrase = loopLengthBeats > 0 ? (rel / loopLengthBeats) % 1.0 : 0.0;
@@ -259,6 +301,7 @@ DanceCameraContext cameraContext({
     secondsToNext: math.max(0, secondsToNext),
     nextSection: nextSection,
     nextOccurrence: nextOccurrence,
+    secondsSinceMoveCut: math.max(0, secondsSinceMoveCut),
   );
 }
 
@@ -326,10 +369,22 @@ Shot cameraShot(DanceCameraContext c) {
     c.sectionPhase,
     launchSeconds: launchSeconds,
   );
+  // Whether a SECTION-level boundary event (a chorus-style launch just fired,
+  // or the anticipated glide into the next section is already under way) is
+  // active right now — both are deliberate, precisely-timed camera moves of
+  // their own (see the library doc's "anticipated, never punched" rule), so
+  // the much smaller move-cut nudge below defers to them entirely rather than
+  // stacking into their tuned crest/arrival timing. A dance-move segment
+  // often starts exactly on a section boundary (verified: the continuity
+  // test's chorus-drop crest-timing assertion failed once the nudge was added
+  // unconditionally), so this is not a rare edge case.
+  final sectionEventActive = launchSeconds < _kLaunchWindowSeconds;
   final next = c.nextSection;
+  var anticipating = false;
   if (next != null) {
     final window = cameraAnticipationWindow(next, c.nextOccurrence);
     if (c.secondsToNext < window) {
+      anticipating = true;
       // Glide begins [window] seconds out and PARKS on the next home
       // kCameraArriveLeadSeconds early, so the rig's settle lands on the beat
       // — then the next section's LAUNCH clock starts running
@@ -350,8 +405,17 @@ Shot cameraShot(DanceCameraContext c) {
       shot = _mix(shot, open, t);
     }
   }
-  // Zoom-linked headroom trim for the tight registers (see [tightShotDrop]).
-  return (zoom: shot.zoom, dx: shot.dx, dy: shot.dy + tightShotDrop(shot.zoom));
+  // Zoom-linked headroom trim for the tight registers (see [tightShotDrop]),
+  // plus the move-cut nudge (see [_moveCutNudge]) — both additive, applied
+  // after section blending so they're continuous wherever the base shot is.
+  final nudge = sectionEventActive || anticipating
+      ? 0.0
+      : _moveCutNudge(c.secondsSinceMoveCut);
+  return (
+    zoom: shot.zoom + nudge,
+    dx: shot.dx,
+    dy: shot.dy + tightShotDrop(shot.zoom),
+  );
 }
 
 /// The treatment for [section] at [sectionPhase], reusable for both the current

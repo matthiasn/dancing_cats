@@ -36,6 +36,11 @@ class DancePlaybackStepper {
   double _pendingUntil = 0;
   List<DanceDynamics>? _easedDynamics;
 
+  /// Audio position of the most recent dance-to-dance move cut (null before
+  /// the first one), for the camera director's move-cut nudge — see
+  /// [DanceCameraContext.secondsSinceMoveCut].
+  double? _lastMoveCutPos;
+
   /// How far open the frontman's mouth is (0 = shut), eased toward the cue.
   double get leadMouth => _leadMouth;
 
@@ -87,7 +92,12 @@ class DancePlaybackStepper {
     final rawStage = perf?.stageAt(pos) ?? danceIdleStage(pos);
     final transitioned = _stageWithTransition(rawStage, dt, perf: perf, pos: pos);
     final stage = _easedDynamicsStage(transitioned, dt);
-    final ctx = perf?.directorContext(pos, energetic: stage.energetic);
+    final lastCut = _lastMoveCutPos;
+    final ctx = perf?.directorContext(
+      pos,
+      energetic: stage.energetic,
+      secondsSinceMoveCut: lastCut == null ? double.infinity : pos - lastCut,
+    );
     final target = ctx == null ? _shot : cameraShot(ctx);
     _shot = _cameraRig.update(target: target, dt: dt);
     _stage = stage;
@@ -177,6 +187,7 @@ class DancePlaybackStepper {
       }
       _pendingFrom = null;
       _transition = _DanceStageTransition(from: from, elapsed: 0);
+      if (from.energetic && raw.energetic) _lastMoveCutPos = pos;
     } else {
       _rawStage = raw;
     }
@@ -188,6 +199,7 @@ class DancePlaybackStepper {
       }
       _pendingFrom = null;
       _transition = _DanceStageTransition(from: pending, elapsed: 0);
+      _lastMoveCutPos = pos;
     }
 
     final transition = _transition;

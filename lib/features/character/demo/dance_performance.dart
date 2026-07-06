@@ -615,7 +615,11 @@ class DancePerformance {
   /// section it carries the section's occurrence (keys the per-refrain chorus
   /// homes) and the NEXT section with the seconds until it starts, which drive
   /// the director's anticipated dolly into each boundary.
-  DanceCameraContext directorContext(double pos, {required bool energetic}) {
+  DanceCameraContext directorContext(
+    double pos, {
+    required bool energetic,
+    double secondsSinceMoveCut = double.infinity,
+  }) {
     final info = sectionInfoAt(pos);
     DanceSectionSpan? next;
     for (final s in sectionSpans) {
@@ -639,6 +643,7 @@ class DancePerformance {
       nextOccurrence: next == null
           ? 0
           : sectionOccurrenceAt(next.start, next.section),
+      secondsSinceMoveCut: secondsSinceMoveCut,
     );
   }
 
