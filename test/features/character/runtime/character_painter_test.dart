@@ -1811,10 +1811,12 @@ void main() {
 
   group('danceParallaxMatrixForShotAtDepth', () {
     const size = Size(800, 450);
-    // The director plants its pivot at the dancers' feet (0.88 of the height) so
-    // a zoom grows the cast upward; every plane scales about the SAME pivot or
-    // the scenery would slide off the planted feet.
-    const directorPivot = Offset(400, 450 * 0.88); // (400, 396)
+    // The director plants its pivot at the dancers' feet (0.90 of the height —
+    // matching CharacterPainter.feetFraction's default, the actual floor line;
+    // see _directorPivotFraction's doc comment) so a zoom grows the cast
+    // upward; every plane scales about the SAME pivot or the scenery would
+    // slide off the planted feet.
+    const directorPivot = Offset(400, 450 * 0.90); // (400, 405)
 
     Matrix4 at(
       ({double zoom, double dx, double dy}) shot,

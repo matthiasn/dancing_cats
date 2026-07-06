@@ -492,7 +492,18 @@ class CharacterPainter extends CustomPainter {
   /// the open sky, instead of shoving the feet off the bottom edge and leaving
   /// dead sky above the cast. Height-relative, so the composition holds at any
   /// stage size.
-  static const double _directorPivotFraction = 0.88;
+  ///
+  /// Transitions panel: this was 0.88 while the actual floor line
+  /// ([feetFraction]'s default) is 0.90 — a 2%-of-height mismatch between the
+  /// documented pivot and the real floor. Because the scene camera scales
+  /// about this pivot, a floor line sitting BELOW it means every push-in (all
+  /// dance zooms are > 1) pushed the feet further DOWN, the exact opposite of
+  /// this comment's own claim, shrinking an already-thin bottom margin
+  /// (feet repeatedly measured flush against the frame's bottom edge across
+  /// many review rounds, for every move, not one). Matching it to the real
+  /// floor line makes a push-in hold the feet in place as designed, instead
+  /// of consuming bottom margin on every zoom.
+  static const double _directorPivotFraction = 0.90;
 
   /// Zoom-pivot fraction for the built-in [danceCameraShot] push-in when no
   /// [cameraOverride] is supplied. Its keyframes were authored around a
