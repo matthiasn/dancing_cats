@@ -156,6 +156,7 @@ class DanceMoveDescriptor {
     this.rawRoot,
     this.supportFootWorldAnchor,
     this.supportFootWorldAnchorStrength,
+    this.supportFootWorldAnchorVerticalBoost,
     this.danceHeadBobScale,
     this.danceHeadLevelClampMin,
     this.enforceSoleFloor,
@@ -210,6 +211,9 @@ class DanceMoveDescriptor {
 
   final bool? supportFootWorldAnchor;
   final double? supportFootWorldAnchorStrength;
+
+  /// See [Clip.supportFootWorldAnchorVerticalBoost].
+  final double? supportFootWorldAnchorVerticalBoost;
   final double? danceHeadBobScale;
   final double? danceHeadLevelClampMin;
 

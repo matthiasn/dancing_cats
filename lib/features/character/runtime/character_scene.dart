@@ -1051,6 +1051,7 @@ class CharacterScene {
         weight,
         worldAnchor: planted ? (x: footAnchor.x, y: footAnchor.y) : null,
         anchorBlend: planted ? footAnchor.blend : 0,
+        anchorBlendY: planted ? footAnchor.blendY : 0,
         soleFloorY: soleFloorStrength > 0 ? soleFloor : null,
         soleFloorStrength: soleFloorStrength,
       );
@@ -1085,6 +1086,7 @@ class CharacterScene {
           weight,
           worldAnchor: planted ? (x: footAnchor.x, y: footAnchor.y) : null,
           anchorBlend: planted ? footAnchor.blend : 0,
+          anchorBlendY: planted ? footAnchor.blendY : 0,
           soleFloorY: soleFloorStrength > 0 ? soleFloor : null,
           soleFloorStrength: soleFloorStrength,
         );
@@ -1453,6 +1455,7 @@ class CharacterScene {
     double weight, {
     ({double x, double y})? worldAnchor,
     double anchorBlend = 0,
+    double? anchorBlendY,
     double? soleFloorY,
     double soleFloorStrength = 1,
   }) {
@@ -1485,8 +1488,12 @@ class CharacterScene {
     // so the leg bends to absorb the body's groove while the foot stays put
     // (instead of the foot dragging with the hips). [anchorBlend] fades to 0 at
     // the support handoff; it is gentle by design so the natural stance width is
-    // preserved (a hard hold narrows the astride into a leg-tangle).
-    var targetPoint = worldAnchor == null || anchorBlend <= 0
+    // preserved (a hard hold narrows the astride into a leg-tangle). [anchorBlendY]
+    // (defaults to [anchorBlend] when unset) lets the Y pull be strengthened
+    // independently of X for a move whose root authors a large SUSTAINED
+    // vertical sink — see [Clip.supportFootWorldAnchorVerticalBoost].
+    final blendY = anchorBlendY ?? anchorBlend;
+    var targetPoint = worldAnchor == null || (anchorBlend <= 0 && blendY <= 0)
         ? authoredTarget
         : (
             x:
@@ -1494,7 +1501,7 @@ class CharacterScene {
                 (worldAnchor.x - authoredTarget.x) * anchorBlend,
             y:
                 authoredTarget.y +
-                (worldAnchor.y - authoredTarget.y) * anchorBlend,
+                (worldAnchor.y - authoredTarget.y) * blendY,
           );
     // The support sole is the floor: clamp a free foot's target so a deep
     // pocket sink can never press it below the planted shoe (see
@@ -2635,12 +2642,13 @@ class CharacterScene {
   }
 
   /// The world-space origin of the active SUPPORT foot at the moment it planted
-  /// (its contact-span start), plus a `blend` that fades to 0 at the span edges.
+  /// (its contact-span start), plus a `blend` that fades to 0 at the span
+  /// edges (shared by X) and a `blendY` that additionally folds in
+  /// [Clip.supportFootWorldAnchorVerticalBoost] — see that field's doc
+  /// comment for why the vertical pull can be strengthened independently.
   /// Returns null unless the clip opts in via [Clip.supportFootWorldAnchor].
-  ({String bone, double x, double y, double blend})? _supportFootWorldAnchor(
-    Clip clip,
-    double phase,
-  ) {
+  ({String bone, double x, double y, double blend, double blendY})?
+  _supportFootWorldAnchor(Clip clip, double phase) {
     if (!clip.supportFootWorldAnchor || clip.contactSpans.isEmpty) return null;
     final contact = _activeContactAt(clip, phase);
     if (contact == null) return null;
@@ -2656,7 +2664,22 @@ class CharacterScene {
       contact.strengthPhase,
       clip.supportFootWorldAnchorStrength,
     );
-    return (bone: span.bone, x: origin.x, y: origin.y, blend: blend);
+    final blendY = clip.supportFootWorldAnchorVerticalBoost <= 0
+        ? blend
+        : _supportFootAnchorBlend(
+            span,
+            contact.strengthPhase,
+            (clip.supportFootWorldAnchorStrength +
+                    clip.supportFootWorldAnchorVerticalBoost)
+                .clamp(0.0, 1.0),
+          );
+    return (
+      bone: span.bone,
+      x: origin.x,
+      y: origin.y,
+      blend: blend,
+      blendY: blendY,
+    );
   }
 
   /// Edge-faded strength for the world foot anchor. Deliberately GENTLE — a

@@ -114,6 +114,10 @@ Clip assembleMoveClip(
         descriptor.supportFootWorldAnchorStrength ??
         base?.supportFootWorldAnchorStrength ??
         0.6,
+    supportFootWorldAnchorVerticalBoost:
+        descriptor.supportFootWorldAnchorVerticalBoost ??
+        base?.supportFootWorldAnchorVerticalBoost ??
+        0,
     danceHeadBobScale:
         descriptor.danceHeadBobScale ?? base?.danceHeadBobScale ?? 1,
     danceHeadLevelClampMin:

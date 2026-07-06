@@ -1276,6 +1276,7 @@ class Clip {
     this.limbTargets = const [],
     this.supportFootWorldAnchor = false,
     this.supportFootWorldAnchorStrength = 0.6,
+    this.supportFootWorldAnchorVerticalBoost = 0,
     this.danceHeadBobScale = 1.0,
     this.danceHeadLevelClampMin = -2.0,
     this.enforceSoleFloor = false,
@@ -1286,6 +1287,11 @@ class Clip {
          supportFootWorldAnchorStrength >= 0 &&
              supportFootWorldAnchorStrength <= 1,
          'support foot anchor strength must be in 0..1',
+       ),
+       assert(
+         supportFootWorldAnchorVerticalBoost >= 0 &&
+             supportFootWorldAnchorVerticalBoost <= 1,
+         'support foot anchor vertical boost must be in 0..1',
        );
 
   /// Display/lookup name.
@@ -1335,6 +1341,22 @@ class Clip {
   /// authored foot scuff; higher values read as a clearer plant for moves whose
   /// weight transfer depends on a visible support.
   final double supportFootWorldAnchorStrength;
+
+  /// Extra VERTICAL-only strength for [supportFootWorldAnchor], added on top
+  /// of [supportFootWorldAnchorStrength] but affecting only the anchor's Y
+  /// pull (effective Y strength is `(strength + boost).clamp(0, 1)`; X is
+  /// untouched). [supportFootWorldAnchorStrength] is deliberately gentle
+  /// because a strong pull on BOTH axes narrows the astride stance (see
+  /// `CharacterScene._supportFootAnchorBlend`'s doc comment) — but a move
+  /// whose root authors a large, SUSTAINED vertical sink (rather than a
+  /// brief dip that releases) leaks a correspondingly large vertical
+  /// residual through the same shared strength, reading as the character
+  /// sitting measurably lower on screen for its whole performance (a
+  /// cinematography panel caught this as an apparent camera-scale jump at
+  /// cuts into/out of such a move). This lets that residual be tightened
+  /// without touching the X correction the shared strength is tuned for.
+  /// Opt-in per clip; 0 (the default) changes nothing.
+  final double supportFootWorldAnchorVerticalBoost;
 
   /// Cycle period (loop) or total length (one-shot), in seconds.
   final double duration;
@@ -1481,6 +1503,11 @@ Clip blendedClip({
     ],
     supportFootWorldAnchor: supportFootAnchorStrength > 0,
     supportFootWorldAnchorStrength: supportFootAnchorStrength,
+    supportFootWorldAnchorVerticalBoost: _transitionSupportAnchorVerticalBoost(
+      from,
+      to,
+      weight,
+    ),
     danceHeadBobScale: _lerp(
       from.danceHeadBobScale,
       to.danceHeadBobScale,
@@ -1563,6 +1590,20 @@ double _transitionSupportAnchorStrength(
       : 0.0;
   final incoming = to.supportFootWorldAnchor
       ? to.supportFootWorldAnchorStrength * weight
+      : 0.0;
+  return (outgoing + incoming).clamp(0.0, 1.0);
+}
+
+double _transitionSupportAnchorVerticalBoost(
+  Clip from,
+  Clip to,
+  double weight,
+) {
+  final outgoing = from.supportFootWorldAnchor
+      ? from.supportFootWorldAnchorVerticalBoost * (1 - weight)
+      : 0.0;
+  final incoming = to.supportFootWorldAnchor
+      ? to.supportFootWorldAnchorVerticalBoost * weight
       : 0.0;
   return (outgoing + incoming).clamp(0.0, 1.0);
 }

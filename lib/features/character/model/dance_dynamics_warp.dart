@@ -83,6 +83,8 @@ Clip upperBodyDynamicsWarpedClip(
     limbTargets: limbTargets,
     supportFootWorldAnchor: clip.supportFootWorldAnchor,
     supportFootWorldAnchorStrength: clip.supportFootWorldAnchorStrength,
+    supportFootWorldAnchorVerticalBoost:
+        clip.supportFootWorldAnchorVerticalBoost,
     danceHeadBobScale: clip.danceHeadBobScale,
     danceHeadLevelClampMin: clip.danceHeadLevelClampMin,
     enforceSoleFloor: clip.enforceSoleFloor,

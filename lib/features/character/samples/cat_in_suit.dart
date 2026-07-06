@@ -811,6 +811,14 @@ class CatClips {
         contactPinning: base.contactPinning,
         supportFootWorldAnchor: true,
         supportFootWorldAnchorStrength: 0.9,
+        // Transitions panel: zanku's per-beat crouch DWELLS (a sustained
+        // root sink, not buga's transient dip-and-release), so the shared
+        // 0.9 strength's ~10% residual leaked a persistently lower average
+        // foot/screen position than any neighbouring move — read at a hard
+        // cut as an accidental ~15-20% camera push. This tightens only the
+        // vertical pull (stance width, tuned via the shared strength above,
+        // is untouched) — see Clip.supportFootWorldAnchorVerticalBoost.
+        supportFootWorldAnchorVerticalBoost: 0.09,
         danceHeadBobScale: 0.75,
         // Ornament-port round: zanku joins the sole-floor ratchet — its
         // heel-toe knocks were re-authored slightly inboard/up so the
