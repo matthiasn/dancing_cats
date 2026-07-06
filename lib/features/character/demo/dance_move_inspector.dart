@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:dancing_cats/features/character/demo/dance_performance.dart'
     show kDanceRealTempoSpeedup;
+import 'package:dancing_cats/features/character/demo/dance_velocity_panel.dart';
 import 'package:dancing_cats/features/character/demo/motion_trace_panel.dart';
 import 'package:dancing_cats/features/character/model/affine2d.dart';
 import 'package:dancing_cats/features/character/model/clip.dart';
@@ -11,6 +12,9 @@ import 'package:dancing_cats/features/character/runtime/character_scene.dart';
 import 'package:dancing_cats/features/character/samples/cat_in_suit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+
+/// The three bottom-section views of the move inspector.
+enum _InspectorView { frames, traces, velocity }
 
 /// Opens a near-full-screen inspector for [clip]'s authored keyframes: a
 /// live looping playback stage (with scrub + play/pause), an onion-skin
@@ -133,9 +137,10 @@ class _DanceMoveInspectorDialogState extends State<_DanceMoveInspectorDialog>
   static const _frameCountOptions = [12, 16, 24];
   int _frameCount = 16;
 
-  /// Bottom section view: the keyframe contact grid, or the measured
-  /// motion traces (pocket/sway/head/feet) sampled from the same scene.
-  bool _showTraces = false;
+  /// Bottom section view: the keyframe contact grid, the measured position
+  /// traces (pocket/sway/head/feet), or the hand-velocity derivative + Effort
+  /// dynamics — all sampled from the same resolved scene.
+  _InspectorView _view = _InspectorView.frames;
 
   late final Ticker _ticker;
   Duration _lastTick = Duration.zero;
@@ -587,18 +592,27 @@ class _DanceMoveInspectorDialogState extends State<_DanceMoveInspectorDialog>
             textBaseline: TextBaseline.alphabetic,
             children: [
               _sectionLabel(
-                _showTraces
-                    ? 'MOTION TRACES — measured from the resolved scene'
-                    : 'KEYFRAMES ($_frameCount, ${clip.loop ? "loop" : "one-shot"})',
+                switch (_view) {
+                  _InspectorView.traces =>
+                    'MOTION TRACES — measured from the resolved scene',
+                  _InspectorView.velocity =>
+                    'HAND VELOCITY — speed derivative + Effort dynamics',
+                  _InspectorView.frames =>
+                    'KEYFRAMES ($_frameCount, ${clip.loop ? "loop" : "one-shot"})',
+                },
               ),
               const SizedBox(width: 10),
-              // Flexible + ellipsis: the traces label plus this hint can
-              // exceed the row at narrow widths — the hint yields first.
+              // Flexible + ellipsis: the label plus this hint can exceed the
+              // row at narrow widths — the hint yields first.
               Flexible(
                 child: Text(
-                  _showTraces
-                      ? 'pocket bounce · weight sway · head ride · sole height'
-                      : 'tap a frame to preview it on stage',
+                  switch (_view) {
+                    _InspectorView.traces =>
+                      'pocket bounce · weight sway · head ride · sole height',
+                    _InspectorView.velocity =>
+                      'crest · velocity floor · mid-band dwell · authored vs as-danced',
+                    _InspectorView.frames => 'tap a frame to preview it on stage',
+                  },
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: _Chrome.textLow,
@@ -610,20 +624,30 @@ class _DanceMoveInspectorDialogState extends State<_DanceMoveInspectorDialog>
               const Spacer(),
               _ViewToggleChip(
                 label: 'FRAMES',
-                selected: !_showTraces,
-                onTap: () => setState(() => _showTraces = false),
+                selected: _view == _InspectorView.frames,
+                onTap: () => setState(() => _view = _InspectorView.frames),
               ),
               const SizedBox(width: 6),
               _ViewToggleChip(
                 label: 'TRACES',
-                selected: _showTraces,
-                onTap: () => setState(() => _showTraces = true),
+                selected: _view == _InspectorView.traces,
+                onTap: () => setState(() => _view = _InspectorView.traces),
+              ),
+              const SizedBox(width: 6),
+              _ViewToggleChip(
+                label: 'VELOCITY',
+                selected: _view == _InspectorView.velocity,
+                onTap: () => setState(() => _view = _InspectorView.velocity),
               ),
             ],
           ),
           const SizedBox(height: 8),
           Expanded(
-            child: _showTraces ? _tracesBody(clip) : _framesBody(clip),
+            child: switch (_view) {
+              _InspectorView.traces => _tracesBody(clip),
+              _InspectorView.velocity => _velocityBody(clip),
+              _InspectorView.frames => _framesBody(clip),
+            },
           ),
         ],
       ),
@@ -644,6 +668,24 @@ class _DanceMoveInspectorDialogState extends State<_DanceMoveInspectorDialog>
           // live pace the audience sees, not the authored clip clock.
           loopSeconds: clip.duration / kDanceRealTempoSpeedup,
         ),
+        size: Size.infinite,
+      ),
+    );
+  }
+
+  /// Sampled lazily on first VELOCITY view and cached (like the traces): it
+  /// resolves the scene twice over the loop (authored + through the Effort
+  /// warp), which is only worth doing when the nerd actually asks for it.
+  HandVelocityProfile? _velocityCache;
+
+  Widget _velocityBody(Clip clip) {
+    final profile = _velocityCache ??= sampleHandVelocityProfile(
+      widget.scene,
+      clip,
+    );
+    return RepaintBoundary(
+      child: CustomPaint(
+        painter: VelocityProfilePainter(profile),
         size: Size.infinite,
       ),
     );
