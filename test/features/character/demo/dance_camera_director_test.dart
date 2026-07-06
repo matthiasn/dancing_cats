@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:dancing_cats/features/character/demo/dance_camera_director.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:glados/glados.dart' as glados;
@@ -29,6 +31,7 @@ DanceCameraContext _ctx({
   double secondsToNext = double.infinity,
   String? nextSection,
   int nextOccurrence = 0,
+  double secondsSinceMoveCut = double.infinity,
 }) => DanceCameraContext(
   section: section,
   energetic: energetic,
@@ -40,6 +43,7 @@ DanceCameraContext _ctx({
   secondsToNext: secondsToNext,
   nextSection: nextSection,
   nextOccurrence: nextOccurrence,
+  secondsSinceMoveCut: secondsSinceMoveCut,
 );
 
 extension _AnyDanceCtx on glados.Any {
@@ -585,6 +589,94 @@ void main() {
         }
       });
     }
+  });
+
+  group('cameraShot — move-cut nudge', () {
+    // A dance-move cut (shaku->buga and the like) is far more frequent than a
+    // section boundary and, before this nudge, got no camera acknowledgment
+    // at all — the transitions-r6 cinematography panel unanimously read a
+    // fully static camera through every such cut as an accidental jump-cut.
+    // The nudge is a small, additive, self-decaying zoom "hit" — these tests
+    // hold it to the SAME "anticipated, never punched" contract as every
+    // other target this director emits (see the library doc): a real cut
+    // sweeping secondsSinceMoveCut finely at 60fps must never step the
+    // TARGET by more than dance_camera_continuity_test.dart's own per-frame
+    // budget (0.004 zoom/frame) — the rig's smoothing exists to absorb OTHER
+    // systems' steps, not to launder a fresh one this file introduces itself.
+    const dt = 1 / 60.0;
+
+    test('is zero with no recent cut', () {
+      final s = cameraShot(_ctx(section: 'verse', sectionPhase: 0.5));
+      final baseline = cameraShot(
+        _ctx(section: 'verse', sectionPhase: 0.5, secondsSinceMoveCut: 1000000000),
+      );
+      expect(s.zoom, baseline.zoom);
+    });
+
+    test('ramps up then decays without ever stepping the target', () {
+      // A 'verse' well away from any section boundary (secondsToNext large,
+      // sectionPhase mid-section keeps the section's own launch clock long
+      // past its window) isolates the nudge's own contribution.
+      var prev = cameraShot(
+        _ctx(section: 'verse', sectionPhase: 0.5, secondsSinceMoveCut: 0),
+      );
+      var peak = prev.zoom;
+      for (var s = dt; s < 1.0; s += dt) {
+        final cur = cameraShot(
+          _ctx(section: 'verse', sectionPhase: 0.5, secondsSinceMoveCut: s),
+        );
+        expect(
+          (cur.zoom - prev.zoom).abs(),
+          lessThan(0.004),
+          reason: 'target zoom stepped at secondsSinceMoveCut=$s',
+        );
+        peak = math.max(peak, cur.zoom);
+        prev = cur;
+      }
+      // Confirms the nudge is actually live (not accidentally zeroed) and has
+      // fully decayed well before the next beat could plausibly land.
+      expect(peak, greaterThan(cameraShot(
+        _ctx(section: 'verse', sectionPhase: 0.5, secondsSinceMoveCut: 1000000000),
+      ).zoom + 0.01));
+      final decayed = cameraShot(
+        _ctx(section: 'verse', sectionPhase: 0.5, secondsSinceMoveCut: 1),
+      );
+      final baseline = cameraShot(
+        _ctx(section: 'verse', sectionPhase: 0.5, secondsSinceMoveCut: 1000000000),
+      );
+      expect((decayed.zoom - baseline.zoom).abs(), lessThan(1e-9));
+    });
+
+    test('is suppressed while a section launch or anticipation glide is active', () {
+      // Right at a chorus drop (sectionPhase 0, short sectionSeconds so the
+      // launch clock is still inside its own window) the nudge must defer
+      // entirely to the section's own tuned launch push.
+      final atDrop = cameraShot(
+        _ctx(occurrence: 1, secondsSinceMoveCut: 0),
+      );
+      final atDropNoNudge = cameraShot(_ctx(occurrence: 1));
+      expect(atDrop.zoom, atDropNoNudge.zoom);
+
+      // Mid-glide into an imminent next section: also suppressed.
+      final anticipating = cameraShot(
+        _ctx(
+          section: 'verse',
+          sectionPhase: 0.9,
+          secondsToNext: 1,
+          nextSection: 'chorus',
+          secondsSinceMoveCut: 0,
+        ),
+      );
+      final anticipatingNoNudge = cameraShot(
+        _ctx(
+          section: 'verse',
+          sectionPhase: 0.9,
+          secondsToNext: 1,
+          nextSection: 'chorus',
+        ),
+      );
+      expect(anticipating.zoom, anticipatingNoNudge.zoom);
+    });
   });
 
   group('cameraShot — final post-chorus hook', () {

@@ -139,25 +139,46 @@ double tightShotDrop(double zoom) =>
 /// edit, not a fresh accent competing with the section's own push.
 const double kMoveCutNudgeZoom = 0.022;
 
-/// Seconds the move-cut nudge takes to decay back to zero. Short relative to
-/// even the fastest dance-move cut spacing (multiple beats at any authored
-/// tempo), so it can never still be live when the next cut lands and stack
-/// into a bigger, untuned bump.
-const double kMoveCutNudgeSeconds = 0.32;
+/// Seconds the move-cut nudge takes to ramp up from zero to full amplitude.
+/// This director's whole design is "anticipated, never punched" — every
+/// target this file emits elsewhere is continuous, by rule, and the stateful
+/// rig's smoothing exists to absorb OTHER systems' steps (seeks, the energy
+/// gate), not to launder a fresh one this file introduces itself. Without an
+/// attack ramp the TARGET would jump by the full [kMoveCutNudgeZoom] in the
+/// single frame [DanceCameraContext.secondsSinceMoveCut] first reads 0 — the
+/// rig happens to smooth that into an acceptable EASED output, but the
+/// existing "director TARGET never steps" contract wouldn't actually hold if
+/// exercised against a real cut. This ramp keeps the per-frame target delta
+/// under that contract's existing per-frame budget at 60fps.
+const double kMoveCutNudgeAttackSeconds = 0.15;
 
-/// A fast, self-contained zoom "hit" at [secondsSinceMoveCut] == 0, easing
-/// back to zero over [kMoveCutNudgeSeconds] — the camera's only
-/// acknowledgment of a dance-to-dance move cut. Deliberately NOT a change to
-/// any section's own continuous treatment (see the library doc's "anticipated,
-/// never punched" rule for SECTION boundaries): move cuts are far more
-/// frequent and were getting zero camera language at all, which the
-/// cinematography panel unanimously read as an accidental jump-cut. Additive
-/// and fast enough (a third of a second) to never fight the section's own,
-/// much slower build.
+/// Seconds the move-cut nudge takes to decay back to zero AFTER the attack.
+/// Short relative to even the fastest dance-move cut spacing (multiple beats
+/// at any authored tempo), so it can never still be live when the next cut
+/// lands and stack into a bigger, untuned bump.
+const double kMoveCutNudgeDecaySeconds = 0.35;
+
+/// A fast, self-contained zoom "hit" that ramps up over
+/// [kMoveCutNudgeAttackSeconds] then eases back to zero over
+/// [kMoveCutNudgeDecaySeconds] — the camera's only acknowledgment of a
+/// dance-to-dance move cut. Deliberately NOT a change to any section's own
+/// continuous treatment (see the library doc's "anticipated, never punched"
+/// rule for SECTION boundaries): move cuts are far more frequent and were
+/// getting zero camera language at all, which the cinematography panel
+/// unanimously read as an accidental jump-cut. Additive and fast enough (half
+/// a second total) to never fight the section's own, much slower build.
 double _moveCutNudge(double secondsSinceMoveCut) {
   if (secondsSinceMoveCut.isInfinite || secondsSinceMoveCut < 0) return 0;
-  final decay =
-      1 - smoothstep((secondsSinceMoveCut / kMoveCutNudgeSeconds).clamp(0.0, 1.0));
+  if (secondsSinceMoveCut < kMoveCutNudgeAttackSeconds) {
+    return kMoveCutNudgeZoom *
+        smoothstep(secondsSinceMoveCut / kMoveCutNudgeAttackSeconds);
+  }
+  final decay = 1 -
+      smoothstep(
+        ((secondsSinceMoveCut - kMoveCutNudgeAttackSeconds) /
+                kMoveCutNudgeDecaySeconds)
+            .clamp(0.0, 1.0),
+      );
   return kMoveCutNudgeZoom * decay;
 }
 
