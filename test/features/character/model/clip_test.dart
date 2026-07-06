@@ -550,10 +550,13 @@ void main() {
       expect(clip.locomotes, isFalse);
     });
 
-    test('dynamics default to neutral for clips predating the Effort catalog', () {
-      const clip = Clip(name: 'plain', duration: 1, channels: {});
-      expect(clip.dynamics, DanceDynamics.neutral);
-    });
+    test(
+      'dynamics default to neutral for clips predating the Effort catalog',
+      () {
+        const clip = Clip(name: 'plain', duration: 1, channels: {});
+        expect(clip.dynamics, DanceDynamics.neutral);
+      },
+    );
 
     test('dynamics can be stamped explicitly (as assembleMoveClip does)', () {
       const dynamics = DanceDynamics(weight: 0.7, time: 0.6, flow: -0.4);

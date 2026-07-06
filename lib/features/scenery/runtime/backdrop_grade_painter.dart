@@ -41,7 +41,13 @@ void runGradePass({
   required BackdropGrade grade,
   required ui.FragmentProgram program,
   required void Function(Canvas canvas) paintContent,
+  bool allowSnapshot = true,
 }) {
+  if (!allowSnapshot) {
+    paintContent(canvas);
+    return;
+  }
+
   final recorder = ui.PictureRecorder();
   paintContent(Canvas(recorder));
   final picture = recorder.endRecording();
@@ -77,6 +83,7 @@ void paintGradedBackdrop({
   required BackdropContext ctx,
   required BackdropGrade grade,
   required ui.FragmentProgram? gradeProgram,
+  bool allowSnapshot = true,
 }) {
   if (grade.isNeutral || gradeProgram == null || size.isEmpty) {
     for (final layer in layers) {
@@ -90,6 +97,7 @@ void paintGradedBackdrop({
     size: size,
     grade: grade,
     program: gradeProgram,
+    allowSnapshot: allowSnapshot,
     paintContent: (layerCanvas) {
       for (final layer in layers) {
         layer.paint(layerCanvas, ctx);

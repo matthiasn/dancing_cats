@@ -55,62 +55,63 @@ void main() {
 
     // The jacket's shoulder-contour vertices, exactly as authored in
     // cat_in_suit_rig.dart's buildTrunkSurface call.
-    final trackedVertices = <String, ({double x, double y, Map<String, double> w})>{
-      'armhole.L': (
-        x: -32.5,
-        y: -60,
-        w: {
-          CatBones.chest: 0.33,
-          CatBones.torso: 0.22,
-          CatBones.shoulderLineL: 0.45,
-        },
-      ),
-      'armhole.R': (
-        x: 32.5,
-        y: -60,
-        w: {
-          CatBones.chest: 0.33,
-          CatBones.torso: 0.22,
-          CatBones.shoulderLineR: 0.45,
-        },
-      ),
-      'yoke.L': (
-        x: -29,
-        y: -75,
-        w: {
-          CatBones.chest: 0.3,
-          CatBones.clavicleL: 0.15,
-          CatBones.shoulderLineL: 0.55,
-        },
-      ),
-      'yoke.R': (
-        x: 29,
-        y: -75,
-        w: {
-          CatBones.chest: 0.3,
-          CatBones.clavicleR: 0.15,
-          CatBones.shoulderLineR: 0.55,
-        },
-      ),
-      'collar.L': (
-        x: -13,
-        y: -81.5,
-        w: {
-          CatBones.chest: 0.7,
-          CatBones.clavicleL: 0.1,
-          CatBones.shoulderLineL: 0.2,
-        },
-      ),
-      'collar.R': (
-        x: 13,
-        y: -81.5,
-        w: {
-          CatBones.chest: 0.7,
-          CatBones.clavicleR: 0.1,
-          CatBones.shoulderLineR: 0.2,
-        },
-      ),
-    };
+    final trackedVertices =
+        <String, ({double x, double y, Map<String, double> w})>{
+          'armhole.L': (
+            x: -32.5,
+            y: -60,
+            w: {
+              CatBones.chest: 0.33,
+              CatBones.torso: 0.22,
+              CatBones.shoulderLineL: 0.45,
+            },
+          ),
+          'armhole.R': (
+            x: 32.5,
+            y: -60,
+            w: {
+              CatBones.chest: 0.33,
+              CatBones.torso: 0.22,
+              CatBones.shoulderLineR: 0.45,
+            },
+          ),
+          'yoke.L': (
+            x: -29,
+            y: -75,
+            w: {
+              CatBones.chest: 0.3,
+              CatBones.clavicleL: 0.15,
+              CatBones.shoulderLineL: 0.55,
+            },
+          ),
+          'yoke.R': (
+            x: 29,
+            y: -75,
+            w: {
+              CatBones.chest: 0.3,
+              CatBones.clavicleR: 0.15,
+              CatBones.shoulderLineR: 0.55,
+            },
+          ),
+          'collar.L': (
+            x: -13,
+            y: -81.5,
+            w: {
+              CatBones.chest: 0.7,
+              CatBones.clavicleL: 0.1,
+              CatBones.shoulderLineL: 0.2,
+            },
+          ),
+          'collar.R': (
+            x: 13,
+            y: -81.5,
+            w: {
+              CatBones.chest: 0.7,
+              CatBones.clavicleR: 0.1,
+              CatBones.shoulderLineR: 0.2,
+            },
+          ),
+        };
 
     ({double x, double y}) skin(
       CharacterFrame frame,

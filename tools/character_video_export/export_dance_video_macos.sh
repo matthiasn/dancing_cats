@@ -32,7 +32,7 @@ Options:
   --words PATH               Optional synced words JSON path
   --cues PATH                Optional Rhubarb cues JSON path
   --crf N                    x264 CRF, lower is better/larger (default: 18)
-  --audio-kbps N             AAC bitrate in kbps (default: 320)
+  --audio-kbps N             AAC bitrate in kbps (default: 128)
   --x264-preset NAME         x264 preset (default: veryfast)
   --warmup SEC               Asset/shader warmup before frame 0 (default: 2)
   --rebuild                  Rebuild the macOS release bundle first
@@ -61,7 +61,7 @@ beatmap="${DANCE_BEATMAP:-assets/sample_track/moving.json}"
 words="${DANCE_WORDS:-assets/sample_track/moving.words.json}"
 cues="${DANCE_CUES:-assets/sample_track/moving.cues.json}"
 crf="18"
-audio_kbps="320"
+audio_kbps="128"
 x264_preset="veryfast"
 warmup="2"
 rebuild="0"
@@ -131,6 +131,20 @@ fi
 
 mkdir -p "$(dirname "$out")"
 
+audio_abs="$(cd "$(dirname "$audio")" && pwd -P)/$(basename "$audio")"
+audio_for_app="$audio_abs"
+case "$audio_abs" in
+  "$repo_root"/*) ;;
+  *)
+    staged_input_dir="$repo_root/build/character_video_exports/.inputs"
+    mkdir -p "$staged_input_dir"
+    audio_for_app="$staged_input_dir/$(basename "$audio")"
+    if ! cmp -s "$audio_abs" "$audio_for_app"; then
+      cp -p "$audio_abs" "$audio_for_app"
+    fi
+    ;;
+esac
+
 # The App Sandbox must be off (see macos/Runner/Release.entitlements). A sandboxed
 # app cannot spawn ffmpeg, so guard against a silent no-op export.
 if codesign -d --entitlements - "$app" 2>/dev/null | grep -q 'app-sandbox.*true'; then
@@ -152,7 +166,7 @@ DANCE_APP_EXPORT_CRF="$crf" \
 DANCE_APP_EXPORT_AUDIO_KBPS="$audio_kbps" \
 DANCE_APP_EXPORT_X264_PRESET="$x264_preset" \
 DANCE_APP_EXPORT_WARMUP="$warmup" \
-DANCE_AUDIO="$audio" \
+DANCE_AUDIO="$audio_for_app" \
 DANCE_BEATMAP="$beatmap" \
 DANCE_WORDS="$words" \
 DANCE_CUES="$cues" \

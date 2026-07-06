@@ -441,8 +441,9 @@ class DancePerformance {
   /// Where [pos] sits inside the current semantic section: its label, progress
   /// 0..1, the section's length in seconds, and its start time. Defaults to
   /// the empty section when no span covers [pos].
-  ({String section, double phase, double seconds, double start})
-  sectionInfoAt(double pos) {
+  ({String section, double phase, double seconds, double start}) sectionInfoAt(
+    double pos,
+  ) {
     for (final s in sectionSpans) {
       if (pos >= s.start && pos < s.end) {
         final span = (s.end - s.start) <= 0 ? 1.0 : s.end - s.start;
@@ -615,7 +616,11 @@ class DancePerformance {
   /// section it carries the section's occurrence (keys the per-refrain chorus
   /// homes) and the NEXT section with the seconds until it starts, which drive
   /// the director's anticipated dolly into each boundary.
-  DanceCameraContext directorContext(double pos, {required bool energetic}) {
+  DanceCameraContext directorContext(
+    double pos, {
+    required bool energetic,
+    double secondsSinceMoveCut = double.infinity,
+  }) {
     final info = sectionInfoAt(pos);
     DanceSectionSpan? next;
     for (final s in sectionSpans) {
@@ -639,6 +644,7 @@ class DancePerformance {
       nextOccurrence: next == null
           ? 0
           : sectionOccurrenceAt(next.start, next.section),
+      secondsSinceMoveCut: secondsSinceMoveCut,
     );
   }
 

@@ -36,6 +36,11 @@ class DancePlaybackStepper {
   double _pendingUntil = 0;
   List<DanceDynamics>? _easedDynamics;
 
+  /// Audio position of the most recent dance-to-dance move cut (null before
+  /// the first one), for the camera director's move-cut nudge — see
+  /// [DanceCameraContext.secondsSinceMoveCut].
+  double? _lastMoveCutPos;
+
   /// How far open the frontman's mouth is (0 = shut), eased toward the cue.
   double get leadMouth => _leadMouth;
 
@@ -85,11 +90,49 @@ class DancePlaybackStepper {
     _bgMouth = easeDanceMouth(_bgMouth, bgOn ? cue.open : 0.0, dt);
 
     final rawStage = perf?.stageAt(pos) ?? danceIdleStage(pos);
-    final transitioned = _stageWithTransition(rawStage, dt, perf: perf, pos: pos);
+    final transitioned = _stageWithTransition(
+      rawStage,
+      dt,
+      perf: perf,
+      pos: pos,
+    );
     final stage = _easedDynamicsStage(transitioned, dt);
-    final ctx = perf?.directorContext(pos, energetic: stage.energetic);
-    final target = ctx == null ? _shot : cameraShot(ctx);
+    final lastCut = _lastMoveCutPos;
+    final ctx = perf?.directorContext(
+      pos,
+      energetic: stage.energetic,
+      secondsSinceMoveCut: lastCut == null ? double.infinity : pos - lastCut,
+    );
+    // The move-cut nudge is measured post-hoc as the delta [cameraShot] adds
+    // for [ctx] vs. the same context with no recent cut, rather than reading
+    // it straight off [ctx]: this keeps that arithmetic in one place
+    // ([_moveCutNudge] inside [cameraShot]) instead of duplicating it here.
+    Shot target;
+    var postRigNudge = 0.0;
+    if (ctx == null) {
+      target = _shot;
+    } else if (ctx.secondsSinceMoveCut.isInfinite) {
+      target = cameraShot(ctx);
+    } else {
+      final withNudge = cameraShot(ctx);
+      target = cameraShot(_withoutMoveCut(ctx));
+      postRigNudge = withNudge.zoom - target.zoom;
+    }
     _shot = _cameraRig.update(target: target, dt: dt);
+    // Applied AFTER the rig's smoothing, not baked into its target: the nudge
+    // already carries its own attack/decay envelope (see [_moveCutNudge]), and
+    // the rig's `kDanceCameraSmoothTime` (0.5s) — tuned for the director's
+    // grand, slow section-level dollies — is comparable to the nudge's own
+    // ~0.5s total width. Measured (and confirmed by the panel): running the
+    // nudge through that filter cut its peak by ~66% and pushed it a third of
+    // a second late, reading as either "no push-in at all" or "a slow creep
+    // that keeps growing," never the crisp edit-acknowledgment it was
+    // designed to be. Adding it here instead lets it reach the screen exactly
+    // as authored while the rig still smooths every other, genuinely
+    // continuous camera move.
+    if (postRigNudge != 0) {
+      _shot = (zoom: _shot.zoom + postRigNudge, dx: _shot.dx, dy: _shot.dy);
+    }
     _stage = stage;
   }
 
@@ -177,6 +220,7 @@ class DancePlaybackStepper {
       }
       _pendingFrom = null;
       _transition = _DanceStageTransition(from: from, elapsed: 0);
+      if (from.energetic && raw.energetic) _lastMoveCutPos = pos;
     } else {
       _rawStage = raw;
     }
@@ -188,6 +232,7 @@ class DancePlaybackStepper {
       }
       _pendingFrom = null;
       _transition = _DanceStageTransition(from: pending, elapsed: 0);
+      _lastMoveCutPos = pos;
     }
 
     final transition = _transition;
@@ -219,9 +264,17 @@ class DancePlaybackStepper {
 
   /// [stage] with its warped clock re-anchored on the first downbeat at/after
   /// its own choreo statement start. Idle stages and null [perf] pass through.
-  DanceStage _rebasedStage(DancePerformance? perf, DanceStage stage, double pos) {
+  DanceStage _rebasedStage(
+    DancePerformance? perf,
+    DanceStage stage,
+    double pos,
+  ) {
     if (perf == null || !stage.energetic) return stage;
-    final binding = _segmentBinding(perf, stage.lead.name, stage.segmentStartSec);
+    final binding = _segmentBinding(
+      perf,
+      stage.lead.name,
+      stage.segmentStartSec,
+    );
     return (
       lead: stage.lead,
       ensemble: stage.ensemble,
@@ -461,6 +514,22 @@ class _DanceStageTransition {
   _DanceStageTransition withElapsed(double value) =>
       _DanceStageTransition(from: from, elapsed: value);
 }
+
+/// [c] with [DanceCameraContext.secondsSinceMoveCut] reset to infinity — used
+/// to measure the move-cut nudge's contribution to [cameraShot] by diffing
+/// against the context that includes it (see [DancePlaybackStepper.advance]).
+DanceCameraContext _withoutMoveCut(DanceCameraContext c) => DanceCameraContext(
+  section: c.section,
+  energetic: c.energetic,
+  build: c.build,
+  phrasePhase: c.phrasePhase,
+  sectionPhase: c.sectionPhase,
+  occurrence: c.occurrence,
+  sectionSeconds: c.sectionSeconds,
+  secondsToNext: c.secondsToNext,
+  nextSection: c.nextSection,
+  nextOccurrence: c.nextOccurrence,
+);
 
 String _stageSignature(DanceStage stage) => [
   stage.lead.name,

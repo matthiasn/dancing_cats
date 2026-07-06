@@ -61,6 +61,7 @@ class DanceStageView extends StatelessWidget {
     this.masterGrade = BackdropGrade.identity,
     this.castGrade = BackdropGrade.identity,
     this.gradeForTarget,
+    this.allowGradeSnapshots = false,
     this.onBackdropReady,
     this.backdropImage,
     this.cloudsImage,
@@ -124,6 +125,10 @@ class DanceStageView extends StatelessWidget {
   /// default.
   final BackdropGrade castGrade;
 
+  /// Whether grade nodes may use synchronous layer snapshots for exact shader
+  /// grading. Kept off for live playback; enabled by export paths.
+  final bool allowGradeSnapshots;
+
   /// Per-layer grades for the scenery's `GradedLayer` targets, forwarded to
   /// [LayeredBackdrop]. Null → no per-layer passes.
   final BackdropGrade? Function(String target)? gradeForTarget;
@@ -167,6 +172,7 @@ class DanceStageView extends StatelessWidget {
               final gradedStage = GradeFilter(
                 grade: masterGrade,
                 repaintTick: lightsTimeSeconds,
+                allowSnapshot: allowGradeSnapshots,
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
@@ -186,6 +192,7 @@ class DanceStageView extends StatelessWidget {
                           beatPulse: beat,
                           grade: grade,
                           gradeForTarget: gradeForTarget,
+                          allowGradeSnapshots: allowGradeSnapshots,
                           onReady: onBackdropReady,
                           parallaxForDepth: (depth, s) =>
                               CharacterPainter.danceParallaxMatrixForShotAtDepth(
@@ -219,6 +226,7 @@ class DanceStageView extends StatelessWidget {
                       grade: castGrade,
                       premultiplied: true,
                       repaintTick: lightsTimeSeconds,
+                      allowSnapshot: allowGradeSnapshots,
                       child: CustomPaint(
                         painter: danceCharacterPainter(
                           cast: cast,

@@ -1171,7 +1171,8 @@ void main() {
         expect(
           right.x.abs(),
           lessThan(24),
-          reason: 'Shaku frame $frame: the RIGHT arm recovers IN near the midline',
+          reason:
+              'Shaku frame $frame: the RIGHT arm recovers IN near the midline',
         );
       }
       for (final frame in [4, 12, 20]) {
@@ -1186,18 +1187,24 @@ void main() {
         expect(
           left.x.abs(),
           lessThan(24),
-          reason: 'Shaku frame $frame: the LEFT arm recovers IN near the midline',
+          reason:
+              'Shaku frame $frame: the LEFT arm recovers IN near the midline',
         );
       }
 
       // The opening genuinely TRADES sides beat to beat: the left-open counts
       // reach far left, the right-open counts reach far right.
-      final maxRightOpen = [4, 12, 20]
-          .map((f) => handR.sample(f / phrase.frameCount).x)
-          .reduce(math.max);
-      final maxLeftOpen = [0, 8, 16, 24]
-          .map((f) => handL.sample(f / phrase.frameCount).x)
-          .reduce(math.min);
+      final maxRightOpen = [
+        4,
+        12,
+        20,
+      ].map((f) => handR.sample(f / phrase.frameCount).x).reduce(math.max);
+      final maxLeftOpen = [
+        0,
+        8,
+        16,
+        24,
+      ].map((f) => handL.sample(f / phrase.frameCount).x).reduce(math.min);
       expect(
         maxRightOpen - maxLeftOpen,
         greaterThan(80),

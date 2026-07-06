@@ -54,8 +54,10 @@ void main() {
 
   double rangeOf(List<double> v) => v.reduce(math.max) - v.reduce(math.min);
 
-  ({double headSwing, double hipsSwing, double bodyH, double coupling})
-  measure(CharacterScene scene, Clip clip) {
+  ({double headSwing, double hipsSwing, double bodyH, double coupling}) measure(
+    CharacterScene scene,
+    Clip clip,
+  ) {
     final headY = <double>[];
     final hipsY = <double>[];
     final earY = <double>[];
@@ -94,8 +96,10 @@ void main() {
     ];
     final table = StringBuffer()
       ..writeln('\n=== catalogue head-level coupling ===')
-      ..writeln('clip          headYswing  hipsYswing  coupling  '
-          'head%bodyH  px@0.55');
+      ..writeln(
+        'clip          headYswing  hipsYswing  coupling  '
+        'head%bodyH  px@0.55',
+      );
     for (final c in clips) {
       final m = measure(scene, c);
       table.writeln(
@@ -141,12 +145,18 @@ void main() {
     final m = measure(scene, clip);
     final buf = StringBuffer()
       ..writeln('\n=== pouncingCat head-level probe ===')
-      ..writeln('clip.duration=${clip.duration}s  '
-          'danceHeadBobScale=${clip.danceHeadBobScale}  '
-          'danceHeadLevelClampMin=${clip.danceHeadLevelClampMin}')
-      ..writeln('standing height (frame0, ear->foot) = '
-          '${m.bodyH.toStringAsFixed(1)} world-units\n')
-      ..writeln('bone        Y peak-to-peak   Y max step   X glide (peak-to-peak)');
+      ..writeln(
+        'clip.duration=${clip.duration}s  '
+        'danceHeadBobScale=${clip.danceHeadBobScale}  '
+        'danceHeadLevelClampMin=${clip.danceHeadLevelClampMin}',
+      )
+      ..writeln(
+        'standing height (frame0, ear->foot) = '
+        '${m.bodyH.toStringAsFixed(1)} world-units\n',
+      )
+      ..writeln(
+        'bone        Y peak-to-peak   Y max step   X glide (peak-to-peak)',
+      );
     for (final b in bones) {
       buf.writeln(
         '${b.padRight(10)}  '
@@ -168,29 +178,45 @@ void main() {
     ];
     buf
       ..writeln('\n-- join integrity --')
-      ..writeln('head-neck gap: min=${headNeck.reduce(math.min).toStringAsFixed(1)} '
-          'max=${headNeck.reduce(math.max).toStringAsFixed(1)} '
-          'range=${(headNeck.reduce(math.max) - headNeck.reduce(math.min)).toStringAsFixed(1)} '
-          '(baseline max=-5.6, range=15.1 pre-fix)')
-      ..writeln('neck-torso gap: min=${neckTorso.reduce(math.min).toStringAsFixed(1)} '
-          'max=${neckTorso.reduce(math.max).toStringAsFixed(1)} '
-          'range=${(neckTorso.reduce(math.max) - neckTorso.reduce(math.min)).toStringAsFixed(1)} '
-          '(baseline range=46.7 pre-fix — collar region)')
-      ..writeln('neck Y swing: '
-          '${(ty[CatBones.neck]!.reduce(math.max) - ty[CatBones.neck]!.reduce(math.min)).toStringAsFixed(1)} '
-          '(pre-fix 113.4)')
+      ..writeln(
+        'head-neck gap: min=${headNeck.reduce(math.min).toStringAsFixed(1)} '
+        'max=${headNeck.reduce(math.max).toStringAsFixed(1)} '
+        'range=${(headNeck.reduce(math.max) - headNeck.reduce(math.min)).toStringAsFixed(1)} '
+        '(baseline max=-5.6, range=15.1 pre-fix)',
+      )
+      ..writeln(
+        'neck-torso gap: min=${neckTorso.reduce(math.min).toStringAsFixed(1)} '
+        'max=${neckTorso.reduce(math.max).toStringAsFixed(1)} '
+        'range=${(neckTorso.reduce(math.max) - neckTorso.reduce(math.min)).toStringAsFixed(1)} '
+        '(baseline range=46.7 pre-fix — collar region)',
+      )
+      ..writeln(
+        'neck Y swing: '
+        '${(ty[CatBones.neck]!.reduce(math.max) - ty[CatBones.neck]!.reduce(math.min)).toStringAsFixed(1)} '
+        '(pre-fix 113.4)',
+      )
       ..writeln('\n-- verdict signals --')
-      ..writeln('head Y swing         = ${m.headSwing.toStringAsFixed(1)} units '
-          '(${(100 * m.headSwing / m.bodyH).toStringAsFixed(1)}% of body height, '
-          '~${(m.headSwing * 0.55).toStringAsFixed(0)}px at lead scale 0.55)')
-      ..writeln('hips Y swing         = ${m.hipsSwing.toStringAsFixed(1)} units')
-      ..writeln('head/hips coupling   = ${m.coupling.toStringAsFixed(2)} '
-          '(0=decoupled/level, 1=rides fully with the body)')
-      ..writeln('base glide (hips X)  = '
-          '${rangeOf(tx[CatBones.hips]!).toStringAsFixed(1)} units')
-      ..writeln('feet X travel (L/R)  = '
-          '${rangeOf(tx[CatBones.footL]!).toStringAsFixed(1)} / '
-          '${rangeOf(tx[CatBones.footR]!).toStringAsFixed(1)} units');
+      ..writeln(
+        'head Y swing         = ${m.headSwing.toStringAsFixed(1)} units '
+        '(${(100 * m.headSwing / m.bodyH).toStringAsFixed(1)}% of body height, '
+        '~${(m.headSwing * 0.55).toStringAsFixed(0)}px at lead scale 0.55)',
+      )
+      ..writeln(
+        'hips Y swing         = ${m.hipsSwing.toStringAsFixed(1)} units',
+      )
+      ..writeln(
+        'head/hips coupling   = ${m.coupling.toStringAsFixed(2)} '
+        '(0=decoupled/level, 1=rides fully with the body)',
+      )
+      ..writeln(
+        'base glide (hips X)  = '
+        '${rangeOf(tx[CatBones.hips]!).toStringAsFixed(1)} units',
+      )
+      ..writeln(
+        'feet X travel (L/R)  = '
+        '${rangeOf(tx[CatBones.footL]!).toStringAsFixed(1)} / '
+        '${rangeOf(tx[CatBones.footR]!).toStringAsFixed(1)} units',
+      );
     // ignore: avoid_print
     print(buf);
 
@@ -200,18 +226,19 @@ void main() {
     expect(
       m.headSwing,
       // 95 -> 98 (disappearing-neck fix): the leveler's downward budget is
-        // halved catalogue-wide so the collar can't swallow the chin; pounce
-        // trades ~2 units of head-level hold, still below the 99.5 pre-#65
-        // swing this bound guards against.
-        lessThan(98),
-      reason: 'spine leveler should hold pounce head-swing below the pre-fix '
+      // halved catalogue-wide so the collar can't swallow the chin; pounce
+      // trades ~2 units of head-level hold, still below the 99.5 pre-#65
+      // swing this bound guards against.
+      lessThan(98),
+      reason:
+          'spine leveler should hold pounce head-swing below the pre-fix '
           '99.5 units',
     );
     expect(
       m.coupling,
       // 1.28 -> 1.32 (same disappearing-neck trade as the swing bound above;
-        // still below the 1.34 pre-#65 coupling this guards against).
-        lessThan(1.32),
+      // still below the 1.34 pre-#65 coupling this guards against).
+      lessThan(1.32),
       reason: 'head should ride at/under the pre-fix 1.34 head/hips coupling',
     );
     final headNeckMax = headNeck.reduce(math.max);
@@ -224,7 +251,8 @@ void main() {
     expect(
       headNeckMax - headNeckMin,
       lessThan(8),
-      reason: 'the leveled head tracks the neck tightly (join stays inside its '
+      reason:
+          'the leveled head tracks the neck tightly (join stays inside its '
           'natural band, no rubber throat)',
     );
   });

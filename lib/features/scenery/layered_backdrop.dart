@@ -54,6 +54,7 @@ class LayeredBackdrop extends StatefulWidget {
     this.parallaxForDepth,
     this.grade = BackdropGrade.identity,
     this.gradeForTarget,
+    this.allowGradeSnapshots = true,
     super.key,
   });
 
@@ -97,6 +98,10 @@ class LayeredBackdrop extends StatefulWidget {
   /// Injected per-target grades for `GradedLayer`-wrapped scene layers
   /// (ADR 0002). Null → no per-layer passes; layers paint exactly as before.
   final BackdropGrade? Function(String target)? gradeForTarget;
+
+  /// Whether backdrop/per-layer grade passes may synchronously snapshot their
+  /// content for exact shader grading.
+  final bool allowGradeSnapshots;
 
   @override
   State<LayeredBackdrop> createState() => _LayeredBackdropState();
@@ -309,6 +314,7 @@ class _LayeredBackdropState extends State<LayeredBackdrop>
           gradeProgram: _gradeProgram,
           gradeForTarget: widget.gradeForTarget,
           layerGradeProgram: _layerGradeProgram,
+          allowGradeSnapshots: widget.allowGradeSnapshots,
         ),
         child: const SizedBox.expand(),
       ),
@@ -333,6 +339,7 @@ class _BackdropPainter extends CustomPainter {
     this.gradeProgram,
     this.gradeForTarget,
     this.layerGradeProgram,
+    this.allowGradeSnapshots = true,
   });
 
   final List<BackdropLayer> layers;
@@ -350,6 +357,7 @@ class _BackdropPainter extends CustomPainter {
   final ui.FragmentProgram? gradeProgram;
   final BackdropGrade? Function(String target)? gradeForTarget;
   final ui.FragmentProgram? layerGradeProgram;
+  final bool allowGradeSnapshots;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -367,6 +375,7 @@ class _BackdropPainter extends CustomPainter {
       parallaxForDepth: parallaxForDepth,
       gradeForTarget: gradeForTarget,
       layerGradeProgram: layerGradeProgram,
+      allowGradeSnapshots: allowGradeSnapshots,
     );
     paintGradedBackdrop(
       canvas: canvas,
@@ -375,6 +384,7 @@ class _BackdropPainter extends CustomPainter {
       ctx: ctx,
       grade: grade,
       gradeProgram: gradeProgram,
+      allowSnapshot: allowGradeSnapshots,
     );
   }
 

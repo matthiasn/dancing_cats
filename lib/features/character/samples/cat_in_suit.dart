@@ -490,6 +490,12 @@ class CatClips {
         contactPinning: base.contactPinning,
         supportFootWorldAnchor: true,
         supportFootWorldAnchorStrength: 0.86,
+        // Transitions panel: shaku's grooved pocket sink DWELLS (avg ~38px,
+        // never near standing height) like zanku's fixed bug, at a lower
+        // 0.86 base strength (14% residual) — see
+        // Clip.supportFootWorldAnchorVerticalBoost and zanku's own comment
+        // for the mechanism. Boosts effective vertical strength to ~0.99.
+        supportFootWorldAnchorVerticalBoost: 0.08,
         // Grounded pocket: keep the head COOL and near-level while the hips
         // sink into the knees on each count. The old 0.8 bob let the head
         // travel further than the hips (whole-body pogo, no pocket); calming
@@ -811,6 +817,14 @@ class CatClips {
         contactPinning: base.contactPinning,
         supportFootWorldAnchor: true,
         supportFootWorldAnchorStrength: 0.9,
+        // Transitions panel: zanku's per-beat crouch DWELLS (a sustained
+        // root sink, not buga's transient dip-and-release), so the shared
+        // 0.9 strength's ~10% residual leaked a persistently lower average
+        // foot/screen position than any neighbouring move — read at a hard
+        // cut as an accidental ~15-20% camera push. This tightens only the
+        // vertical pull (stance width, tuned via the shared strength above,
+        // is untouched) — see Clip.supportFootWorldAnchorVerticalBoost.
+        supportFootWorldAnchorVerticalBoost: 0.09,
         danceHeadBobScale: 0.75,
         // Ornament-port round: zanku joins the sole-floor ratchet — its
         // heel-toe knocks were re-authored slightly inboard/up so the
@@ -968,6 +982,11 @@ class CatClips {
         contactPinning: base.contactPinning,
         supportFootWorldAnchor: true,
         supportFootWorldAnchorStrength: 0.86,
+        // Transitions panel: azonto's pocket sink DWELLS (avg ~45px, never
+        // near standing height, the largest/worst estimated leak of the
+        // catalogue) — same fix as zanku/shaku, see
+        // Clip.supportFootWorldAnchorVerticalBoost.
+        supportFootWorldAnchorVerticalBoost: 0.13,
         danceHeadBobScale: 0.7,
         // Ornament-port round: azonto joins the sole-floor ratchet (its
         // step-touch redirects are floor-adjacent; the clamp guards the
@@ -1022,7 +1041,11 @@ class CatClips {
             // r6: lift the base groove under the (now-dominant) wheel —
             // pocket 39.2 was the set's shallowest ('lift the base ~1.3x
             // rather than touching the arms').
-            SineRootChannel(bobAmplitude: -8.5, bobPhase: 0.146875, bobHarmonic: 8),
+            SineRootChannel(
+              bobAmplitude: -8.5,
+              bobPhase: 0.146875,
+              bobHarmonic: 8,
+            ),
             SineRootChannel(
               bobAmplitude: -0.04,
               bobPhase: 0.125,
@@ -1191,7 +1214,11 @@ class CatClips {
             // regex overshot into sekem): lateral weight under the strides
             // + a beat-level mini-bounce so mid-bar frames stop floating
             // (pocket was 0.8 ev/s over a 97.8 range).
-            SineRootChannel(swayAmplitude: -12, swayPhase: 0.125, swayHarmonic: 4),
+            SineRootChannel(
+              swayAmplitude: -12,
+              swayPhase: 0.125,
+              swayHarmonic: 4,
+            ),
             // r12: -5.5 -> -9 (coach: "the pocket is one slow swell per
             // two bars — add a per-beat bounce under the strides so the
             // groove does not float between hits").
@@ -1361,6 +1388,12 @@ class CatClips {
         contactPinning: base.contactPinning,
         supportFootWorldAnchor: true,
         supportFootWorldAnchorStrength: 0.88,
+        // NOT boosted like zanku/shaku/azonto/sekem despite a similar
+        // sustained-crouch profile: this move's chin-to-collar gap and
+        // head-level probe are already tuned right at their own thresholds
+        // (owner, GIF review: the neck "often all but disappears"), and a
+        // 0.11 vertical boost measurably tipped both over — see
+        // Clip.supportFootWorldAnchorVerticalBoost's doc comment.
         danceHeadBobScale: 0,
         danceHeadLevelClampMin: -20,
         baseClip: base,
@@ -1448,6 +1481,11 @@ class CatClips {
         contactPinning: base.contactPinning,
         supportFootWorldAnchor: true,
         supportFootWorldAnchorStrength: 0.9,
+        // Transitions panel: sekem is explicitly authored to DWELL over the
+        // planting foot (avg ~30px, never near standing height) — same fix
+        // as zanku/shaku/azonto/pouncingCat, see
+        // Clip.supportFootWorldAnchorVerticalBoost.
+        supportFootWorldAnchorVerticalBoost: 0.09,
         danceHeadBobScale: 0.75,
         baseClip: base,
         jointTracks: {

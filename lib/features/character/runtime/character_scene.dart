@@ -331,19 +331,50 @@ class CharacterScene {
       );
     }
     final locomotion = locomotionOffset(clip, timeSeconds);
-    final zOrderSwaps = clip.zOrderSwaps.isEmpty
-        ? const <(String, String)>[]
-        : [
-            for (final window in clip.zOrderSwaps)
-              if (window.activeAt(evaluator.phaseAt(clip, timeSeconds)))
-                (window.boneA, window.boneB),
-          ];
+    final zOrderSwaps = _activeZOrderSwaps(clip, timeSeconds);
     return CharacterFrame(
       world: world,
       face: face,
       locomotionX: locomotion,
       zOrderSwaps: zOrderSwaps,
     );
+  }
+
+  /// The z-order swaps active at [timeSeconds], honouring a mid-blend
+  /// [Clip.transitionPlan].
+  ///
+  /// A plain (non-blended) clip evaluates its own [Clip.zOrderSwaps] windows
+  /// against its own clock directly. A blended clip's `zOrderSwaps` field
+  /// only ever holds ONE side's window list (see `blendedClip`'s
+  /// mid-transition switch) — evaluating that list against the BLENDED
+  /// clip's shared clock (`timeSeconds`, which tracks the INCOMING clip's
+  /// own phrase from the first blended frame — see `_blendStage`'s `seconds:
+  /// to.seconds`) checks the wrong side's window against the wrong clock:
+  /// the outgoing clip's swap window is authored in ITS OWN phase, so a
+  /// window active at, say, phase 0.5-1 of shaku's 6s loop reads as
+  /// permanently inactive once `timeSeconds` resets to the incoming clip's
+  /// near-zero fresh phrase start. Confirmed via transitions-r6 pixel-diff:
+  /// shaku's hand.L/hand.R bar-2 swap was active right up to a shaku->buga
+  /// cut, then silently vanished on the very next blended frame even though
+  /// no bone moved — a paint-order pop, not a pose pop. Fix: evaluate EACH
+  /// side's own windows against ITS OWN clock/duration (mirrors the dance
+  /// formation cross-blend fix in `character_painter.dart`), then pick
+  /// whichever side the pose blend itself is closer to.
+  List<(String, String)> _activeZOrderSwaps(Clip clip, double timeSeconds) {
+    List<(String, String)> active(Clip source, double sourceSeconds) =>
+        source.zOrderSwaps.isEmpty
+        ? const <(String, String)>[]
+        : [
+            for (final window in source.zOrderSwaps)
+              if (window.activeAt(evaluator.phaseAt(source, sourceSeconds)))
+                (window.boneA, window.boneB),
+          ];
+
+    final plan = clip.transitionPlan;
+    if (plan == null) return active(clip, timeSeconds);
+    return plan.weight < 0.5
+        ? active(plan.from, timeSeconds + plan.fromTimeShiftSeconds)
+        : active(plan.to, timeSeconds);
   }
 
   /// Returns the final local-space pose that [frameAt] will solve and draw.
@@ -784,7 +815,9 @@ class CharacterScene {
     final laggedPose = followLag > 0
         ? evaluator.evaluate(clip, timeSeconds - followLag)
         : null;
-    final rawPose = followLag > 0 ? evaluator.evaluate(clip, timeSeconds) : null;
+    final rawPose = followLag > 0
+        ? evaluator.evaluate(clip, timeSeconds)
+        : null;
     Map<String, JointPose>? joints;
     void addLever(String leverId, double delta) {
       if (delta == 0) return;
@@ -825,8 +858,10 @@ class CharacterScene {
       final authored = _shortestAngle(
         pose.jointOf(pair.clavicleId).rotation,
       ).abs();
-      final deference = (1 - authored / _kShoulderLineAbductionDeference)
-          .clamp(0.0, 1.0);
+      final deference = (1 - authored / _kShoulderLineAbductionDeference).clamp(
+        0.0,
+        1.0,
+      );
       if (deference <= 0) continue;
       final lift =
           math.min(
@@ -937,8 +972,15 @@ class CharacterScene {
     var currentPose = pose;
 
     // Opt-in (per [Clip.supportFootWorldAnchor]): hold the active support foot
-    // toward its planted world position so the body grooves over it.
-    final footAnchor = _supportFootWorldAnchor(clip, phase);
+    // toward its planted world position so the body grooves over it. Reads
+    // via [_contactSourceFor] so a mid-blend clip's merged contactSpans (see
+    // `_transitionSpans`) don't get evaluated against the wrong side's clock
+    // — same fix as `_danceSupportFootStabilizedWorld`'s own doc comment.
+    final contactSource = _contactSourceFor(clip, timeSeconds);
+    final footAnchor = _supportFootWorldAnchor(
+      contactSource.clip,
+      _clipPhase(contactSource.clip, contactSource.timeSeconds),
+    );
 
     final clearedHands = _handClearanceAdjustedSamples(clip, phase);
 
@@ -948,8 +990,14 @@ class CharacterScene {
     // tap target down with the body — probe-measured up to ~10 units below
     // the planted sole at the seam. The planted support sole IS the floor
     // at every instant; a free foot's target may never sink below it.
+    // Same per-side clock fix as [footAnchor] above — the merged clip's
+    // contactSpans evaluated at the wrong side's phase can name the wrong
+    // bone as the "floor" reference for the free foot's clamp.
     final contactForFloor = clip.enforceSoleFloor && _isDanceFamily(clip)
-        ? _activeContactAt(clip, phase)
+        ? _activeContactAt(
+            contactSource.clip,
+            _clipPhase(contactSource.clip, contactSource.timeSeconds),
+          )
         : null;
     // The clamp FADES at span edges like every other contact mechanism:
     // at a support handoff the "floor" jumps from one foot to the other,
@@ -960,8 +1008,12 @@ class CharacterScene {
       final span = contactForFloor.span;
       final spanLength = span.end - span.start;
       final fade = (spanLength * 0.2).clamp(0.015, 0.04);
-      final fadeIn = smoothstep((contactForFloor.strengthPhase - span.start) / fade);
-      final fadeOut = smoothstep((span.end - contactForFloor.strengthPhase) / fade);
+      final fadeIn = smoothstep(
+        (contactForFloor.strengthPhase - span.start) / fade,
+      );
+      final fadeOut = smoothstep(
+        (span.end - contactForFloor.strengthPhase) / fade,
+      );
       soleFloorFade = fadeIn < fadeOut ? fadeIn : fadeOut;
     }
 
@@ -1007,6 +1059,7 @@ class CharacterScene {
         weight,
         worldAnchor: planted ? (x: footAnchor.x, y: footAnchor.y) : null,
         anchorBlend: planted ? footAnchor.blend : 0,
+        anchorBlendY: planted ? footAnchor.blendY : 0,
         soleFloorY: soleFloorStrength > 0 ? soleFloor : null,
         soleFloorStrength: soleFloorStrength,
       );
@@ -1041,6 +1094,7 @@ class CharacterScene {
           weight,
           worldAnchor: planted ? (x: footAnchor.x, y: footAnchor.y) : null,
           anchorBlend: planted ? footAnchor.blend : 0,
+          anchorBlendY: planted ? footAnchor.blendY : 0,
           soleFloorY: soleFloorStrength > 0 ? soleFloor : null,
           soleFloorStrength: soleFloorStrength,
         );
@@ -1326,18 +1380,21 @@ class CharacterScene {
     Pose pose,
     ClipTransitionPlan transition,
   ) {
-    final p = _clipPhase(clip, timeSeconds);
+    // Same per-side phase fix as `_transitionContactLockedPose`.
     final weight = smoothstep(transition.weight);
     final dx =
         _supportBalanceRootDelta(
           source: transition.from,
-          phase: p,
+          phase: _clipPhase(
+            transition.from,
+            timeSeconds + transition.fromTimeShiftSeconds,
+          ),
           pose: pose,
           scale: 1 - weight,
         ) +
         _supportBalanceRootDelta(
           source: transition.to,
-          phase: p,
+          phase: _clipPhase(transition.to, timeSeconds),
           pose: pose,
           scale: weight,
         );
@@ -1409,6 +1466,7 @@ class CharacterScene {
     double weight, {
     ({double x, double y})? worldAnchor,
     double anchorBlend = 0,
+    double? anchorBlendY,
     double? soleFloorY,
     double soleFloorStrength = 1,
   }) {
@@ -1441,16 +1499,18 @@ class CharacterScene {
     // so the leg bends to absorb the body's groove while the foot stays put
     // (instead of the foot dragging with the hips). [anchorBlend] fades to 0 at
     // the support handoff; it is gentle by design so the natural stance width is
-    // preserved (a hard hold narrows the astride into a leg-tangle).
-    var targetPoint = worldAnchor == null || anchorBlend <= 0
+    // preserved (a hard hold narrows the astride into a leg-tangle). [anchorBlendY]
+    // (defaults to [anchorBlend] when unset) lets the Y pull be strengthened
+    // independently of X for a move whose root authors a large SUSTAINED
+    // vertical sink — see [Clip.supportFootWorldAnchorVerticalBoost].
+    final blendY = anchorBlendY ?? anchorBlend;
+    var targetPoint = worldAnchor == null || (anchorBlend <= 0 && blendY <= 0)
         ? authoredTarget
         : (
             x:
                 authoredTarget.x +
                 (worldAnchor.x - authoredTarget.x) * anchorBlend,
-            y:
-                authoredTarget.y +
-                (worldAnchor.y - authoredTarget.y) * anchorBlend,
+            y: authoredTarget.y + (worldAnchor.y - authoredTarget.y) * blendY,
           );
     // The support sole is the floor: clamp a free foot's target so a deep
     // pocket sink can never press it below the planted shoe (see
@@ -1802,7 +1862,8 @@ class CharacterScene {
   /// joint's NATURAL min/max over the loop ([_SpineLevelPlan]) so no joint
   /// separates more than it already does un-leveled. See 2026-07-04-head-level-
   /// probe for why the old rootDy-only counter under-corrected the arc.
-  ({double neckShiftY, double headExtraShiftY, String? neckId}) _spineLevelShifts(
+  ({double neckShiftY, double headExtraShiftY, String? neckId})
+  _spineLevelShifts(
     Clip clip, {
     required String headId,
     required Affine2D base,
@@ -1825,7 +1886,9 @@ class CharacterScene {
     // ease blends the LEVELED position back toward the un-leveled one AFTER the
     // joint clamps, so it dips the head even where the clamp would otherwise pin
     // the gap (easing strength alone does nothing — the clamp binds; measured).
-    final torsoTargetY = base.transformPoint(plan.torsoMeanX, plan.torsoMeanY).y;
+    final torsoTargetY = base
+        .transformPoint(plan.torsoMeanX, plan.torsoMeanY)
+        .y;
     // Local units the torso sits below its own mean (negative = above; the
     // clamp below floors it, so a raised torso just gets zero ease).
     final crouchLocal = (torsoY - torsoTargetY) / baseScale;
@@ -2059,6 +2122,32 @@ class CharacterScene {
   double _worldRotation(Affine2D transform) =>
       math.atan2(transform.b, transform.a);
 
+  /// Resolves which SIDE of a mid-blend [clip] (and its OWN clock) any
+  /// contact-span-derived value should read — a blended clip's
+  /// `contactSpans` is the UNION of both sides' spans (see
+  /// `_transitionSpans`), so evaluating that union against the shared blend
+  /// clock (which tracks the INCOMING clip's own phrase from the first
+  /// blended frame — see `_blendStage`'s `seconds: to.seconds`) can pick the
+  /// wrong span, or the right span at the wrong phase within it. Every
+  /// contact-span consumer that isn't ALREADY blend-weighted (unlike e.g.
+  /// `_transitionSupportAnchorStrength`, a continuous value) needs this
+  /// same per-side resolution — same midpoint-switch pattern as
+  /// `enforceSoleFloor`/`zOrderSwaps` in `blendedClip`, matching how
+  /// `_transitionContactLockedPose` already handles the ROOT delta.
+  ({Clip clip, double timeSeconds}) _contactSourceFor(
+    Clip clip,
+    double timeSeconds,
+  ) {
+    final plan = clip.transitionPlan;
+    if (plan == null) return (clip: clip, timeSeconds: timeSeconds);
+    return plan.weight < 0.5
+        ? (
+            clip: plan.from,
+            timeSeconds: timeSeconds + plan.fromTimeShiftSeconds,
+          )
+        : (clip: plan.to, timeSeconds: timeSeconds);
+  }
+
   /// The contact-lock pins the support point, but the shoe can still rotate
   /// through the planted frames as the leg keys keep moving. That reads as
   /// sliding on a deck. During the stable middle of a dance contact, keep the
@@ -2070,7 +2159,18 @@ class CharacterScene {
     Map<String, Affine2D> world,
   ) {
     if (!_isDanceFamily(clip)) return world;
-    final contact = _activeContactAt(clip, _clipPhase(clip, timeSeconds));
+    // Confirmed via transitions-r6 world-bone probing: shaku's own contact
+    // lock (correctly stabilizing its plant every frame right up to a
+    // shaku->buga cut) got evaluated one frame later against buga's fresh
+    // near-zero clock, and the resulting correction dragged the support
+    // leg ~30 world units in a single 60fps frame with no other channel
+    // moving at all — see [_contactSourceFor].
+    final source = _contactSourceFor(clip, timeSeconds);
+    final contactClip = source.clip;
+    final contact = _activeContactAt(
+      contactClip,
+      _clipPhase(contactClip, source.timeSeconds),
+    );
     if (contact == null) return world;
     final boneId = contact.span.bone;
     final current = world[boneId];
@@ -2078,15 +2178,15 @@ class CharacterScene {
     if (current == null || contactPoint == null) return world;
 
     final anchorPose = evaluator.evaluate(
-      clip,
-      contact.anchorPhase * clip.duration,
+      contactClip,
+      contact.anchorPhase * contactClip.duration,
     );
     final anchorWorld = solver.solve(anchorPose);
     final anchor = anchorWorld[boneId];
     if (anchor == null) return world;
 
     final contactStrength = _contactLockStrength(
-      clip,
+      contactClip,
       contact.span,
       contact.strengthPhase,
     ).x;
@@ -2202,17 +2302,23 @@ class CharacterScene {
     Pose pose,
     ClipTransitionPlan transition,
   ) {
-    final p = _clipPhase(clip, timeSeconds);
+    // Each side gets its OWN phase — sharing one phase derived from the
+    // blended clip (whose duration is always `to.duration`) reads `from`'s
+    // contact span at the wrong point in ITS OWN phrase, same class of bug
+    // as `_contactSourceFor` fixes for the non-blending consumers above.
     final weight = smoothstep(transition.weight);
     final outgoing = _contactLockRootDelta(
       source: transition.from,
-      phase: p,
+      phase: _clipPhase(
+        transition.from,
+        timeSeconds + transition.fromTimeShiftSeconds,
+      ),
       pose: pose,
       scale: 1 - weight,
     );
     final incoming = _contactLockRootDelta(
       source: transition.to,
-      phase: p,
+      phase: _clipPhase(transition.to, timeSeconds),
       pose: pose,
       scale: weight,
     );
@@ -2554,12 +2660,13 @@ class CharacterScene {
   }
 
   /// The world-space origin of the active SUPPORT foot at the moment it planted
-  /// (its contact-span start), plus a `blend` that fades to 0 at the span edges.
+  /// (its contact-span start), plus a `blend` that fades to 0 at the span
+  /// edges (shared by X) and a `blendY` that additionally folds in
+  /// [Clip.supportFootWorldAnchorVerticalBoost] — see that field's doc
+  /// comment for why the vertical pull can be strengthened independently.
   /// Returns null unless the clip opts in via [Clip.supportFootWorldAnchor].
-  ({String bone, double x, double y, double blend})? _supportFootWorldAnchor(
-    Clip clip,
-    double phase,
-  ) {
+  ({String bone, double x, double y, double blend, double blendY})?
+  _supportFootWorldAnchor(Clip clip, double phase) {
     if (!clip.supportFootWorldAnchor || clip.contactSpans.isEmpty) return null;
     final contact = _activeContactAt(clip, phase);
     if (contact == null) return null;
@@ -2575,7 +2682,22 @@ class CharacterScene {
       contact.strengthPhase,
       clip.supportFootWorldAnchorStrength,
     );
-    return (bone: span.bone, x: origin.x, y: origin.y, blend: blend);
+    final blendY = clip.supportFootWorldAnchorVerticalBoost <= 0
+        ? blend
+        : _supportFootAnchorBlend(
+            span,
+            contact.strengthPhase,
+            (clip.supportFootWorldAnchorStrength +
+                    clip.supportFootWorldAnchorVerticalBoost)
+                .clamp(0.0, 1.0),
+          );
+    return (
+      bone: span.bone,
+      x: origin.x,
+      y: origin.y,
+      blend: blend,
+      blendY: blendY,
+    );
   }
 
   /// Edge-faded strength for the world foot anchor. Deliberately GENTLE — a
@@ -2674,9 +2796,7 @@ class CharacterScene {
     // foot sideways, but the sole stays vertically GROUNDED until the
     // actual peel (R27 rigging measured the plant sagging over its final
     // 1.5 beats when R26 widened the whole edge).
-    final fadeOutWidth = dance
-        ? (spanLength * 0.5).clamp(0.044, 0.12)
-        : fade;
+    final fadeOutWidth = dance ? (spanLength * 0.5).clamp(0.044, 0.12) : fade;
     final fadeOutX = smoothstep((span.end - p) / fadeOutWidth);
     final fadeOutY = smoothstep((span.end - p) / fade);
     // Vertical grounding also ENGAGES faster than the lateral hold: a sole

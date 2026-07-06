@@ -69,7 +69,8 @@ class BlendedJointChannel extends JointChannel {
 
   @override
   JointPose sample(double p) {
-    final a = from?.sample(_shifted(p, fromTimeShift, fromDuration)) ??
+    final a =
+        from?.sample(_shifted(p, fromTimeShift, fromDuration)) ??
         JointPose.identity;
     final b = to?.sample(p) ?? JointPose.identity;
     return JointPose(
@@ -837,7 +838,8 @@ class BlendedRootChannel extends RootChannel {
 
   @override
   ({double dx, double dy, double rotation}) sample(double p) {
-    final a = from?.sample(_shifted(p, fromTimeShift, fromDuration)) ??
+    final a =
+        from?.sample(_shifted(p, fromTimeShift, fromDuration)) ??
         (dx: 0.0, dy: 0.0, rotation: 0.0);
     final b = to?.sample(p) ?? (dx: 0.0, dy: 0.0, rotation: 0.0);
     return (
@@ -1229,10 +1231,19 @@ class ClipTransitionPlan {
     required this.from,
     required this.to,
     required this.weight,
+    this.fromTimeShiftSeconds = 0,
   }) : assert(weight >= 0 && weight <= 1, 'weight must be in 0..1');
 
   final Clip from;
   final Clip to;
+
+  /// Added to the shared clock to recover [from]'s OWN phrase-clock seconds
+  /// during the blend (mirrors the shift already applied when sampling
+  /// [from]'s channels — see [blendedClip]'s own parameter of the same
+  /// name). Anything that derives a time-varying value from this transition
+  /// plan (e.g. a dance formation) needs `from`'s own clock, not the shared
+  /// one, or it silently reads `from`'s motion at the wrong phase.
+  final double fromTimeShiftSeconds;
   final double weight;
 }
 
@@ -1267,6 +1278,7 @@ class Clip {
     this.limbTargets = const [],
     this.supportFootWorldAnchor = false,
     this.supportFootWorldAnchorStrength = 0.6,
+    this.supportFootWorldAnchorVerticalBoost = 0,
     this.danceHeadBobScale = 1.0,
     this.danceHeadLevelClampMin = -2.0,
     this.enforceSoleFloor = false,
@@ -1277,6 +1289,11 @@ class Clip {
          supportFootWorldAnchorStrength >= 0 &&
              supportFootWorldAnchorStrength <= 1,
          'support foot anchor strength must be in 0..1',
+       ),
+       assert(
+         supportFootWorldAnchorVerticalBoost >= 0 &&
+             supportFootWorldAnchorVerticalBoost <= 1,
+         'support foot anchor vertical boost must be in 0..1',
        );
 
   /// Display/lookup name.
@@ -1326,6 +1343,22 @@ class Clip {
   /// authored foot scuff; higher values read as a clearer plant for moves whose
   /// weight transfer depends on a visible support.
   final double supportFootWorldAnchorStrength;
+
+  /// Extra VERTICAL-only strength for [supportFootWorldAnchor], added on top
+  /// of [supportFootWorldAnchorStrength] but affecting only the anchor's Y
+  /// pull (effective Y strength is `(strength + boost).clamp(0, 1)`; X is
+  /// untouched). [supportFootWorldAnchorStrength] is deliberately gentle
+  /// because a strong pull on BOTH axes narrows the astride stance (see
+  /// `CharacterScene._supportFootAnchorBlend`'s doc comment) — but a move
+  /// whose root authors a large, SUSTAINED vertical sink (rather than a
+  /// brief dip that releases) leaks a correspondingly large vertical
+  /// residual through the same shared strength, reading as the character
+  /// sitting measurably lower on screen for its whole performance (a
+  /// cinematography panel caught this as an apparent camera-scale jump at
+  /// cuts into/out of such a move). This lets that residual be tightened
+  /// without touching the X correction the shared strength is tuned for.
+  /// Opt-in per clip; 0 (the default) changes nothing.
+  final double supportFootWorldAnchorVerticalBoost;
 
   /// Cycle period (loop) or total length (one-shot), in seconds.
   final double duration;
@@ -1402,8 +1435,9 @@ class ZOrderSwapWindow {
   final double start;
   final double end;
 
-  bool activeAt(double phase) =>
-      start <= end ? (phase >= start && phase < end) : (phase >= start || phase < end);
+  bool activeAt(double phase) => start <= end
+      ? (phase >= start && phase < end)
+      : (phase >= start || phase < end);
 }
 
 Clip blendedClip({
@@ -1472,6 +1506,11 @@ Clip blendedClip({
     ],
     supportFootWorldAnchor: supportFootAnchorStrength > 0,
     supportFootWorldAnchorStrength: supportFootAnchorStrength,
+    supportFootWorldAnchorVerticalBoost: _transitionSupportAnchorVerticalBoost(
+      from,
+      to,
+      weight,
+    ),
     danceHeadBobScale: _lerp(
       from.danceHeadBobScale,
       to.danceHeadBobScale,
@@ -1485,7 +1524,26 @@ Clip blendedClip({
     enforceSoleFloor: rootWeight < 0.5
         ? from.enforceSoleFloor
         : to.enforceSoleFloor,
-    transitionPlan: ClipTransitionPlan(from: from, to: to, weight: weight),
+    // A blended clip used to silently drop BOTH sides' z-order swap windows
+    // (this field had no entry above and so fell back to the empty default,
+    // popping a hand/limb whose paint order was swapped for the outgoing
+    // move's current beat back to the rig's static order the instant a
+    // transition began — a real pop confirmed via transitions-r6 pixel-diff,
+    // even though nothing about the POSE changed). This value is only a
+    // fallback for any caller reading `clip.zOrderSwaps` directly; the
+    // render path (`CharacterScene._activeZOrderSwaps`) evaluates `from`/`to`
+    // against their OWN clocks via [transitionPlan] instead of trusting this
+    // field, since evaluating either side's window against the WRONG clock
+    // (the shared blend clock) reads it as permanently inactive — same
+    // midpoint-switch pattern as [enforceSoleFloor] above, but see that
+    // method's own doc comment for why the clock still has to be per-side.
+    zOrderSwaps: rootWeight < 0.5 ? from.zOrderSwaps : to.zOrderSwaps,
+    transitionPlan: ClipTransitionPlan(
+      from: from,
+      to: to,
+      weight: weight,
+      fromTimeShiftSeconds: fromTimeShiftSeconds,
+    ),
     dynamics: DanceDynamics.lerp(from.dynamics, to.dynamics, rootWeight),
   );
 }
@@ -1535,6 +1593,20 @@ double _transitionSupportAnchorStrength(
       : 0.0;
   final incoming = to.supportFootWorldAnchor
       ? to.supportFootWorldAnchorStrength * weight
+      : 0.0;
+  return (outgoing + incoming).clamp(0.0, 1.0);
+}
+
+double _transitionSupportAnchorVerticalBoost(
+  Clip from,
+  Clip to,
+  double weight,
+) {
+  final outgoing = from.supportFootWorldAnchor
+      ? from.supportFootWorldAnchorVerticalBoost * (1 - weight)
+      : 0.0;
+  final incoming = to.supportFootWorldAnchor
+      ? to.supportFootWorldAnchorVerticalBoost * weight
       : 0.0;
   return (outgoing + incoming).clamp(0.0, 1.0);
 }

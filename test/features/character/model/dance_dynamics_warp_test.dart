@@ -85,28 +85,31 @@ void main() {
   });
 
   group('upperBodyDynamicsWarpedClip — selective wrapping', () {
-    test('only bones in warpBoneIds are wrapped; others keep their instance', () {
-      const torsoChannel = KeyframeChannel([
-        Keyframe(p: 0),
-        Keyframe(p: 1, rotation: 1),
-      ]);
-      const footChannel = KeyframeChannel([
-        Keyframe(p: 0),
-        Keyframe(p: 1, rotation: 1),
-      ]);
-      final clip = _loopingClip(
-        channels: {'torso': torsoChannel, 'foot.L': footChannel},
-      );
+    test(
+      'only bones in warpBoneIds are wrapped; others keep their instance',
+      () {
+        const torsoChannel = KeyframeChannel([
+          Keyframe(p: 0),
+          Keyframe(p: 1, rotation: 1),
+        ]);
+        const footChannel = KeyframeChannel([
+          Keyframe(p: 0),
+          Keyframe(p: 1, rotation: 1),
+        ]);
+        final clip = _loopingClip(
+          channels: {'torso': torsoChannel, 'foot.L': footChannel},
+        );
 
-      final warped = upperBodyDynamicsWarpedClip(
-        clip,
-        _strong,
-        warpBoneIds: {'torso'},
-      );
+        final warped = upperBodyDynamicsWarpedClip(
+          clip,
+          _strong,
+          warpBoneIds: {'torso'},
+        );
 
-      expect(warped.channels['torso'], isA<PhaseWarpedJointChannel>());
-      expect(identical(warped.channels['foot.L'], footChannel), isTrue);
-    });
+        expect(warped.channels['torso'], isA<PhaseWarpedJointChannel>());
+        expect(identical(warped.channels['foot.L'], footChannel), isTrue);
+      },
+    );
 
     test('hand IK targets wrap; foot IK targets never do', () {
       const handTarget = LimbIkTarget(
@@ -140,7 +143,9 @@ void main() {
       const clip = Clip(
         name: 'sekem',
         duration: 6,
-        channels: {'torso': KeyframeChannel([Keyframe(p: 0)])},
+        channels: {
+          'torso': KeyframeChannel([Keyframe(p: 0)]),
+        },
         locomotionSpeed: 1.5,
         groundSpans: [GroundSpan('foot.L', 0, 0.5)],
         contactSpans: [GroundSpan('foot.R', 0.5, 1)],
@@ -151,7 +156,12 @@ void main() {
         danceHeadLevelClampMin: -1,
         enforceSoleFloor: true,
         zOrderSwaps: [
-          ZOrderSwapWindow(boneA: 'hand.L', boneB: 'hand.R', start: 0.4, end: 0.6),
+          ZOrderSwapWindow(
+            boneA: 'hand.L',
+            boneB: 'hand.R',
+            start: 0.4,
+            end: 0.6,
+          ),
         ],
         dynamics: _strong,
       );

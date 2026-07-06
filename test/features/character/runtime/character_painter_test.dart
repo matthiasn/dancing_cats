@@ -783,7 +783,8 @@ void main() {
         expect(
           change,
           greaterThan(1000),
-          reason: 'the idle clip must be seated into the plate too, not just '
+          reason:
+              'the idle clip must be seated into the plate too, not just '
               'the named dance moves',
         );
       });
@@ -1306,10 +1307,10 @@ void main() {
         // further between these two sampled camera beats. A true snap
         // still measures multiples of this band.
         // 56 -> 60 (9-path r5): shaku's per-bar weight rock re-armed into the
-          // sway parks shifts the lead ~4px right at this beat — the bound
-          // tracks the character's shot range; the easing guard is the
-          // adjacent delta assertions, which are untouched.
-          inInclusiveRange(-8, 60),
+        // sway parks shifts the lead ~4px right at this beat — the bound
+        // tracks the character's shot range; the easing guard is the
+        // adjacent delta assertions, which are untouched.
+        inInclusiveRange(-8, 60),
         reason:
             'the second beat now starts with the push-in; any right truck '
             'should ease in without snapping the lead left',
@@ -1811,10 +1812,12 @@ void main() {
 
   group('danceParallaxMatrixForShotAtDepth', () {
     const size = Size(800, 450);
-    // The director plants its pivot at the dancers' feet (0.88 of the height) so
-    // a zoom grows the cast upward; every plane scales about the SAME pivot or
-    // the scenery would slide off the planted feet.
-    const directorPivot = Offset(400, 450 * 0.88); // (400, 396)
+    // The director plants its pivot at the dancers' feet (0.90 of the height —
+    // matching CharacterPainter.feetFraction's default, the actual floor line;
+    // see _directorPivotFraction's doc comment) so a zoom grows the cast
+    // upward; every plane scales about the SAME pivot or the scenery would
+    // slide off the planted feet.
+    const directorPivot = Offset(400, 450 * 0.90); // (400, 405)
 
     Matrix4 at(
       ({double zoom, double dx, double dy}) shot,

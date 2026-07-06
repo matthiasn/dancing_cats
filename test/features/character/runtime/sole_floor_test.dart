@@ -41,8 +41,11 @@ void main() {
     for (final entry in clips.entries) {
       final clip = entry.value;
       if (clip.contactSpans.isEmpty) continue;
-      expect(clip.enforceSoleFloor, isTrue,
-          reason: '${entry.key} is in the ratchet list but not opted in');
+      expect(
+        clip.enforceSoleFloor,
+        isTrue,
+        reason: '${entry.key} is in the ratchet list but not opted in',
+      );
       for (var i = 0; i < samples; i++) {
         final phase = i / samples;
         final span = _activeSpan(clip, phase);
@@ -81,7 +84,9 @@ void main() {
 
 double _solePoint(CharacterScene scene, Affine2D? transform, String boneId) {
   final drawable = scene.rig.bone(boneId)!.drawable!;
-  return transform!.transformPoint(drawable.dx, drawable.dy + drawable.height / 2).y;
+  return transform!
+      .transformPoint(drawable.dx, drawable.dy + drawable.height / 2)
+      .y;
 }
 
 GroundSpan? _activeSpan(Clip clip, double phase) {

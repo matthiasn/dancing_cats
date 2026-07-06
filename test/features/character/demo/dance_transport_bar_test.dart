@@ -272,6 +272,29 @@ void main() {
       expect(find.byKey(const Key('danceTimeline')), findsOneWidget);
     });
 
+    testWidgets('position-only rebuild reuses static chrome widgets', (
+      tester,
+    ) async {
+      await _pump(tester, positionSec: 10);
+      final speaker = tester.widget<Icon>(find.byIcon(Icons.volume_up_rounded));
+      final move = tester.widget<Text>(find.text('shaku'));
+
+      await _pump(tester, positionSec: 10.5);
+
+      expect(
+        find.textContaining('00:10.500', findRichText: true),
+        findsOneWidget,
+      );
+      expect(
+        identical(
+          speaker,
+          tester.widget<Icon>(find.byIcon(Icons.volume_up_rounded)),
+        ),
+        isTrue,
+      );
+      expect(identical(move, tester.widget<Text>(find.text('shaku'))), isTrue);
+    });
+
     testWidgets('empty waveform shows the regenerate hint', (tester) async {
       await _pump(tester, amplitudes: const []);
       expect(

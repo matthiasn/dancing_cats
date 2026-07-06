@@ -147,9 +147,7 @@ void main() {
               samples: 192,
               boneIds: const [CatBones.handL, CatBones.handR],
             );
-            return report.segments
-                .map((s) => s.distance)
-                .reduce(math.max);
+            return report.segments.map((s) => s.distance).reduce(math.max);
           }
 
           expect(
@@ -163,39 +161,42 @@ void main() {
       },
     );
 
-    test('lead lane reads a stronger accent than backup-left, same move+level', () {
-      final scene = CharacterScene(buildCatInSuitRig());
-      final analyzer = TemporalMotionAnalyzer(scene);
+    test(
+      'lead lane reads a stronger accent than backup-left, same move+level',
+      () {
+        final scene = CharacterScene(buildCatInSuitRig());
+        final analyzer = TemporalMotionAnalyzer(scene);
 
-      double peakHandVelocity(int lane) {
-        final clip = CatClips.zanku;
-        final dynamics = effectiveDanceDynamics(
-          moveBase: clip.dynamics,
-          catProfile: kDanceLaneDynamicsProfiles[lane],
-          sectionEnergy: sectionEnergyDynamics(1),
-        );
-        final warped = upperBodyDynamicsWarpedClip(
-          clip,
-          dynamics,
-          warpBoneIds: kDanceUpperBodyWarpBoneIds,
-        );
-        final report = analyzer.analyze(
-          clip: warped,
-          samples: 192,
-          boneIds: const [CatBones.handL, CatBones.handR],
-        );
-        return report.segments.map((s) => s.distance).reduce(math.max);
-      }
+        double peakHandVelocity(int lane) {
+          final clip = CatClips.zanku;
+          final dynamics = effectiveDanceDynamics(
+            moveBase: clip.dynamics,
+            catProfile: kDanceLaneDynamicsProfiles[lane],
+            sectionEnergy: sectionEnergyDynamics(1),
+          );
+          final warped = upperBodyDynamicsWarpedClip(
+            clip,
+            dynamics,
+            warpBoneIds: kDanceUpperBodyWarpBoneIds,
+          );
+          final report = analyzer.analyze(
+            clip: warped,
+            samples: 192,
+            boneIds: const [CatBones.handL, CatBones.handR],
+          );
+          return report.segments.map((s) => s.distance).reduce(math.max);
+        }
 
-      expect(
-        peakHandVelocity(0),
-        greaterThan(peakHandVelocity(1)),
-        reason:
-            "the lead's profile (+weight/+time) should read a harder, "
-            "snappier accent than backup-left's (-weight/-time) on the same "
-            'move and energy',
-      );
-    });
+        expect(
+          peakHandVelocity(0),
+          greaterThan(peakHandVelocity(1)),
+          reason:
+              "the lead's profile (+weight/+time) should read a harder, "
+              "snappier accent than backup-left's (-weight/-time) on the same "
+              'move and energy',
+        );
+      },
+    );
   });
 
   group('upperBodyDynamicsWarpedClip — warped hand jerk stays bounded', () {

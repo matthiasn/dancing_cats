@@ -111,20 +111,24 @@ void main() {
     });
 
     test('allocates fresh paints and renders when none are supplied', () async {
-      final pixel = await _pixelAt((canvas) {
-        paintGlowPointLight(
-          canvas,
-          center: center,
-          color: const Color(0xFFFF0000),
-          haloRadius: 20,
-          haloInnerAlpha: 0.9,
-          haloMidAlpha: 0.3,
-          haloMidStop: 0.4,
-          coreRadius: 8,
-          coreColor: const Color(0xFFFFFFFF),
-          coreAlpha: 1,
-        );
-      }, size, center);
+      final pixel = await _pixelAt(
+        (canvas) {
+          paintGlowPointLight(
+            canvas,
+            center: center,
+            color: const Color(0xFFFF0000),
+            haloRadius: 20,
+            haloInnerAlpha: 0.9,
+            haloMidAlpha: 0.3,
+            haloMidStop: 0.4,
+            coreRadius: 8,
+            coreColor: const Color(0xFFFFFFFF),
+            coreAlpha: 1,
+          );
+        },
+        size,
+        center,
+      );
       // The core is opaque white blended additively over transparent black —
       // reads back as a fully lit, non-transparent pixel at the light centre.
       expect(pixel.a, greaterThan(0));
@@ -136,20 +140,24 @@ void main() {
     test('the halo fades to fully transparent at its outer radius', () async {
       // Far outside the halo radius, additive blending over transparent black
       // should leave the pixel untouched (alpha 0).
-      final pixel = await _pixelAt((canvas) {
-        paintGlowPointLight(
-          canvas,
-          center: center,
-          color: const Color(0xFFFF0000),
-          haloRadius: 5,
-          haloInnerAlpha: 0.9,
-          haloMidAlpha: 0.3,
-          haloMidStop: 0.4,
-          coreRadius: 2,
-          coreColor: const Color(0xFFFFFFFF),
-          coreAlpha: 1,
-        );
-      }, size, const Offset(30, 55)); // well outside a 5px-radius halo at (30,30)
+      final pixel = await _pixelAt(
+        (canvas) {
+          paintGlowPointLight(
+            canvas,
+            center: center,
+            color: const Color(0xFFFF0000),
+            haloRadius: 5,
+            haloInnerAlpha: 0.9,
+            haloMidAlpha: 0.3,
+            haloMidStop: 0.4,
+            coreRadius: 2,
+            coreColor: const Color(0xFFFFFFFF),
+            coreAlpha: 1,
+          );
+        },
+        size,
+        const Offset(30, 55),
+      ); // well outside a 5px-radius halo at (30,30)
       expect(pixel.a, 0);
     });
   });

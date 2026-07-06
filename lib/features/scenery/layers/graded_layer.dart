@@ -48,7 +48,8 @@ class GradedLayer implements BackdropLayer {
     if (grade == null ||
         grade.isNeutral ||
         program == null ||
-        ctx.size.isEmpty) {
+        ctx.size.isEmpty ||
+        !ctx.allowGradeSnapshots) {
       child.paint(canvas, ctx);
       return;
     }
@@ -57,6 +58,7 @@ class GradedLayer implements BackdropLayer {
       size: ctx.size,
       grade: grade,
       program: program,
+      allowSnapshot: ctx.allowGradeSnapshots,
       paintContent: (layerCanvas) => child.paint(layerCanvas, ctx),
     );
   }

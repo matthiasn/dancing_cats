@@ -45,44 +45,51 @@ import 'package:flutter_test/flutter_test.dart';
 /// shoulder-engagement ramp and the arm's own transition resolve on
 /// different beats instead of stacking.
 void main() {
-  test('catalogue bone rotation keeps angular velocity below the snap band', () {
-    final scene = CharacterScene(buildCatInSuitRig());
-    final analyzer = TemporalMotionAnalyzer(scene);
-    const speedup = kDanceRealTempoSpeedup;
+  test(
+    'catalogue bone rotation keeps angular velocity below the snap band',
+    () {
+      final scene = CharacterScene(buildCatInSuitRig());
+      final analyzer = TemporalMotionAnalyzer(scene);
+      const speedup = kDanceRealTempoSpeedup;
 
-    const known = <String>{};
+      const known = <String>{};
 
-    for (final clip in [
-      CatClips.shaku,
-      CatClips.zanku,
-      CatClips.azonto,
-      CatClips.sekem,
-      CatClips.buga,
-      CatClips.pouncingCat,
-    ]) {
-      final report = analyzer.analyze(
-        clip: clip,
-        samples: 192,
-        boneIds: const [CatBones.handL, CatBones.handR, CatBones.torso],
-      );
-      for (final bone in const [CatBones.handL, CatBones.handR, CatBones.torso]) {
-        if (known.contains('$bone/${clip.name}')) continue;
-        final worstVelocity =
-            report.angularSegments
-                .where((segment) => segment.boneId == bone)
-                .map((segment) => segment.magnitude)
-                .reduce((a, b) => a > b ? a : b) *
-            speedup;
-        expect(
-          worstVelocity,
-          lessThan(2.5),
-          reason:
-              '${clip.name} $bone worst real-tempo angular velocity should '
-              'stay well clear of a full-radian-per-sample rotation snap',
+      for (final clip in [
+        CatClips.shaku,
+        CatClips.zanku,
+        CatClips.azonto,
+        CatClips.sekem,
+        CatClips.buga,
+        CatClips.pouncingCat,
+      ]) {
+        final report = analyzer.analyze(
+          clip: clip,
+          samples: 192,
+          boneIds: const [CatBones.handL, CatBones.handR, CatBones.torso],
         );
+        for (final bone in const [
+          CatBones.handL,
+          CatBones.handR,
+          CatBones.torso,
+        ]) {
+          if (known.contains('$bone/${clip.name}')) continue;
+          final worstVelocity =
+              report.angularSegments
+                  .where((segment) => segment.boneId == bone)
+                  .map((segment) => segment.magnitude)
+                  .reduce((a, b) => a > b ? a : b) *
+              speedup;
+          expect(
+            worstVelocity,
+            lessThan(2.5),
+            reason:
+                '${clip.name} $bone worst real-tempo angular velocity should '
+                'stay well clear of a full-radian-per-sample rotation snap',
+          );
+        }
       }
-    }
-  });
+    },
+  );
 
   test(
     'catalogue bone rotation keeps angular acceleration below the snap band',
