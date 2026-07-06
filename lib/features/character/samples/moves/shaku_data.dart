@@ -346,7 +346,6 @@ const double _shakuLateralGain = 0.6;
 /// lead.
 final List<DanceBodyKey> _shakuGrooveCalm = _calmedGroove(_shakuLateralGain);
 
-
 /// Shaku's own groove variant for the R21 stepped weight transfer: the
 /// lateral commit story moved to the square-wave sway layers in the shaku
 /// descriptor (park over the support foot, shift in 2-3 frames after each
@@ -494,7 +493,12 @@ const _shakuHandLTargetKeys = [
   DanceIkTargetKey(20, x: 23, y: -2, tension: 0.9),
   DanceIkTargetKey(22, x: -18, y: -28, tension: 0.5),
   DanceIkTargetKey(24, x: -70, y: -16, tension: 1),
-  DanceIkTargetKey(26, x: -12, y: -38, tension: 0.5), // outboard: no centre clump (9-path r4)
+  DanceIkTargetKey(
+    26,
+    x: -12,
+    y: -38,
+    tension: 0.5,
+  ), // outboard: no centre clump (9-path r4)
   DanceIkTargetKey(28, x: 24, y: -6, tension: 0.9), // rows low under the pull
   DanceIkTargetKey(30, x: -18, y: -30, tension: 0.5),
   DanceIkTargetKey(32, x: -66, y: -14, tension: 1), // == frame 0
@@ -505,8 +509,18 @@ const _shakuHandRTargetKeys = [
   // Mirror rowing, phase-shifted: R lands at the LEFT hip on L's open
   // counts, opens low-out on its own, and crosses high on the alternate
   // off-beats (6/14/22) so the two arms never peak together.
-  DanceIkTargetKey(0, x: -18, y: -8, tension: 0.75), // lands settled on the seam
-  DanceIkTargetKey(1, x: -24, y: -2, tension: 0.3), // follow-through loop past the land
+  DanceIkTargetKey(
+    0,
+    x: -18,
+    y: -8,
+    tension: 0.75,
+  ), // lands settled on the seam
+  DanceIkTargetKey(
+    1,
+    x: -24,
+    y: -2,
+    tension: 0.3,
+  ), // follow-through loop past the land
   DanceIkTargetKey(3, x: 4, y: -22, tension: 0.4), // swing back out on an arc
   DanceIkTargetKey(4, x: 66, y: -14, tension: 1), // OPEN low-out (count)
   DanceIkTargetKey(6, x: 0, y: -44, tension: 0.5), // sweep up-across, high
@@ -623,7 +637,11 @@ const _shakuFootRTargetKeys = [
   // snapping back in one sample at the seam; "author a real prepared
   // weight-shift step across the seam"). The sole lifts clear at f31,
   // travels in the air, and arrives at the f0 tap from above.
-  DanceIkTargetKey(31, x: 56, y: 84), // lifted clear, travelling through the wrap
+  DanceIkTargetKey(
+    31,
+    x: 56,
+    y: 84,
+  ), // lifted clear, travelling through the wrap
   DanceIkTargetKey(32, x: 52, y: 96), // == frame 0, tap arrives from above
 ];
 const _shakuFootLKeys = [
@@ -761,8 +779,10 @@ const _shakuClaviclePopsL = [
 List<DanceJointKey> _mergedByFrame(
   List<DanceJointKey> a,
   List<DanceJointKey> b,
-) => [...a, ...b]
-  ..sort((x, y) => (x.frame + x.microFrames).compareTo(y.frame + y.microFrames));
+) => [
+  ...a,
+  ...b,
+]..sort((x, y) => (x.frame + x.microFrames).compareTo(y.frame + y.microFrames));
 
 // r6: the L girdle ANSWERS the R by +0.7 frames on top of the shared
 // arm-lead — the r5 panel measured the crowns near-unison ('the pops

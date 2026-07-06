@@ -261,7 +261,8 @@ void main() {
       expect(
         topSpread,
         lessThan(0.10),
-        reason: 'the two launch bases should be closing together, not still '
+        reason:
+            'the two launch bases should be closing together, not still '
             'spanning their original spread',
       );
       expect(
@@ -271,70 +272,76 @@ void main() {
       );
     });
 
-    test('rises through five local spiral columns per base before the beam', () {
-      // count:80 (not the other tests' 40) keeps 8 drones per pod — the
-      // granularity this test's vertical-scatter assertion was tuned
-      // against — now that the population also splits 40/40 across the two
-      // launch bases before each splits further into 5 pods.
-      final start = sampleDroneShow(0, count: 80);
-      final rising = sampleDroneShow(
-        kDroneShowCycleSeconds * 0.15,
-        count: 80,
-      );
+    test(
+      'rises through five local spiral columns per base before the beam',
+      () {
+        // count:80 (not the other tests' 40) keeps 8 drones per pod — the
+        // granularity this test's vertical-scatter assertion was tuned
+        // against — now that the population also splits 40/40 across the two
+        // launch bases before each splits further into 5 pods.
+        final start = sampleDroneShow(0, count: 80);
+        final rising = sampleDroneShow(
+          kDroneShowCycleSeconds * 0.15,
+          count: 80,
+        );
 
-      // Beam-column x for progress u = i/(count-1): the two launch bases
-      // reunite into this same narrow column well before the beam phase
-      // (see [_risePoint]), so ascent should already be closing on it. Judge
-      // convergence in AGGREGATE (mean distance to the column), not
-      // per-drone: a drone that starts almost exactly on the column already
-      // (near the base edge closest to the gap) has so little room left to
-      // close that the ascent's small decorative spiral jitter can nudge it
-      // fractionally further away without contradicting the overall pull
-      // toward the column.
-      double beamX(int i) => 0.70 + (i / (start.length - 1) - 0.5) * 0.04;
-      double meanDistToBeam(List<DroneShowSample> samples) {
-        var total = 0.0;
-        for (var i = 0; i < samples.length; i++) {
-          total += (samples[i].position.dx - beamX(i)).abs();
+        // Beam-column x for progress u = i/(count-1): the two launch bases
+        // reunite into this same narrow column well before the beam phase
+        // (see [_risePoint]), so ascent should already be closing on it. Judge
+        // convergence in AGGREGATE (mean distance to the column), not
+        // per-drone: a drone that starts almost exactly on the column already
+        // (near the base edge closest to the gap) has so little room left to
+        // close that the ascent's small decorative spiral jitter can nudge it
+        // fractionally further away without contradicting the overall pull
+        // toward the column.
+        double beamX(int i) => 0.70 + (i / (start.length - 1) - 0.5) * 0.04;
+        double meanDistToBeam(List<DroneShowSample> samples) {
+          var total = 0.0;
+          for (var i = 0; i < samples.length; i++) {
+            total += (samples[i].position.dx - beamX(i)).abs();
+          }
+          return total / samples.length;
         }
-        return total / samples.length;
-      }
 
-      for (var i = 0; i < start.length; i++) {
-        expect(rising[i].phase, DroneShowPhase.launch);
-        expect(rising[i].position.dy, lessThan(start[i].position.dy));
-      }
-      expect(
-        meanDistToBeam(rising),
-        lessThan(meanDistToBeam(start)),
-        reason: 'the population should be converging on the beam column',
-      );
-
-      // The first half of the population by index is the LEFT base, the
-      // rest the RIGHT (see [_launchX]); each base further subdivides its
-      // own 40 into 5 local spiral pods of 8.
-      final bases = [rising.take(40).toList(), rising.skip(40).take(40).toList()];
-      for (final baseSamples in bases) {
-        for (var pod = 0; pod < 5; pod++) {
-          final podSamples = baseSamples.skip(pod * 8).take(8).toList();
-          final minX = podSamples
-              .map((s) => s.position.dx)
-              .reduce((a, b) => a < b ? a : b);
-          final maxX = podSamples
-              .map((s) => s.position.dx)
-              .reduce((a, b) => a > b ? a : b);
-          final minY = podSamples
-              .map((s) => s.position.dy)
-              .reduce((a, b) => a < b ? a : b);
-          final maxY = podSamples
-              .map((s) => s.position.dy)
-              .reduce((a, b) => a > b ? a : b);
-
-          expect(maxX - minX, lessThan(0.07), reason: 'pod $pod');
-          expect(maxY - minY, greaterThan(0.01), reason: 'pod $pod');
+        for (var i = 0; i < start.length; i++) {
+          expect(rising[i].phase, DroneShowPhase.launch);
+          expect(rising[i].position.dy, lessThan(start[i].position.dy));
         }
-      }
-    });
+        expect(
+          meanDistToBeam(rising),
+          lessThan(meanDistToBeam(start)),
+          reason: 'the population should be converging on the beam column',
+        );
+
+        // The first half of the population by index is the LEFT base, the
+        // rest the RIGHT (see [_launchX]); each base further subdivides its
+        // own 40 into 5 local spiral pods of 8.
+        final bases = [
+          rising.take(40).toList(),
+          rising.skip(40).take(40).toList(),
+        ];
+        for (final baseSamples in bases) {
+          for (var pod = 0; pod < 5; pod++) {
+            final podSamples = baseSamples.skip(pod * 8).take(8).toList();
+            final minX = podSamples
+                .map((s) => s.position.dx)
+                .reduce((a, b) => a < b ? a : b);
+            final maxX = podSamples
+                .map((s) => s.position.dx)
+                .reduce((a, b) => a > b ? a : b);
+            final minY = podSamples
+                .map((s) => s.position.dy)
+                .reduce((a, b) => a < b ? a : b);
+            final maxY = podSamples
+                .map((s) => s.position.dy)
+                .reduce((a, b) => a > b ? a : b);
+
+            expect(maxX - minX, lessThan(0.07), reason: 'pod $pod');
+            expect(maxY - minY, greaterThan(0.01), reason: 'pod $pod');
+          }
+        }
+      },
+    );
 
     test('shows Omah Lay first, then Moving', () {
       final opening = sampleDroneShow(kDroneShowCycleSeconds * 0.68, count: 80);

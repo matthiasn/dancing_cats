@@ -360,7 +360,8 @@ void main() {
             _ctx(section: 'pre-chorus', phrasePhase: 0.5),
           ).dx,
           0,
-          reason: 'the drift feathers in from the section head like the '
+          reason:
+              'the drift feathers in from the section head like the '
               'zoom breathe elsewhere',
         );
         expect(
@@ -608,7 +609,11 @@ void main() {
     test('is zero with no recent cut', () {
       final s = cameraShot(_ctx(section: 'verse', sectionPhase: 0.5));
       final baseline = cameraShot(
-        _ctx(section: 'verse', sectionPhase: 0.5, secondsSinceMoveCut: 1000000000),
+        _ctx(
+          section: 'verse',
+          sectionPhase: 0.5,
+          secondsSinceMoveCut: 1000000000,
+        ),
       );
       expect(s.zoom, baseline.zoom);
     });
@@ -635,48 +640,65 @@ void main() {
       }
       // Confirms the nudge is actually live (not accidentally zeroed) and has
       // fully decayed well before the next beat could plausibly land.
-      expect(peak, greaterThan(cameraShot(
-        _ctx(section: 'verse', sectionPhase: 0.5, secondsSinceMoveCut: 1000000000),
-      ).zoom + 0.01));
+      expect(
+        peak,
+        greaterThan(
+          cameraShot(
+                _ctx(
+                  section: 'verse',
+                  sectionPhase: 0.5,
+                  secondsSinceMoveCut: 1000000000,
+                ),
+              ).zoom +
+              0.01,
+        ),
+      );
       final decayed = cameraShot(
         _ctx(section: 'verse', sectionPhase: 0.5, secondsSinceMoveCut: 1),
       );
       final baseline = cameraShot(
-        _ctx(section: 'verse', sectionPhase: 0.5, secondsSinceMoveCut: 1000000000),
+        _ctx(
+          section: 'verse',
+          sectionPhase: 0.5,
+          secondsSinceMoveCut: 1000000000,
+        ),
       );
       expect((decayed.zoom - baseline.zoom).abs(), lessThan(1e-9));
     });
 
-    test('is suppressed while a section launch or anticipation glide is active', () {
-      // Right at a chorus drop (sectionPhase 0, short sectionSeconds so the
-      // launch clock is still inside its own window) the nudge must defer
-      // entirely to the section's own tuned launch push.
-      final atDrop = cameraShot(
-        _ctx(occurrence: 1, secondsSinceMoveCut: 0),
-      );
-      final atDropNoNudge = cameraShot(_ctx(occurrence: 1));
-      expect(atDrop.zoom, atDropNoNudge.zoom);
+    test(
+      'is suppressed while a section launch or anticipation glide is active',
+      () {
+        // Right at a chorus drop (sectionPhase 0, short sectionSeconds so the
+        // launch clock is still inside its own window) the nudge must defer
+        // entirely to the section's own tuned launch push.
+        final atDrop = cameraShot(
+          _ctx(occurrence: 1, secondsSinceMoveCut: 0),
+        );
+        final atDropNoNudge = cameraShot(_ctx(occurrence: 1));
+        expect(atDrop.zoom, atDropNoNudge.zoom);
 
-      // Mid-glide into an imminent next section: also suppressed.
-      final anticipating = cameraShot(
-        _ctx(
-          section: 'verse',
-          sectionPhase: 0.9,
-          secondsToNext: 1,
-          nextSection: 'chorus',
-          secondsSinceMoveCut: 0,
-        ),
-      );
-      final anticipatingNoNudge = cameraShot(
-        _ctx(
-          section: 'verse',
-          sectionPhase: 0.9,
-          secondsToNext: 1,
-          nextSection: 'chorus',
-        ),
-      );
-      expect(anticipating.zoom, anticipatingNoNudge.zoom);
-    });
+        // Mid-glide into an imminent next section: also suppressed.
+        final anticipating = cameraShot(
+          _ctx(
+            section: 'verse',
+            sectionPhase: 0.9,
+            secondsToNext: 1,
+            nextSection: 'chorus',
+            secondsSinceMoveCut: 0,
+          ),
+        );
+        final anticipatingNoNudge = cameraShot(
+          _ctx(
+            section: 'verse',
+            sectionPhase: 0.9,
+            secondsToNext: 1,
+            nextSection: 'chorus',
+          ),
+        );
+        expect(anticipating.zoom, anticipatingNoNudge.zoom);
+      },
+    );
   });
 
   group('cameraShot — final post-chorus hook', () {

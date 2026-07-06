@@ -355,7 +355,8 @@ bool _isDroneLit(int index, ui.Offset position, DroneShowPhase phase) {
 /// [kDroneLaunchGapStartX]/[kDroneLaunchGapEndX]) instead of one line running under them.
 double _launchX(double u) {
   if (u < 0.5) {
-    return kDroneLaunchStartX + (u / 0.5) * (kDroneLaunchGapStartX - kDroneLaunchStartX);
+    return kDroneLaunchStartX +
+        (u / 0.5) * (kDroneLaunchGapStartX - kDroneLaunchStartX);
   }
   final local = (u - 0.5) / 0.5;
   return kDroneLaunchGapEndX + local * (kDroneLaunchEndX - kDroneLaunchGapEndX);
@@ -388,8 +389,10 @@ ui.Offset _launchPhasePoint(
   // directly across its shaft/cables, the exact overlap this whole change
   // exists to avoid. Uniting only ABOVE the crest keeps the ascent honest:
   // straight up past the tower, then a clean lateral join in open sky.
-  final crestClimb = ((_pylonCrestY - launch.dy) / (rise.dy - launch.dy))
-      .clamp(0.0, 1.0);
+  final crestClimb = ((_pylonCrestY - launch.dy) / (rise.dy - launch.dy)).clamp(
+    0.0,
+    1.0,
+  );
   // `_easedTravel` (constant-velocity core, ~1.2x average peak) rather than a
   // plain smoothstep (~1.5x average peak): the merge only has a short climb
   // window to cover a real lateral distance, and a peaked profile pushed the

@@ -201,7 +201,8 @@ double _moveCutNudge(double secondsSinceMoveCut) {
     return kMoveCutNudgeZoom *
         smoothstep(secondsSinceMoveCut / kMoveCutNudgeAttackSeconds);
   }
-  final decay = 1 -
+  final decay =
+      1 -
       smoothstep(
         ((secondsSinceMoveCut - kMoveCutNudgeAttackSeconds) /
                 kMoveCutNudgeDecaySeconds)
@@ -573,7 +574,9 @@ Shot _chorusShot(
   // A quarter-phrase out of step with the breathe (mirrors the calm
   // establish) so the hook is never simultaneously at rest on both axes.
   final drift =
-      math.cos(c.phrasePhase * 2 * math.pi) * kHookDriftRef * _breatheIn(sectionPhase);
+      math.cos(c.phrasePhase * 2 * math.pi) *
+      kHookDriftRef *
+      _breatheIn(sectionPhase);
   final launch = _launch(launchSeconds);
   if (occurrence == 0) {
     // The establishing hook: the one true WIDE. The home sits LOW (1.26) so
@@ -682,7 +685,10 @@ Shot _bridgeShot(DanceCameraContext c, double sectionPhase) {
 /// the parallax alive through the build instead of parking dead-still.
 Shot _preChorusShot(DanceCameraContext c, double sectionPhase) => (
   zoom: 1.18 + 0.14 * smoothstep(sectionPhase),
-  dx: math.cos(c.phrasePhase * 2 * math.pi) * kHookDriftRef * _breatheIn(sectionPhase),
+  dx:
+      math.cos(c.phrasePhase * 2 * math.pi) *
+      kHookDriftRef *
+      _breatheIn(sectionPhase),
   dy: 0,
 );
 

@@ -34,6 +34,7 @@ class GradeFilter extends StatefulWidget {
     required this.child,
     this.premultiplied = false,
     this.repaintTick = 0,
+    this.allowSnapshot = true,
     this.programLoader,
     super.key,
   });
@@ -50,6 +51,14 @@ class GradeFilter extends StatefulWidget {
 
   /// Change signal for animated children (see class doc).
   final double repaintTick;
+
+  /// Allows the exact shader path that synchronously snapshots the child layer.
+  ///
+  /// This is appropriate for export/still-capture quality, but live playback
+  /// should keep it false so the frame pipeline never blocks on `toImageSync`.
+  /// When false, affine whole-frame grades can still use [ColorFilterLayer];
+  /// grades that require the shader snapshot paint the child ungraded.
+  final bool allowSnapshot;
 
   /// Injectable program loader for tests; defaults to the scenery cache's
   /// composite or per-layer grade program per [premultiplied].
@@ -102,6 +111,7 @@ class _GradeFilterState extends State<GradeFilter> {
       premultiplied: widget.premultiplied,
       allowAffineColorFilter: widget.programLoader == null || _program != null,
       repaintTick: widget.repaintTick,
+      allowSnapshot: widget.allowSnapshot,
       // The root View widget always provides a MediaQuery, so this holds in
       // app and test trees alike.
       pixelRatio: MediaQuery.devicePixelRatioOf(context),
@@ -117,6 +127,7 @@ class _RawGradeFilter extends SingleChildRenderObjectWidget {
     required this.premultiplied,
     required this.allowAffineColorFilter,
     required this.repaintTick,
+    required this.allowSnapshot,
     required this.pixelRatio,
     required super.child,
   });
@@ -126,6 +137,7 @@ class _RawGradeFilter extends SingleChildRenderObjectWidget {
   final bool premultiplied;
   final bool allowAffineColorFilter;
   final double repaintTick;
+  final bool allowSnapshot;
   final double pixelRatio;
 
   @override
@@ -135,6 +147,7 @@ class _RawGradeFilter extends SingleChildRenderObjectWidget {
     premultiplied: premultiplied,
     allowAffineColorFilter: allowAffineColorFilter,
     repaintTick: repaintTick,
+    allowSnapshot: allowSnapshot,
     pixelRatio: pixelRatio,
   );
 
@@ -149,6 +162,7 @@ class _RawGradeFilter extends SingleChildRenderObjectWidget {
       ..premultiplied = premultiplied
       ..allowAffineColorFilter = allowAffineColorFilter
       ..repaintTick = repaintTick
+      ..allowSnapshot = allowSnapshot
       ..pixelRatio = pixelRatio;
   }
 }
@@ -163,6 +177,7 @@ class RenderGradeFilter extends RenderProxyBox {
     required this._premultiplied,
     required this._allowAffineColorFilter,
     required this._repaintTick,
+    required this._allowSnapshot,
     required this._pixelRatio,
   });
 
@@ -226,6 +241,15 @@ class RenderGradeFilter extends RenderProxyBox {
     markNeedsPaint();
   }
 
+  bool _allowSnapshot;
+
+  bool get allowSnapshot => _allowSnapshot;
+  set allowSnapshot(bool value) {
+    if (value == _allowSnapshot) return;
+    _allowSnapshot = value;
+    markNeedsPaint();
+  }
+
   bool get _canUseColorFilter =>
       _allowAffineColorFilter &&
       !_premultiplied &&
@@ -254,6 +278,11 @@ class RenderGradeFilter extends RenderProxyBox {
 
     final program = _program;
     if (program == null) {
+      super.paint(context, offset);
+      return;
+    }
+
+    if (!_allowSnapshot) {
       super.paint(context, offset);
       return;
     }

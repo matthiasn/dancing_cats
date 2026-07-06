@@ -98,33 +98,35 @@ void main() {
       expect(spike, lessThan(0.05));
     });
 
-    test("the catalogue's worst batwing pose is tamed to a rounded shoulder",
-        () {
-      // Captured from the live rig: pouncingCat's arm.L ribbon spine at
-      // frame 59/96 — the single hardest hairpin in the catalogue (the wrist
-      // reaches across to x≈46 then the chain folds back to x≈97). WITHOUT the
-      // constraint this outer edge spikes to ~0.76x its half-width past the
-      // chord; with it, the flap must fall well under the ceiling.
-      const spine = [
-        Offset(101.433, 234.516),
-        Offset(101.218, 241.169),
-        Offset(76.149, 241.831),
-        Offset(46.420, 245.757),
-        Offset(73.401, 250.563),
-        Offset(96.704, 254.712),
-      ];
-      const halfWidths = [10.8, 11.0, 11.2, 7.2, 8.5, 5.2];
-      const backHalfWidths = [10.4, 10.4, 10.2, 7.4, 7.2, 5.0];
-      const jointTensions = [0.42, 0.42, 0.52, 0.74, 0.74, 0.74];
+    test(
+      "the catalogue's worst batwing pose is tamed to a rounded shoulder",
+      () {
+        // Captured from the live rig: pouncingCat's arm.L ribbon spine at
+        // frame 59/96 — the single hardest hairpin in the catalogue (the wrist
+        // reaches across to x≈46 then the chain folds back to x≈97). WITHOUT the
+        // constraint this outer edge spikes to ~0.76x its half-width past the
+        // chord; with it, the flap must fall well under the ceiling.
+        const spine = [
+          Offset(101.433, 234.516),
+          Offset(101.218, 241.169),
+          Offset(76.149, 241.831),
+          Offset(46.420, 245.757),
+          Offset(73.401, 250.563),
+          Offset(96.704, 254.712),
+        ];
+        const halfWidths = [10.8, 11.0, 11.2, 7.2, 8.5, 5.2];
+        const backHalfWidths = [10.4, 10.4, 10.2, 7.4, 7.2, 5.0];
+        const jointTensions = [0.42, 0.42, 0.52, 0.74, 0.74, 0.74];
 
-      final spike = limbRibbonMaxOuterSpike(
-        spine,
-        halfWidths,
-        backHalfWidths: backHalfWidths,
-        jointTensions: jointTensions,
-        samplesPerSegment: 12,
-      );
-      expect(spike, lessThan(spikeCeiling));
-    });
+        final spike = limbRibbonMaxOuterSpike(
+          spine,
+          halfWidths,
+          backHalfWidths: backHalfWidths,
+          jointTensions: jointTensions,
+          samplesPerSegment: 12,
+        );
+        expect(spike, lessThan(spikeCeiling));
+      },
+    );
   });
 }

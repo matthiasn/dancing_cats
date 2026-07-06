@@ -54,6 +54,7 @@ class CharacterRenderer {
     FaceState face, {
     Affine2D? memberTransform,
     List<(String, String)> zOrderSwaps = const [],
+    bool drawInteriorDetail = true,
   }) {
     if (memberTransform != null) {
       final inverse = memberTransform.inverse();
@@ -65,13 +66,21 @@ class CharacterRenderer {
         canvas
           ..save()
           ..transform(memberTransform.toMatrix4Storage(_matrix));
-        paint(canvas, rig, local, face, zOrderSwaps: zOrderSwaps);
+        paint(
+          canvas,
+          rig,
+          local,
+          face,
+          zOrderSwaps: zOrderSwaps,
+          drawInteriorDetail: drawInteriorDetail,
+        );
         canvas.restore();
         return;
       }
     }
     final hiddenBones = rig.hiddenDrawableBoneIds;
     final drawOrder = _effectiveDrawOrder(rig, zOrderSwaps);
+    final pathCache = _RenderPathCache(this, rig, world);
 
     // Ribbons are drawn in the same silhouette/fill two-pass style as bones.
     // They replace selected rigid upper/lower limb drawables with one continuous
@@ -80,12 +89,12 @@ class CharacterRenderer {
     for (final ribbon in rig.ribbonDrawOrder) {
       final outline = ribbon.outlineColor;
       if (outline == null || ribbon.outlineWidth <= 0) continue;
-      _drawRibbonSilhouette(canvas, ribbon, world, outline);
+      _drawRibbonSilhouette(canvas, ribbon, pathCache, outline);
     }
     for (final mesh in rig.meshDrawOrder) {
       final outline = mesh.outlineColor;
       if (outline == null || mesh.outlineWidth <= 0) continue;
-      _drawMeshSilhouette(canvas, mesh, world, outline);
+      _drawMeshSilhouette(canvas, mesh, pathCache, outline);
     }
 
     // Pass 1: the unified dark silhouette (outer outline, no internal seams).
@@ -108,9 +117,17 @@ class CharacterRenderer {
     }
 
     // Pass 2: ribbons + bone fills, painted back-to-front over the silhouette.
-    _drawFills(canvas, rig, drawOrder, world, hiddenBones);
+    _drawFills(
+      canvas,
+      rig,
+      drawOrder,
+      world,
+      hiddenBones,
+      pathCache: pathCache,
+      drawInteriorDetail: drawInteriorDetail,
+    );
 
-    final faceRig = rig.face;
+    final faceRig = drawInteriorDetail ? rig.face : null;
     if (faceRig != null) {
       final headWorld = world[faceRig.anchorBoneId];
       if (headWorld != null) {
@@ -155,43 +172,54 @@ class CharacterRenderer {
     RigSpec rig,
     List<Bone> drawOrder,
     Map<String, Affine2D> world,
-    Set<String> hiddenBones,
-  ) {
+    Set<String> hiddenBones, {
+    required _RenderPathCache pathCache,
+    required bool drawInteriorDetail,
+  }) {
     final ribbons = rig.ribbonDrawOrder;
     final meshes = rig.meshDrawOrder;
-    final celShade = rig.celShade;
+    final celShade = drawInteriorDetail ? rig.celShade : null;
     final groupBounds = celShade == null
         ? const <String, Rect>{}
-        : _shadeGroupBounds(rig, world);
-    final seamMeshes = [
-      for (final mesh in rig.meshDrawOrder)
-        if (mesh.inkSeams.isNotEmpty && mesh.inkSeamWidth > 0) mesh,
-    ]..sort((a, b) => a.inkSeamZ.compareTo(b.inkSeamZ));
+        : _shadeGroupBounds(rig, pathCache);
+    final seamMeshes = drawInteriorDetail
+        ? ([
+            for (final mesh in rig.meshDrawOrder)
+              if (mesh.inkSeams.isNotEmpty && mesh.inkSeamWidth > 0) mesh,
+          ]..sort((a, b) => a.inkSeamZ.compareTo(b.inkSeamZ)))
+        : const <SkinnedMeshSpec>[];
     var ribbonIndex = 0;
     var meshIndex = 0;
     var seamIndex = 0;
     for (final bone in drawOrder) {
       while (ribbonIndex < ribbons.length && ribbons[ribbonIndex].z <= bone.z) {
-        _drawRibbonFill(canvas, ribbons[ribbonIndex], world);
+        _drawRibbonFill(canvas, ribbons[ribbonIndex], pathCache);
         if (celShade != null) {
           _celShadeRibbon(
             canvas,
             ribbons[ribbonIndex],
-            world,
+            pathCache,
             celShade,
             shadeBounds: groupBounds[ribbons[ribbonIndex].shadeGroup],
           );
         }
-        _drawRibbonInk(canvas, rig, ribbons[ribbonIndex], world);
+        if (drawInteriorDetail) {
+          _drawRibbonInk(
+            canvas,
+            ribbons[ribbonIndex],
+            world,
+            pathCache,
+          );
+        }
         ribbonIndex++;
       }
       while (meshIndex < meshes.length && meshes[meshIndex].z <= bone.z) {
-        _drawMeshFill(canvas, meshes[meshIndex], world);
+        _drawMeshFill(canvas, meshes[meshIndex], pathCache);
         if (celShade != null) {
           _celShadeMesh(
             canvas,
             meshes[meshIndex],
-            world,
+            pathCache,
             celShade,
             shadeBounds: groupBounds[meshes[meshIndex].shadeGroup],
           );
@@ -215,30 +243,37 @@ class CharacterRenderer {
       if (celShade != null && drawable.celShade) {
         _celShadeKind(canvas, drawable, celShade);
       }
-      _drawKindInk(canvas, drawable);
+      if (drawInteriorDetail) _drawKindInk(canvas, drawable);
       canvas.restore();
     }
     while (ribbonIndex < ribbons.length) {
-      _drawRibbonFill(canvas, ribbons[ribbonIndex], world);
+      _drawRibbonFill(canvas, ribbons[ribbonIndex], pathCache);
       if (celShade != null) {
         _celShadeRibbon(
           canvas,
           ribbons[ribbonIndex],
-          world,
+          pathCache,
           celShade,
           shadeBounds: groupBounds[ribbons[ribbonIndex].shadeGroup],
         );
       }
-      _drawRibbonInk(canvas, rig, ribbons[ribbonIndex], world);
+      if (drawInteriorDetail) {
+        _drawRibbonInk(
+          canvas,
+          ribbons[ribbonIndex],
+          world,
+          pathCache,
+        );
+      }
       ribbonIndex++;
     }
     while (meshIndex < meshes.length) {
-      _drawMeshFill(canvas, meshes[meshIndex], world);
+      _drawMeshFill(canvas, meshes[meshIndex], pathCache);
       if (celShade != null) {
         _celShadeMesh(
           canvas,
           meshes[meshIndex],
-          world,
+          pathCache,
           celShade,
           shadeBounds: groupBounds[meshes[meshIndex].shadeGroup],
         );
@@ -289,7 +324,7 @@ class CharacterRenderer {
   /// both sides instead of each panel bringing its own gradient.
   Map<String, Rect> _shadeGroupBounds(
     RigSpec rig,
-    Map<String, Affine2D> world,
+    _RenderPathCache pathCache,
   ) {
     final bounds = <String, Rect>{};
     void include(String? group, Path? path) {
@@ -301,10 +336,10 @@ class CharacterRenderer {
     }
 
     for (final ribbon in rig.ribbonDrawOrder) {
-      include(ribbon.shadeGroup, _ribbonPath(ribbon, world));
+      include(ribbon.shadeGroup, pathCache.ribbonPath(ribbon));
     }
     for (final mesh in rig.meshDrawOrder) {
-      include(mesh.shadeGroup, _meshPath(mesh, world));
+      include(mesh.shadeGroup, pathCache.meshPath(mesh));
     }
     return bounds;
   }
@@ -453,11 +488,11 @@ class CharacterRenderer {
   void _celShadeRibbon(
     Canvas canvas,
     LimbRibbonSpec ribbon,
-    Map<String, Affine2D> world,
+    _RenderPathCache pathCache,
     CelShadeSpec s, {
     Rect? shadeBounds,
   }) {
-    final path = _ribbonPath(ribbon, world);
+    final path = pathCache.ribbonPath(ribbon);
     if (path == null) return;
     _celShadePath(
       canvas,
@@ -472,11 +507,11 @@ class CharacterRenderer {
   void _celShadeMesh(
     Canvas canvas,
     SkinnedMeshSpec mesh,
-    Map<String, Affine2D> world,
+    _RenderPathCache pathCache,
     CelShadeSpec s, {
     Rect? shadeBounds,
   }) {
-    final path = _meshPath(mesh, world);
+    final path = pathCache.meshPath(mesh);
     if (path == null) return;
     _celShadePath(
       canvas,
@@ -574,45 +609,6 @@ class CharacterRenderer {
         (paint) => _drawKind(canvas, d, paint),
       );
 
-  /// Union path of every visible fill painted BELOW [z]: bone drawables,
-  /// ribbons, and meshes with a lower z. An inked limb clips its line to this
-  /// region, so the line exists only where the limb actually overlaps the
-  /// body — its ends land exactly ON the silhouette, never floating
-  /// mid-cloth and never enclosing the limb's root.
-  Path _bodyBelowZPath(
-    RigSpec rig,
-    Map<String, Affine2D> world,
-    int z,
-  ) {
-    var union = Path();
-    final hiddenBones = rig.hiddenDrawableBoneIds;
-    for (final bone in rig.drawOrder) {
-      if (bone.z >= z) break;
-      if (hiddenBones.contains(bone.id)) continue;
-      final drawable = bone.drawable;
-      if (drawable == null) continue;
-      final transform = world[bone.id];
-      if (transform == null) continue;
-      final path = _kindPath(
-        drawable,
-      ).transform(transform.toMatrix4Storage(_matrix));
-      union = Path.combine(PathOperation.union, union, path);
-    }
-    for (final other in rig.ribbonDrawOrder) {
-      if (other.z >= z) continue;
-      final path = _ribbonPath(other, world);
-      if (path == null) continue;
-      union = Path.combine(PathOperation.union, union, path);
-    }
-    for (final mesh in rig.meshDrawOrder) {
-      if (mesh.z >= z) continue;
-      final path = _meshPath(mesh, world);
-      if (path == null) continue;
-      union = Path.combine(PathOperation.union, union, path);
-    }
-    return union;
-  }
-
   /// The hand-drawn ink line over an overlapping limb (see
   /// [LimbRibbonSpec.inkOverFill]): strokes the ribbon's own outline on TOP
   /// of its fill and cel shade — CLIPPED to the union of body shapes behind
@@ -620,9 +616,9 @@ class CharacterRenderer {
   /// overlaps and nowhere else.
   void _drawRibbonInk(
     Canvas canvas,
-    RigSpec rig,
     LimbRibbonSpec ribbon,
     Map<String, Affine2D> world,
+    _RenderPathCache pathCache,
   ) {
     final outline = ribbon.outlineColor;
     if (!ribbon.inkOverFill || outline == null || ribbon.outlineWidth <= 0) {
@@ -653,7 +649,7 @@ class CharacterRenderer {
       ..isAntiAlias = antiAlias;
     canvas
       ..save()
-      ..clipPath(_bodyBelowZPath(rig, world, ribbon.z))
+      ..clipPath(pathCache.pathBelow(ribbon.z))
       ..drawPath(path, _paint)
       ..restore();
   }
@@ -661,34 +657,34 @@ class CharacterRenderer {
   void _drawRibbonFill(
     Canvas canvas,
     LimbRibbonSpec ribbon,
-    Map<String, Affine2D> world,
+    _RenderPathCache pathCache,
   ) {
     _paint
       ..style = PaintingStyle.fill
       ..strokeWidth = 0
       ..color = Color(ribbon.color)
       ..isAntiAlias = antiAlias;
-    _drawRibbon(canvas, ribbon, world, _paint);
+    _drawRibbon(canvas, ribbon, pathCache, _paint);
   }
 
   void _drawRibbonSilhouette(
     Canvas canvas,
     LimbRibbonSpec ribbon,
-    Map<String, Affine2D> world,
+    _RenderPathCache pathCache,
     int outlineColor,
   ) => _paintInflatedSilhouette(
     outlineColor,
     ribbon.outlineWidth,
-    (paint) => _drawRibbon(canvas, ribbon, world, paint),
+    (paint) => _drawRibbon(canvas, ribbon, pathCache, paint),
   );
 
   void _drawRibbon(
     Canvas canvas,
     LimbRibbonSpec ribbon,
-    Map<String, Affine2D> world,
+    _RenderPathCache pathCache,
     Paint paint,
   ) {
-    final path = _ribbonPath(ribbon, world);
+    final path = pathCache.ribbonPath(ribbon);
     if (path == null) return;
     canvas.drawPath(path, paint);
   }
@@ -716,34 +712,34 @@ class CharacterRenderer {
   void _drawMeshFill(
     Canvas canvas,
     SkinnedMeshSpec mesh,
-    Map<String, Affine2D> world,
+    _RenderPathCache pathCache,
   ) {
     _paint
       ..style = PaintingStyle.fill
       ..strokeWidth = 0
       ..color = Color(mesh.color)
       ..isAntiAlias = antiAlias;
-    _drawMesh(canvas, mesh, world, _paint);
+    _drawMesh(canvas, mesh, pathCache, _paint);
   }
 
   void _drawMeshSilhouette(
     Canvas canvas,
     SkinnedMeshSpec mesh,
-    Map<String, Affine2D> world,
+    _RenderPathCache pathCache,
     int outlineColor,
   ) => _paintInflatedSilhouette(
     outlineColor,
     mesh.outlineWidth,
-    (paint) => _drawMesh(canvas, mesh, world, paint),
+    (paint) => _drawMesh(canvas, mesh, pathCache, paint),
   );
 
   void _drawMesh(
     Canvas canvas,
     SkinnedMeshSpec mesh,
-    Map<String, Affine2D> world,
+    _RenderPathCache pathCache,
     Paint paint,
   ) {
-    final path = _meshPath(mesh, world);
+    final path = pathCache.meshPath(mesh);
     if (path == null) return;
     canvas.drawPath(path, paint);
   }
@@ -1374,4 +1370,81 @@ class CharacterRenderer {
 
   /// Off-white upper teeth for the [MouthShape.teethOnLip] (F/V) viseme.
   static const int _teethColor = 0xFFF3EFE6;
+}
+
+class _RenderPathCache {
+  _RenderPathCache(this._renderer, this._rig, this._world);
+
+  final CharacterRenderer _renderer;
+  final RigSpec _rig;
+  final Map<String, Affine2D> _world;
+
+  final Map<String, Path?> _ribbonPaths = {};
+  final Map<String, Path?> _meshPaths = {};
+  final Map<int, Path> _cache = {};
+  var _union = Path();
+  var _hasUnion = false;
+  var _boneIndex = 0;
+  var _ribbonIndex = 0;
+  var _meshIndex = 0;
+  var _currentZ = -0x3fffffff;
+
+  Path? ribbonPath(LimbRibbonSpec ribbon) {
+    if (_ribbonPaths.containsKey(ribbon.id)) return _ribbonPaths[ribbon.id];
+    return _ribbonPaths[ribbon.id] = _renderer._ribbonPath(ribbon, _world);
+  }
+
+  Path? meshPath(SkinnedMeshSpec mesh) {
+    if (_meshPaths.containsKey(mesh.id)) return _meshPaths[mesh.id];
+    return _meshPaths[mesh.id] = _renderer._meshPath(mesh, _world);
+  }
+
+  Path pathBelow(int z) {
+    final cached = _cache[z];
+    if (cached != null) return cached;
+
+    if (z < _currentZ) {
+      final fresh = _RenderPathCache(_renderer, _rig, _world);
+      return fresh.pathBelow(z);
+    }
+
+    final hiddenBones = _rig.hiddenDrawableBoneIds;
+    final bones = _rig.drawOrder;
+    while (_boneIndex < bones.length && bones[_boneIndex].z < z) {
+      final bone = bones[_boneIndex++];
+      if (hiddenBones.contains(bone.id)) continue;
+      final drawable = bone.drawable;
+      if (drawable == null) continue;
+      final transform = _world[bone.id];
+      if (transform == null) continue;
+      _include(
+        _renderer
+            ._kindPath(drawable)
+            .transform(transform.toMatrix4Storage(_renderer._matrix)),
+      );
+    }
+
+    final ribbons = _rig.ribbonDrawOrder;
+    while (_ribbonIndex < ribbons.length && ribbons[_ribbonIndex].z < z) {
+      _include(ribbonPath(ribbons[_ribbonIndex++]));
+    }
+
+    final meshes = _rig.meshDrawOrder;
+    while (_meshIndex < meshes.length && meshes[_meshIndex].z < z) {
+      _include(meshPath(meshes[_meshIndex++]));
+    }
+
+    _currentZ = z;
+    return _cache[z] = Path.from(_union);
+  }
+
+  void _include(Path? path) {
+    if (path == null || path.getBounds().isEmpty) return;
+    if (!_hasUnion) {
+      _union = Path()..addPath(path, Offset.zero);
+      _hasUnion = true;
+      return;
+    }
+    _union.addPath(path, Offset.zero);
+  }
 }

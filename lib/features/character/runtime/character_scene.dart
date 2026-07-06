@@ -815,7 +815,9 @@ class CharacterScene {
     final laggedPose = followLag > 0
         ? evaluator.evaluate(clip, timeSeconds - followLag)
         : null;
-    final rawPose = followLag > 0 ? evaluator.evaluate(clip, timeSeconds) : null;
+    final rawPose = followLag > 0
+        ? evaluator.evaluate(clip, timeSeconds)
+        : null;
     Map<String, JointPose>? joints;
     void addLever(String leverId, double delta) {
       if (delta == 0) return;
@@ -856,8 +858,10 @@ class CharacterScene {
       final authored = _shortestAngle(
         pose.jointOf(pair.clavicleId).rotation,
       ).abs();
-      final deference = (1 - authored / _kShoulderLineAbductionDeference)
-          .clamp(0.0, 1.0);
+      final deference = (1 - authored / _kShoulderLineAbductionDeference).clamp(
+        0.0,
+        1.0,
+      );
       if (deference <= 0) continue;
       final lift =
           math.min(
@@ -1004,8 +1008,12 @@ class CharacterScene {
       final span = contactForFloor.span;
       final spanLength = span.end - span.start;
       final fade = (spanLength * 0.2).clamp(0.015, 0.04);
-      final fadeIn = smoothstep((contactForFloor.strengthPhase - span.start) / fade);
-      final fadeOut = smoothstep((span.end - contactForFloor.strengthPhase) / fade);
+      final fadeIn = smoothstep(
+        (contactForFloor.strengthPhase - span.start) / fade,
+      );
+      final fadeOut = smoothstep(
+        (span.end - contactForFloor.strengthPhase) / fade,
+      );
       soleFloorFade = fadeIn < fadeOut ? fadeIn : fadeOut;
     }
 
@@ -1377,7 +1385,10 @@ class CharacterScene {
     final dx =
         _supportBalanceRootDelta(
           source: transition.from,
-          phase: _clipPhase(transition.from, timeSeconds + transition.fromTimeShiftSeconds),
+          phase: _clipPhase(
+            transition.from,
+            timeSeconds + transition.fromTimeShiftSeconds,
+          ),
           pose: pose,
           scale: 1 - weight,
         ) +
@@ -1499,9 +1510,7 @@ class CharacterScene {
             x:
                 authoredTarget.x +
                 (worldAnchor.x - authoredTarget.x) * anchorBlend,
-            y:
-                authoredTarget.y +
-                (worldAnchor.y - authoredTarget.y) * blendY,
+            y: authoredTarget.y + (worldAnchor.y - authoredTarget.y) * blendY,
           );
     // The support sole is the floor: clamp a free foot's target so a deep
     // pocket sink can never press it below the planted shoe (see
@@ -1853,7 +1862,8 @@ class CharacterScene {
   /// joint's NATURAL min/max over the loop ([_SpineLevelPlan]) so no joint
   /// separates more than it already does un-leveled. See 2026-07-04-head-level-
   /// probe for why the old rootDy-only counter under-corrected the arc.
-  ({double neckShiftY, double headExtraShiftY, String? neckId}) _spineLevelShifts(
+  ({double neckShiftY, double headExtraShiftY, String? neckId})
+  _spineLevelShifts(
     Clip clip, {
     required String headId,
     required Affine2D base,
@@ -1876,7 +1886,9 @@ class CharacterScene {
     // ease blends the LEVELED position back toward the un-leveled one AFTER the
     // joint clamps, so it dips the head even where the clamp would otherwise pin
     // the gap (easing strength alone does nothing — the clamp binds; measured).
-    final torsoTargetY = base.transformPoint(plan.torsoMeanX, plan.torsoMeanY).y;
+    final torsoTargetY = base
+        .transformPoint(plan.torsoMeanX, plan.torsoMeanY)
+        .y;
     // Local units the torso sits below its own mean (negative = above; the
     // clamp below floors it, so a raised torso just gets zero ease).
     final crouchLocal = (torsoY - torsoTargetY) / baseScale;
@@ -2129,7 +2141,10 @@ class CharacterScene {
     final plan = clip.transitionPlan;
     if (plan == null) return (clip: clip, timeSeconds: timeSeconds);
     return plan.weight < 0.5
-        ? (clip: plan.from, timeSeconds: timeSeconds + plan.fromTimeShiftSeconds)
+        ? (
+            clip: plan.from,
+            timeSeconds: timeSeconds + plan.fromTimeShiftSeconds,
+          )
         : (clip: plan.to, timeSeconds: timeSeconds);
   }
 
@@ -2294,7 +2309,10 @@ class CharacterScene {
     final weight = smoothstep(transition.weight);
     final outgoing = _contactLockRootDelta(
       source: transition.from,
-      phase: _clipPhase(transition.from, timeSeconds + transition.fromTimeShiftSeconds),
+      phase: _clipPhase(
+        transition.from,
+        timeSeconds + transition.fromTimeShiftSeconds,
+      ),
       pose: pose,
       scale: 1 - weight,
     );
@@ -2778,9 +2796,7 @@ class CharacterScene {
     // foot sideways, but the sole stays vertically GROUNDED until the
     // actual peel (R27 rigging measured the plant sagging over its final
     // 1.5 beats when R26 widened the whole edge).
-    final fadeOutWidth = dance
-        ? (spanLength * 0.5).clamp(0.044, 0.12)
-        : fade;
+    final fadeOutWidth = dance ? (spanLength * 0.5).clamp(0.044, 0.12) : fade;
     final fadeOutX = smoothstep((span.end - p) / fadeOutWidth);
     final fadeOutY = smoothstep((span.end - p) / fade);
     // Vertical grounding also ENGAGES faster than the lateral hold: a sole

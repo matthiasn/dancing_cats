@@ -46,17 +46,19 @@ void main() {
       return recorder.endRecording();
     }
 
-    test('renders charts with live event rates when loopSeconds is given',
-        () async {
-      final scene = CharacterScene(buildCatInSuitRig());
-      final traces = sampleMotionTraces(scene, CatClips.shaku, samples: 48);
-      // With the ship-tempo duration the rate labels and beat/bar gridline
-      // branches all execute; the picture must rasterize non-empty.
-      final picture = paint(traces, loopSeconds: 8);
-      final image = await picture.toImage(1400, 1000);
-      expect(image.width, 1400);
-      image.dispose();
-    });
+    test(
+      'renders charts with live event rates when loopSeconds is given',
+      () async {
+        final scene = CharacterScene(buildCatInSuitRig());
+        final traces = sampleMotionTraces(scene, CatClips.shaku, samples: 48);
+        // With the ship-tempo duration the rate labels and beat/bar gridline
+        // branches all execute; the picture must rasterize non-empty.
+        final picture = paint(traces, loopSeconds: 8);
+        final image = await picture.toImage(1400, 1000);
+        expect(image.width, 1400);
+        image.dispose();
+      },
+    );
 
     test('renders without rate labels when loopSeconds is absent', () async {
       final scene = CharacterScene(buildCatInSuitRig());
@@ -72,8 +74,7 @@ void main() {
       image.dispose();
     });
 
-    test('a flat trace reports zero events without dividing by zero',
-        () async {
+    test('a flat trace reports zero events without dividing by zero', () async {
       const flat = MotionTrace(
         title: 'flat',
         values: [5, 5, 5, 5, 5, 5],

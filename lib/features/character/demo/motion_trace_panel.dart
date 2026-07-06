@@ -70,8 +70,12 @@ List<MotionTrace> sampleMotionTraces(
     // ride the chest; the jacket crown moves because mesh weights follow
     // the lever ROTATION. Sample a point out along each lever (the crown
     // surface it carries) so pops and see-saw register in the trace.
-    shoulderLY.add(frame.world[CatBones.shoulderLineL]!.transformPoint(-14, 0).y);
-    shoulderRY.add(frame.world[CatBones.shoulderLineR]!.transformPoint(14, 0).y);
+    shoulderLY.add(
+      frame.world[CatBones.shoulderLineL]!.transformPoint(-14, 0).y,
+    );
+    shoulderRY.add(
+      frame.world[CatBones.shoulderLineR]!.transformPoint(14, 0).y,
+    );
     footLY.add(frame.world[CatBones.footL]!.ty);
     footRY.add(frame.world[CatBones.footR]!.ty);
   }
@@ -158,22 +162,28 @@ void paintMotionTraces(
       (size.height - margin) / traces.length - (titleH + margin * 0.6);
   final x1 = size.width - margin;
 
-  void label(String s, double x, double y, Color color, double fontSize,
-      {FontWeight weight = FontWeight.w600}) {
+  void label(
+    String s,
+    double x,
+    double y,
+    Color color,
+    double fontSize, {
+    FontWeight weight = FontWeight.w600,
+  }) {
     TextPainter(
-      text: TextSpan(
-        text: s,
-        style: TextStyle(
-          color: color,
-          fontSize: fontSize,
-          fontWeight: weight,
-          // The app ships Inter; naming it here also lets the offline
-          // review harness render real glyphs after FontLoader'ing it.
-          fontFamily: 'Inter',
+        text: TextSpan(
+          text: s,
+          style: TextStyle(
+            color: color,
+            fontSize: fontSize,
+            fontWeight: weight,
+            // The app ships Inter; naming it here also lets the offline
+            // review harness render real glyphs after FontLoader'ing it.
+            fontFamily: 'Inter',
+          ),
         ),
-      ),
-      textDirection: TextDirection.ltr,
-    )
+        textDirection: TextDirection.ltr,
+      )
       ..layout(maxWidth: size.width - x - margin)
       ..paint(canvas, Offset(x, y));
   }

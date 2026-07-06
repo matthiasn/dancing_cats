@@ -13,6 +13,7 @@ Future<ui.Color> _centrePixel(
   WidgetTester tester, {
   required BackdropGrade grade,
   bool premultiplied = false,
+  bool allowSnapshot = true,
   SceneryShaderProgramLoader? loader,
 }) async {
   const boundaryKey = Key('captureBoundary');
@@ -28,6 +29,7 @@ Future<ui.Color> _centrePixel(
             child: GradeFilter(
               grade: grade,
               premultiplied: premultiplied,
+              allowSnapshot: allowSnapshot,
               programLoader: loader,
               child: const ColoredBox(color: Color(0xFFCC2222)),
             ),
@@ -117,6 +119,21 @@ void main() {
       );
       expect(pixel.a, closeTo(1, 0.01));
       expect((pixel.r - pixel.g).abs(), lessThan(0.02));
+    });
+  });
+
+  testWidgets('snapshot-only grades are bypassed when snapshots are disabled', (
+    tester,
+  ) async {
+    await tester.runAsync(() async {
+      final pixel = await _centrePixel(
+        tester,
+        grade: desaturated(),
+        premultiplied: true,
+        allowSnapshot: false,
+      );
+      expect(pixel.r, closeTo(0.8, 0.02));
+      expect(pixel.g, closeTo(0.133, 0.02));
     });
   });
 

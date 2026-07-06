@@ -69,7 +69,8 @@ class BlendedJointChannel extends JointChannel {
 
   @override
   JointPose sample(double p) {
-    final a = from?.sample(_shifted(p, fromTimeShift, fromDuration)) ??
+    final a =
+        from?.sample(_shifted(p, fromTimeShift, fromDuration)) ??
         JointPose.identity;
     final b = to?.sample(p) ?? JointPose.identity;
     return JointPose(
@@ -837,7 +838,8 @@ class BlendedRootChannel extends RootChannel {
 
   @override
   ({double dx, double dy, double rotation}) sample(double p) {
-    final a = from?.sample(_shifted(p, fromTimeShift, fromDuration)) ??
+    final a =
+        from?.sample(_shifted(p, fromTimeShift, fromDuration)) ??
         (dx: 0.0, dy: 0.0, rotation: 0.0);
     final b = to?.sample(p) ?? (dx: 0.0, dy: 0.0, rotation: 0.0);
     return (
@@ -1433,8 +1435,9 @@ class ZOrderSwapWindow {
   final double start;
   final double end;
 
-  bool activeAt(double phase) =>
-      start <= end ? (phase >= start && phase < end) : (phase >= start || phase < end);
+  bool activeAt(double phase) => start <= end
+      ? (phase >= start && phase < end)
+      : (phase >= start || phase < end);
 }
 
 Clip blendedClip({

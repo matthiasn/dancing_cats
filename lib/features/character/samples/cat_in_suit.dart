@@ -1041,7 +1041,11 @@ class CatClips {
             // r6: lift the base groove under the (now-dominant) wheel —
             // pocket 39.2 was the set's shallowest ('lift the base ~1.3x
             // rather than touching the arms').
-            SineRootChannel(bobAmplitude: -8.5, bobPhase: 0.146875, bobHarmonic: 8),
+            SineRootChannel(
+              bobAmplitude: -8.5,
+              bobPhase: 0.146875,
+              bobHarmonic: 8,
+            ),
             SineRootChannel(
               bobAmplitude: -0.04,
               bobPhase: 0.125,
@@ -1210,7 +1214,11 @@ class CatClips {
             // regex overshot into sekem): lateral weight under the strides
             // + a beat-level mini-bounce so mid-bar frames stop floating
             // (pocket was 0.8 ev/s over a 97.8 range).
-            SineRootChannel(swayAmplitude: -12, swayPhase: 0.125, swayHarmonic: 4),
+            SineRootChannel(
+              swayAmplitude: -12,
+              swayPhase: 0.125,
+              swayHarmonic: 4,
+            ),
             // r12: -5.5 -> -9 (coach: "the pocket is one slow swell per
             // two bars — add a per-beat bounce under the strides so the
             // groove does not float between hits").

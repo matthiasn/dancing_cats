@@ -24,6 +24,7 @@ class BackdropContext {
     this.parallaxForDepth,
     this.gradeForTarget,
     this.layerGradeProgram,
+    this.allowGradeSnapshots = true,
   });
 
   /// Pixel size of the backdrop.
@@ -76,6 +77,10 @@ class BackdropContext {
   /// Compiled premultiplied-alpha grade shader for per-layer passes
   /// (`scenery_grade_layer.frag`; null until loaded → layers paint ungraded).
   final ui.FragmentProgram? layerGradeProgram;
+
+  /// Whether grade nodes may synchronously snapshot layer content for exact
+  /// shader grading. False keeps live playback off the `toImageSync` path.
+  final bool allowGradeSnapshots;
 }
 
 /// One painted layer in the back-to-front `BackdropScene` stack. Stateless

@@ -256,6 +256,10 @@ class DanceToTrackPage extends StatefulWidget {
   State<DanceToTrackPage> createState() => _DanceToTrackPageState();
 }
 
+class _FramePulse extends ChangeNotifier {
+  void pulse() => notifyListeners();
+}
+
 class _DanceToTrackPageState extends State<DanceToTrackPage>
     with SingleTickerProviderStateMixin {
   // The trio: lead plus two backing cats, built once. The clock is the audio
@@ -271,6 +275,7 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
   final GlobalKey _stageBoundaryKey = GlobalKey();
 
   late final Ticker _ticker; // 60 fps repaint pump; time comes from the player.
+  final _FramePulse _framePulse = _FramePulse();
 
   BeatMap? _map;
   // The shared per-frame derivation (which move, warped clock, beat, camera
@@ -419,16 +424,15 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
     _maybeSampleScope(dt);
     final clockRunning = _advanceRenderClock(dt);
     if (!clockRunning) {
-      if (mounted) setState(() {});
+      if (mounted) _framePulse.pulse();
       return;
     }
     // Steady wall clock for ambient backdrop animation + the stage-light gel
     // cycle/sweep (independent of the looping dance clock).
     _wallSeconds += dt;
     final pos = _positionSec;
-    setState(() {
-      _advancePerformance(pos: pos, dt: dt);
-    });
+    _advancePerformance(pos: pos, dt: dt);
+    if (mounted) _framePulse.pulse();
   }
 
   void _advancePerformance({required double pos, required double dt}) {
@@ -851,6 +855,7 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
   @override
   void dispose() {
     _perfProbe?.dispose();
+    _framePulse.dispose();
     HardwareKeyboard.instance.removeHandler(_handleGlobalKeyEvent);
     _ticker.dispose();
     unawaited(_playerErrorSub?.cancel());
@@ -890,6 +895,16 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
       );
     }
 
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: AnimatedBuilder(
+        animation: _framePulse,
+        builder: (context, _) => _buildDanceBody(context),
+      ),
+    );
+  }
+
+  Widget _buildDanceBody(BuildContext context) {
     final posSec = _positionSec;
     final stage = _perf?.stageAt(posSec) ?? danceIdleStage(posSec);
     final beat = _perf?.beatPulse(posSec) ?? 0;
@@ -918,6 +933,7 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
       masterGrade: grades[GradeTargets.master] ?? BackdropGrade.identity,
       castGrade: grades[GradeTargets.cast] ?? BackdropGrade.identity,
       gradeForTarget: grades.isEmpty ? null : (t) => grades[t],
+      allowGradeSnapshots: exporting || _gradeOpen || !_player.state.playing,
       cast: _cast,
       renderer: _renderer,
       stage: stage,
@@ -964,159 +980,156 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
         musicalLabel == '—') {
       musicalLabel = bandLabel ?? section?.label;
     }
-    return Scaffold(
-      backgroundColor: Colors.black,
-      // Exact-frame app export captures the stage RepaintBoundary via toImage,
-      // so its pixel size must be exactly the requested render size. A desktop
-      // window can't always BE that size (macOS clamps the window to the
-      // screen), which would make toImage return the clamped size and desync the
-      // raw-frame stride against ffmpeg's -s:v (the frame "rolls"). Pin the
-      // captured stage to renderW×renderH regardless of the window; FittedBox
-      // just scales the on-screen preview to fit.
-      body: kDanceAppExport
-          ? FittedBox(
-              child: SizedBox(
-                width: kDanceRenderWidth.toDouble(),
-                height: kDanceRenderHeight.toDouble(),
-                child: stageView,
-              ),
-            )
-          : kDanceRenderOnly
-          ? stageView
-          : Column(
-              children: [
-                // While grading, the stage's pillarbox columns stop being
-                // dead black: full-size scopes dock beside the viewer (the
-                // finishing-suite layout), and the console drops its small
-                // duplicates.
-                Expanded(
-                  child: _gradeOpen && controller != null
-                      ? LayoutBuilder(
-                          builder: (context, box) {
-                            final pillar =
-                                (box.maxWidth -
-                                    box.maxHeight * kDanceDemoAspectRatio) /
-                                2;
-                            if (pillar < 240) return stageView;
-                            final dockW = math.min(pillar - 32, 380).toDouble();
-                            return Stack(
-                              children: [
-                                stageView,
-                                Positioned(
-                                  right: 12,
-                                  top: 0,
-                                  bottom: 0,
-                                  child: Center(
-                                    child: _SideScopes(
-                                      width: dockW,
-                                      laneLabel: controller.selectedTarget
-                                          .toUpperCase(),
-                                      grade: controller
-                                          .consoleLook(posSec)
-                                          .toGrade(),
-                                      parade: _scope,
-                                      bypass: _bypass,
-                                    ),
+    // Exact-frame app export captures the stage RepaintBoundary via toImage,
+    // so its pixel size must be exactly the requested render size. A desktop
+    // window can't always BE that size (macOS clamps the window to the
+    // screen), which would make toImage return the clamped size and desync the
+    // raw-frame stride against ffmpeg's -s:v (the frame "rolls"). Pin the
+    // captured stage to renderW×renderH regardless of the window; FittedBox
+    // just scales the on-screen preview to fit.
+    return kDanceAppExport
+        ? FittedBox(
+            child: SizedBox(
+              width: kDanceRenderWidth.toDouble(),
+              height: kDanceRenderHeight.toDouble(),
+              child: stageView,
+            ),
+          )
+        : kDanceRenderOnly
+        ? stageView
+        : Column(
+            children: [
+              // While grading, the stage's pillarbox columns stop being
+              // dead black: full-size scopes dock beside the viewer (the
+              // finishing-suite layout), and the console drops its small
+              // duplicates.
+              Expanded(
+                child: _gradeOpen && controller != null
+                    ? LayoutBuilder(
+                        builder: (context, box) {
+                          final pillar =
+                              (box.maxWidth -
+                                  box.maxHeight * kDanceDemoAspectRatio) /
+                              2;
+                          if (pillar < 240) return stageView;
+                          final dockW = math.min(pillar - 32, 380).toDouble();
+                          return Stack(
+                            children: [
+                              stageView,
+                              Positioned(
+                                right: 12,
+                                top: 0,
+                                bottom: 0,
+                                child: Center(
+                                  child: _SideScopes(
+                                    width: dockW,
+                                    laneLabel: controller.selectedTarget
+                                        .toUpperCase(),
+                                    grade: controller
+                                        .consoleLook(posSec)
+                                        .toGrade(),
+                                    parade: _scope,
+                                    bypass: _bypass,
                                   ),
                                 ),
-                              ],
-                            );
-                          },
-                        )
-                      : stageView,
-                ),
-                DanceTransportBar(
-                  loading: _map == null,
-                  playing: _player.state.playing,
-                  loop: _loop,
-                  showCaptions: _showCaptions,
-                  captionsAvailable: _words.isNotEmpty,
-                  useNewBackdrop: _useNewBackdrop,
-                  muted: _muted,
-                  bpm: _bpm,
-                  positionSec: posSec,
-                  durationSec: _trackDurationSec,
-                  currentSectionLabel: musicalLabel,
-                  barsBeats: _barBeatFromMap(posSec),
-                  moveLabels: [
-                    for (final clip in stage.ensemble) clip.name,
-                  ],
-                  amplitudes: _amplitudes,
-                  sections: _waveformSections,
-                  onPlayPause: () => unawaited(_togglePlay()),
-                  onToggleLoop: () => unawaited(_toggleLoop()),
-                  onToggleCaptions: () =>
-                      setState(() => _showCaptions = !_showCaptions),
-                  onToggleBackdrop: () =>
-                      setState(() => _useNewBackdrop = !_useNewBackdrop),
-                  onToggleMute: () => unawaited(_toggleMute()),
-                  onSeekToSeconds: _seekToTime,
-                  gradeOpen: _gradeOpen,
-                  gradeActive: _gradeStore?.doc.isActive ?? false,
-                  onToggleGrade: controller == null
-                      ? null
-                      : () => setState(() {
-                          _gradeOpen = !_gradeOpen;
-                          if (_gradeOpen) _lipSyncOpen = false;
-                        }),
-                  lipSyncOpen: _lipSyncOpen,
-                  onToggleLipSync: lipSyncController == null
-                      ? null
-                      : () => setState(() {
-                          _lipSyncOpen = !_lipSyncOpen;
-                          if (_lipSyncOpen) _gradeOpen = false;
-                        }),
-                  onInspectMove: _player.state.playing
-                      ? null
-                      : (i) => _openMoveInspector(stage, i),
-                  showTimeline: !_gradeOpen && !_lipSyncOpen,
-                ),
-                if (_gradeOpen && controller != null)
-                  SizedBox(
-                    // The stage keeps its floor (~45% of the window). The
-                    // workspace lays out inside this fixed height — lanes
-                    // scroll internally, the console never clips.
-                    height: math.min(
-                      470,
-                      MediaQuery.sizeOf(context).height * 0.46,
-                    ),
-                    child: DanceGradeWorkspace(
-                      controller: controller,
-                      positionSec: posSec,
-                      durationSec: _trackDurationSec,
-                      playing: _player.state.playing,
-                      amplitudes: _amplitudes ?? const [],
-                      sections: _waveformSections,
-                      parade: _scope,
-                      bypass: _bypass,
-                      onBypass: (v) => setState(() => _bypass = v),
-                      onSeek: _seekToTime,
-                      // The pillarbox dock mirrors the scopes at full size.
-                      showScopes: false,
-                    ),
+                              ),
+                            ],
+                          );
+                        },
+                      )
+                    : stageView,
+              ),
+              DanceTransportBar(
+                loading: _map == null,
+                playing: _player.state.playing,
+                loop: _loop,
+                showCaptions: _showCaptions,
+                captionsAvailable: _words.isNotEmpty,
+                useNewBackdrop: _useNewBackdrop,
+                muted: _muted,
+                bpm: _bpm,
+                positionSec: posSec,
+                durationSec: _trackDurationSec,
+                currentSectionLabel: musicalLabel,
+                barsBeats: _barBeatFromMap(posSec),
+                moveLabels: [
+                  for (final clip in stage.ensemble) clip.name,
+                ],
+                amplitudes: _amplitudes,
+                sections: _waveformSections,
+                onPlayPause: () => unawaited(_togglePlay()),
+                onToggleLoop: () => unawaited(_toggleLoop()),
+                onToggleCaptions: () =>
+                    setState(() => _showCaptions = !_showCaptions),
+                onToggleBackdrop: () =>
+                    setState(() => _useNewBackdrop = !_useNewBackdrop),
+                onToggleMute: () => unawaited(_toggleMute()),
+                onSeekToSeconds: _seekToTime,
+                gradeOpen: _gradeOpen,
+                gradeActive: _gradeStore?.doc.isActive ?? false,
+                onToggleGrade: controller == null
+                    ? null
+                    : () => setState(() {
+                        _gradeOpen = !_gradeOpen;
+                        if (_gradeOpen) _lipSyncOpen = false;
+                      }),
+                lipSyncOpen: _lipSyncOpen,
+                onToggleLipSync: lipSyncController == null
+                    ? null
+                    : () => setState(() {
+                        _lipSyncOpen = !_lipSyncOpen;
+                        if (_lipSyncOpen) _gradeOpen = false;
+                      }),
+                onInspectMove: _player.state.playing
+                    ? null
+                    : (i) => _openMoveInspector(stage, i),
+                showTimeline: !_gradeOpen && !_lipSyncOpen,
+              ),
+              if (_gradeOpen && controller != null)
+                SizedBox(
+                  // The stage keeps its floor (~45% of the window). The
+                  // workspace lays out inside this fixed height — lanes
+                  // scroll internally, the console never clips.
+                  height: math.min(
+                    470,
+                    MediaQuery.sizeOf(context).height * 0.46,
                   ),
-                if (_lipSyncOpen && lipSyncController != null)
-                  SizedBox(
-                    // Unlike the grade console (whose height the wheel/scope
-                    // panel drives), lip-sync is one cue lane over a shape
-                    // palette — a fraction of the grade workspace's footprint
-                    // covers it with room to spare.
-                    height: math.min(
-                      200,
-                      MediaQuery.sizeOf(context).height * 0.22,
-                    ),
-                    child: DanceLipSyncWorkspace(
-                      controller: lipSyncController,
-                      positionSec: posSec,
-                      durationSec: _trackDurationSec,
-                      playing: _player.state.playing,
-                      sections: _waveformSections,
-                      onSeek: _seekToTime,
-                    ),
+                  child: DanceGradeWorkspace(
+                    controller: controller,
+                    positionSec: posSec,
+                    durationSec: _trackDurationSec,
+                    playing: _player.state.playing,
+                    amplitudes: _amplitudes ?? const [],
+                    sections: _waveformSections,
+                    parade: _scope,
+                    bypass: _bypass,
+                    onBypass: (v) => setState(() => _bypass = v),
+                    onSeek: _seekToTime,
+                    // The pillarbox dock mirrors the scopes at full size.
+                    showScopes: false,
                   ),
-              ],
-            ),
-    );
+                ),
+              if (_lipSyncOpen && lipSyncController != null)
+                SizedBox(
+                  // Unlike the grade console (whose height the wheel/scope
+                  // panel drives), lip-sync is one cue lane over a shape
+                  // palette — a fraction of the grade workspace's footprint
+                  // covers it with room to spare.
+                  height: math.min(
+                    200,
+                    MediaQuery.sizeOf(context).height * 0.22,
+                  ),
+                  child: DanceLipSyncWorkspace(
+                    controller: lipSyncController,
+                    positionSec: posSec,
+                    durationSec: _trackDurationSec,
+                    playing: _player.state.playing,
+                    sections: _waveformSections,
+                    onSeek: _seekToTime,
+                  ),
+                ),
+            ],
+          );
   }
 
   /// The BAR n.b.s readout from the DETECTED beat grid (bars counted from

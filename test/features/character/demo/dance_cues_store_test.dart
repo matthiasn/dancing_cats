@@ -9,12 +9,16 @@ import 'package:path/path.dart' as p;
 import '../../../dance_store_test_utils.dart';
 
 LipSyncDoc _doc({String shape = 'B'}) => LipSyncDoc(
-  cues: [(start: 0.0, end: 1.0, shape: 'X'), (start: 1.0, end: 2.0, shape: shape)],
+  cues: [
+    (start: 0.0, end: 1.0, shape: 'X'),
+    (start: 1.0, end: 2.0, shape: shape),
+  ],
   audio: const {'path': '/tmp/t.wav', 'duration_sec': 2.0},
   lipsync: const {'engine': 'rhubarb'},
 );
 
-String _docJson({String shape = 'B'}) => jsonEncode(_doc(shape: shape).toJson());
+String _docJson({String shape = 'B'}) =>
+    jsonEncode(_doc(shape: shape).toJson());
 
 void main() {
   late Directory dir;

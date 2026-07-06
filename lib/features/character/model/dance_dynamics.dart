@@ -73,7 +73,6 @@ class DanceDynamics {
     flow: flow.clamp(-limit, limit),
   );
 
-
   @override
   bool operator ==(Object other) =>
       other is DanceDynamics &&

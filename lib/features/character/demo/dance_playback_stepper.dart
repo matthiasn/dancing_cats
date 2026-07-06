@@ -90,7 +90,12 @@ class DancePlaybackStepper {
     _bgMouth = easeDanceMouth(_bgMouth, bgOn ? cue.open : 0.0, dt);
 
     final rawStage = perf?.stageAt(pos) ?? danceIdleStage(pos);
-    final transitioned = _stageWithTransition(rawStage, dt, perf: perf, pos: pos);
+    final transitioned = _stageWithTransition(
+      rawStage,
+      dt,
+      perf: perf,
+      pos: pos,
+    );
     final stage = _easedDynamicsStage(transitioned, dt);
     final lastCut = _lastMoveCutPos;
     final ctx = perf?.directorContext(
@@ -259,9 +264,17 @@ class DancePlaybackStepper {
 
   /// [stage] with its warped clock re-anchored on the first downbeat at/after
   /// its own choreo statement start. Idle stages and null [perf] pass through.
-  DanceStage _rebasedStage(DancePerformance? perf, DanceStage stage, double pos) {
+  DanceStage _rebasedStage(
+    DancePerformance? perf,
+    DanceStage stage,
+    double pos,
+  ) {
     if (perf == null || !stage.energetic) return stage;
-    final binding = _segmentBinding(perf, stage.lead.name, stage.segmentStartSec);
+    final binding = _segmentBinding(
+      perf,
+      stage.lead.name,
+      stage.segmentStartSec,
+    );
     return (
       lead: stage.lead,
       ensemble: stage.ensemble,

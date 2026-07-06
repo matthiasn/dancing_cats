@@ -86,8 +86,7 @@ class YachtGroupLayer implements BackdropLayer {
 ({double heave, double roll}) yachtWaveMotion(double t) {
   const twoPi = 2 * math.pi;
   final heave =
-      0.62 * math.sin(twoPi * t / 4.7) +
-      0.38 * math.sin(twoPi * t / 7.3 + 1.1);
+      0.62 * math.sin(twoPi * t / 4.7) + 0.38 * math.sin(twoPi * t / 7.3 + 1.1);
   final roll =
       0.68 * math.sin(twoPi * t / 6.1 + 0.6) +
       0.32 * math.sin(twoPi * t / 9.4 + 2.0);

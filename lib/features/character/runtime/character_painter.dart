@@ -298,6 +298,8 @@ double danceLanePlaneScale(
           : 0),
 );
 
+typedef _PreparedCharacterPaint = ({Affine2D base, CharacterFrame frame});
+
 class CharacterPainter extends CustomPainter {
   CharacterPainter({
     required this.scene,
@@ -722,7 +724,12 @@ class CharacterPainter extends CustomPainter {
         // instead of popping it on at the blend's first frame.
         final formation = leadCentreOrder
             ? _lerpFormation(
-                _danceFormationAcrossBlend(i, members.length, timeSeconds, memberClip),
+                _danceFormationAcrossBlend(
+                  i,
+                  members.length,
+                  timeSeconds,
+                  memberClip,
+                ),
                 danceWeight,
               )
             : (dx: 0.0, dy: 0.0, scale: 1.0);
@@ -833,6 +840,19 @@ class CharacterPainter extends CustomPainter {
         final rimDir = i < _kRimDirections.length
             ? _kRimDirections[i]
             : Offset.zero;
+        final prepared = _prepareCharacterAt(
+          memberScene,
+          size,
+          clip: memberClip,
+          floorY: memberFloorY,
+          centreX: memberCentreX,
+          flip: flip,
+          timeSeconds: timeSeconds + phaseOffset,
+          expression: expressions[i],
+          scale: memberScale,
+          feetFraction: feetFraction,
+          danceView: memberView,
+        );
         if (glow != null && glow.a > 0) {
           // A thin directional RIM (no wrap): flatten the member to a solid gel
           // silhouette, blur it, and OFFSET it toward this lane's light source
@@ -866,19 +886,17 @@ class CharacterPainter extends CustomPainter {
               )
               ..save()
               ..translate(off.dx, off.dy);
-            _paintCharacterAt(
+            _paintPreparedCharacter(
               memberScene,
               canvas,
-              size,
+              prepared: prepared,
               clip: memberClip,
               floorY: memberFloorY,
               centreX: memberCentreX,
-              flip: flip,
               timeSeconds: timeSeconds + phaseOffset,
-              expression: expressions[i],
               scale: memberScale,
-              feetFraction: feetFraction,
-              danceView: memberView,
+              paintContactShadows: false,
+              drawInteriorDetail: false,
             );
             canvas.restore();
             // ONE-SIDED rim. A `dstIn` linear gradient keeps the thin rim at full
@@ -932,23 +950,20 @@ class CharacterPainter extends CustomPainter {
         // The grade is still masked by srcATop to the just-drawn cat silhouette.
         final gradeBounds = Offset.zero & size;
         if (grade != null) canvas.saveLayer(gradeBounds, Paint());
-        _paintCharacterAt(
+        _paintPreparedCharacter(
           memberScene,
           canvas,
-          size,
+          prepared: prepared,
           clip: memberClip,
           floorY: memberFloorY,
           centreX: memberCentreX,
-          flip: flip,
           timeSeconds: timeSeconds + phaseOffset,
-          expression: expressions[i],
           scale: memberScale,
-          feetFraction: feetFraction,
-          danceView: memberView,
         );
         if (grade != null) {
           _paintBodyGrade(
             canvas,
+            prepared: prepared,
             grade: grade,
             gradeBounds: gradeBounds,
             memberCentreX: memberCentreX,
@@ -959,9 +974,7 @@ class CharacterPainter extends CustomPainter {
             rimDir: rimDir,
             glow: glow,
           );
-          canvas
-            ..restore() // pop the body clip
-            ..restore(); // pop the isolation layer
+          canvas.restore(); // pop the isolation layer
         }
       }
       if (anchors != null) onDancerAnchors!(anchors);
@@ -1018,6 +1031,7 @@ class CharacterPainter extends CustomPainter {
   /// body wrap used before this pass was split out.
   void _paintBodyGrade(
     Canvas canvas, {
+    required _PreparedCharacterPaint prepared,
     required ({Color skyWrap, Color deckWrap}) grade,
     required Rect gradeBounds,
     required double memberCentreX,
@@ -1050,18 +1064,12 @@ class CharacterPainter extends CustomPainter {
           ),
       );
     }
-    // Every offset below is "distance up from the feet" expressed as a
-    // fraction of the REFERENCE character's height (memberScale == 1, e.g. a
-    // flanker at depth 0) — so it must scale with memberScale the same way
-    // the rest of this file's screen-space distances do (see footW/footH's
-    // `104 * memberScale` a few lines up in the caller). Without this, a
-    // hero-staged lead (memberScale ~1.4x via [_heroStaging]'s downstage
-    // depth bonus) gets the same FIXED pixel collar height as a
-    // reference-scale flanker, landing the face/body split (and the gel
-    // terminator, and the floor-pool bounce) well below the actual neckline
-    // — on the lead specifically, a hard clipRect seam across the torso
-    // instead of a hidden line at the collar.
-    final collarY = memberFloorY - size.height * 0.20 * memberScale;
+    final collarY = _bodyGradeCollarY(
+      prepared,
+      memberFloorY: memberFloorY,
+      size: size,
+      memberScale: memberScale,
+    );
     _paintFaceSeat(
       canvas,
       gradeBounds: gradeBounds,
@@ -1083,6 +1091,9 @@ class CharacterPainter extends CustomPainter {
       memberScale: memberScale,
     );
     if (glow != null && glow.a > 0) {
+      canvas
+        ..save()
+        ..clipRect(_bodyGradeRect(gradeBounds, collarY));
       _paintGelTerminatorAndRim(
         canvas,
         gradeBounds: gradeBounds,
@@ -1102,8 +1113,33 @@ class CharacterPainter extends CustomPainter {
         memberScale: memberScale,
         glow: glow,
       );
+      canvas.restore();
     }
   }
+
+  double _bodyGradeCollarY(
+    _PreparedCharacterPaint prepared, {
+    required double memberFloorY,
+    required Size size,
+    required double memberScale,
+  }) {
+    final collarYs = [
+      prepared.frame.world['collar.L']?.origin.y,
+      prepared.frame.world['collar.R']?.origin.y,
+    ].whereType<double>().where((y) => y.isFinite);
+    if (collarYs.isNotEmpty) {
+      final lowerCollar = collarYs.reduce(math.max);
+      return lowerCollar + 8 * memberScale;
+    }
+    return memberFloorY - size.height * 0.20 * memberScale;
+  }
+
+  Rect _bodyGradeRect(Rect gradeBounds, double collarY) => Rect.fromLTRB(
+    gradeBounds.left,
+    collarY,
+    gradeBounds.right,
+    gradeBounds.bottom,
+  );
 
   /// FACE grade — above the collar. A SOFT warm-key→cool-fill split along
   /// this lane's gel direction: the key side keeps the warm muzzle tone the
@@ -1166,14 +1202,7 @@ class CharacterPainter extends CustomPainter {
   }) {
     canvas
       ..save()
-      ..clipRect(
-        Rect.fromLTRB(
-          gradeBounds.left,
-          collarY,
-          gradeBounds.right,
-          gradeBounds.bottom,
-        ),
-      )
+      ..clipRect(_bodyGradeRect(gradeBounds, collarY))
       ..drawRect(
         gradeBounds,
         Paint()
@@ -1185,12 +1214,16 @@ class CharacterPainter extends CustomPainter {
         Paint()
           ..blendMode = BlendMode.srcATop
           ..shader = ui.Gradient.linear(
-            Offset(memberCentreX, memberFloorY - size.height * 0.52 * memberScale),
+            Offset(
+              memberCentreX,
+              memberFloorY - size.height * 0.52 * memberScale,
+            ),
             Offset(memberCentreX, memberFloorY),
             [grade.skyWrap, const Color(0x00000000), grade.deckWrap],
             const [0.0, 0.52, 1.0],
           ),
-      );
+      )
+      ..restore();
   }
 
   /// GENTLE beat breath. The gel key is the SAME stage light that pulses
@@ -1303,7 +1336,10 @@ class CharacterPainter extends CustomPainter {
         ..blendMode = BlendMode.srcATop
         ..shader = ui.Gradient.linear(
           Offset(memberCentreX, memberFloorY),
-          Offset(memberCentreX, memberFloorY - size.height * 0.20 * memberScale),
+          Offset(
+            memberCentreX,
+            memberFloorY - size.height * 0.20 * memberScale,
+          ),
           [glow.withValues(alpha: bounce), const Color(0x00000000)],
           const [0.0, 1.0],
         ),
@@ -2064,6 +2100,49 @@ class CharacterPainter extends CustomPainter {
     required double feetFraction,
     ({double foreshortenX, double shearX, double depth, double facing})?
     danceView,
+    bool paintContactShadows = true,
+    bool drawInteriorDetail = true,
+  }) {
+    final prepared = _prepareCharacterAt(
+      drawScene,
+      size,
+      clip: clip,
+      floorY: floorY,
+      centreX: centreX,
+      flip: flip,
+      timeSeconds: timeSeconds,
+      expression: expression,
+      scale: scale,
+      feetFraction: feetFraction,
+      danceView: danceView,
+    );
+    _paintPreparedCharacter(
+      drawScene,
+      canvas,
+      prepared: prepared,
+      clip: clip,
+      floorY: floorY,
+      centreX: centreX,
+      timeSeconds: timeSeconds,
+      scale: scale,
+      paintContactShadows: paintContactShadows,
+      drawInteriorDetail: drawInteriorDetail,
+    );
+  }
+
+  _PreparedCharacterPaint _prepareCharacterAt(
+    CharacterScene drawScene,
+    Size size, {
+    required Clip clip,
+    required double floorY,
+    required double centreX,
+    required bool flip,
+    required double timeSeconds,
+    required Expression expression,
+    required double scale,
+    required double feetFraction,
+    ({double foreshortenX, double shearX, double depth, double facing})?
+    danceView,
   }) {
     final viewTransform = danceView == null
         ? Affine2D.identity
@@ -2113,28 +2192,46 @@ class CharacterPainter extends CustomPainter {
           )
         : pinnedFrame;
 
-    _paintContactShadows(
-      canvas,
-      floorY,
-      centreX,
-      scale,
-      groundedFrame,
-      timeSeconds,
-      drawScene,
-      clip,
-    );
+    return (base: base, frame: groundedFrame);
+  }
+
+  void _paintPreparedCharacter(
+    CharacterScene drawScene,
+    Canvas canvas, {
+    required _PreparedCharacterPaint prepared,
+    required Clip clip,
+    required double floorY,
+    required double centreX,
+    required double timeSeconds,
+    required double scale,
+    bool paintContactShadows = true,
+    bool drawInteriorDetail = true,
+  }) {
+    if (paintContactShadows) {
+      _paintContactShadows(
+        canvas,
+        floorY,
+        centreX,
+        scale,
+        prepared.frame,
+        timeSeconds,
+        drawScene,
+        clip,
+      );
+    }
 
     _renderer.paint(
       canvas,
       drawScene.rig,
-      groundedFrame.world,
-      groundedFrame.face,
+      prepared.frame.world,
+      prepared.frame.face,
       // The member's placement (scale, flip, quarter-turn) — the renderer
       // paints under it so ribbon widths and surface outlines scale with THIS
       // member. Painting them in canvas units made the scaled-up lead read
       // spindly while the scaled-down backups ballooned.
-      memberTransform: base,
-      zOrderSwaps: groundedFrame.zOrderSwaps,
+      memberTransform: prepared.base,
+      zOrderSwaps: prepared.frame.zOrderSwaps,
+      drawInteriorDetail: drawInteriorDetail,
     );
   }
 

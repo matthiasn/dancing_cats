@@ -11,7 +11,7 @@ import 'package:flutter/material.dart';
 ///
 /// The bar is purely presentational: it renders the supplied state and reports
 /// intent through callbacks. All playback/seek behavior lives in the page.
-class DanceTransportBar extends StatelessWidget {
+class DanceTransportBar extends StatefulWidget {
   const DanceTransportBar({
     required this.loading,
     required this.playing,
@@ -112,6 +112,66 @@ class DanceTransportBar extends StatelessWidget {
   final String? barsBeats;
 
   @override
+  State<DanceTransportBar> createState() => _DanceTransportBarState();
+}
+
+class _DanceTransportBarState extends State<DanceTransportBar> {
+  bool get loading => widget.loading;
+  bool get playing => widget.playing;
+  bool get loop => widget.loop;
+  bool get showCaptions => widget.showCaptions;
+  bool get captionsAvailable => widget.captionsAvailable;
+  bool get useNewBackdrop => widget.useNewBackdrop;
+  bool get muted => widget.muted;
+  double get bpm => widget.bpm;
+  double get positionSec => widget.positionSec;
+  double get durationSec => widget.durationSec;
+  String? get currentSectionLabel => widget.currentSectionLabel;
+  List<String> get moveLabels => widget.moveLabels;
+  List<double>? get amplitudes => widget.amplitudes;
+  List<DanceWaveformSection> get sections => widget.sections;
+  VoidCallback get onPlayPause => widget.onPlayPause;
+  VoidCallback get onToggleLoop => widget.onToggleLoop;
+  VoidCallback get onToggleCaptions => widget.onToggleCaptions;
+  VoidCallback get onToggleBackdrop => widget.onToggleBackdrop;
+  VoidCallback get onToggleMute => widget.onToggleMute;
+  ValueChanged<double> get onSeekToSeconds => widget.onSeekToSeconds;
+  bool get gradeOpen => widget.gradeOpen;
+  bool get gradeActive => widget.gradeActive;
+  VoidCallback? get onToggleGrade => widget.onToggleGrade;
+  bool get lipSyncOpen => widget.lipSyncOpen;
+  VoidCallback? get onToggleLipSync => widget.onToggleLipSync;
+  ValueChanged<int>? get onInspectMove => widget.onInspectMove;
+  bool get showTimeline => widget.showTimeline;
+  String? get barsBeats => widget.barsBeats;
+
+  ({
+    bool loading,
+    bool playing,
+    bool loop,
+    bool showCaptions,
+    bool captionsAvailable,
+    bool useNewBackdrop,
+    bool muted,
+    bool gradeOpen,
+    bool gradeActive,
+    bool gradeToggleAvailable,
+    bool lipSyncOpen,
+    bool lipSyncToggleAvailable,
+  })?
+  _transportControlsKey;
+  var _hasTransportControlsCache = false;
+  late Widget _transportControlsCache;
+
+  ({bool loading, double bpm, String? currentSectionLabel})? _metaGroupKey;
+  var _hasMetaGroupCache = false;
+  late Widget _metaGroupCache;
+
+  List<String> _moveReadoutLabels = const [];
+  bool? _moveReadoutInspectAvailable;
+  Widget? _moveReadoutCache;
+
+  @override
   Widget build(BuildContext context) {
     // Pin Inter across the whole console so the widget text and the painter's
     // ruler/marker labels are provably one typeface (no theme-inherit drift).
@@ -174,6 +234,29 @@ class DanceTransportBar extends StatelessWidget {
   }
 
   Widget _transportControls() {
+    final key = (
+      loading: loading,
+      playing: playing,
+      loop: loop,
+      showCaptions: showCaptions,
+      captionsAvailable: captionsAvailable,
+      useNewBackdrop: useNewBackdrop,
+      muted: muted,
+      gradeOpen: gradeOpen,
+      gradeActive: gradeActive,
+      gradeToggleAvailable: onToggleGrade != null,
+      lipSyncOpen: lipSyncOpen,
+      lipSyncToggleAvailable: onToggleLipSync != null,
+    );
+    if (!_hasTransportControlsCache || _transportControlsKey != key) {
+      _transportControlsKey = key;
+      _transportControlsCache = _buildTransportControls();
+      _hasTransportControlsCache = true;
+    }
+    return _transportControlsCache;
+  }
+
+  Widget _buildTransportControls() {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -208,7 +291,7 @@ class DanceTransportBar extends StatelessWidget {
           shape: const CircleBorder(),
           child: InkWell(
             customBorder: const CircleBorder(),
-            onTap: enabled ? onPlayPause : null,
+            onTap: enabled ? () => widget.onPlayPause() : null,
             child: SizedBox(
               // Larger than the 40px toggle cluster so primacy comes from size,
               // not just colour — the play disc is the single solid-teal element.
@@ -244,7 +327,7 @@ class DanceTransportBar extends StatelessWidget {
             active: !muted,
             enabled: true,
             tooltip: muted ? 'Unmute' : 'Mute',
-            onTap: onToggleMute,
+            onTap: () => widget.onToggleMute(),
           ),
           const _VRule(height: 40),
           _toggle(
@@ -254,7 +337,7 @@ class DanceTransportBar extends StatelessWidget {
             active: loop,
             enabled: !loading,
             tooltip: loop ? 'Looping track' : 'Play once',
-            onTap: onToggleLoop,
+            onTap: () => widget.onToggleLoop(),
           ),
           // Captions are hidden entirely when there are no lyrics, so an inert
           // disabled control can never be mistaken for a live one (or vice versa).
@@ -267,7 +350,7 @@ class DanceTransportBar extends StatelessWidget {
               active: showCaptions,
               enabled: true,
               tooltip: showCaptions ? 'Hide lyrics' : 'Show lyrics',
-              onTap: onToggleCaptions,
+              onTap: () => widget.onToggleCaptions(),
             ),
           ],
           const _VRule(height: 40),
@@ -278,7 +361,7 @@ class DanceTransportBar extends StatelessWidget {
             active: useNewBackdrop,
             enabled: true,
             tooltip: useNewBackdrop ? 'Blue-hour scene' : 'Waterfront plate',
-            onTap: onToggleBackdrop,
+            onTap: () => widget.onToggleBackdrop(),
           ),
           if (onToggleGrade != null) ...[
             const _VRule(height: 40),
@@ -292,7 +375,7 @@ class DanceTransportBar extends StatelessWidget {
                   : gradeActive
                   ? 'Open the grade timeline (a grade is active)'
                   : 'Open the grade timeline',
-              onTap: onToggleGrade!,
+              onTap: () => widget.onToggleGrade?.call(),
               // A grade document can colour the stage while this workspace is
               // closed; the badge keeps that state visible (never a mystery
               // "why is my scene dim?").
@@ -309,7 +392,7 @@ class DanceTransportBar extends StatelessWidget {
               tooltip: lipSyncOpen
                   ? 'Close the lip-sync editor'
                   : 'Open the lip-sync editor',
-              onTap: onToggleLipSync!,
+              onTap: () => widget.onToggleLipSync?.call(),
             ),
           ],
         ],
@@ -402,6 +485,20 @@ class DanceTransportBar extends StatelessWidget {
   /// Right zone: tempo/meter + the now-playing section, de-chipped (no
   /// button-like boxes) so static readouts never look pressable.
   Widget _metaGroup() {
+    final key = (
+      loading: loading,
+      bpm: bpm,
+      currentSectionLabel: currentSectionLabel,
+    );
+    if (!_hasMetaGroupCache || _metaGroupKey != key) {
+      _metaGroupKey = key;
+      _metaGroupCache = _buildMetaGroup();
+      _hasMetaGroupCache = true;
+    }
+    return _metaGroupCache;
+  }
+
+  Widget _buildMetaGroup() {
     if (loading) return const SizedBox.shrink();
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -424,6 +521,18 @@ class DanceTransportBar extends StatelessWidget {
   /// can be dancing different moves (canon sections), so the readout can't
   /// collapse to a single click target for the whole joined string.
   Widget _moveReadout() {
+    final inspectAvailable = onInspectMove != null;
+    if (_moveReadoutCache == null ||
+        _moveReadoutInspectAvailable != inspectAvailable ||
+        !_sameStringList(_moveReadoutLabels, moveLabels)) {
+      _moveReadoutInspectAvailable = inspectAvailable;
+      _moveReadoutLabels = List.unmodifiable(moveLabels);
+      _moveReadoutCache = _buildMoveReadout();
+    }
+    return _moveReadoutCache!;
+  }
+
+  Widget _buildMoveReadout() {
     final names = moveLabels.map(_displayMoveName).toList();
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 380),
@@ -470,14 +579,13 @@ class DanceTransportBar extends StatelessWidget {
       fontWeight: FontWeight.w700,
       letterSpacing: 0.2,
     );
-    final onInspect = onInspectMove;
-    if (onInspect == null) {
+    if (onInspectMove == null) {
       return Text(name, style: baseStyle.copyWith(color: _Chrome.textMid));
     }
     return _InteractiveMoveReadout(
       targetKey: Key('moveReadoutInspectTarget_$index'),
       tooltip: "Inspect $name's keyframes",
-      onTap: () => onInspect(index),
+      onTap: () => widget.onInspectMove?.call(index),
       builder: (hovering) => Text(
         name,
         style: baseStyle.copyWith(
@@ -708,6 +816,15 @@ String _displayMoveName(String name) => switch (name) {
   'pouncing-cat' => 'pounce',
   _ => name,
 };
+
+bool _sameStringList(List<String> a, List<String> b) {
+  if (identical(a, b)) return true;
+  if (a.length != b.length) return false;
+  for (var i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) return false;
+  }
+  return true;
+}
 
 /// Wraps a single dancer's move name with a click affordance once inspecting
 /// is available: a pointer cursor, a per-move tooltip, and hover-brightened

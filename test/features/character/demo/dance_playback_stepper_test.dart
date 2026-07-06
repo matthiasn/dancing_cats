@@ -198,7 +198,12 @@ void main() {
           expect(held[i].flow, closeTo(steadyDynamics[i].flow, 1e-9));
         }
 
-        stepper.advance(perf, const [], 3.52, 0.016); // blend starts: zanku->buga
+        stepper.advance(
+          perf,
+          const [],
+          3.52,
+          0.016,
+        ); // blend starts: zanku->buga
         expect(stepper.stage?.lead.name, 'zanku->buga');
         expect(stepper.stage?.dynamics.length, 3);
         // buga's weight/time dials sit below zanku's, so the very start of the

@@ -441,8 +441,9 @@ class DancePerformance {
   /// Where [pos] sits inside the current semantic section: its label, progress
   /// 0..1, the section's length in seconds, and its start time. Defaults to
   /// the empty section when no span covers [pos].
-  ({String section, double phase, double seconds, double start})
-  sectionInfoAt(double pos) {
+  ({String section, double phase, double seconds, double start}) sectionInfoAt(
+    double pos,
+  ) {
     for (final s in sectionSpans) {
       if (pos >= s.start && pos < s.end) {
         final span = (s.end - s.start) <= 0 ? 1.0 : s.end - s.start;

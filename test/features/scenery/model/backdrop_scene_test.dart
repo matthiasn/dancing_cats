@@ -96,7 +96,10 @@ void main() {
         // far city. The dynamic jet rides the farthest plane of all.
         double depthAt(int i) => planes[i].depth;
         expect(depthAt(deck), greaterThan(depthAt(plate))); // stage nearer
-        expect(depthAt(yacht), closeTo(depthAt(deck), 1e-9)); // docked with deck
+        expect(
+          depthAt(yacht),
+          closeTo(depthAt(deck), 1e-9),
+        ); // docked with deck
         expect(depthAt(ocean), closeTo(depthAt(plate), 1e-9));
         expect(depthAt(jet), lessThan(depthAt(plate))); // farthest of all
         expect(plate, 0);

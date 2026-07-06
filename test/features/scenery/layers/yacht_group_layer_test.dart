@@ -22,34 +22,38 @@ void main() {
   // supplies the binding without the FakeAsync clock that would deadlock toImage.
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('degrades gracefully (no hull image) but still delegates to the lights', () async {
-    const size = Size(1280, 720);
-    final recorder = ui.PictureRecorder();
-    // No images: the hull ImageLayer no-ops, but the group still delegates to
-    // YachtLightsLayer, whose canvas nav lamps paint.
-    const YachtGroupLayer().paint(
-      Canvas(recorder),
-      const BackdropContext(
-        size: size,
-        timeSeconds: 2,
-        palette: kBlueHourPalette,
-      ),
-    );
-    final image = await recorder.endRecording().toImage(
-      size.width.toInt(),
-      size.height.toInt(),
-    );
-    final data = await image.toByteData();
-    image.dispose();
-    // The lamp anchor sits at (0.667, 0.578) of this aspect-matching viewport,
-    // shifted down by the group's resting sink.
-    final lampY = (0.578 + YachtGroupLayer.sinkFraction) * size.height;
-    final i =
-        (lampY.round() * size.width.toInt() + (0.667 * size.width).round()) * 4;
-    final navLampLit =
-        data!.getUint8(i) + data.getUint8(i + 1) + data.getUint8(i + 2);
-    expect(navLampLit, greaterThan(30), reason: 'group drew the nav lamps');
-  });
+  test(
+    'degrades gracefully (no hull image) but still delegates to the lights',
+    () async {
+      const size = Size(1280, 720);
+      final recorder = ui.PictureRecorder();
+      // No images: the hull ImageLayer no-ops, but the group still delegates to
+      // YachtLightsLayer, whose canvas nav lamps paint.
+      const YachtGroupLayer().paint(
+        Canvas(recorder),
+        const BackdropContext(
+          size: size,
+          timeSeconds: 2,
+          palette: kBlueHourPalette,
+        ),
+      );
+      final image = await recorder.endRecording().toImage(
+        size.width.toInt(),
+        size.height.toInt(),
+      );
+      final data = await image.toByteData();
+      image.dispose();
+      // The lamp anchor sits at (0.667, 0.578) of this aspect-matching viewport,
+      // shifted down by the group's resting sink.
+      final lampY = (0.578 + YachtGroupLayer.sinkFraction) * size.height;
+      final i =
+          (lampY.round() * size.width.toInt() + (0.667 * size.width).round()) *
+          4;
+      final navLampLit =
+          data!.getUint8(i) + data.getUint8(i + 1) + data.getUint8(i + 2);
+      expect(navLampLit, greaterThan(30), reason: 'group drew the nav lamps');
+    },
+  );
 
   test('holds the yacht at rest under reduce-motion (no wave transform)', () {
     final recorder = ui.PictureRecorder();
@@ -69,14 +73,17 @@ void main() {
   });
 
   group('yachtWaveMotion', () {
-    test('stays within the normalized [-1, 1] envelope across a long window', () {
-      for (var i = 0; i < 4000; i++) {
-        final t = i * 0.05; // 0..200 s
-        final m = yachtWaveMotion(t);
-        expect(m.heave.abs(), lessThanOrEqualTo(1.0 + 1e-9), reason: 't=$t');
-        expect(m.roll.abs(), lessThanOrEqualTo(1.0 + 1e-9), reason: 't=$t');
-      }
-    });
+    test(
+      'stays within the normalized [-1, 1] envelope across a long window',
+      () {
+        for (var i = 0; i < 4000; i++) {
+          final t = i * 0.05; // 0..200 s
+          final m = yachtWaveMotion(t);
+          expect(m.heave.abs(), lessThanOrEqualTo(1.0 + 1e-9), reason: 't=$t');
+          expect(m.roll.abs(), lessThanOrEqualTo(1.0 + 1e-9), reason: 't=$t');
+        }
+      },
+    );
 
     test('is deterministic and freezes with the clock', () {
       expect(yachtWaveMotion(3.3), yachtWaveMotion(3.3));
@@ -128,6 +135,10 @@ void main() {
     final r = data!.getUint8(i);
     final b = data.getUint8(i + 2);
     expect(r, greaterThan(180), reason: 'hull painted');
-    expect(b, greaterThanOrEqualTo(r), reason: 'cool modulate keeps blue >= red');
+    expect(
+      b,
+      greaterThanOrEqualTo(r),
+      reason: 'cool modulate keeps blue >= red',
+    );
   });
 }
