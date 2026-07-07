@@ -510,15 +510,19 @@ const _shakuHandLTargetKeys = [
   // whips the direction change (crest ~6); only WHAT it snaps between changed.
   // Compact + chest-height also keeps the two-bone elbow well inside its
   // reach/bend ceiling (the old deep-cross ceiling no longer bites).
-  DanceIkTargetKey(0, x: -18, y: -32), // upper-left
-  DanceIkTargetKey(4, x: 14, y: -30), // crossed to upper-right
-  DanceIkTargetKey(8, x: -18, y: -32),
-  DanceIkTargetKey(12, x: 14, y: -30),
+  // R24 (animator #2): raise the UPPER track ~6px so the stacked-forearm gap
+  // vs hand.R widens from a "thin sliver" (~16) to a forearm-height window
+  // (~23-26) — the crossover reads as two stacked forearms with open sky
+  // between, not a single fist cluster at the tie knot.
+  DanceIkTargetKey(0, x: -18, y: -37), // upper-left
+  DanceIkTargetKey(4, x: 14, y: -36), // crossed to upper-right
+  DanceIkTargetKey(8, x: -18, y: -37),
+  DanceIkTargetKey(12, x: 14, y: -36),
   // bar 2 — the saw opens a touch wider/higher (escalation, still compact).
-  DanceIkTargetKey(16, x: -20, y: -34),
-  DanceIkTargetKey(20, x: 16, y: -32),
-  DanceIkTargetKey(24, x: -20, y: -34),
-  DanceIkTargetKey(28, x: 16, y: -32),
+  DanceIkTargetKey(16, x: -20, y: -40),
+  DanceIkTargetKey(20, x: 16, y: -38),
+  DanceIkTargetKey(24, x: -20, y: -40),
+  DanceIkTargetKey(28, x: 16, y: -38),
 ];
 const _shakuHandRTargetKeys = [
   // bar 1 — R recovers IN at the left-chest on L's open counts, then OPENS
