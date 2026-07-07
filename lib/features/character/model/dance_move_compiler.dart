@@ -126,9 +126,15 @@ Clip assembleMoveClip(
   );
 }
 
-/// Softening applied to the inertializer's natural frequency relative to the
-/// Phase-1 garnish tuning (see [_ikTargetChannel]).
-const double _kInertializerOmegaScale = 0.9;
+/// The inertializer runs STIFFER and nearer-critical than the Phase-1 garnish
+/// (see [_ikTargetChannel]). The expert panel + physicist read the raw
+/// [danceSpring] tuning as an over-damped GLIDE: ζ≈1.2's slow root has a settle
+/// time near a whole beat, so the hand never rests (crest ~3, floor 12%, dwell
+/// 40%). A higher ωₙ shortens the settle so the hand snaps in and HOLDS; the ζ
+/// cap removes the slow creep (Flow can still dial a Free move under-damped for
+/// overshoot — it just can't push the inertializer over-damped into a glide).
+const double _kInertializerOmegaScale = 1.4;
+const double _kInertializerMaxZeta = 1.02;
 
 /// Builds the IK target channel for one limb track: the pre-simulated
 /// second-order spring ([InertializedIkTargetChannel]) when the track opts in,
@@ -149,16 +155,14 @@ IkTargetChannel _ikTargetChannel(
   );
   if (!track.inertialize) return base;
   final spring = danceSpring(descriptor.move.dynamics);
+  final zeta = spring.zeta < _kInertializerMaxZeta
+      ? spring.zeta
+      : _kInertializerMaxZeta;
   return InertializedIkTargetChannel(
     base.keys,
     duration: descriptor.duration,
-    // The inertializer IS the whole interpolation, so its snap is inherently
-    // sharper than the Phase-1 garnish [danceSpring] was tuned for; a stiffer ωₙ
-    // makes an extreme hit adjacent to the loop seam (shaku's generator pull)
-    // recover fast enough to tick the seam. Softening ωₙ here keeps the hold →
-    // snap → settle punchy while staying seam-symmetric.
     omegaN: spring.omegaN * _kInertializerOmegaScale,
-    zeta: spring.zeta,
+    zeta: zeta,
   );
 }
 
