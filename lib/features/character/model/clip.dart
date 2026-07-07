@@ -1536,6 +1536,7 @@ class Clip {
     this.supportFootWorldAnchorVerticalBoost = 0,
     this.danceHeadBobScale = 1.0,
     this.danceHeadLevelClampMin = -2.0,
+    this.armReachScale = 1.0,
     this.enforceSoleFloor = false,
     this.transitionPlan,
     this.zOrderSwaps = const [],
@@ -1577,6 +1578,16 @@ class Clip {
   /// doesn't achieve that, since this budget still caps the lift regardless.
   /// Opt-in per clip; more negative allows a bigger upward correction.
   final double danceHeadLevelClampMin;
+
+  /// Per-clip ARM-REACH multiplier (default 1.0 = unchanged). Lengthens the
+  /// arm-chain bones for THIS clip only (the scene maps it to
+  /// `SkeletonSolver.limbPivotYScale`), so a move whose signature gesture is
+  /// reach-maxed (azonto's mime wheel,
+  /// buga's peacock, sekem's punch) can extend and abduct without the hand
+  /// missing its target — while the moves that fit the default envelope
+  /// (shaku/zanku) stay byte-identical by not opting in. The scene maps this to
+  /// a pivotY scale on the arm chain each frame.
+  final double armReachScale;
 
   /// When true, free-foot IK targets are clamped so the shoe bottom never
   /// sinks below the planted support sole (the R27 mocap hard gate: deep
@@ -1776,6 +1787,7 @@ Clip blendedClip({
       to.danceHeadLevelClampMin,
       rootWeight,
     ),
+    armReachScale: _lerp(from.armReachScale, to.armReachScale, rootWeight),
     enforceSoleFloor: rootWeight < 0.5
         ? from.enforceSoleFloor
         : to.enforceSoleFloor,

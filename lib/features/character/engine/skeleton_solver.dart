@@ -11,6 +11,16 @@ class SkeletonSolver {
 
   final RigSpec rig;
 
+  /// Per-bone multiplier on the bone's local `pivotY` (its length down from its
+  /// parent), keyed by bone id. Empty (the default) is a byte-identical no-op.
+  /// Used for a per-CLIP limb-reach override: scaling the arm-chain bones'
+  /// pivotY lengthens the drawn arm AND — because the two-bone IK derives its
+  /// segment lengths from the SOLVED bone origins — the IK reach, consistently,
+  /// so a move whose signature gesture is reach-maxed can extend without the
+  /// hand missing its target. Set per-frame from the active clip; a move that
+  /// does not opt in leaves this empty and is unchanged.
+  Map<String, double> limbPivotYScale = const {};
+
   /// Computes the world transform of each bone, keyed by bone id.
   ///
   /// [base] places the character in the world (locomotion + canvas position);
@@ -22,11 +32,13 @@ class SkeletonSolver {
         .multiply(Affine2D.translation(pose.rootDx, pose.rootDy))
         .multiply(Affine2D.rotation(pose.rootRotation));
 
+    final scales = limbPivotYScale;
     for (final bone in rig.topoOrder) {
       final jp = pose.jointOf(bone.id);
+      final pivotYScale = scales.isEmpty ? 1.0 : (scales[bone.id] ?? 1.0);
       final local = Affine2D.trs(
         pivotX: bone.pivotX,
-        pivotY: bone.pivotY,
+        pivotY: bone.pivotY * pivotYScale,
         rotation: bone.restRotation + jp.rotation,
         scaleX: bone.restScaleX * jp.scaleX,
         scaleY: bone.restScaleY * jp.scaleY,

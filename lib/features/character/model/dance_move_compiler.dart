@@ -116,6 +116,7 @@ Clip assembleMoveClip(
         descriptor.danceHeadBobScale ?? base?.danceHeadBobScale ?? 1,
     danceHeadLevelClampMin:
         descriptor.danceHeadLevelClampMin ?? base?.danceHeadLevelClampMin ?? -2,
+    armReachScale: descriptor.armReachScale ?? base?.armReachScale ?? 1,
     enforceSoleFloor:
         descriptor.enforceSoleFloor ?? base?.enforceSoleFloor ?? false,
     transitionPlan: descriptor.transitionPlan ?? base?.transitionPlan,
@@ -161,7 +162,7 @@ IkTargetChannel _ikTargetChannel(
   return InertializedIkTargetChannel(
     base.keys,
     duration: descriptor.duration,
-    omegaN: spring.omegaN * _kInertializerOmegaScale,
+    omegaN: spring.omegaN * _kInertializerOmegaScale * track.inertializeOmegaScale,
     zeta: zeta,
   );
 }

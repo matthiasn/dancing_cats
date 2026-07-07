@@ -148,6 +148,22 @@ class CharacterScene {
   final RigSpec rig;
   final SkeletonSolver solver;
   final ClipEvaluator evaluator = const ClipEvaluator();
+
+  /// Arm-chain bones whose pivotY (length) the per-clip [Clip.armReachScale]
+  /// lengthens: the segments below the shoulder on both sides. armUpper itself
+  /// (a tiny offset under the clavicle) is left alone.
+  static const List<String> _armChainBoneIds = [
+    'arm_bicep.L', 'arm_lower.L', 'arm_forearm.L', 'hand.L',
+    'arm_bicep.R', 'arm_lower.R', 'arm_forearm.R', 'hand.R',
+  ];
+
+  /// The per-bone pivotY scale for a clip's arm-reach override — const-empty
+  /// (a no-op) unless the clip opts in with a non-1.0 [Clip.armReachScale].
+  Map<String, double> _armReachScaleMap(Clip clip) {
+    final s = clip.armReachScale;
+    if (s == 1.0) return const {};
+    return {for (final id in _armChainBoneIds) id: s};
+  }
   final FaceSolver faceSolver = const FaceSolver();
   final AutonomicLayer autonomic;
   late final PoseModifierStack _poseModifierStack;
@@ -300,6 +316,10 @@ class CharacterScene {
     Affine2D base = Affine2D.identity,
     double eyeOpenScale = 1,
   }) {
+    // Per-clip arm-reach override: scale the arm-chain bones' length for this
+    // clip only, so its solves (pose passes + IK length derivation + render)
+    // are all consistent. Empty for a clip at the 1.0 default (byte-identical).
+    solver.limbPivotYScale = _armReachScaleMap(clip);
     final auto = autonomic.sampleAt(timeSeconds);
     final posed = _resolvedPose(
       clip,
