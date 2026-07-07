@@ -772,8 +772,12 @@ class CharacterRenderer {
   }
 
   /// Peak narrowing of the proximal (deltoid) half-widths at full raise, when
-  /// [LimbRibbonSpec.clampProximalOnRaise] is set — see that field.
-  static const double _kProximalRaiseNarrow = 0.3;
+  /// [LimbRibbonSpec.clampProximalOnRaise] is set — see that field. R25: raised
+  /// 0.3 → 0.45 to deflate the "deltoid balloon" the animator flagged as the
+  /// blocker to 8 (the raised arm read as one inflated hose); the raise² curve
+  /// still leaves the mid-raise sleeve enough volume to avoid a flat pinned-on
+  /// read.
+  static const double _kProximalRaiseNarrow = 0.45;
 
   /// Per-index weight of [_kProximalRaiseNarrow] over the deltoid region
   /// (clavicle, deltoid, bicep), tapering the narrowing to nothing by the elbow
