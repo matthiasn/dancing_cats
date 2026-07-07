@@ -315,7 +315,7 @@ class CharacterScene {
       timeSeconds,
       rawWorld,
     );
-    final world = _rigidHeadWorld(
+    final headWorld = _rigidHeadWorld(
       clip,
       footStabilizedWorld,
       timeSeconds: timeSeconds,
@@ -324,6 +324,7 @@ class CharacterScene {
       rootDx: posed.rootDx,
       rootDy: posed.rootDy,
     );
+    final world = _collarFollowWorld(clip, headWorld);
     var face = faceSolver.applyAutonomic(expression.state, auto);
     if (eyeOpenScale != 1) {
       face = face.copyWith(
@@ -1729,6 +1730,61 @@ class CharacterScene {
 
   double _lerpAngle(double from, double to, double weight) =>
       from + _shortestAngle(to - from) * weight;
+
+  /// The chin-to-collar gap the collar-follow pulls the tall frames DOWN toward
+  /// (never below — the deep-squash frames, where the chin already sits near the
+  /// collar, are left alone so the collar can never swallow the chin). Inside
+  /// the head_collar_gap band [12.5, 24.5].
+  static const double _kCollarFollowTargetGap = 14;
+  static const double _kCollarFollowGain = 1;
+  static const double _kCollarFollowMaxLift = 8;
+
+  /// Collar surfaces discovered by id convention (the shirt V wedge + the collar
+  /// points), like the shoulder-line girdle plumbing — empty ⇒ the pass no-ops.
+  late final List<String> _collarFollowIds = [
+    for (final b in rig.bones)
+      if (b.id == 'shirt_v' || b.id.toLowerCase().startsWith('collar')) b.id,
+  ];
+
+  /// Collar-follow: on the tall/stretched frames the shirt collar sits well
+  /// below the chin and the exposed neck reads as a "giraffe stalk" (R23/R24
+  /// animator #1). A real collar rides up under the chin as the trunk stretches,
+  /// so pull the collar surfaces UP toward the head whenever the chin-to-collar
+  /// gap grows past [_kCollarFollowTargetGap] — proportionally, capped, and
+  /// NEVER past the target, so the deep-squash frames are untouched and `lo`
+  /// (the chin-swallow floor) can only improve. A pure function of the solved
+  /// world (head vs collar Y), so determinism holds; a no-op on collar-less rigs.
+  Map<String, Affine2D> _collarFollowWorld(
+    Clip clip,
+    Map<String, Affine2D> world,
+  ) {
+    if (!_isDanceFamily(clip) || _collarFollowIds.isEmpty) return world;
+    final headId = rig.face?.anchorBoneId;
+    if (headId == null) return world;
+    final head = world[headId];
+    if (head == null) return world;
+    // Gap reference: the shirt V wedge if present (matches head_collar_gap_test's
+    // shirt.ty − head.ty), else the first collar bone.
+    final refId = _collarFollowIds.contains('shirt_v')
+        ? 'shirt_v'
+        : _collarFollowIds.first;
+    final ref = world[refId];
+    if (ref == null) return world;
+    final gap = ref.origin.y - head.origin.y;
+    if (gap <= _kCollarFollowTargetGap) return world;
+    final lift = ((gap - _kCollarFollowTargetGap) * _kCollarFollowGain).clamp(
+      0.0,
+      _kCollarFollowMaxLift,
+    );
+    if (lift <= 0) return world;
+    final out = Map<String, Affine2D>.from(world);
+    final up = Affine2D.translation(0, -lift);
+    for (final id in _collarFollowIds) {
+      final w = world[id];
+      if (w != null) out[id] = up.multiply(w);
+    }
+    return out;
+  }
 
   /// The body can squash, stretch, and groove; the skull should not. Because
   /// the Phase-1 rig is a parented skeleton, torso scale would otherwise
