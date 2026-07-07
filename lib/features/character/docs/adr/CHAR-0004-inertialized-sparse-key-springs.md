@@ -105,10 +105,20 @@ doesn't couple to the leg weight-shift. These are the same ceilings prior panels
 identified (the shoulder-mesh gap) — the inertializer proved the *capability*
 (punchy hit-and-park from sparse keys), and the path to 8 is now rig work.
 
+## Rig pass (in progress)
+
+The first rig lever landed: a **raise-dependent deltoid clamp**
+(`LimbRibbonSpec.clampProximalOnRaise`, resolved in `CharacterRenderer`). The
+arm ribbon's proximal (deltoid) half-widths narrow in proportion to how far the
+upper arm is from hanging straight down — full at rest (the armhole gap-proofing
+dome is preserved for idle/walk), narrowed when raised/across-chest where the
+wide dome was exposed as a bulbous "shoulder blob". The technical lens's #1
+blocker (blob in ~⅓ of frames) is cleared; arm-rig cleanliness scored 6 → 8.
+
 ## Follow-ups
 
 Roll the inertializer to the remaining clips (zanku/azonto/buga/sekem — the
 C1-smooth channel-type assertion becomes an inertialized-channel or
-velocity-continuity check per clip); the rig-level ceiling work above
-(deltoid-width clamp, open-paw drawable, reach/amplitude, shoulder-girdle
-coupling).
+velocity-continuity check per clip); remaining rig levers (open-paw drawable,
+shoulder-girdle → weight-shift coupling, arm reach for a wider silhouette
+beyond the reach cap).

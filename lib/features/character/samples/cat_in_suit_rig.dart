@@ -1754,6 +1754,10 @@ RigSpec buildCatInSuitRig({
       // 14 back + the ~6.7 cap radius lands the fabric edge under the
       // cuff band.
       distalInset: 14 * armWidthScale,
+      // Raised arms expose the wide deltoid dome against the background as a
+      // bulbous shoulder blob (panel: worst defect at deep flexion); narrow it
+      // on raise, keeping it full when the arm hangs down (armhole preserved).
+      clampProximalOnRaise: true,
     ),
     LimbRibbonSpec(
       id: 'arm.L.ribbon',
@@ -1809,6 +1813,8 @@ RigSpec buildCatInSuitRig({
       // 14 back + the ~6.7 cap radius lands the fabric edge under the
       // cuff band.
       distalInset: 14 * armWidthScale,
+      // See arm.R.ribbon: narrow the exposed deltoid dome on raise.
+      clampProximalOnRaise: true,
     ),
   ];
 

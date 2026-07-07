@@ -387,6 +387,7 @@ class LimbRibbonSpec {
     this.overlapShadow = false,
     this.inkStartFraction = 0,
     this.distalInset = 0,
+    this.clampProximalOnRaise = false,
   }) : assert(
          jointTensions == null || jointTensions.length == jointBoneIds.length,
          'jointTensions must match jointBoneIds',
@@ -423,6 +424,14 @@ class LimbRibbonSpec {
   /// resolves at a defined elbow/knee vertex instead of a crescent. Null
   /// falls back to the ribbon default.
   final List<double>? jointTensions;
+
+  /// Narrow the PROXIMAL half-widths (the deltoid dome) when the limb's root
+  /// segment is RAISED (points up/out), where the wide armhole-filling dome is
+  /// exposed against the background and reads as a bulbous "shoulder blob". The
+  /// full width is kept when the segment hangs down (arm at rest), so the
+  /// armhole gap-proofing the wide deltoid exists for is preserved. Opt-in
+  /// (arms only); resolved per-frame in the renderer from the solved spine.
+  final bool clampProximalOnRaise;
 
   final int z;
   final int color;
