@@ -130,11 +130,15 @@ void main() {
               speedupSquared;
           expect(
             worstAcceleration,
-            lessThan(1.8),
+            lessThan(2.3),
             reason:
                 '${clip.name} $bone worst real-tempo angular acceleration '
-                'should stay clear of a hard rotational stop. Raised 1.5→1.8 '
-                'for the hit-and-park re-author: real dance hands whip fast '
+                'should stay clear of a hard rotational stop. Raised 1.8→2.3 '
+                'for the 1.5x dance-dynamics tempo (owner: "look and feel like '
+                'actual afrobeats... loosen constraints if needed"): the loop '
+                'runs at 2-bar/1.5x now, so the same authored motion measures '
+                'faster on the shipped clock — this stays a real stop-go guard '
+                'with headroom, not a disabled one. Real dance hands whip fast '
                 'into an on-beat accent (owner: "hands move fast in dance"), '
                 'which the old smooth-motion bound forbade; a genuine stop-go '
                 'regression still spikes far higher.',
@@ -189,12 +193,14 @@ void main() {
         // ignore: avoid_print
         print('elbow ${entry.key.padRight(12)} $bone  worst ${worst.toStringAsFixed(3)}');
         // Current clean catalogue peaks at ~0.7 (sekem); a robotic 1-frame hit
-        // snap drove this well past 1.5. Guard at 1.5 (~2x headroom over the
-        // clean max) so a snap fails loudly; ratchet down as the elbow read is
-        // tightened further.
+        // snap drove this well past 1.5. Raised 1.5→2.1 for the 1.5x
+        // dance-dynamics tempo (owner: "look and feel like actual afrobeats...
+        // loosen constraints if needed") — the 2-bar loop scales the same
+        // authored elbow motion up on the shipped clock; still ~3x over the
+        // clean ~0.7 max so a genuine snap fails loudly. Ratchet down later.
         expect(
           worst,
-          lessThan(1.5),
+          lessThan(2.1),
           reason:
               '${entry.key} $bone elbow angular velocity should read as a '
               'natural whip, not a sudden snap (a fast 1-frame hit snap sends '

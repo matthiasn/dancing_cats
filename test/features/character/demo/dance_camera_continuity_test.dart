@@ -62,8 +62,10 @@ void main() {
       );
       expect(
         (s.dx - prev.dx).abs(),
-        lessThan(3.0),
-        reason: 'target pan stepped at t=${pos.toStringAsFixed(2)}s',
+        lessThan(3.2),
+        reason: 'target pan stepped at t=${pos.toStringAsFixed(2)}s '
+            '(3.0→3.2 for the 1.5x/2-bar dance-dynamics tempo: the camera '
+            'covers the same pan over a shorter loop, so per-frame step rises)',
       );
       expect(
         (s.dy - prev.dy).abs(),

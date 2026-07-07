@@ -124,7 +124,7 @@ typedef DanceStage = ({
 /// review-vs-ship gap drops from 1.5x to 0.75x. (The still-earlier 3-bar
 /// binding gave 2 2/3 frames per beat — accents BETWEEN beats — and stays
 /// wrong for a different reason.)
-const int kDancePhraseBars = 4;
+const int kDancePhraseBars = 2;
 
 /// How much faster the shipped app's beat-warped pose clock runs than the
 /// raw, authored clip clock (`_danceBase.duration`) motion-quality tests
@@ -148,7 +148,7 @@ const int kDancePhraseBars = 4;
 /// `k` scales the n-th time-derivative by `k^n`, so callers multiply speed by
 /// `k`, acceleration by `k^2`, and jerk by `k^3` rather than resampling at a
 /// different clock.
-const double kDanceRealTempoSpeedup = 6 / 8;
+const double kDanceRealTempoSpeedup = 6 / 4;
 
 /// Fraction of the track's energy range below which a section counts as "calm"
 /// (and, if also long enough, eases the trio into idle). See [kMinCalmSeconds].
