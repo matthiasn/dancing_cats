@@ -326,6 +326,7 @@ class DancePhrase {
     double microFrames = 0,
     double tension = 0,
     int? bendDirection,
+    double elbowAbduction = 0,
   }) => IkTargetKeyframe(
     p: phaseOfFrame(frame, microFrames: microFrames),
     x: x,
@@ -334,6 +335,7 @@ class DancePhrase {
     ease: ease,
     tension: tension,
     bendDirection: bendDirection,
+    elbowAbduction: elbowAbduction,
   );
 
   KeyframeIkTargetChannel ikTargetChannel(
@@ -990,6 +992,7 @@ class DanceIkTargetKey {
     this.microFrames = 0,
     this.tension = 0,
     this.bendDirection,
+    this.elbowAbduction = 0,
   }) : assert(
          bendDirection == null || bendDirection == -1 || bendDirection == 1,
          'bendDirection must be null, -1 or 1',
@@ -1013,6 +1016,10 @@ class DanceIkTargetKey {
   /// [IkTargetPose.bendDirection]. `null` keeps the limb's own default.
   final int? bendDirection;
 
+  /// Continuous elbow-abduction angle (radians) — see
+  /// [IkTargetPose.elbowAbduction]. Interpolates between keys; `0` is a no-op.
+  final double elbowAbduction;
+
   IkTargetKeyframe toIkTargetKeyframe(
     DancePhrase phrase, {
     double microFrames = 0,
@@ -1025,6 +1032,7 @@ class DanceIkTargetKey {
     microFrames: this.microFrames + microFrames,
     tension: tension,
     bendDirection: bendDirection,
+    elbowAbduction: elbowAbduction,
   );
 }
 

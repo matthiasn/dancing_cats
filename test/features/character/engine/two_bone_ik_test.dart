@@ -174,4 +174,74 @@ void main() {
       expect(wy, closeTo(ty, 1e-6), reason: tag);
     }, tags: 'glados');
   });
+
+  group('elbow abduction (soft continuous open)', () {
+    // A reachable mid-range target; the rigid solve is the baseline.
+    const u = 10.0, l = 8.0, tx = 11.0, ty = 4.0;
+    TwoBoneIkSolution solveAbd(double abduction) => solveTwoBoneIk(
+      shoulderX: 0,
+      shoulderY: 0,
+      targetX: tx,
+      targetY: ty,
+      upperLength: u,
+      lowerLength: l,
+      bendDirection: 1,
+      abduction: abduction,
+    )!;
+
+    // Perpendicular distance of the elbow from the shoulder->target line — how
+    // far the elbow is swung "off the ribs".
+    double elbowPerp(TwoBoneIkSolution s) {
+      final ex = math.cos(s.upperAngle) * u;
+      final ey = math.sin(s.upperAngle) * u;
+      final len = math.sqrt(tx * tx + ty * ty);
+      return (ex * ty - ey * tx).abs() / len; // |E x T| / |T|
+    }
+
+    test('abduction 0 reproduces the exact rigid solve', () {
+      final rigid = solveTwoBoneIk(
+        shoulderX: 0,
+        shoulderY: 0,
+        targetX: tx,
+        targetY: ty,
+        upperLength: u,
+        lowerLength: l,
+        bendDirection: 1,
+      )!;
+      final abd0 = solveAbd(0);
+      expect(abd0.upperAngle, closeTo(rigid.upperAngle, 1e-12));
+      expect(abd0.lowerAngle, closeTo(rigid.lowerAngle, 1e-12));
+    });
+
+    test('positive abduction swings the elbow further off the reach line', () {
+      expect(elbowPerp(solveAbd(0.3)), greaterThan(elbowPerp(solveAbd(0))));
+    });
+
+    test('it is a SOFT solve — the wrist falls short in proportion to |angle|',
+        () {
+      final targetDist = math.sqrt(tx * tx + ty * ty);
+      double wristReach(double abd) {
+        final w = _wrist(
+          solveAbd(abd),
+          shoulderX: 0,
+          shoulderY: 0,
+          upperLength: u,
+          lowerLength: l,
+        );
+        return math.sqrt(w.x * w.x + w.y * w.y);
+      }
+
+      // 0 hits exactly; a bigger angle undershoots further.
+      expect(wristReach(0), closeTo(targetDist, 1e-9));
+      expect(wristReach(0.4), lessThan(wristReach(0.2)));
+      expect(wristReach(0.2), lessThan(targetDist));
+    });
+
+    test('it is continuous — a tiny angle change moves the elbow a tiny amount',
+        () {
+      final a = solveAbd(0.20);
+      final b = solveAbd(0.21);
+      expect((a.upperAngle - b.upperAngle).abs(), lessThan(0.02));
+    });
+  });
 }
