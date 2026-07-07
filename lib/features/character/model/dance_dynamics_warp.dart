@@ -192,3 +192,72 @@ Clip effortModulatedClip(
     dynamics: clip.dynamics,
   );
 }
+
+/// Radius/revs of the always-on FAST-BASE hand orbit (owner: real dance hands
+/// carry continuous fast motion, 2-4x the per-beat pose rate). Small radius so
+/// it reads as alive/rolling without whipping the elbow; integer revs keep it
+/// loop-seamless. Tunable by eye in the app. Set radius 0 to disable.
+const double kDanceFastBaseOrbitRadius = 13;
+const int kDanceFastBaseOrbitRevs = 5;
+
+/// Returns [clip] with its [boneIds] hand IK targets carrying a small fast
+/// [OrbitedIkTargetChannel] orbit — the "fast base always on" layer. Per-lane
+/// phase (trio not in lockstep) and opposite L/R phase (the two hands
+/// counter-rotate — "around each other"). Applied UNDER the effort amplitude
+/// scale so it breathes with the song energy. Same clip back when disabled or
+/// no hand target matches.
+Clip fastBaseOrbitedClip(
+  Clip clip,
+  int lane, {
+  Set<String> boneIds = kDanceEffortHandBoneIds,
+}) {
+  if (!clip.loop ||
+      clip.duration <= 0 ||
+      kDanceFastBaseOrbitRadius == 0 ||
+      clip.limbTargets.isEmpty) {
+    return clip;
+  }
+  final lanePhase = lane * 1.3;
+  final limbTargets = <LimbIkTarget>[];
+  var changed = false;
+  for (final target in clip.limbTargets) {
+    if (boneIds.contains(target.endBoneId)) {
+      final handPhase = target.endBoneId.endsWith('.L') ? 0.0 : math.pi;
+      limbTargets.add(
+        target.withChannel(
+          OrbitedIkTargetChannel(
+            target.channel,
+            radius: kDanceFastBaseOrbitRadius,
+            revs: kDanceFastBaseOrbitRevs,
+            phase: lanePhase + handPhase,
+          ),
+        ),
+      );
+      changed = true;
+    } else {
+      limbTargets.add(target);
+    }
+  }
+  if (!changed) return clip;
+  return Clip(
+    name: clip.name,
+    duration: clip.duration,
+    channels: clip.channels,
+    loop: clip.loop,
+    root: clip.root,
+    locomotionSpeed: clip.locomotionSpeed,
+    groundSpans: clip.groundSpans,
+    contactSpans: clip.contactSpans,
+    contactPinning: clip.contactPinning,
+    limbTargets: limbTargets,
+    supportFootWorldAnchor: clip.supportFootWorldAnchor,
+    supportFootWorldAnchorStrength: clip.supportFootWorldAnchorStrength,
+    supportFootWorldAnchorVerticalBoost: clip.supportFootWorldAnchorVerticalBoost,
+    danceHeadBobScale: clip.danceHeadBobScale,
+    danceHeadLevelClampMin: clip.danceHeadLevelClampMin,
+    enforceSoleFloor: clip.enforceSoleFloor,
+    transitionPlan: clip.transitionPlan,
+    zOrderSwaps: clip.zOrderSwaps,
+    dynamics: clip.dynamics,
+  );
+}

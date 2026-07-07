@@ -60,6 +60,36 @@ void main() {
       expect(s0(0.42), s0(0.42));
     });
 
+    test('fast-base orbit adds continuous motion, loop-seamless', () {
+      final clip = CatClips.zanku; // has hand IK targets
+      final baseCh = _handL(clip);
+      final orbitedCh = _handL(fastBaseOrbitedClip(clip, 0));
+
+      double pathLen(IkTargetChannel c) {
+        var len = 0.0;
+        var prev = c.sample(0);
+        for (var i = 1; i <= 128; i++) {
+          final s = c.sample(i / 128);
+          len += sqrt(pow(s.x - prev.x, 2) + pow(s.y - prev.y, 2));
+          prev = s;
+        }
+        return len;
+      }
+
+      // The fast orbit adds real continuous hand travel on top of the authored
+      // motion (fast base always on).
+      expect(pathLen(orbitedCh), greaterThan(pathLen(baseCh) * 1.2));
+      // Loop-seamless: no jump at the seam.
+      expect(
+        (orbitedCh.sample(0).x - orbitedCh.sample(1).x).abs(),
+        lessThan(1e-6),
+      );
+      expect(
+        (orbitedCh.sample(0).y - orbitedCh.sample(1).y).abs(),
+        lessThan(1e-6),
+      );
+    });
+
     test('higher song energy (Weight) raises the amplitude base', () {
       // Average the phase-varying scale over the loop to compare the base level.
       double mean(double Function(double) f) {

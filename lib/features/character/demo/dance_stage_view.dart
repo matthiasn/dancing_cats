@@ -479,11 +479,15 @@ Clip _upperBodyWarped(
             dynamics,
             warpBoneIds: kDanceUpperBodyWarpBoneIds,
           );
-    // 2. Effort AMPLITUDE modulation: scales how BIG the hand moves get by the
-    // raw SONG ENERGY arc + a deterministic beat-to-beat breath (per lane),
-    // leaving the fast timing from step 1 intact — so a low-energy pass is
-    // fast-but-small and never 100%-extreme every beat.
-    return effortModulatedClip(warped, danceEffortScaleOf(energyLevel, lane));
+    // 2. FAST-BASE orbit: a small continuous per-lane hand roll layered on the
+    // authored motion, so every move's hands always carry fast sub-beat motion
+    // (not just posed hits), the two hands counter-rotating around each other.
+    final orbited = fastBaseOrbitedClip(warped, lane);
+    // 3. Effort AMPLITUDE modulation: scales how BIG the hand moves get (base +
+    // orbit) by the raw SONG ENERGY arc + a deterministic beat-to-beat breath,
+    // leaving the fast timing intact — so a low-energy pass is fast-but-small
+    // and never 100%-extreme every beat.
+    return effortModulatedClip(orbited, danceEffortScaleOf(energyLevel, lane));
   }();
 }
 
