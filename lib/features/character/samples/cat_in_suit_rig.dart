@@ -1647,7 +1647,7 @@ RigSpec buildCatInSuitRig({
       // Tension profile: soft through the hip/seat so the trouser root stays
       // one smooth mass, firm from the knee down so flexion resolves at a
       // visible knee vertex instead of a crescent shin.
-      jointTensions: const [0.42, 0.45, 0.55, 0.74, 0.74, 0.74],
+      jointTensions: const [0.42, 0.45, 0.55, 0.9, 0.82, 0.78],
       z: 3,
       color: _trouserRear,
       outlineColor: _outline,
@@ -1677,7 +1677,7 @@ RigSpec buildCatInSuitRig({
       // Tension profile: soft through the hip/seat so the trouser root stays
       // one smooth mass, firm from the knee down so flexion resolves at a
       // visible knee vertex instead of a crescent shin.
-      jointTensions: const [0.42, 0.45, 0.55, 0.74, 0.74, 0.74],
+      jointTensions: const [0.42, 0.45, 0.55, 0.9, 0.82, 0.78],
       z: 6,
       color: _trouser,
       outlineColor: _outline,

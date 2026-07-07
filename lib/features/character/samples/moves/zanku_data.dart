@@ -12,132 +12,40 @@ part of '../cat_in_suit.dart';
 // elbows bent, fists near ribs/chest, with one fist punching down/out on the
 // stomp and the other held as a compact guard.
 const _zankuHandLTargetKeys = [
-  // Round 4: the old wide W (fists at x 60-98, elbows parked above the
-  // shoulder line) read as hovering decoration — no rater saw a pump. New
-  // contract: COMPACT rib guard between beats (fists near the ribline,
-  // elbows low), and on EVERY stamp both fists drive DOWN past the hip
-  // line together (tension hit) and recover — arm punctuation synced to
-  // the support-foot plant. The gbese fling (f26) throws the fists down
-  // hardest while the kick flies.
-  // R10: every rater still called the pump "elbows parked at the hip the
-  // whole loop." A world-space probe showed the punch (old x:-32,y:-4)
-  // and the guard (x:-36,y:-46) actually DO swing ~50-80 world units in
-  // Y — the accent itself just wasn't legible as one, because x barely
-  // moved (-32 to -36, a 4-unit band) so the elbow's SIDE-TO-SIDE
-  // silhouette — the "elbows-OUT" half of "elbows-out arm pump" — never
-  // changed at all; only the fist bobbed vertically inside a fixed-width
-  // guard. Pulled the punch's x IN (elbow tucks tight on the down-drive)
-  // to contrast against the guard's elbow-out width, and pushed y further
-  // past the hip (reach-ratio probed clear of the elbow-straightening
-  // ceiling found this round) so the strike reads as a driven low punch,
-  // not a return to a neutral hang.
-  DanceIkTargetKey(0, x: -26, y: 10, tension: 0.6), // PUNCH down w/ stamp
-  DanceIkTargetKey(1, x: -34, y: -26), // recovering
-  DanceIkTargetKey(2, x: -36, y: -46), // rib guard
-  DanceIkTargetKey(3, x: -35, y: -40), // loads
-  DanceIkTargetKey(4, x: -26, y: 10, tension: 0.6), // PUNCH
-  DanceIkTargetKey(5, x: -34, y: -26),
-  DanceIkTargetKey(6, x: -36, y: -46),
-  DanceIkTargetKey(7, x: -35, y: -40),
-  // Beats 3-4 (stamps 3-4, frames 8-15) get a DOUBLE elbow pump instead of
-  // the single-punch-then-guard of beats 1-2 — the round-3 director flagged
-  // frames 0-7 and 8-15 as a near-literal repeat ("half the loop is a
-  // literal repeat, which reads as a GIF loop"); footwork is untouched
-  // (each stamp still lands on its own beat), only the arm accent varies.
-  DanceIkTargetKey(8, x: -26, y: 10, tension: 0.6), // PUNCH (stamp 3)
-  DanceIkTargetKey(9, x: -33, y: -18), // shallow recover
-  DanceIkTargetKey(10, x: -26, y: 10, tension: 0.7), // second pump
-  DanceIkTargetKey(11, x: -35, y: -40), // load into stamp 4
-  DanceIkTargetKey(12, x: -26, y: 10, tension: 0.6), // PUNCH (stamp 4)
-  DanceIkTargetKey(13, x: -33, y: -18), // shallow recover
-  DanceIkTargetKey(14, x: -26, y: 10, tension: 0.7), // second pump
-  DanceIkTargetKey(15, x: -35, y: -40), // load into bar 2
-  // Round 7: every rater called bar 2 a literal mirror of bar 1 — frames
-  // 16/20/24 punched to the exact same (x,y) as frames 0/4/8, so nothing
-  // escalates across the 2-bar phrase. Widened/deepened bar 2's three
-  // punches progressively so they build toward the gbese climax instead
-  // of repeating bar 1's pose pixel-for-pixel.
-  // R12+ (task #39): the punch depths escalate but the GUARD in between
-  // them (17-19, 21-23) was still the exact same rib-guard hold as bar
-  // 1's 1-3/5-7 — panel called this "arms static between punches," and
-  // it's the other half of why bar 2 still read as a copy. Coiled the
-  // guard progressively wider/higher alongside the punch escalation, so
-  // the recovery itself visibly builds tension toward the gbese instead
-  // of resetting to an identical shape each time.
-  DanceIkTargetKey(16, x: -37, y: -10, tension: 0.6), // PUNCH, building
-  DanceIkTargetKey(17, x: -35, y: -28), // guard coiling, 1st step
-  DanceIkTargetKey(18, x: -37, y: -49),
-  DanceIkTargetKey(19, x: -36, y: -42),
-  DanceIkTargetKey(20, x: -40, y: -16, tension: 0.6), // PUNCH, deeper
-  DanceIkTargetKey(21, x: -35, y: -29), // guard coiling, 2nd step
-  DanceIkTargetKey(22, x: -38, y: -51),
-  DanceIkTargetKey(23, x: -36, y: -44),
-  DanceIkTargetKey(24, x: -43, y: -22, tension: 0.6), // PUNCH, deepest
-  DanceIkTargetKey(25, x: -37, y: -50), // high load behind the gbese
-  DanceIkTargetKey(26, x: -26, y: 2, tension: 0.5), // FLING — fists slam down
-  DanceIkTargetKey(27, x: -33, y: -30),
-  DanceIkTargetKey(28, x: -32, y: -2, tension: 0.7), // landing stamp PUNCH
-  // Frame 30's rib guard sits at the same (x,y) used at frames 2/6/18/22,
-  // but here it lands while the torso is still swinging fast out of the
-  // gbese landing recovery — the shoulder sweeps through this exact point,
-  // collapsing shoulder-to-hand reach to ~12% of the arm's total length
-  // (deep in the two-bone solver's near-degenerate fold zone, same
-  // elbow-hypersensitivity class as the earlier azonto/sekem fix). Widened
-  // just this key so reach stays well clear of that zone during the fast
-  // recovery, instead of changing the shared rib-guard pose everywhere.
-  DanceIkTargetKey(29, x: -33, y: -20), // bridges the landing recovery
-  DanceIkTargetKey(30, x: -37, y: -46),
-  DanceIkTargetKey(31, x: -35, y: -40),
-  DanceIkTargetKey(32, x: -26, y: 10, tension: 0.6), // == frame 0
+  // R32 sparse-key re-author (owner catalogue bar: reduced keyframes + spring-
+  // generated transitions + LEGIBLE arm movement). The old dense per-frame pump
+  // read as frozen hands-on-hips to all 5 lenses: the fist bobbed vertically
+  // inside a fixed-width guard (x -26..-36), so the elbow silhouette never
+  // changed. Now ONE hit-pose per beat, ANTIPHASE to hand.R (a contralateral
+  // pump synced to the alternating leg kicks -- mocap's "counter-swing"): the
+  // arm DRIVES down-and-in on its beat, then swings UP-and-OUT to a wide elbow
+  // guard on the off-beat, so BOTH the vertical (y 10->-44) AND the lateral
+  // elbow width (x -28->-48) change. On the GBESE climax (f28) BOTH fists drive
+  // down together (the landing accent the exact-frame test + physicist want).
+  // The spring ([inertialize]) generates the snap-and-settle between these poses.
+  DanceIkTargetKey(0, x: -34, y: 18), // DRIVE down-out (projects off the hip)
+  DanceIkTargetKey(4, x: -50, y: -48), // wide elbow guard (off-beat)
+  DanceIkTargetKey(8, x: -34, y: 18),
+  DanceIkTargetKey(12, x: -50, y: -48),
+  // bar 2 -- a touch deeper/wider toward the gbese climax.
+  DanceIkTargetKey(16, x: -36, y: 20),
+  DanceIkTargetKey(20, x: -52, y: -50),
+  DanceIkTargetKey(24, x: -36, y: 20),
+  DanceIkTargetKey(28, x: -30, y: 0), // GBESE: both fists drive down (accent)
 ];
 const _zankuHandRTargetKeys = [
-  DanceIkTargetKey(0, x: 26, y: 10, tension: 0.6), // PUNCH down w/ stamp
-  // Frames 1-3 sit in the same near-degenerate two-bone IK zone as zanku
-  // hand.L frame 30 (same lesson: see that fix's comment) — but here it's
-  // a sustained plateau (reach stayed ~12% of arm length across the whole
-  // guard hold, not a single-frame collision) against a shoulder that
-  // itself swings a lot during this beat (x 37->38->79 over these 3
-  // frames). A held guard well clear of that reach (~40-46%) needs to sit
-  // further out and lower than the original hugged-rib pose.
-  DanceIkTargetKey(1, x: 55, y: -10),
-  DanceIkTargetKey(2, x: 55, y: -10), // rib guard
-  DanceIkTargetKey(3, x: 55, y: -10),
-  DanceIkTargetKey(4, x: 26, y: 10, tension: 0.6), // PUNCH
-  DanceIkTargetKey(5, x: 34, y: -26),
-  DanceIkTargetKey(6, x: 36, y: -46),
-  DanceIkTargetKey(7, x: 35, y: -40),
-  // Beats 3-4 double pump — see the L hand's comment.
-  DanceIkTargetKey(8, x: 26, y: 10, tension: 0.6), // PUNCH (stamp 3)
-  DanceIkTargetKey(9, x: 33, y: -18), // shallow recover
-  DanceIkTargetKey(10, x: 26, y: 10, tension: 0.7), // second pump
-  DanceIkTargetKey(11, x: 35, y: -40), // load into stamp 4
-  DanceIkTargetKey(12, x: 26, y: 10, tension: 0.6), // PUNCH (stamp 4)
-  DanceIkTargetKey(13, x: 33, y: -18), // shallow recover
-  DanceIkTargetKey(14, x: 26, y: 10, tension: 0.7), // second pump
-  DanceIkTargetKey(15, x: 35, y: -40), // load into bar 2
-  // Round 7: mirrors the hand.L bar-2 escalation fix above (see its
-  // comment) — same literal-mirror complaint, mirrored keys.
-  DanceIkTargetKey(16, x: 37, y: -10, tension: 0.6), // PUNCH, building
-  // Same held-guard-vs-swinging-shoulder issue as frames 1-3 — widened the
-  // same way (see that fix's comment).
-  DanceIkTargetKey(17, x: 55, y: -10),
-  DanceIkTargetKey(18, x: 55, y: -10),
-  DanceIkTargetKey(19, x: 55, y: -10),
-  DanceIkTargetKey(20, x: 40, y: -16, tension: 0.6), // PUNCH, deeper
-  DanceIkTargetKey(21, x: 55, y: -10),
-  DanceIkTargetKey(22, x: 55, y: -10),
-  DanceIkTargetKey(23, x: 55, y: -10),
-  DanceIkTargetKey(24, x: 43, y: -22, tension: 0.6), // PUNCH, deepest
-  // Same near-degenerate-reach lesson as zanku hand.L frame 30 and hand.R
-  // frame 2: the torso sweeps the shoulder through this exact point during
-  // the gbese anticipation, collapsing reach to ~12% of arm length. Widened.
-  DanceIkTargetKey(25, x: 58, y: -20), // wide load behind the gbese
-  DanceIkTargetKey(26, x: 26, y: 2, tension: 0.5), // FLING — fists slam down
-  DanceIkTargetKey(27, x: 33, y: -30),
-  DanceIkTargetKey(28, x: 32, y: -2, tension: 0.7), // landing stamp PUNCH
-  DanceIkTargetKey(30, x: 36, y: -46),
-  DanceIkTargetKey(31, x: 35, y: -40),
-  DanceIkTargetKey(32, x: 26, y: 10, tension: 0.6), // == frame 0
+  // R32 sparse-key re-author, mirror of hand.L and ANTIPHASE: when L drives low
+  // this arm is up in the wide guard, so the two arms alternate a contralateral
+  // pump synced to the alternating leg kicks. On the gbese (f28) it swings down
+  // to join hand.L in the unison landing accent. Spring-interpolated (see hand.L).
+  DanceIkTargetKey(0, x: 50, y: -48), // wide guard (as L drives)
+  DanceIkTargetKey(4, x: 34, y: 18), // DRIVE down-out
+  DanceIkTargetKey(8, x: 50, y: -48),
+  DanceIkTargetKey(12, x: 34, y: 18),
+  DanceIkTargetKey(16, x: 52, y: -50),
+  DanceIkTargetKey(20, x: 36, y: 20),
+  DanceIkTargetKey(24, x: 52, y: -50),
+  DanceIkTargetKey(28, x: 30, y: 0), // GBESE: swings down to join the accent
 ];
 // Low tap-dig-pop-stomp Zanku legwork. The visible story is SHOE ROTATION and
 // COM drop, not a lateral leg extension: the foot stays under the hips, knocks
@@ -148,15 +56,11 @@ const _zankuFootLTargetKeys = [
   DanceIkTargetKey(0, x: -62, y: 126, tension: 1), // heavy stamp/support
   DanceIkTargetKey(2, x: -62, y: 125, tension: 0.6), // planted, held
   DanceIkTargetKey(4, x: -62, y: 126, tension: 0.4), // plant end — swap
-  DanceIkTargetKey(5, x: -46, y: 110), // compact pickup, not a stride
-  DanceIkTargetKey(6, x: -83, y: 122), // heel-toe knock under hip
-  DanceIkTargetKey(7, x: -50, y: 125), // drag settles near-planted (r6)
+  DanceIkTargetKey(5, x: -46, y: 70), // compact pickup, clearly airborne (R8: taller still)
   DanceIkTargetKey(8, x: -62, y: 126, tension: 1), // stamp
   DanceIkTargetKey(10, x: -62, y: 125, tension: 0.6),
   DanceIkTargetKey(12, x: -62, y: 126, tension: 0.4),
-  DanceIkTargetKey(13, x: -46, y: 110),
-  DanceIkTargetKey(14, x: -79, y: 121), // tighter rep (de-clone, R2)
-  DanceIkTargetKey(15, x: -50, y: 125),
+  DanceIkTargetKey(13, x: -46, y: 70),
   DanceIkTargetKey(16, x: -62, y: 126, tension: 1), // stamp
   DanceIkTargetKey(18, x: -62, y: 125, tension: 0.6),
   DanceIkTargetKey(20, x: -62, y: 126, tension: 0.4),
@@ -168,7 +72,7 @@ const _zankuFootLTargetKeys = [
   // pushed the pickup higher and the knock/drag further out, reading as
   // a deeper, more committed step building into the gbese half of the
   // phrase rather than a fourth identical rep.
-  DanceIkTargetKey(21, x: -40, y: 100),
+  DanceIkTargetKey(21, x: -40, y: 96),
   DanceIkTargetKey(22, x: -88, y: 118),
   DanceIkTargetKey(23, x: -54, y: 117),
   DanceIkTargetKey(24, x: -64, y: 126, tension: 1), // stamp/support
@@ -193,15 +97,11 @@ const _zankuFootRTargetKeys = [
   DanceIkTargetKey(4, x: 62, y: 126, tension: 1), // stamp/support
   DanceIkTargetKey(6, x: 62, y: 125, tension: 0.6), // planted, held
   DanceIkTargetKey(8, x: 50, y: 123),
-  DanceIkTargetKey(9, x: 44, y: 110),
-  DanceIkTargetKey(10, x: 80, y: 121), // tighter rep (de-clone, R2)
-  DanceIkTargetKey(11, x: 50, y: 125),
+  DanceIkTargetKey(9, x: 44, y: 70),
   DanceIkTargetKey(12, x: 62, y: 126, tension: 1), // stamp
   DanceIkTargetKey(14, x: 62, y: 125, tension: 0.6),
   DanceIkTargetKey(16, x: 50, y: 123),
-  DanceIkTargetKey(17, x: 44, y: 110),
-  DanceIkTargetKey(18, x: 86, y: 123), // wider rep (de-clone, R2)
-  DanceIkTargetKey(19, x: 50, y: 125),
+  DanceIkTargetKey(17, x: 44, y: 70),
   DanceIkTargetKey(20, x: 62, y: 126, tension: 1), // stamp
   DanceIkTargetKey(22, x: 62, y: 125, tension: 0.6),
   DanceIkTargetKey(24, x: 50, y: 123),
@@ -244,17 +144,17 @@ const _zankuFootLKeys = [
   DanceJointKey(4, rotation: -0.28),
   DanceJointKey(5, rotation: 0.34),
   DanceJointKey(6, rotation: 1.02),
-  DanceJointKey(7, rotation: -0.42),
+  DanceJointKey(7, rotation: 0.4), // ball-contact roll (was heel-first -0.42)
   DanceJointKey(8, rotation: 0.1),
   DanceJointKey(12, rotation: -0.28),
   DanceJointKey(13, rotation: 0.34),
   DanceJointKey(14, rotation: 1.04),
-  DanceJointKey(15, rotation: -0.42),
+  DanceJointKey(15, rotation: 0.4),
   DanceJointKey(16, rotation: 0.1),
   DanceJointKey(20, rotation: -0.28),
   DanceJointKey(21, rotation: 0.34),
   DanceJointKey(22, rotation: 1.02),
-  DanceJointKey(23, rotation: -0.42),
+  DanceJointKey(23, rotation: 0.4),
   DanceJointKey(24, rotation: 0.1),
   DanceJointKey(28, rotation: -0.28),
   DanceJointKey(29, rotation: 0.34),
@@ -333,17 +233,17 @@ const _zankuClavicleLKeys = [
 // slam. Before this channel zanku's head was runtime-only ("the body
 // dances but the character doesn't").
 const _zankuHeadKeys = [
-  DanceJointKey(0, rotation: 0.02),
-  DanceJointKey(1, rotation: 0.11), // answers the L stamp (r5: pointed crest)
-  DanceJointKey(3, rotation: 0.032), // echo nod
-  DanceJointKey(5, rotation: -0.11), // answers the R stamp
-  DanceJointKey(7, rotation: -0.032),
-  DanceJointKey(9, rotation: 0.1), // varied answer
-  DanceJointKey(11, rotation: 0.028),
-  DanceJointKey(13, rotation: -0.11),
-  DanceJointKey(15, rotation: -0.032),
-  DanceJointKey(17, rotation: 0.12), // varied answer
-  DanceJointKey(19, rotation: 0.038),
+  DanceJointKey(0, rotation: 0.0101),
+  DanceJointKey(1, rotation: 0.0554), // answers the L stamp (r5: pointed crest)
+  DanceJointKey(3, rotation: 0.0158), // echo nod
+  DanceJointKey(5, rotation: -0.0554), // answers the R stamp
+  DanceJointKey(7, rotation: -0.0158),
+  DanceJointKey(9, rotation: 0.0504), // varied answer
+  DanceJointKey(11, rotation: 0.0144),
+  DanceJointKey(13, rotation: -0.0554),
+  DanceJointKey(15, rotation: -0.0158),
+  DanceJointKey(17, rotation: 0.0605), // varied answer
+  DanceJointKey(19, rotation: 0.0194),
   // r8: the head ANSWERS the bar-3 stamp (the accent landed 'stiff-necked'
   // — pocket-only by gate necessity, so the follow-through rides the
   // rotation channel instead).
@@ -352,14 +252,14 @@ const _zankuHeadKeys = [
   // frames — the rigging lens's "bar-3 head dips read noisy (multiple
   // small events)" was this collision, not an authoring choice. One
   // ordered answer now, crest depth matched to the other three stamps.
-  DanceJointKey(20, rotation: -0.11),
-  DanceJointKey(22, rotation: -0.045),
-  DanceJointKey(23, rotation: -0.015), // r9: one more settle frame
-  DanceJointKey(25, rotation: 0.09), // gathers against the kick side
-  DanceJointKey(26, rotation: -0.1), // tips INTO the gbese
-  DanceJointKey(28, rotation: -0.05), // recoils off the slam
-  DanceJointKey(30, rotation: 0.02),
-  DanceJointKey(32, rotation: 0.02), // == frame 0
+  DanceJointKey(20, rotation: -0.0554),
+  DanceJointKey(22, rotation: -0.023),
+  DanceJointKey(23, rotation: -0.0072), // r9: one more settle frame
+  DanceJointKey(25, rotation: 0.0454), // gathers against the kick side
+  DanceJointKey(26, rotation: -0.0504), // tips INTO the gbese
+  DanceJointKey(28, rotation: -0.0252), // recoils off the slam
+  DanceJointKey(30, rotation: 0.0101),
+  DanceJointKey(32, rotation: 0.0101), // == frame 0
 ];
 
 const _zankuHandLKeys = [
@@ -700,82 +600,82 @@ const _zankuGbeseAccentKeys = [
 const _zankuPocketBoostKeys = [
   DanceBodyKey(
     0,
-    rootDy: 6,
+    rootDy: 10.8,
     pelvisRotation: -0.06,
     chestRotation: 0.08,
-    chestScaleY: 0.97,
+    chestScaleY: 0.925,
     chestScaleX: 1.025,
   ),
-  DanceBodyKey(2, rootDy: -2, pelvisRotation: -0.02, chestRotation: 0.02),
+  DanceBodyKey(2, rootDy: -3.6, pelvisRotation: -0.02, chestRotation: 0.02, chestScaleY: 1.028, chestScaleX: 0.984),
   DanceBodyKey(
     4,
-    rootDy: 7,
+    rootDy: 12.6,
     pelvisRotation: 0.07,
     chestRotation: -0.09,
-    chestScaleY: 0.965,
+    chestScaleY: 0.913,
     chestScaleX: 1.03,
   ),
-  DanceBodyKey(6, rootDy: -2, pelvisRotation: 0.02, chestRotation: -0.02),
+  DanceBodyKey(6, rootDy: -3.6, pelvisRotation: 0.02, chestRotation: -0.02, chestScaleY: 1.028, chestScaleX: 0.984),
   DanceBodyKey(
     8,
-    rootDy: 6,
+    rootDy: 10.8,
     pelvisRotation: -0.07,
     chestRotation: 0.09,
-    chestScaleY: 0.965,
+    chestScaleY: 0.913,
     chestScaleX: 1.03,
   ),
-  DanceBodyKey(10, rootDy: -2, pelvisRotation: -0.02, chestRotation: 0.02),
+  DanceBodyKey(10, rootDy: -3.6, pelvisRotation: -0.02, chestRotation: 0.02, chestScaleY: 1.028, chestScaleX: 0.984),
   DanceBodyKey(
     12,
-    rootDy: 7,
+    rootDy: 12.6,
     pelvisRotation: 0.07,
     chestRotation: -0.09,
-    chestScaleY: 0.965,
+    chestScaleY: 0.913,
     chestScaleX: 1.03,
   ),
-  DanceBodyKey(14, rootDy: -2, pelvisRotation: 0.02, chestRotation: -0.02),
+  DanceBodyKey(14, rootDy: -3.6, pelvisRotation: 0.02, chestRotation: -0.02, chestScaleY: 1.028, chestScaleX: 0.984),
   DanceBodyKey(
     16,
-    rootDy: 6,
+    rootDy: 10.8,
     pelvisRotation: -0.07,
     chestRotation: 0.09,
-    chestScaleY: 0.965,
+    chestScaleY: 0.913,
     chestScaleX: 1.03,
   ),
-  DanceBodyKey(18, rootDy: -2, pelvisRotation: -0.02, chestRotation: 0.02),
+  DanceBodyKey(18, rootDy: -3.6, pelvisRotation: -0.02, chestRotation: 0.02, chestScaleY: 1.028, chestScaleX: 0.984),
   DanceBodyKey(
     20,
-    rootDy: 7,
+    rootDy: 12.6,
     pelvisRotation: 0.07,
     chestRotation: -0.09,
-    chestScaleY: 0.965,
+    chestScaleY: 0.913,
     chestScaleX: 1.03,
   ),
-  DanceBodyKey(22, rootDy: -2, pelvisRotation: 0.02, chestRotation: -0.02),
+  DanceBodyKey(22, rootDy: -3.6, pelvisRotation: 0.02, chestRotation: -0.02, chestScaleY: 1.028, chestScaleX: 0.984),
   DanceBodyKey(
     24,
-    rootDy: 8,
+    rootDy: 14.4,
     pelvisRotation: -0.08,
     chestRotation: 0.1,
-    chestScaleY: 0.96,
+    chestScaleY: 0.9,
     chestScaleX: 1.035,
   ),
-  DanceBodyKey(26, rootDy: -2, pelvisRotation: -0.02, chestRotation: 0.02),
+  DanceBodyKey(26, rootDy: -3.6, pelvisRotation: -0.02, chestRotation: 0.02),
   DanceBodyKey(
     28,
-    rootDy: 8,
+    rootDy: 14.4,
     pelvisRotation: 0.08,
     chestRotation: -0.1,
-    chestScaleY: 0.96,
+    chestScaleY: 0.9,
     chestScaleX: 1.035,
   ),
-  DanceBodyKey(30, rootDy: -2, pelvisRotation: 0.02, chestRotation: -0.02),
+  DanceBodyKey(30, rootDy: -3.6, pelvisRotation: 0.02, chestRotation: -0.02),
   DanceBodyKey(
     32,
-    rootDy: 6,
+    rootDy: 10.8,
     pelvisRotation: -0.06,
     chestRotation: 0.08,
-    chestScaleY: 0.97,
+    chestScaleY: 0.925,
     chestScaleX: 1.025,
   ),
 ];

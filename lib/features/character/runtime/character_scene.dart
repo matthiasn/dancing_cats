@@ -502,8 +502,13 @@ class CharacterScene {
       // The TIP lags and whips well past the base — the tail's gradient,
       // in miniature: bendy cartilage, not a stiff felt triangle.
       final isTip = earId.toLowerCase().contains('tip');
-      final gain = isTip ? 2.6 : 1.0;
-      final clampAt = isTip ? 0.2 : 0.06;
+      final gain = isTip ? 2.1 : 1.0;
+      // Cap the tip sweep: the ear is a long lever, so on the hardest-grooving
+      // moves (zanku's ±0.4 pelvis/chest snap) the tip was out-travelling the
+      // legwork in the onion — the eye caught the ears, not the feet. A tighter
+      // ceiling bites only the saturated (high-rotation) case; gentle moves
+      // (shaku) stay well under it, so their ear life is unchanged.
+      final clampAt = isTip ? 0.10 : 0.06;
       final delta = _clampMagnitude(
         side * earDrive * gain + flick * gain,
         clampAt,
@@ -2955,7 +2960,7 @@ class CharacterScene {
     // ankle (shaku's committed ratio). zanku (46 vs ±88) and buga (58 vs ±102)
     // already sit near that; azonto and sekem were the loose ones (ratio ~1.5-1.8)
     // — tighten them so their pelvis commits like shaku's (R31 roll-out).
-    if (clip.name == 'zanku') return 46;
+    if (clip.name == 'zanku') return 40;
     if (clip.name == 'sekem') return 37;
     // R31 catalogue re-tune (mocap): azonto under-committed at 58 — tighten to
     // bump the commit up, but only to 40: at 28 the harder commit made the head
