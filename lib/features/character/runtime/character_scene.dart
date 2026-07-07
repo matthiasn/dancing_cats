@@ -587,7 +587,10 @@ class CharacterScene {
     'shaku': 0.005,
     'zanku': 0.0025,
     'azonto': 0.005,
-    'buga': 0.005,
+    // buga's pelvis travels wide, so the standard 0.005 counter under-held the
+    // head (mocap: head swayed WITH the hips); strengthen it — but only to 0.006,
+    // as 0.009 leaned the trunk enough to trip the chin-to-collar wander bound.
+    'buga': 0.006,
     'sekem': 0.005,
   };
   double _hipShoulderCounterLean(Clip clip, double rootDx) {
@@ -2954,8 +2957,16 @@ class CharacterScene {
     // — tighten them so their pelvis commits like shaku's (R31 roll-out).
     if (clip.name == 'zanku') return 46;
     if (clip.name == 'sekem') return 37;
+    // R31 catalogue re-tune (mocap): azonto under-committed at 58 — tighten to
+    // bump the commit up, but only to 40: at 28 the harder commit made the head
+    // wander 20.8 past the chin-to-collar band (the head-follow lag scales with
+    // the pelvis swing), so 40 is the most commit that stays inside it. buga
+    // stays at 58 (its wide ±102 stance makes committing over the foot inherently
+    // wide travel; loosening pushed the pelvis off the foot and failed the
+    // hips-over-shoe bound — buga's polish is the counter strength). zanku/sekem
+    // read clean.
     if (clip.name == 'buga') return 58;
-    if (clip.name == 'azonto') return 35;
+    if (clip.name == 'azonto') return 40;
     // R29 mocap #1: shaku's wide 64 envelope let the pelvis sit central (the
     // COM never committed over the stance ankle — weight read as spine-tilt, not
     // translation). Tighten to 24 so the pre-IK balance pass pulls the pelvis
