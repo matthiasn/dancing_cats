@@ -8,6 +8,7 @@ import 'package:dancing_cats/features/character/engine/two_bone_ik.dart';
 import 'package:dancing_cats/features/character/model/affine2d.dart';
 import 'package:dancing_cats/features/character/model/bone.dart';
 import 'package:dancing_cats/features/character/model/clip.dart';
+import 'package:dancing_cats/features/character/model/dance_dynamics.dart';
 import 'package:dancing_cats/features/character/model/face.dart';
 import 'package:dancing_cats/features/character/model/pose.dart';
 import 'package:dancing_cats/features/character/model/rig_spec.dart';
@@ -967,48 +968,47 @@ class CharacterScene {
   /// Fraction of a 32-frame phrase step over which a hand target's ARRIVAL
   /// velocity into a keyframe is measured (see [_handTargetFollowThrough]).
   static const double _kFollowArrivalWindow = 0.4;
-  static const double _kFollowProbeEps = 1 / (32 * 48);
 
-  /// Minimum arrival speed (target units per unit phase) for a keyframe to
-  /// count as a "hit" worth a follow-through — skips holds and micro-moves.
-  static const double _kFollowMinArrivalSpeed = 80;
+  /// Arrival-window travel (target units) below which a key is treated as a
+  /// dead hold and skipped — the spring response is `∝ v0`, so a hold already
+  /// yields a near-zero offset; this just avoids amplifying the Catmull-Rom's
+  /// micro-wiggle on a held pose into visible jitter.
+  static const double _kFollowMinArrivalTravel = 0.5;
 
-  /// A hit "stops" (earns a follow-through) when its outgoing speed is at most
-  /// this fraction of its arrival speed — a fast-in / ~stopped-out arrival.
-  static const double _kFollowMaxOutgoingRatio = 0.5;
-
-  /// How far a hand overshoots past a hit at the follow-through peak, as a
-  /// fraction of its arrival-window travel. Perceptual dial.
-  static const double _kFollowGain = 1.3;
+  /// Overall amplitude of the hand-target spring: a dimensionless gain on the
+  /// velocity-driven closed-form response ([dampedTransitionResponse]).
+  /// Perceptual dial, tuned on the crest/elbow metrics.
+  static const double _kSpringHandGain = 4;
 
   /// Cap (target-space units) on the arrival-window travel that scales the
   /// overshoot. An extreme hit into a near-degenerate elbow (zanku's volatile
   /// two-bone reach) would otherwise drive a jerk spike; capping the driving
-  /// travel scales the whole envelope down uniformly, so it bounds the
-  /// amplitude without breaking the C1 shape or touching normal hits.
+  /// travel scales the whole response down uniformly, so it bounds the
+  /// amplitude without breaking the response shape or touching normal hits.
   static const double _kFollowMaxArrivalTravel = 8;
 
-  /// Peak of the C1 envelope `u²·(1-u)⁵` (at u ≈ 0.286) inverted, so
-  /// multiplying by it normalises the envelope's peak to 1. The higher power
-  /// peaks the overshoot EARLIER (right after the hit) and returns to ~0 well
-  /// before the next key, so the settle is a crisp bump then a dead hold —
-  /// panel feedback was that the broader `(1-u)³` bump filled the valley
-  /// (raised mid-band dwell) instead of sharpening the accent.
-  static const double _kFollowEnvNorm = 65.94;
-
-  /// Damped follow-through in HAND-TARGET space. After a hand IK target
-  /// decelerates into a keyframe hit (fast arrival, ~stopped departure), the
-  /// target briefly overshoots PAST the hit in the arrival direction, then
-  /// returns — so the two-bone IK solver tracks a smooth overshooting target
-  /// and the whole arm follows through, instead of perturbing the post-IK
-  /// elbow rotation (which fought the joint-limit clamp / the near-degenerate
-  /// elbow and injected an amplitude-independent jerk spike). The envelope
-  /// `u²·(1-u)³` is zero with zero slope at BOTH keyframe ends, so it perturbs
-  /// only the interpolated region and every authored hit still lands on its
-  /// beat — a pure function of phase (channel re-sampled, no per-frame state).
+  /// Damped follow-through in HAND-TARGET space. On every beat the hand target
+  /// carries its ARRIVAL velocity past the authored key as a decaying second-
+  /// order transient, then settles — so the two-bone IK solver tracks a smooth
+  /// overshooting target and the whole arm follows through, instead of
+  /// perturbing the post-IK elbow rotation (which fought the joint-limit clamp /
+  /// the near-degenerate elbow and injected an amplitude-independent jerk
+  /// spike). Driving the pre-IK TARGET is the wall-breaking decision: the hand
+  /// gets a fast, punchy crest (it chases an overshooting target) while the
+  /// elbow angular velocity stays bounded (the IK of a smooth target is smooth)
+  /// — the crest+smooth-elbow combination hand-keyed transitions can't reach.
+  ///
+  /// The response is `∝ v0` (a dead hold → ~0 automatically, no stop-detection
+  /// gate needed), and (ωₙ, ζ) come from the clip's [DanceDynamics] via
+  /// [danceSpring]: Flow dials the overshoot (ζ), Time the snap (ωₙ). Zero with
+  /// zero slope at BOTH keyframe ends (`Φ(0)=0` + taper), so it perturbs only
+  /// the interpolated region and every authored hit still lands on its beat — a
+  /// pure function of phase (channel re-sampled, no per-frame state).
   (double, double) _handTargetFollowThrough(
     IkTargetChannel channel,
     double phase,
+    double frameDuration,
+    DanceSpring spring,
   ) {
     const frameCount = 32;
     final frameLocal = phase * frameCount;
@@ -1024,24 +1024,28 @@ class CharacterScene {
     const arrivalPhase = _kFollowArrivalWindow / frameCount;
     final approach = channel.sample(wrap(t0 - arrivalPhase));
     final at = channel.sample(wrap(t0));
-    final after = channel.sample(wrap(t0 + _kFollowProbeEps));
     final adx = at.x - approach.x;
     final ady = at.y - approach.y;
-    final arrivalSpeed = math.sqrt(adx * adx + ady * ady) / arrivalPhase;
-    if (arrivalSpeed < _kFollowMinArrivalSpeed) return (0, 0);
-    final odx = after.x - at.x;
-    final ody = after.y - at.y;
-    final outgoingSpeed = math.sqrt(odx * odx + ody * ody) / _kFollowProbeEps;
-    if (outgoingSpeed > arrivalSpeed * _kFollowMaxOutgoingRatio) return (0, 0);
-    // Cap the driving travel so an extreme reach can't spike jerk (uniform
-    // scale — preserves the C1 envelope).
     final travel = math.sqrt(adx * adx + ady * ady);
+    if (travel < _kFollowMinArrivalTravel) return (0, 0);
+    // Cap the driving travel so an extreme reach can't spike jerk (uniform
+    // scale — preserves the response shape).
     final cap = travel > _kFollowMaxArrivalTravel
         ? _kFollowMaxArrivalTravel / travel
         : 1.0;
-    final env =
-        _kFollowGain * _kFollowEnvNorm * u * u * math.pow(1 - u, 5).toDouble();
-    return (env * adx * cap, env * ady * cap);
+    // Arrival velocity = travel / arrival-window (in authored-clock seconds);
+    // the kernel carries it past the key. `Φ(0)=0` and the taper keep every
+    // authored frame untouched, so no exact-frame test is perturbed.
+    final arrivalSeconds = _kFollowArrivalWindow * frameDuration;
+    final dt = u * frameDuration;
+    final kernel = dampedTransitionResponse(
+      dt,
+      frameDuration,
+      spring.omegaN,
+      spring.zeta,
+    );
+    final gain = _kSpringHandGain * cap * kernel / arrivalSeconds;
+    return (adx * gain, ady * gain);
   }
 
   Pose _limbTargetedPose(Clip clip, double timeSeconds, Pose pose) {
@@ -1110,13 +1114,23 @@ class CharacterScene {
             : 2;
         return rank(a).compareTo(rank(b));
       });
+    final handSpring = danceSpring(clip.dynamics);
+    final handFrameDuration = clip.duration / 32;
     for (final target in orderedTargets) {
       var sample =
           clearedHands[target.endBoneId] ?? target.channel.sample(phase);
-      // Hand-target-space follow-through: overshoot the smooth target the
-      // solver tracks, so the whole arm settles coherently after a hit.
-      if (_isHandBone(target.endBoneId) && _isDanceFamily(clip)) {
-        final (fdx, fdy) = _handTargetFollowThrough(target.channel, phase);
+      // Hand-target-space follow-through: a per-beat second-order spring
+      // overshoots the smooth target the solver tracks, so the whole arm
+      // settles coherently after each hit (ωₙ/ζ from the clip's dynamics).
+      if (_isHandBone(target.endBoneId) &&
+          _isDanceFamily(clip) &&
+          handFrameDuration > 0) {
+        final (fdx, fdy) = _handTargetFollowThrough(
+          target.channel,
+          phase,
+          handFrameDuration,
+          handSpring,
+        );
         if (fdx != 0 || fdy != 0) {
           sample = IkTargetPose(
             x: sample.x + fdx,
@@ -1222,15 +1236,6 @@ class CharacterScene {
     return currentPose;
   }
 
-  /// Natural rate of the settle response, in rad/s — how fast the follow-
-  /// through bump rises and falls back to zero; see [_overshootSettledPose].
-  /// Tuned empirically (not derived from frame duration): high enough that
-  /// the bump is basically spent by the next keyframe so the taper below
-  /// never has to cut off a still-significant residual, low enough that the
-  /// bump itself reads as a gentle follow-through rather than a fast wiggle
-  /// that is itself a new snap.
-  static const double _kOvershootOmegaN = 11;
-
   /// Minimum incoming angular speed (rad/s, raw clip clock) at a keyframe
   /// boundary before a settle is considered at all — well above ordinary
   /// authored motion, so smooth channels (e.g. sekem's) never trigger this.
@@ -1263,22 +1268,24 @@ class CharacterScene {
   /// angular velocity `v0` at `t0` is estimated from the PRE-overshoot pose
   /// (the pose this same pass would see, via `stopBefore: 'overshoot-settle'`)
   /// at `t0` and `t0 - epsilon`; the outgoing velocity `v1` the same way just
-  /// after `t0`. A hard stop (`v1` much smaller than `v0`) injects the
-  /// closed-form CRITICALLY DAMPED free response to an initial velocity —
-  /// deliberately not the lightly-damped oscillating form: a single rise-
-  /// and-decay hump (one overshoot, no ringing) is both closer to what "the
-  /// deceleration overshoots, then settles" means physically, and avoids the
-  /// oscillation itself becoming a second, higher-frequency snap:
-  /// `dTheta(t) = v0 * t * e^(-omegaN*t)`.
+  /// after `t0`. A hard stop (`v1` much smaller than `v0`) injects the shared
+  /// closed-form damped free response [dampedTransitionResponse], with (ωₙ, ζ)
+  /// from the clip's [DanceDynamics] via [danceSpring]. This is the same spring
+  /// the hand-target follow-through uses; here it drives TORSO and UPPER-ARM
+  /// rotation only — the elbow's (lower-arm) settle comes from the hand-target
+  /// spring via IK, and the existing hard-stop gate keeps this pass dormant on
+  /// an arm the hand spring already smoothed (so the two never double-count).
+  /// The catalogue is authored Bound (ζ ≥ 1 → over-damped, a single rise-and-
+  /// decay hump, no ringing); dialing Flow up (ζ < 1) opts into one overshoot
+  /// lobe.
   ///
   /// A linear taper forces this term to exactly zero at the NEXT keyframe
-  /// boundary regardless of how the spring parameter is tuned — the non-
-  /// regression property every exact-frame test in `cat_in_suit_test.dart`
-  /// depends on: the settle only ever perturbs the INTERPOLATED region between
-  /// authored keys, never an authored instant itself. [_kOvershootOmegaN] is
-  /// chosen so the hump has already decayed to a small fraction of its peak
-  /// by the time the taper engages, so that hard zeroing does not itself
-  /// introduce a new velocity discontinuity.
+  /// boundary regardless of how (ωₙ, ζ) are tuned — the non-regression property
+  /// every exact-frame test in `cat_in_suit_test.dart` depends on: the settle
+  /// only ever perturbs the INTERPOLATED region between authored keys, never an
+  /// authored instant itself. The ωₙ floor (`kSpringOmegaMin` in `danceSpring`)
+  /// keeps the hump basically spent by the time the taper engages, so hard
+  /// zeroing never introduces a new velocity discontinuity.
   Pose _overshootSettledPose(PoseModifierContext context, Pose pose) {
     final clip = context.clip;
     final timeSeconds = context.timeSeconds;
@@ -1287,6 +1294,7 @@ class CharacterScene {
     final targets = _overshootTargetBoneIds(clip);
     if (targets.isEmpty) return pose;
 
+    final spring = danceSpring(clip.dynamics);
     const frameCount = 32;
     final frameDuration = clip.duration / frameCount;
     const epsilon = _kOvershootProbeEpsilon;
@@ -1333,7 +1341,14 @@ class CharacterScene {
           epsilon;
       if (v1.abs() > v0.abs() * _kOvershootMaxOutgoingRatio) continue;
 
-      final settle = v0 * dt * math.exp(-_kOvershootOmegaN * dt) * taper;
+      final settle =
+          v0 *
+          dampedTransitionResponse(
+            dt,
+            frameDuration,
+            spring.omegaN,
+            spring.zeta,
+          );
       if (settle.abs() < 1e-6) continue;
 
       joints ??= Map<String, JointPose>.of(pose.joints);
@@ -1375,23 +1390,23 @@ class CharacterScene {
     );
   }
 
-  /// Arm (upper + lower) and torso rotation channels eligible for overshoot,
+  /// Upper-arm and torso rotation channels eligible for the rotational settle,
   /// generically derived from the clip/rig rather than any sample-catalogue
   /// bone-id list: every [LimbIkTarget] whose end effector is NOT a declared
   /// ground/contact bone (i.e. a hand, not a support foot) contributes its
-  /// upper and lower bones, plus the torso bone (parent of [_chestBoneId]) if
-  /// the rig declares one. Feet are excluded explicitly per the coupled
-  /// arm-fold / planted-contact lesson: softening a support foot's arrival
-  /// reads as sliding into contact rather than landing.
+  /// UPPER bone, plus the torso bone (parent of [_chestBoneId]) if the rig
+  /// declares one. Feet are excluded explicitly per the coupled arm-fold /
+  /// planted-contact lesson: softening a support foot's arrival reads as
+  /// sliding into contact rather than landing.
   ///
-  /// The lower arm bone (elbow/forearm) is the two-bone IK solver's most
-  /// volatile output near a near-degenerate reach (the same elbow-position
-  /// hypersensitivity this session already traced for azonto/sekem) — its
-  /// frame-to-frame rotation can carry a genuine solver artifact rather than
-  /// authored motion, which is exactly what
-  /// [_kOvershootMaxPlausibleSpeed] in [_overshootSettledPose] guards
-  /// against so a spurious reading gets skipped instead of amplified into a
-  /// worse snap.
+  /// The lower arm bone (elbow/forearm) is deliberately EXCLUDED: its settle
+  /// now comes from the hand-target spring ([_handTargetFollowThrough]) via the
+  /// two-bone IK, and adding a second rotation-space settle on top would double-
+  /// count. Excluding it also sidesteps the elbow's known volatility — the
+  /// two-bone IK solver's most hypersensitive output near a near-degenerate
+  /// reach (the same effect this session traced for azonto/sekem), where a
+  /// frame-to-frame rotation can carry a solver artifact rather than authored
+  /// motion.
   Set<String> _overshootTargetBoneIds(Clip clip) {
     final feet = <String>{
       for (final span in clip.groundSpans) span.bone,
@@ -1400,9 +1415,7 @@ class CharacterScene {
     final targets = <String>{};
     for (final target in clip.limbTargets) {
       if (feet.contains(target.endBoneId)) continue;
-      targets
-        ..add(target.upperBoneId)
-        ..add(target.lowerBoneId);
+      targets.add(target.upperBoneId);
     }
     final chestId = _chestBoneId;
     if (chestId != null) {
