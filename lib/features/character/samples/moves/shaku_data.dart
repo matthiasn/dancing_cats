@@ -673,57 +673,67 @@ const _shakuFootRKeys = [
   DanceJointKey(32, rotation: -0.3),
 ];
 const _shakuHandLKeys = [
-  DanceJointKey(0, rotation: -0.12),
-  DanceJointKey(1, rotation: 0.58),
-  DanceJointKey(2, rotation: 0.62),
-  DanceJointKey(3, rotation: 0.3),
-  // R24 ornament: wrist FLICK as each row-stroke lands at the hip — a
-  // 2-frame overshoot-and-settle snap ~15-20% past the stroke's arc, on
-  // the 'and' after each land (L lands on 4/12/20/28).
-  DanceJointKey(5, rotation: -0.52),
-  DanceJointKey(6, rotation: -0.42),
-  DanceJointKey(7, rotation: 0.32),
-  DanceJointKey(9, rotation: -0.46),
-  DanceJointKey(10, rotation: -0.42),
-  DanceJointKey(11, rotation: 0.3),
-  DanceJointKey(13, rotation: -0.54), // flick (R24)
-  DanceJointKey(14, rotation: -0.44),
-  DanceJointKey(15, rotation: 0.24),
-  DanceJointKey(17, rotation: 0.54),
-  DanceJointKey(18, rotation: -0.42),
-  DanceJointKey(19, rotation: 0.2),
-  DanceJointKey(21, rotation: -0.54), // flick (R24)
-  DanceJointKey(22, rotation: -0.44),
-  DanceJointKey(23, rotation: 0.24),
-  DanceJointKey(27, rotation: 0.18),
-  DanceJointKey(29, rotation: -0.56), // flick under the generator pull (R24)
-  DanceJointKey(31, rotation: 0.22),
-  DanceJointKey(32, rotation: -0.12),
+  // R21 wrist FLICK retimed to the hit-and-park HITS (every beat: open on
+  // 0/8/16/24, recover on 4/12/20/28). On each arrival the paw SNAPS to a
+  // flicked angle (tension:1) — a terminal accent + visible overshoot that
+  // RENDERS directly (paw rotation is a drawn bone, unlike the IK-damped hand
+  // position) — then settles and rides. Direction alternates open vs recover.
+  DanceJointKey(0, rotation: 0.5, tension: 1), // flick ON the open hit
+  DanceJointKey(1, rotation: 0.12), // settle back
+  DanceJointKey(3, rotation: 0.06), // relaxed ride into the next hit
+  DanceJointKey(4, rotation: -0.5, tension: 1), // flick ON the recover hit
+  DanceJointKey(5, rotation: -0.12),
+  DanceJointKey(7, rotation: -0.06),
+  DanceJointKey(8, rotation: 0.5, tension: 1),
+  DanceJointKey(9, rotation: 0.12),
+  DanceJointKey(11, rotation: 0.06),
+  DanceJointKey(12, rotation: -0.5, tension: 1),
+  DanceJointKey(13, rotation: -0.12),
+  DanceJointKey(15, rotation: -0.06),
+  // bar 2 — flick a touch harder (escalation).
+  DanceJointKey(16, rotation: 0.56, tension: 1),
+  DanceJointKey(17, rotation: 0.14),
+  DanceJointKey(19, rotation: 0.07),
+  DanceJointKey(20, rotation: -0.56, tension: 1),
+  DanceJointKey(21, rotation: -0.14),
+  DanceJointKey(23, rotation: -0.07),
+  DanceJointKey(24, rotation: 0.56, tension: 1),
+  DanceJointKey(25, rotation: 0.14),
+  DanceJointKey(27, rotation: 0.07),
+  DanceJointKey(28, rotation: -0.56, tension: 1),
+  DanceJointKey(29, rotation: -0.14),
+  DanceJointKey(31, rotation: -0.07),
+  DanceJointKey(32, rotation: 0.5, tension: 1), // == frame 0
 ];
 const _shakuHandRKeys = [
-  DanceJointKey(0, rotation: 0.12),
-  // R24: the seam follow-through sharpened into the same land-flick the
-  // panel prescribed for every row-stroke (R lands on 0/8/16/24).
-  DanceJointKey(1, rotation: -0.66),
-  DanceJointKey(2, rotation: -0.6),
-  DanceJointKey(3, rotation: -0.3),
-  DanceJointKey(6, rotation: 0.42),
-  DanceJointKey(7, rotation: -0.32),
-  DanceJointKey(9, rotation: 0.58), // flick (R24)
-  DanceJointKey(10, rotation: 0.54),
-  DanceJointKey(11, rotation: -0.3),
-  DanceJointKey(14, rotation: 0.44),
-  DanceJointKey(15, rotation: -0.24),
-  DanceJointKey(17, rotation: -0.54), // flick (R24)
-  DanceJointKey(18, rotation: 0.54),
-  DanceJointKey(19, rotation: -0.2),
-  DanceJointKey(22, rotation: 0.44),
-  DanceJointKey(23, rotation: -0.24),
-  DanceJointKey(25, rotation: 0.4), // flick (R24)
-  DanceJointKey(27, rotation: -0.18),
-  DanceJointKey(29, rotation: 0.44),
-  DanceJointKey(31, rotation: -0.22),
-  DanceJointKey(32, rotation: 0.12),
+  // R21 wrist FLICK, answering phase (recover on 0/8/16/24, open on
+  // 4/12/20/28 — mirror of hand.L). Flick renders directly as the paw accent.
+  DanceJointKey(0, rotation: -0.5, tension: 1), // flick ON the recover hit
+  DanceJointKey(1, rotation: -0.12),
+  DanceJointKey(3, rotation: -0.06),
+  DanceJointKey(4, rotation: 0.5, tension: 1), // flick ON the open hit
+  DanceJointKey(5, rotation: 0.12),
+  DanceJointKey(7, rotation: 0.06),
+  DanceJointKey(8, rotation: -0.5, tension: 1),
+  DanceJointKey(9, rotation: -0.12),
+  DanceJointKey(11, rotation: -0.06),
+  DanceJointKey(12, rotation: 0.5, tension: 1),
+  DanceJointKey(13, rotation: 0.12),
+  DanceJointKey(15, rotation: 0.06),
+  // bar 2 — escalate.
+  DanceJointKey(16, rotation: -0.56, tension: 1),
+  DanceJointKey(17, rotation: -0.14),
+  DanceJointKey(19, rotation: -0.07),
+  DanceJointKey(20, rotation: 0.56, tension: 1),
+  DanceJointKey(21, rotation: 0.14),
+  DanceJointKey(23, rotation: 0.07),
+  DanceJointKey(24, rotation: -0.56, tension: 1),
+  DanceJointKey(25, rotation: -0.14),
+  DanceJointKey(27, rotation: -0.07),
+  DanceJointKey(28, rotation: 0.56, tension: 1), // flick under the pull
+  DanceJointKey(29, rotation: 0.14),
+  DanceJointKey(31, rotation: 0.07),
+  DanceJointKey(32, rotation: -0.5, tension: 1), // == frame 0
 ];
 
 // Shoulder-LED SEE-SAW: on each count the OPENING arm's clavicle drops the
