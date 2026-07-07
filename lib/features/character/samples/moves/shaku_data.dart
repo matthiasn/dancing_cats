@@ -514,15 +514,15 @@ const _shakuHandLTargetKeys = [
   // vs hand.R widens from a "thin sliver" (~16) to a forearm-height window
   // (~23-26) — the crossover reads as two stacked forearms with open sky
   // between, not a single fist cluster at the tie knot.
-  DanceIkTargetKey(0, x: -18, y: -37), // upper-left
-  DanceIkTargetKey(4, x: 14, y: -36), // crossed to upper-right
-  DanceIkTargetKey(8, x: -18, y: -37),
-  DanceIkTargetKey(12, x: 14, y: -36),
+  DanceIkTargetKey(0, x: -22.5, y: -37), // upper-left
+  DanceIkTargetKey(4, x: 17.5, y: -36), // crossed to upper-right
+  DanceIkTargetKey(8, x: -22.5, y: -37),
+  DanceIkTargetKey(12, x: 17.5, y: -36),
   // bar 2 — the saw opens a touch wider/higher (escalation, still compact).
-  DanceIkTargetKey(16, x: -20, y: -40),
-  DanceIkTargetKey(20, x: 16, y: -38),
-  DanceIkTargetKey(24, x: -20, y: -40),
-  DanceIkTargetKey(28, x: 16, y: -38),
+  DanceIkTargetKey(16, x: -25, y: -40),
+  DanceIkTargetKey(20, x: 20, y: -38),
+  DanceIkTargetKey(24, x: -25, y: -40),
+  DanceIkTargetKey(28, x: 20, y: -38),
 ];
 const _shakuHandRTargetKeys = [
   // bar 1 — R recovers IN at the left-chest on L's open counts, then OPENS
@@ -541,20 +541,20 @@ const _shakuHandRTargetKeys = [
   // the LOWER track (y≈-16): when hand.L is upper-LEFT this fist is lower-RIGHT,
   // and they SWAP each beat, so the two forearms cross past the midline stacked
   // one above the other — the shaku saw, not a one-arm reach. The old bar-2
-  // "generator pull" (wide-and-high up-out to x:54/y:-46) is GONE: that was the
+  // "generator pull" (wide-and-high up-out to x: 25/y:-46) is GONE: that was the
   // same hype-man extension the panel rejected; the climax is now a slightly
   // bigger saw crossing. The periodic spring closes the 28→0 seam by
   // construction, so the old frame-30 settle (added only to tame the big
   // cross-seam pull) is no longer needed — there is no big pull to tame.
-  DanceIkTargetKey(0, x: 18, y: -16), // lower-right
-  DanceIkTargetKey(4, x: -14, y: -14), // crossed to lower-left
-  DanceIkTargetKey(8, x: 18, y: -16),
-  DanceIkTargetKey(12, x: -14, y: -14),
+  DanceIkTargetKey(0, x: 22.5, y: -16), // lower-right
+  DanceIkTargetKey(4, x: -17.5, y: -14), // crossed to lower-left
+  DanceIkTargetKey(8, x: 22.5, y: -16),
+  DanceIkTargetKey(12, x: -17.5, y: -14),
   // bar 2 — wider saw (escalation, still compact).
-  DanceIkTargetKey(16, x: 20, y: -16),
-  DanceIkTargetKey(20, x: -16, y: -14),
-  DanceIkTargetKey(24, x: 20, y: -16),
-  DanceIkTargetKey(28, x: -16, y: -14),
+  DanceIkTargetKey(16, x: 25, y: -16),
+  DanceIkTargetKey(20, x: -20, y: -14),
+  DanceIkTargetKey(24, x: 25, y: -16),
+  DanceIkTargetKey(28, x: -20, y: -14),
 ];
 const _shakuFootLTargetKeys = [
   // The support phase is ONE constant plant — the round-3 rigging rater
