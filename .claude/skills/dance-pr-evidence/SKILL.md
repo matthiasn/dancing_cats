@@ -33,13 +33,17 @@ link to an external Artifact page.
 
 ## Building the PR body
 
-- Downscale images to ~900px wide for full grids, ~340-360px for GIFs —
-  keeps a before/after pair to a few MB total.
-- Commit rendered assets into the repo under
-  `lib/features/character/docs/reviews/assets/` **on the PR's own
-  branch** (not main) — GitHub PR bodies can only embed URLs, and
-  `raw.githubusercontent.com/<owner>/<repo>/<branch>/<path>` against the
-  PR's own branch works once pushed.
+- **Host rendered assets in the separate `matthiasn/dancing_cats-docs` repo
+  as PNG — do NOT commit them into this code repo** (owner, 2026-07-07: keep
+  the code repo lean; webp had rendering issues, so use PNG). Clone at
+  `/home/parallels/github/dancing_cats-docs`, drop images under
+  `images/reviews/`, commit + push to its `main`, then reference them by
+  `https://raw.githubusercontent.com/matthiasn/dancing_cats-docs/main/images/reviews/<name>.png`.
+  Because they live on that repo's `main` (not a feature branch here), the
+  URLs are permanent and survive branch deletion — `--delete-branch` on merge
+  is fine. Use descriptive, move-scoped basenames
+  (e.g. `buga_weightcommit_after_grid.png`).
+- Downscale is optional (separate repo), but keep grids reasonable.
 - Reference them with standard markdown `![alt](url)` in
   `gh pr create --body-file <file>` (write the body to a scratch file
   first — heredocs with `$(...)` inside markdown tables get mangled by
