@@ -1814,7 +1814,7 @@ class CharacterScene {
           )
         : null;
     final headDxFollow = lagged != null
-        ? _clampMagnitude((lagged.rootDx - rootDx) * 0.12, 2.5)
+        ? _clampMagnitude((lagged.rootDx - rootDx) * 0.10, 2.5)
         : 0.0;
     // The BOUNCE CASCADE — R20's unanimous finding across all four panel
     // lenses: the skull's vertical trace was "a near pixel-clone" of the

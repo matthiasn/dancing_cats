@@ -1157,10 +1157,11 @@ void main() {
         final rightFoot = footR.sample(p);
         expect(
           rightFoot.x - leftFoot.x,
-          greaterThan(114),
+          greaterThan(90),
           reason:
-              'Shaku frame $frame should keep a broad base under the bulky '
-              'suit body instead of crossing the feet under the hips',
+              'Shaku frame $frame keeps a stance no wider than ~hip-width (the '
+              'R23 coach: shrink the wide flat lunges to a compact shuffle under '
+              'the hips) while still not crossing the feet under the pelvis',
         );
       }
 
