@@ -1,4 +1,6 @@
 import 'package:dancing_cats/features/character/demo/dance_performance.dart';
+import 'package:dancing_cats/features/character/model/dance_dynamics.dart';
+import 'package:dancing_cats/features/character/model/dance_dynamics_warp.dart';
 import 'package:dancing_cats/features/character/runtime/character_scene.dart';
 import 'package:dancing_cats/features/character/runtime/temporal_motion_analyzer.dart';
 import 'package:dancing_cats/features/character/samples/cat_in_suit.dart';
@@ -141,4 +143,65 @@ void main() {
       }
     },
   );
+
+  // ELBOW gate (owner: the elbow snaps into position too suddenly, and no test
+  // caught it because the gates above watch hand/torso, not arm_lower). The
+  // two-bone-IK elbow (arm_lower) rotates FASTER than the hand it serves, and a
+  // fast hand hit whips it hard; a robotic 1-frame snap sends it far past a
+  // natural whip. Watch it on the SHIPPED (warped) clock — the elbow snap is a
+  // live-playback artifact the raw-clip gates never see.
+  test('catalogue elbow (arm_lower) never snaps past a natural whip', () {
+    final scene = CharacterScene(buildCatInSuitRig());
+    final analyzer = TemporalMotionAnalyzer(scene);
+    const speedup = kDanceRealTempoSpeedup;
+    const elbows = [CatBones.armLowerL, CatBones.armLowerR];
+
+    final clips = {
+      'shaku': CatClips.shaku,
+      'zanku': CatClips.zanku,
+      'azonto': CatClips.azonto,
+      'sekem': CatClips.sekem,
+      'buga': CatClips.buga,
+      'pouncingCat': CatClips.pouncingCat,
+    };
+    for (final entry in clips.entries) {
+      final eff = effectiveDanceDynamics(
+        moveBase: entry.value.dynamics,
+        catProfile: kDanceLaneDynamicsProfiles[0],
+        sectionEnergy: sectionEnergyDynamics(0.85),
+      );
+      final warped = upperBodyDynamicsWarpedClip(
+        entry.value,
+        eff,
+        warpBoneIds: kDanceUpperBodyWarpBoneIds,
+      );
+      final report = analyzer.analyze(
+        clip: warped,
+        samples: 192,
+        boneIds: elbows,
+      );
+      for (final bone in elbows) {
+        final worst = report.angularSegments
+            .where((s) => s.boneId == bone)
+            .map((s) => s.magnitude)
+            .reduce((a, b) => a > b ? a : b) *
+            speedup;
+        // ignore: avoid_print
+        print('elbow ${entry.key.padRight(12)} $bone  worst ${worst.toStringAsFixed(3)}');
+        // Current clean catalogue peaks at ~0.7 (sekem); a robotic 1-frame hit
+        // snap drove this well past 1.5. Guard at 1.5 (~2x headroom over the
+        // clean max) so a snap fails loudly; ratchet down as the elbow read is
+        // tightened further.
+        expect(
+          worst,
+          lessThan(1.5),
+          reason:
+              '${entry.key} $bone elbow angular velocity should read as a '
+              'natural whip, not a sudden snap (a fast 1-frame hit snap sends '
+              'it far past this — the defect that slipped through when only '
+              'hand/torso were gated)',
+        );
+      }
+    }
+  });
 }

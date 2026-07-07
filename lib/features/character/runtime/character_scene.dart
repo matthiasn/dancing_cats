@@ -979,7 +979,7 @@ class CharacterScene {
 
   /// How far a hand overshoots past a hit at the follow-through peak, as a
   /// fraction of its arrival-window travel. Perceptual dial.
-  static const double _kFollowGain = 2;
+  static const double _kFollowGain = 1.3;
 
   /// Cap (target-space units) on the arrival-window travel that scales the
   /// overshoot. An extreme hit into a near-degenerate elbow (zanku's volatile
