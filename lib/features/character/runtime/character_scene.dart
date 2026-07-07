@@ -1869,8 +1869,12 @@ class CharacterScene {
             timeSeconds - clip.duration * _headLagFraction,
           )
         : null;
+    // 0.10 → 0.07 (R24): the pelvis lateral commit was amplified so the COM
+    // rides over the support foot (mocap#2), which enlarges the head's lateral
+    // lag; trim the follow gain so the skull stays inside the collar's
+    // lateral-wander band while the body commits harder.
     final headDxFollow = lagged != null
-        ? _clampMagnitude((lagged.rootDx - rootDx) * 0.10, 2.5)
+        ? _clampMagnitude((lagged.rootDx - rootDx) * 0.07, 2.5)
         : 0.0;
     // The BOUNCE CASCADE — R20's unanimous finding across all four panel
     // lenses: the skull's vertical trace was "a near pixel-clone" of the

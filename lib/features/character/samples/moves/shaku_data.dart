@@ -12,7 +12,7 @@ part of '../cat_in_suit.dart';
 const _shakuBodyGrooveKeys = [
   DanceBodyKey(
     0,
-    rootDx: -14,
+    rootDx: -18.807,
     rootDy: 21.7,
     rootRotation: -0.007,
     pelvisRotation: 0.32,
@@ -22,7 +22,7 @@ const _shakuBodyGrooveKeys = [
   ),
   DanceBodyKey(
     1,
-    rootDx: -18,
+    rootDx: -24.407,
     rootDy: 18.5,
     rootRotation: -0.009,
     pelvisRotation: 0.43,
@@ -32,7 +32,7 @@ const _shakuBodyGrooveKeys = [
   ),
   DanceBodyKey(
     2,
-    rootDx: -20,
+    rootDx: -27.207,
     rootDy: 15.3,
     rootRotation: -0.009,
     pelvisRotation: 0.38,
@@ -42,7 +42,7 @@ const _shakuBodyGrooveKeys = [
   ),
   DanceBodyKey(
     3,
-    rootDx: -19,
+    rootDx: -25.807,
     rootDy: 18.5,
     rootRotation: -0.008,
     pelvisRotation: 0.51,
@@ -52,7 +52,7 @@ const _shakuBodyGrooveKeys = [
   ),
   DanceBodyKey(
     4,
-    rootDx: -11,
+    rootDx: -14.607,
     rootDy: 21.7,
     rootRotation: -0.007,
     pelvisRotation: 0.53,
@@ -62,7 +62,7 @@ const _shakuBodyGrooveKeys = [
   ),
   DanceBodyKey(
     5,
-    rootDx: -13,
+    rootDx: -17.407,
     rootDy: 18.5,
     rootRotation: -0.006,
     pelvisRotation: 0.44,
@@ -72,7 +72,7 @@ const _shakuBodyGrooveKeys = [
   ),
   DanceBodyKey(
     6,
-    rootDx: -12,
+    rootDx: -16.008,
     rootDy: 15.3,
     rootRotation: -0.005,
     pelvisRotation: 0.38,
@@ -82,7 +82,7 @@ const _shakuBodyGrooveKeys = [
   ),
   DanceBodyKey(
     7,
-    rootDx: -1,
+    rootDx: -0.608,
     rootDy: 18.5,
     rootRotation: 0,
     chestScaleY: 0.932,
@@ -90,7 +90,7 @@ const _shakuBodyGrooveKeys = [
   ),
   DanceBodyKey(
     8,
-    rootDx: 11,
+    rootDx: 16.192,
     rootDy: 21.7,
     rootRotation: 0.005,
     pelvisRotation: 0.16,
@@ -100,7 +100,7 @@ const _shakuBodyGrooveKeys = [
   ),
   DanceBodyKey(
     9,
-    rootDx: 12,
+    rootDx: 17.592,
     rootDy: 18.5,
     rootRotation: 0.006,
     pelvisRotation: 0.14,
@@ -110,7 +110,7 @@ const _shakuBodyGrooveKeys = [
   ),
   DanceBodyKey(
     10,
-    rootDx: 17,
+    rootDx: 24.592,
     rootDy: 15.3,
     rootRotation: 0.008,
     pelvisRotation: 0.08,
@@ -120,7 +120,7 @@ const _shakuBodyGrooveKeys = [
   ),
   DanceBodyKey(
     11,
-    rootDx: 18,
+    rootDx: 25.992,
     rootDy: 18.5,
     rootRotation: 0.008,
     pelvisRotation: 0.01,
@@ -130,7 +130,7 @@ const _shakuBodyGrooveKeys = [
   ),
   DanceBodyKey(
     12,
-    rootDx: 18,
+    rootDx: 25.992,
     rootDy: 21.7,
     rootRotation: 0.006,
     pelvisRotation: -0.08,
@@ -140,7 +140,7 @@ const _shakuBodyGrooveKeys = [
   ),
   DanceBodyKey(
     13,
-    rootDx: 12,
+    rootDx: 17.592,
     rootDy: 18.5,
     rootRotation: 0.004,
     pelvisRotation: -0.16,
@@ -150,7 +150,7 @@ const _shakuBodyGrooveKeys = [
   ),
   DanceBodyKey(
     14,
-    rootDx: 6,
+    rootDx: 9.193,
     rootDy: 15.3,
     rootRotation: -0.001,
     pelvisRotation: -0.24,
@@ -160,7 +160,7 @@ const _shakuBodyGrooveKeys = [
   ),
   DanceBodyKey(
     15,
-    rootDx: -1,
+    rootDx: -0.608,
     rootDy: 18.5,
     rootRotation: -0.004,
     pelvisRotation: -0.31,
@@ -170,7 +170,7 @@ const _shakuBodyGrooveKeys = [
   ),
   DanceBodyKey(
     16,
-    rootDx: -7,
+    rootDx: -9.007,
     rootDy: 21.7,
     rootRotation: -0.006,
     pelvisRotation: -0.36,
@@ -180,7 +180,7 @@ const _shakuBodyGrooveKeys = [
   ),
   DanceBodyKey(
     17,
-    rootDx: -12,
+    rootDx: -16.008,
     rootDy: 18.5,
     rootRotation: -0.007,
     pelvisRotation: -0.37,
@@ -190,7 +190,7 @@ const _shakuBodyGrooveKeys = [
   ),
   DanceBodyKey(
     18,
-    rootDx: -12.6,
+    rootDx: -16.848,
     rootDy: 15.3,
     rootRotation: -0.008,
     pelvisRotation: -0.36,
@@ -200,7 +200,7 @@ const _shakuBodyGrooveKeys = [
   ),
   DanceBodyKey(
     19,
-    rootDx: -12.2,
+    rootDx: -16.287,
     rootDy: 18.5,
     rootRotation: -0.008,
     pelvisRotation: -0.42,
@@ -210,7 +210,7 @@ const _shakuBodyGrooveKeys = [
   ),
   DanceBodyKey(
     20,
-    rootDx: -11.4,
+    rootDx: -15.168,
     rootDy: 21.7,
     rootRotation: -0.006,
     pelvisRotation: -0.47,
@@ -220,7 +220,7 @@ const _shakuBodyGrooveKeys = [
   ),
   DanceBodyKey(
     21,
-    rootDx: -9.8,
+    rootDx: -12.928,
     rootDy: 18.5,
     rootRotation: -0.004,
     pelvisRotation: -0.42,
@@ -230,7 +230,7 @@ const _shakuBodyGrooveKeys = [
   ),
   DanceBodyKey(
     22,
-    rootDx: -5,
+    rootDx: -6.207,
     rootDy: 15.3,
     rootRotation: -0.002,
     pelvisRotation: -0.28,
@@ -240,7 +240,7 @@ const _shakuBodyGrooveKeys = [
   ),
   DanceBodyKey(
     23,
-    rootDx: 2,
+    rootDx: 3.592,
     rootDy: 18.5,
     rootRotation: 0.001,
     pelvisRotation: -0.22,
@@ -250,7 +250,7 @@ const _shakuBodyGrooveKeys = [
   ),
   DanceBodyKey(
     24,
-    rootDx: 12,
+    rootDx: 17.592,
     rootDy: 21.7,
     rootRotation: 0.007,
     pelvisRotation: -0.24,
@@ -260,7 +260,7 @@ const _shakuBodyGrooveKeys = [
   ),
   DanceBodyKey(
     26,
-    rootDx: 14,
+    rootDx: 20.392,
     rootDy: 15.3,
     rootRotation: 0.008,
     pelvisRotation: -0.08,
@@ -270,7 +270,7 @@ const _shakuBodyGrooveKeys = [
   ),
   DanceBodyKey(
     27,
-    rootDx: 13,
+    rootDx: 18.992,
     rootDy: 18.5,
     rootRotation: 0.007,
     pelvisRotation: -0.02,
@@ -280,7 +280,7 @@ const _shakuBodyGrooveKeys = [
   ),
   DanceBodyKey(
     28,
-    rootDx: 12,
+    rootDx: 17.592,
     rootDy: 21.7,
     rootRotation: 0.006,
     pelvisRotation: 0.04,
@@ -290,7 +290,7 @@ const _shakuBodyGrooveKeys = [
   ),
   DanceBodyKey(
     29,
-    rootDx: 2,
+    rootDx: 3.592,
     rootDy: 18.5,
     rootRotation: 0.001,
     pelvisRotation: 0.12,
@@ -300,7 +300,7 @@ const _shakuBodyGrooveKeys = [
   ),
   DanceBodyKey(
     30,
-    rootDx: -7,
+    rootDx: -9.007,
     rootDy: 15.3,
     rootRotation: -0.004,
     pelvisRotation: 0.2,
@@ -310,7 +310,7 @@ const _shakuBodyGrooveKeys = [
   ),
   DanceBodyKey(
     31,
-    rootDx: -12.4,
+    rootDx: -16.567,
     rootDy: 18.5,
     rootRotation: -0.006,
     pelvisRotation: 0.27,
@@ -320,7 +320,7 @@ const _shakuBodyGrooveKeys = [
   ),
   DanceBodyKey(
     32,
-    rootDx: -14,
+    rootDx: -18.807,
     rootDy: 21.7,
     rootRotation: -0.007,
     pelvisRotation: 0.32,
