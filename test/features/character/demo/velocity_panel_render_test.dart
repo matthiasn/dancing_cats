@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:dancing_cats/features/character/demo/dance_velocity_panel.dart';
+import 'package:dancing_cats/features/character/model/clip.dart';
 import 'package:dancing_cats/features/character/runtime/character_scene.dart';
 import 'package:dancing_cats/features/character/samples/cat_in_suit.dart';
 import 'package:flutter/material.dart';
@@ -25,7 +26,7 @@ void main() {
 
   test('render velocity panels for the catalogue', () async {
     final scene = CharacterScene(buildCatInSuitRig());
-    final moves = <String, dynamic>{
+    final moves = <String, Clip>{
       'shaku': CatClips.shaku,
       'zanku': CatClips.zanku,
       'azonto': CatClips.azonto,
@@ -42,8 +43,9 @@ void main() {
     for (final entry in moves.entries) {
       final profile = sampleHandVelocityProfile(scene, entry.value);
       expect(profile.shipped.crest, greaterThan(0));
-      canvas.save();
-      canvas.translate(0, row * h);
+      canvas
+        ..save()
+        ..translate(0, row * h);
       paintVelocityProfile(canvas, const Size(w, h), profile);
       // move-name watermark, centred faintly in the chart so it never
       // collides with the header readout (this sheet only — the app shows
@@ -62,7 +64,7 @@ void main() {
           textDirection: TextDirection.ltr,
         )
         ..layout()
-        ..paint(canvas, Offset(w / 2 - 130, h * 0.5));
+        ..paint(canvas, const Offset(w / 2 - 130, h * 0.5));
       canvas.restore();
       // ignore: avoid_print
       print('${entry.key.padRight(12)} crest ${profile.shipped.crest.toStringAsFixed(2)}'
@@ -74,9 +76,9 @@ void main() {
     final picture = recorder.endRecording();
     final image = await picture.toImage(w.toInt(), (h * moves.length).toInt());
     final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
-    final file = File('${outputDir.path}/velocity_panels.png');
-    file.writeAsBytesSync(bytes!.buffer.asUint8List());
+    final path = '${outputDir.path}/velocity_panels.png';
+    File(path).writeAsBytesSync(bytes!.buffer.asUint8List());
     // ignore: avoid_print
-    print('wrote ${file.path}');
+    print('wrote $path');
   });
 }

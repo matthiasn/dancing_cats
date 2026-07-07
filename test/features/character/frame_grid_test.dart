@@ -4,18 +4,18 @@ import 'dart:ui' as ui;
 
 import 'package:dancing_cats/features/character/demo/dance_performance.dart'
     show
+        kDanceLaneDynamicsProfiles,
         kDancePhraseBars,
         kDanceRealTempoSpeedup,
-        kDanceLaneDynamicsProfiles,
         sectionEnergyDynamics;
 import 'package:dancing_cats/features/character/demo/motion_trace_panel.dart';
-import 'package:dancing_cats/features/character/model/dance_dynamics.dart';
-import 'package:dancing_cats/features/character/model/dance_dynamics_warp.dart';
 import 'package:dancing_cats/features/character/engine/autonomic.dart';
 import 'package:dancing_cats/features/character/model/affine2d.dart';
 import 'package:dancing_cats/features/character/model/beat_map.dart';
 import 'package:dancing_cats/features/character/model/bone.dart';
 import 'package:dancing_cats/features/character/model/clip.dart';
+import 'package:dancing_cats/features/character/model/dance_dynamics.dart';
+import 'package:dancing_cats/features/character/model/dance_dynamics_warp.dart';
 import 'package:dancing_cats/features/character/model/face.dart';
 import 'package:dancing_cats/features/character/model/rig_spec.dart';
 import 'package:dancing_cats/features/character/runtime/character_painter.dart';
