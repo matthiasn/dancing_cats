@@ -368,13 +368,6 @@ const List<double> kDanceHeroWeight = [0.9, 1.1, 0.9];
 /// authored ~300-unit body height, 0.78 lands the feet on the painted deck.
 double danceCastScale(double stageHeight) => stageHeight * 0.78 / 300.0;
 
-/// Grades the cats into the twilight plate (static, not beat-driven): a cool sky
-/// wrap up top fading to a lighter warm deck bounce down low.
-const ({Color skyWrap, Color deckWrap}) kDanceBodyGrade = (
-  skyWrap: Color(0x2E1F3354),
-  deckWrap: Color(0x1E3A2616),
-);
-
 /// The waterline haze gradient (a soft cool veil that separates the foreground
 /// cat plane from the distant city/water; fades out above the feet).
 const LinearGradient kDanceHazeGradient = LinearGradient(
@@ -443,7 +436,11 @@ CharacterPainter danceCharacterPainter({
   backdropCloudsImage: useNewBackdrop ? null : cloudsImage,
   backdropWavesImage: useNewBackdrop ? null : wavesImage,
   memberBacklights: backlights,
-  bodyGrade: useNewBackdrop ? kDanceBodyGrade : null,
+  // Surface grade removed (owner: the cats' surfaces read too washed out from
+  // the sky/deck wrap tint — "get rid of the grading of the cats' surfaces...
+  // I can live with more separation with the background"). bodyGrade defaults
+  // to null (no wrap); the rim halo (memberBacklights, above) is separate and
+  // stays.
   heroStaging: useNewBackdrop,
   // danceViewProjection intentionally stays at the painter default (false):
   // front-lock the shipped trio while the arm/shoulder mesh is being rebuilt.
