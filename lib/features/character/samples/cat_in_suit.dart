@@ -928,8 +928,14 @@ class CatClips {
             cyclic: true,
             inertialize: true,
           ),
-          CatBones.footL: const DanceIkTargetTrack(_zankuFootLTargetKeys),
-          CatBones.footR: const DanceIkTargetTrack(_zankuFootRTargetKeys),
+          CatBones.footL: const DanceIkTargetTrack(
+            _zankuFootLTargetKeys,
+            inertialize: true,
+          ),
+          CatBones.footR: const DanceIkTargetTrack(
+            _zankuFootRTargetKeys,
+            inertialize: true,
+          ),
         },
         rawContactSpans: _zankuContactSpans,
         extraJointChannels: {
