@@ -23,14 +23,14 @@ const _zankuHandLTargetKeys = [
   // elbow width (x -28->-48) change. On the GBESE climax (f28) BOTH fists drive
   // down together (the landing accent the exact-frame test + physicist want).
   // The spring ([inertialize]) generates the snap-and-settle between these poses.
-  DanceIkTargetKey(0, x: -28, y: 10), // DRIVE down-in (on the beat)
-  DanceIkTargetKey(4, x: -46, y: -44), // wide elbow guard (off-beat)
-  DanceIkTargetKey(8, x: -28, y: 10),
-  DanceIkTargetKey(12, x: -46, y: -44),
+  DanceIkTargetKey(0, x: -34, y: 18), // DRIVE down-out (projects off the hip)
+  DanceIkTargetKey(4, x: -50, y: -48), // wide elbow guard (off-beat)
+  DanceIkTargetKey(8, x: -34, y: 18),
+  DanceIkTargetKey(12, x: -50, y: -48),
   // bar 2 -- a touch deeper/wider toward the gbese climax.
-  DanceIkTargetKey(16, x: -30, y: 12),
-  DanceIkTargetKey(20, x: -48, y: -46),
-  DanceIkTargetKey(24, x: -30, y: 12),
+  DanceIkTargetKey(16, x: -36, y: 20),
+  DanceIkTargetKey(20, x: -52, y: -50),
+  DanceIkTargetKey(24, x: -36, y: 20),
   DanceIkTargetKey(28, x: -30, y: 0), // GBESE: both fists drive down (accent)
 ];
 const _zankuHandRTargetKeys = [
@@ -38,13 +38,13 @@ const _zankuHandRTargetKeys = [
   // this arm is up in the wide guard, so the two arms alternate a contralateral
   // pump synced to the alternating leg kicks. On the gbese (f28) it swings down
   // to join hand.L in the unison landing accent. Spring-interpolated (see hand.L).
-  DanceIkTargetKey(0, x: 46, y: -44), // wide guard (as L drives)
-  DanceIkTargetKey(4, x: 28, y: 10), // DRIVE down-in
-  DanceIkTargetKey(8, x: 46, y: -44),
-  DanceIkTargetKey(12, x: 28, y: 10),
-  DanceIkTargetKey(16, x: 48, y: -46),
-  DanceIkTargetKey(20, x: 30, y: 12),
-  DanceIkTargetKey(24, x: 48, y: -46),
+  DanceIkTargetKey(0, x: 50, y: -48), // wide guard (as L drives)
+  DanceIkTargetKey(4, x: 34, y: 18), // DRIVE down-out
+  DanceIkTargetKey(8, x: 50, y: -48),
+  DanceIkTargetKey(12, x: 34, y: 18),
+  DanceIkTargetKey(16, x: 52, y: -50),
+  DanceIkTargetKey(20, x: 36, y: 20),
+  DanceIkTargetKey(24, x: 52, y: -50),
   DanceIkTargetKey(28, x: 30, y: 0), // GBESE: swings down to join the accent
 ];
 // Low tap-dig-pop-stomp Zanku legwork. The visible story is SHOE ROTATION and
