@@ -921,10 +921,12 @@ class CatClips {
           CatBones.handL: const DanceIkTargetTrack(
             _zankuHandLTargetKeys,
             cyclic: true,
+            inertialize: true,
           ),
           CatBones.handR: const DanceIkTargetTrack(
             _zankuHandRTargetKeys,
             cyclic: true,
+            inertialize: true,
           ),
           CatBones.footL: const DanceIkTargetTrack(_zankuFootLTargetKeys),
           CatBones.footR: const DanceIkTargetTrack(_zankuFootRTargetKeys),

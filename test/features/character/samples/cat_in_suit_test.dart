@@ -755,8 +755,10 @@ void main() {
       // workaround that also blunted accent hits and shifted key poses. The
       // channels are smooth splines now: velocity-continuous THROUGH the
       // authored keys, no blur wrapper.
+      // zanku joined shaku on the inertialized spring channel (R32 sparse-key
+      // arm re-author), so it is exempt here like shaku — its velocity
+      // continuity is covered by the inertialized-seam test instead.
       for (final clip in [
-        CatClips.zanku,
         CatClips.azonto,
         CatClips.buga,
         CatClips.sekem,
