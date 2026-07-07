@@ -1202,6 +1202,14 @@ class CharacterScene {
             x: sample.x + fdx,
             y: sample.y + fdy,
             weight: sample.weight,
+            // Preserve the elbow-solution controls — the follow-through only
+            // offsets the wrist target, it must not silently reset which side
+            // the elbow breaks ([bendDirection]) or how far it is abducted
+            // ([elbowAbduction]). (Dropping these was a latent bug: any hand
+            // with an authored bend/abduction lost it whenever the per-beat
+            // garnish fired.)
+            bendDirection: sample.bendDirection,
+            elbowAbduction: sample.elbowAbduction,
           );
         }
       }
