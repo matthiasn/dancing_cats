@@ -993,6 +993,12 @@ class CatClips {
           dynamics: DanceDynamics(time: 0.6, flow: -0.1),
         ),
         duration: base.duration,
+        // Per-clip arm-reach override: azonto's mime wheel + cross-body jab are
+        // reach-maxed on the default arm, which blocked a bigger wheel orbit and
+        // opening the folded jab elbow (abduction flipped the bend / tripped the
+        // reach+jerk gates). A 15% longer arm for THIS clip gives the headroom;
+        // shaku/zanku keep the default arm (byte-identical).
+        armReachScale: 1.15,
         contactPinning: base.contactPinning,
         supportFootWorldAnchor: true,
         supportFootWorldAnchorStrength: 0.86,
