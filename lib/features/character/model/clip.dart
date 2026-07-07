@@ -739,6 +739,224 @@ class KeyframeIkTargetChannel extends IkTargetChannel {
   ) => _periodicCatmullRom(keys, (k) => k.p, f, (k) => k.tension, i, local, dp);
 }
 
+/// A pre-simulated **inertialized** IK target path: the *interpolator* between
+/// sparse authored hit-poses IS a periodic second-order spring, so an animator
+/// authors only the hit shapes (one key per beat) and the hold → snap →
+/// overshoot → settle transition between them is generated, not hand-keyed.
+///
+/// This is the Phase-2 mechanism behind the "minimal keyframing" goal. Where
+/// [KeyframeIkTargetChannel] with `smooth` swooshes through keys with a
+/// Catmull-Rom (which cannot hold, nor snap late, nor overshoot), this solves a
+/// periodic **boundary-value** problem once in the constructor: discretize the
+/// damped oscillator `q̈ + 2ζωₙq̇ + ωₙ²(q − a) = 0` on an `N`-sample loop, hold
+/// the drive `a` at the most-recent hit, and pin `q` to the authored value at
+/// each key sample. The solution holds each hit (the drive's equilibrium), then
+/// snaps into the next hit landing exactly on its beat — hit-and-park by
+/// construction, C¹-smooth (so the two-bone IK elbow it feeds stays smooth),
+/// and periodic (`q(0)=q(1)`) so the loop seam closes with no special case.
+///
+/// (ωₙ, ζ) come from the clip's [DanceDynamics] via [danceSpring]: Time dials
+/// the snap speed, Flow the overshoot. Deterministic — the tables are a pure
+/// function of (keys, duration, ωₙ, ζ), so film-strip renders stay
+/// reproducible, mirroring the `_LocoTable` precedent. Exact key values survive
+/// (the pin is an equality constraint), so every authored hit lands on its
+/// frame and the exact-frame tests hold.
+class InertializedIkTargetChannel extends IkTargetChannel {
+  InertializedIkTargetChannel(
+    this.keys, {
+    required this.duration,
+    required this.omegaN,
+    required this.zeta,
+    this.samples = 128,
+  }) : assert(duration > 0, 'duration must be positive'),
+       assert(omegaN > 0, 'omegaN must be positive'),
+       assert(zeta > 0, 'zeta must be positive'),
+       assert(samples >= 8, 'need enough samples to resolve the loop'),
+       _x = _solveInertialized(keys, (k) => k.x, duration, omegaN, zeta, samples),
+       _y = _solveInertialized(keys, (k) => k.y, duration, omegaN, zeta, samples);
+
+  /// The sparse authored hit-poses (one per beat), phase-addressed.
+  final List<IkTargetKeyframe> keys;
+
+  /// Authored-clock loop duration (seconds) — sets the spring's real-time step.
+  final double duration;
+
+  /// Natural frequency ωₙ (rad/s) and damping ratio ζ of the spring.
+  final double omegaN;
+  final double zeta;
+
+  /// Loop resolution of the pre-solved tables. A multiple of the 32-frame grid
+  /// so authored key phases land on integer sample indices (exact pins).
+  final int samples;
+
+  final List<double> _x;
+  final List<double> _y;
+
+  @override
+  IkTargetPose sample(double p) {
+    if (keys.isEmpty) return const IkTargetPose(x: 0, y: 0, weight: 0);
+    final u = _unitPhase(p);
+    final fi = u * samples;
+    final active = _activeKey(u);
+    return IkTargetPose(
+      // Catmull-Rom over the pre-solved tables keeps the target C¹ (no
+      // acceleration spike at sample boundaries); at a key phase `fi` is an
+      // integer so this returns the pinned node value exactly.
+      x: _catmullCyclic(_x, fi),
+      y: _catmullCyclic(_y, fi),
+      // Weight/bend are discrete choreographic choices, not spring state —
+      // held from the active hit.
+      weight: active.weight,
+      bendDirection: active.bendDirection,
+    );
+  }
+
+  /// The authored key whose phase is the most recent at/before [u] (cyclic) —
+  /// the "current hit" being held.
+  IkTargetKeyframe _activeKey(double u) {
+    var best = keys.last; // wrap: nothing at/before u yet ⇒ the loop's last hit
+    var bestP = -1.0;
+    for (final k in keys) {
+      final kp = _unitPhase(k.p);
+      if (kp <= u && kp >= bestP) {
+        best = k;
+        bestP = kp;
+      }
+    }
+    return best;
+  }
+}
+
+/// Solves one scalar channel of [InertializedIkTargetChannel] into an
+/// `n`-sample loop table. Finite-difference boundary-value problem: the damped
+/// oscillator discretized at every FREE sample, `q` pinned to the authored
+/// value at each key sample. Pure function of its inputs.
+List<double> _solveInertialized(
+  List<IkTargetKeyframe> keys,
+  double Function(IkTargetKeyframe) valueOf,
+  double duration,
+  double omegaN,
+  double zeta,
+  int n,
+) {
+  if (keys.isEmpty) return List<double>.filled(n, 0);
+
+  // Held-forward drive a[i] = value of the hit active at sample i, and the
+  // equality constraints q[keyIndex] = keyValue.
+  final drive = List<double>.filled(n, 0);
+  final pinned = <int, double>{};
+  final sorted = [...keys]..sort((a, b) => _unitPhase(a.p).compareTo(_unitPhase(b.p)));
+  for (final k in sorted) {
+    final idx = (_unitPhase(k.p) * n).round() % n;
+    pinned[idx] = valueOf(k);
+  }
+  for (var i = 0; i < n; i++) {
+    final u = i / n;
+    var value = valueOf(sorted.last); // wrap for u before the first key
+    for (final k in sorted) {
+      if (_unitPhase(k.p) <= u) value = valueOf(k);
+    }
+    drive[i] = value;
+  }
+
+  final h = duration / n; // real-time step (seconds)
+  final cLower = 1 / (h * h) - zeta * omegaN / h;
+  final cCentre = -2 / (h * h) + omegaN * omegaN;
+  final cUpper = 1 / (h * h) + zeta * omegaN / h;
+  final omegaSq = omegaN * omegaN;
+
+  // Least-squares (Kass–Anderson "wiggly splines"): minimise the discretised
+  // ODE residual `rᵢ = cL·qᵢ₋₁ + cC·qᵢ + cR·qᵢ₊₁ − ωₙ²·aᵢ` over the loop,
+  // subject to hard key pins. Solving the ODE exactly at free nodes (a square
+  // system) is ill-posed — a held drive over a long span can't reach a far pin
+  // without a divergent transient — so this fits it instead: q holds near the
+  // drive where it can and bends to meet each pin near the key (the snap),
+  // never blowing up. Normal equations M = AᵀA, d = Aᵀb, built band-sparse.
+  final matrix = [for (var i = 0; i < n; i++) List<double>.filled(n, 0)];
+  final rhs = List<double>.filled(n, 0);
+  for (var i = 0; i < n; i++) {
+    final cols = [
+      ((i - 1 + n) % n, cLower),
+      (i, cCentre),
+      ((i + 1) % n, cUpper),
+    ];
+    final b = omegaSq * drive[i];
+    for (final (jCol, jVal) in cols) {
+      for (final (kCol, kVal) in cols) {
+        matrix[jCol][kCol] += jVal * kVal;
+      }
+      rhs[jCol] += jVal * b;
+    }
+  }
+  // Hard key pins via row replacement (q[idx] = value).
+  for (final entry in pinned.entries) {
+    final idx = entry.key;
+    for (var c = 0; c < n; c++) {
+      matrix[idx][c] = 0;
+    }
+    matrix[idx][idx] = 1;
+    rhs[idx] = entry.value;
+  }
+  final solution = _solveLinearSystem(matrix, rhs);
+  // Force exact key values at the pinned nodes: partial pivoting in the general
+  // solve leaves the constraint satisfied only to a small tolerance, and the
+  // exact-frame tests need the authored hit to the last digit. Catmull-Rom
+  // sampling returns the node value exactly at an integer index, so pinning the
+  // table here guarantees every authored hit lands precisely on its frame.
+  for (final entry in pinned.entries) {
+    solution[entry.key] = entry.value;
+  }
+  return solution;
+}
+
+/// Dense Gaussian elimination with partial pivoting. `n` is small (≤ a few
+/// hundred) and this runs once per channel at clip-assembly time, so a general
+/// robust solver beats a hand-tuned banded one — the boundary-value matrix is
+/// only near-diagonally-dominant, so pivoting matters more than speed.
+List<double> _solveLinearSystem(List<List<double>> a, List<double> b) {
+  final n = b.length;
+  final m = [for (var i = 0; i < n; i++) [...a[i], b[i]]];
+  for (var col = 0; col < n; col++) {
+    var pivot = col;
+    for (var r = col + 1; r < n; r++) {
+      if (m[r][col].abs() > m[pivot][col].abs()) pivot = r;
+    }
+    final tmp = m[col];
+    m[col] = m[pivot];
+    m[pivot] = tmp;
+    final diag = m[col][col];
+    if (diag == 0) continue; // singular column; leave as-is (should not happen)
+    for (var r = 0; r < n; r++) {
+      if (r == col) continue;
+      final factor = m[r][col] / diag;
+      if (factor == 0) continue;
+      for (var c = col; c <= n; c++) {
+        m[r][c] -= factor * m[col][c];
+      }
+    }
+  }
+  return [for (var i = 0; i < n; i++) m[i][i] == 0 ? 0.0 : m[i][n] / m[i][i]];
+}
+
+/// Cyclic Catmull-Rom interpolation of a loop table at fractional index [fi].
+double _catmullCyclic(List<double> table, double fi) {
+  final n = table.length;
+  final base = fi.floor();
+  final frac = fi - base;
+  double at(int k) => table[((base + k) % n + n) % n];
+  final p0 = at(-1);
+  final p1 = at(0);
+  final p2 = at(1);
+  final p3 = at(2);
+  final f2 = frac * frac;
+  final f3 = f2 * frac;
+  return 0.5 *
+      (2 * p1 +
+          (-p0 + p2) * frac +
+          (2 * p0 - 5 * p1 + 4 * p2 - p3) * f2 +
+          (-p0 + 3 * p1 - 3 * p2 + p3) * f3);
+}
+
 /// Binds a two-bone limb chain ([upperBoneId] → [lowerBoneId] → [endBoneId])
 /// to a target-based IK channel, so choreography can author "the hand goes
 /// here" instead of hand-tuning shoulder/elbow rotations frame by frame.

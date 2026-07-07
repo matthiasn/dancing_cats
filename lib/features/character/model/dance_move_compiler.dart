@@ -1,4 +1,5 @@
 import 'package:dancing_cats/features/character/model/clip.dart';
+import 'package:dancing_cats/features/character/model/dance_dynamics.dart';
 import 'package:dancing_cats/features/character/model/dance_move_descriptor.dart';
 import 'package:dancing_cats/features/character/model/dance_phrase.dart';
 
@@ -76,14 +77,7 @@ Clip assembleMoveClip(
   final limbTargets = [
     for (final limb in rigLimbTargets)
       if (descriptor.limbTargetTracks[limb.endBoneId] case final track?)
-        limb.withChannel(
-          phrase.ikTargetChannel(
-            track.keys,
-            smooth: track.smooth,
-            cyclic: track.cyclic,
-            microFrames: track.microFrames,
-          ),
-        )
+        limb.withChannel(_ikTargetChannel(phrase, descriptor, track))
       else
         limb,
   ];
@@ -129,6 +123,42 @@ Clip assembleMoveClip(
         ? descriptor.zOrderSwaps
         : base?.zOrderSwaps ?? const [],
     dynamics: descriptor.move.dynamics,
+  );
+}
+
+/// Softening applied to the inertializer's natural frequency relative to the
+/// Phase-1 garnish tuning (see [_ikTargetChannel]).
+const double _kInertializerOmegaScale = 0.9;
+
+/// Builds the IK target channel for one limb track: the pre-simulated
+/// second-order spring ([InertializedIkTargetChannel]) when the track opts in,
+/// otherwise the ordinary Catmull-Rom [KeyframeIkTargetChannel]. The spring's
+/// (ωₙ, ζ) come from the move's [DanceDynamics] via [danceSpring], and it reuses
+/// the phrase's frame→phase key conversion (via the Catmull-Rom channel's
+/// `keys`) so authored hit-poses land on the same frames either way.
+IkTargetChannel _ikTargetChannel(
+  DancePhrase phrase,
+  DanceMoveDescriptor descriptor,
+  DanceIkTargetTrack track,
+) {
+  final base = phrase.ikTargetChannel(
+    track.keys,
+    smooth: track.smooth,
+    cyclic: track.cyclic,
+    microFrames: track.microFrames,
+  );
+  if (!track.inertialize) return base;
+  final spring = danceSpring(descriptor.move.dynamics);
+  return InertializedIkTargetChannel(
+    base.keys,
+    duration: descriptor.duration,
+    // The inertializer IS the whole interpolation, so its snap is inherently
+    // sharper than the Phase-1 garnish [danceSpring] was tuned for; a stiffer ωₙ
+    // makes an extreme hit adjacent to the loop seam (shaku's generator pull)
+    // recover fast enough to tick the seam. Softening ωₙ here keeps the hold →
+    // snap → settle punchy while staying seam-symmetric.
+    omegaN: spring.omegaN * _kInertializerOmegaScale,
+    zeta: spring.zeta,
   );
 }
 

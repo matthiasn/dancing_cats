@@ -1122,9 +1122,12 @@ class CharacterScene {
       // Hand-target-space follow-through: a per-beat second-order spring
       // overshoots the smooth target the solver tracks, so the whole arm
       // settles coherently after each hit (ωₙ/ζ from the clip's dynamics).
+      // Skipped for an inertialized channel — that channel already IS the
+      // spring (Phase 2), so the Phase-1 garnish would double-stack it.
       if (_isHandBone(target.endBoneId) &&
           _isDanceFamily(clip) &&
-          handFrameDuration > 0) {
+          handFrameDuration > 0 &&
+          target.channel is! InertializedIkTargetChannel) {
         final (fdx, fdy) = _handTargetFollowThrough(
           target.channel,
           phase,

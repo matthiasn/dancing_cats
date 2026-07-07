@@ -120,6 +120,7 @@ class DanceIkTargetTrack {
     this.smooth = true,
     this.cyclic = false,
     this.microFrames = 0,
+    this.inertialize = false,
   });
 
   final List<DanceIkTargetKey> keys;
@@ -129,6 +130,13 @@ class DanceIkTargetTrack {
   /// Whole-channel sub-frame timing offset, passed straight through to
   /// `DancePhrase.ikTargetChannel`'s own `microFrames` parameter.
   final double microFrames;
+
+  /// Interpolate the (sparse) keys with the pre-simulated second-order spring
+  /// (`InertializedIkTargetChannel`) instead of a Catmull-Rom, so the hold →
+  /// snap → settle transition between authored hit-poses is generated from the
+  /// move's `DanceDynamics` rather than hand-keyed. The keys stay the source of
+  /// truth (pinned exactly); `smooth` is ignored when this is set.
+  final bool inertialize;
 }
 
 /// Full data needed to assemble a [Clip] for one move: an [AfrobeatsMove] for
