@@ -1017,6 +1017,80 @@ void main() {
       expect(fa.face.eyeOpenLeft, fb.face.eyeOpenLeft);
     });
 
+    // Purity contract for the arm-transition spring: `frameAt` must be a pure
+    // function of (clip, time). The determinism test above only compares two
+    // fresh scenes at the SAME instant; a spring with carried per-frame state
+    // or a build-order-dependent cache would slip past it but fail here on
+    // re-scrub, reverse-order scrub, or the loop seam. Each is a way the
+    // pre-simulated Phase-2 mechanism could break, so the guard lands now.
+    test('spring output is a pure function of (clip,time): re-scrub, reverse, '
+        'seam', () {
+      const bones = [
+        CatBones.armLowerL,
+        CatBones.armLowerR,
+        CatBones.handL,
+        CatBones.handR,
+        CatBones.torso,
+      ];
+      final clips = [
+        CatClips.shaku,
+        CatClips.zanku,
+        CatClips.azonto,
+        CatClips.sekem,
+        CatClips.buga,
+      ];
+      final scene = CharacterScene(buildCatInSuitRig());
+      const n = 192;
+      for (final clip in clips) {
+        double tAt(int i) => clip.duration * i / n;
+
+        // Forward sweep.
+        final fwd = [
+          for (var i = 0; i < n; i++)
+            scene.frameAt(clip: clip, timeSeconds: tAt(i)),
+        ];
+
+        // Same instants in REVERSE order on a COLD second scene — catches any
+        // carried state or cache-build-order dependence.
+        final rev = CharacterScene(buildCatInSuitRig());
+        for (var i = n - 1; i >= 0; i--) {
+          final f = rev.frameAt(clip: clip, timeSeconds: tAt(i));
+          for (final b in bones) {
+            expect(
+              f.world[b],
+              fwd[i].world[b],
+              reason: '${clip.name} $b: scrub direction / build order must not '
+                  'change the resolved frame',
+            );
+          }
+        }
+
+        // Re-scrub the same instant back-to-back.
+        for (var i = 0; i < n; i += 8) {
+          final a = scene.frameAt(clip: clip, timeSeconds: tAt(i));
+          final bb = scene.frameAt(clip: clip, timeSeconds: tAt(i));
+          for (final b in bones) {
+            expect(a.world[b], bb.world[b], reason: '${clip.name} $b re-scrub');
+          }
+        }
+
+        // Loop seam: a loop must depart the way it arrives — phase 0 == phase 1
+        // (the spring's taper + Φ(0)=0 make its contribution vanish at both
+        // endpoints, so the boundary stays symmetric).
+        if (clip.loop) {
+          final start = scene.frameAt(clip: clip, timeSeconds: 0);
+          final end = scene.frameAt(clip: clip, timeSeconds: clip.duration);
+          for (final b in bones) {
+            expect(
+              start.world[b],
+              end.world[b],
+              reason: '${clip.name} $b: loop seam pose must close',
+            );
+          }
+        }
+      }
+    });
+
     test('performance clips keep the head stable over the moving torso', () {
       final scene = CharacterScene(buildCatInSuitRig());
 

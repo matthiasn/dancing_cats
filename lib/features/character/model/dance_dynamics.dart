@@ -169,6 +169,115 @@ EaseCurve dynamicsCurve(DanceDynamics d) {
   };
 }
 
+/// Natural frequency ωₙ (rad/s, on the authored clip clock) of the arm-
+/// transition spring at neutral [DanceDynamics.time]. Matches the shipped
+/// critically-damped follow-through rate (`_kOvershootOmegaN` in
+/// `character_scene.dart`) so that [DanceDynamics.neutral] reproduces today's
+/// settle exactly — the spring is regression-safe by construction.
+const double kSpringOmegaBase = 11;
+
+/// Damping ratio ζ at neutral [DanceDynamics.flow]: critically damped (`1`) —
+/// one rise-and-decay hump, no overshoot lobe — matching today's follow-
+/// through. [DanceDynamics.flow] dials it toward under- or over-damped.
+const double kSpringZetaMid = 1;
+
+/// [DanceDynamics.time] → ωₙ gain: a Sudden accent (+1) stiffens the spring
+/// (snaps late/fast into the hit), a Sustained one softens it (eases in early).
+const double _kSpringOmegaTimeGain = 0.45;
+
+/// ωₙ clamp. The floor keeps the impulse response basically spent before the
+/// taper-to-zero at the next key engages (so hard-zeroing never re-introduces a
+/// velocity kink); the ceiling keeps it from snapping inside a single frame.
+const double _kSpringOmegaMin = 8;
+const double _kSpringOmegaMax = 16;
+
+/// [DanceDynamics.flow] → ζ gain: a Free accent (+1) lowers ζ (underdamped —
+/// one visible overshoot-and-settle lobe, the "alive" end), a Bound one raises
+/// it (overdamped — a clean arrival that holds, the "snappy" end).
+const double _kSpringZetaFlowGain = 0.6;
+
+/// ζ clamp. The floor stays comfortably above 0 so the envelope `e^(−ζωₙt)`
+/// always decays within one overshoot lobe (never rings into a second snap);
+/// the ceiling caps how dead an over-damped arrival gets.
+const double _kSpringZetaMin = 0.4;
+const double _kSpringZetaMax = 1.6;
+
+/// The second-order spring parameters — natural frequency ωₙ (rad/s, authored
+/// clock) and damping ratio ζ — driving the closed-form arm-transition response
+/// (`_dampedTransitionResponse` in `character_scene.dart`).
+typedef DanceSpring = ({double omegaN, double zeta});
+
+/// Maps [DanceDynamics] to the arm-transition spring (ωₙ, ζ), the physics
+/// inputs shared by the hand-target follow-through and the rotational
+/// overshoot-settle:
+///
+/// - [DanceDynamics.flow] → ζ ("snappy ↔ alive"): Bound (−1) → over-damped
+///   (clean arrival, no overshoot), Free (+1) → under-damped (one overshoot
+///   lobe). This is the first lever that gives the Flow dial teeth on the arm
+///   *pose* path (it previously only fed the time warp).
+/// - [DanceDynamics.time] → ωₙ (snap speed): Sudden (+1) faster, Sustained (−1)
+///   slower.
+///
+/// [DanceDynamics.neutral] returns `(ωₙ: kSpringOmegaBase, ζ: kSpringZetaMid)` =
+/// `(11, 1)` — today's critically-damped response — so layering the spring is
+/// opt-in and regression-free. Pure and deterministic.
+DanceSpring danceSpring(DanceDynamics d) {
+  final zeta = (kSpringZetaMid - _kSpringZetaFlowGain * d.flow).clamp(
+    _kSpringZetaMin,
+    _kSpringZetaMax,
+  );
+  final omegaN = (kSpringOmegaBase * (1 + _kSpringOmegaTimeGain * d.time)).clamp(
+    _kSpringOmegaMin,
+    _kSpringOmegaMax,
+  );
+  return (omegaN: omegaN, zeta: zeta);
+}
+
+/// Closed-form damped free response to an initial velocity — the physics
+/// primitive shared by the hand-target follow-through and the rotational
+/// settle. Solves `ẍ + 2ζωₙẋ + ωₙ²x = 0` with `x(0)=0, ẋ(0)=1`, evaluated [dt]
+/// seconds after a keyframe boundary, then a linear taper forces it to exactly
+/// zero at the NEXT boundary ([frameDuration] away):
+///
+///     kernel(dt) = e^(−ζ·[omegaN]·dt) · Φ(dt) · taper,  taper = 1 − dt/frameDuration
+///     Φ(dt) = sin(ω_d·dt)/ω_d   (ζ<1, ω_d = ωₙ√(1−ζ²))  — one overshoot lobe
+///           = dt                (ζ≈1)                     — critical, one hump
+///           = sinh(β·dt)/β       (ζ>1, β = ωₙ√(ζ²−1))     — over-damped hump
+///
+/// The caller multiplies this per-unit-velocity kernel by the measured arrival
+/// velocity `v0` (a scalar rotation rate, or per-component for a 2D hand
+/// target). Key properties, all independent of ([omegaN], [zeta]):
+///
+/// - `Φ(0)=0` ⇒ exactly zero AT the keyframe (crest preserved, exact-frame-safe);
+/// - the linear taper ⇒ exactly zero at the NEXT keyframe (the non-regression
+///   property the exact-frame tests depend on: only the interpolated region is
+///   ever perturbed);
+/// - continuous across ζ=1 (both the under- and over-damped branches tend to
+///   `dt` as ζ→1; the small band around 1 just avoids a 0/0).
+///
+/// Pure function of its arguments.
+double dampedTransitionResponse(
+  double dt,
+  double frameDuration,
+  double omegaN,
+  double zeta,
+) {
+  if (dt <= 0 || frameDuration <= 0) return 0;
+  final taper = 1 - dt / frameDuration;
+  if (taper <= 0) return 0;
+  final double phi;
+  if ((zeta - 1).abs() < 1e-3) {
+    phi = dt;
+  } else if (zeta < 1) {
+    final omegaD = omegaN * math.sqrt(1 - zeta * zeta);
+    phi = math.sin(omegaD * dt) / omegaD;
+  } else {
+    final beta = omegaN * math.sqrt(zeta * zeta - 1);
+    phi = (math.exp(beta * dt) - math.exp(-beta * dt)) / (2 * beta);
+  }
+  return math.exp(-zeta * omegaN * dt) * phi * taper;
+}
+
 /// Per-factor attenuation of the dials before they enter the time warp.
 /// Weight-as-retrograde (the anticipation dip briefly runs time backwards)
 /// reads much stronger in the warp domain than Time-as-skew, so it gets a
