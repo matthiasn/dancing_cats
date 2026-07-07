@@ -421,6 +421,7 @@ class IkTargetPose {
     required this.y,
     this.weight = 1,
     this.bendDirection,
+    this.elbowAbduction = 0,
   });
 
   final double x;
@@ -439,6 +440,16 @@ class IkTargetPose {
   /// default solution folds the elbow across the torso can flip to the
   /// solution that swings it out to the side instead.
   final int? bendDirection;
+
+  /// Continuous elbow-abduction angle (radians) fed to `solveTwoBoneIk`. Where
+  /// [bendDirection] is a discrete either/or, this swings the elbow off the
+  /// rigid solution smoothly — the CONTINUOUS "open the elbow off the ribs"
+  /// control the planar rig otherwise lacks. It is a soft solve (the wrist
+  /// falls slightly short in proportion to the angle), so it is used with small
+  /// angles to open a tucked mime-wheel silhouette without a bend-flip snap.
+  /// `0` (the default) reproduces the exact rigid solve — byte-identical for
+  /// every channel authored before this field existed.
+  final double elbowAbduction;
 }
 
 sealed class IkTargetChannel {
@@ -489,6 +500,7 @@ class LayeredIkTargetChannel extends IkTargetChannel {
       y: y,
       weight: base.weight,
       bendDirection: base.bendDirection,
+      elbowAbduction: base.elbowAbduction,
     );
   }
 }
@@ -524,6 +536,7 @@ class BlendedIkTargetChannel extends IkTargetChannel {
         y: b.y,
         weight: b.weight * weight,
         bendDirection: b.bendDirection,
+        elbowAbduction: b.elbowAbduction,
       );
     }
     if (b == null) {
@@ -532,6 +545,7 @@ class BlendedIkTargetChannel extends IkTargetChannel {
         y: a.y,
         weight: a.weight * (1 - weight),
         bendDirection: a.bendDirection,
+        elbowAbduction: a.elbowAbduction,
       );
     }
     return IkTargetPose(
@@ -541,6 +555,8 @@ class BlendedIkTargetChannel extends IkTargetChannel {
       // Bend direction is a discrete either/or, not something to lerp — pick
       // whichever side of the blend currently dominates.
       bendDirection: weight >= 0.5 ? b.bendDirection : a.bendDirection,
+      // Abduction is continuous — lerp it (see [IkTargetPose.elbowAbduction]).
+      elbowAbduction: _lerp(a.elbowAbduction, b.elbowAbduction, weight),
     );
   }
 }
@@ -607,6 +623,7 @@ class IkTargetKeyframe {
     this.ease = Ease.easeInOut,
     this.tension = 0,
     this.bendDirection,
+    this.elbowAbduction = 0,
   }) : assert(
          tension >= -1 && tension <= 1,
          'tension must be in -1..1',
@@ -629,6 +646,11 @@ class IkTargetKeyframe {
   /// that also sets it. `null` (the default) leaves the limb's own default
   /// in effect — see [IkTargetPose.bendDirection].
   final int? bendDirection;
+
+  /// Elbow-abduction angle (radians) at this key — see
+  /// [IkTargetPose.elbowAbduction]. Unlike [bendDirection] it is continuous, so
+  /// it INTERPOLATES between keys (no snap). `0` (the default) is a no-op.
+  final double elbowAbduction;
 }
 
 class KeyframeIkTargetChannel extends IkTargetChannel {
@@ -670,6 +692,9 @@ class KeyframeIkTargetChannel extends IkTargetChannel {
             // Held from the segment's start key, not interpolated — see
             // [IkTargetPose.bendDirection].
             bendDirection: k0.bendDirection,
+            // Continuous, so smooth-splined like x/y (not held) — see
+            // [IkTargetPose.elbowAbduction].
+            elbowAbduction: _spline(i, local, span, (k) => k.elbowAbduction),
           );
         }
         final t = k1.ease.apply(local);
@@ -678,6 +703,8 @@ class KeyframeIkTargetChannel extends IkTargetChannel {
           y: k0.y + (k1.y - k0.y) * t,
           weight: k0.weight + (k1.weight - k0.weight) * t,
           bendDirection: k0.bendDirection,
+          elbowAbduction:
+              k0.elbowAbduction + (k1.elbowAbduction - k0.elbowAbduction) * t,
         );
       }
     }
@@ -689,6 +716,7 @@ class KeyframeIkTargetChannel extends IkTargetChannel {
     y: key.y,
     weight: key.weight,
     bendDirection: key.bendDirection,
+    elbowAbduction: key.elbowAbduction,
   );
 
   IkTargetPose _sampleCyclic(double p) {
@@ -720,6 +748,12 @@ class KeyframeIkTargetChannel extends IkTargetChannel {
           segment,
         ).clamp(0.0, 1.0),
         bendDirection: k0.bendDirection,
+        elbowAbduction: _cyclicCatmullRom(
+          cyclicKeys,
+          (key) => key.elbowAbduction,
+          (key) => key.tension,
+          segment,
+        ),
       );
     }
     final t = k1.ease.apply(segment.local);
@@ -728,6 +762,8 @@ class KeyframeIkTargetChannel extends IkTargetChannel {
       y: k0.y + (k1.y - k0.y) * t,
       weight: k0.weight + (k1.weight - k0.weight) * t,
       bendDirection: k0.bendDirection,
+      elbowAbduction:
+          k0.elbowAbduction + (k1.elbowAbduction - k0.elbowAbduction) * t,
     );
   }
 
@@ -808,6 +844,7 @@ class InertializedIkTargetChannel extends IkTargetChannel {
       // held from the active hit.
       weight: active.weight,
       bendDirection: active.bendDirection,
+      elbowAbduction: active.elbowAbduction,
     );
   }
 
