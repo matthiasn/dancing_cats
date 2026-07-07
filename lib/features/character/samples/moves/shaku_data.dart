@@ -12,320 +12,320 @@ part of '../cat_in_suit.dart';
 const _shakuBodyGrooveKeys = [
   DanceBodyKey(
     0,
-    rootDx: -14,
+    rootDx: -18.807,
     rootDy: 21.7,
     rootRotation: -0.007,
     pelvisRotation: 0.32,
     chestRotation: -0.09,
-    chestScaleY: 0.905,
+    chestScaleY: 0.82,
     chestScaleX: 1.06,
   ),
   DanceBodyKey(
     1,
-    rootDx: -18,
+    rootDx: -24.407,
     rootDy: 18.5,
     rootRotation: -0.009,
     pelvisRotation: 0.43,
     chestRotation: -0.18,
-    chestScaleY: 0.955,
+    chestScaleY: 0.932,
     chestScaleX: 1.025,
   ),
   DanceBodyKey(
     2,
-    rootDx: -20,
+    rootDx: -27.207,
     rootDy: 15.3,
     rootRotation: -0.009,
     pelvisRotation: 0.38,
     chestRotation: -0.11,
-    chestScaleY: 1.005,
+    chestScaleY: 1.007,
     chestScaleX: 0.99,
   ),
   DanceBodyKey(
     3,
-    rootDx: -19,
+    rootDx: -25.807,
     rootDy: 18.5,
     rootRotation: -0.008,
     pelvisRotation: 0.51,
     chestRotation: -0.235,
-    chestScaleY: 0.955,
+    chestScaleY: 0.932,
     chestScaleX: 1.025,
   ),
   DanceBodyKey(
     4,
-    rootDx: -11,
+    rootDx: -14.607,
     rootDy: 21.7,
     rootRotation: -0.007,
     pelvisRotation: 0.53,
     chestRotation: -0.25,
-    chestScaleY: 0.905,
+    chestScaleY: 0.82,
     chestScaleX: 1.06,
   ),
   DanceBodyKey(
     5,
-    rootDx: -13,
+    rootDx: -17.407,
     rootDy: 18.5,
     rootRotation: -0.006,
     pelvisRotation: 0.44,
     chestRotation: -0.24,
-    chestScaleY: 0.955,
+    chestScaleY: 0.932,
     chestScaleX: 1.025,
   ),
   DanceBodyKey(
     6,
-    rootDx: -12,
+    rootDx: -16.008,
     rootDy: 15.3,
     rootRotation: -0.005,
     pelvisRotation: 0.38,
     chestRotation: -0.18,
-    chestScaleY: 1.005,
+    chestScaleY: 1.007,
     chestScaleX: 0.99,
   ),
   DanceBodyKey(
     7,
-    rootDx: -1,
+    rootDx: -0.608,
     rootDy: 18.5,
     rootRotation: 0,
-    chestScaleY: 0.955,
+    chestScaleY: 0.932,
     chestScaleX: 1.025,
   ),
   DanceBodyKey(
     8,
-    rootDx: 11,
+    rootDx: 16.192,
     rootDy: 21.7,
     rootRotation: 0.005,
     pelvisRotation: 0.16,
     chestRotation: -0.02,
-    chestScaleY: 0.905,
+    chestScaleY: 0.82,
     chestScaleX: 1.06,
   ),
   DanceBodyKey(
     9,
-    rootDx: 12,
+    rootDx: 17.592,
     rootDy: 18.5,
     rootRotation: 0.006,
     pelvisRotation: 0.14,
     chestRotation: 0.02,
-    chestScaleY: 0.955,
+    chestScaleY: 0.932,
     chestScaleX: 1.025,
   ),
   DanceBodyKey(
     10,
-    rootDx: 17,
+    rootDx: 24.592,
     rootDy: 15.3,
     rootRotation: 0.008,
     pelvisRotation: 0.08,
     chestRotation: 0.06,
-    chestScaleY: 1.005,
+    chestScaleY: 1.007,
     chestScaleX: 0.99,
   ),
   DanceBodyKey(
     11,
-    rootDx: 18,
+    rootDx: 25.992,
     rootDy: 18.5,
     rootRotation: 0.008,
     pelvisRotation: 0.01,
     chestRotation: 0.045,
-    chestScaleY: 0.955,
+    chestScaleY: 0.932,
     chestScaleX: 1.025,
   ),
   DanceBodyKey(
     12,
-    rootDx: 18,
+    rootDx: 25.992,
     rootDy: 21.7,
     rootRotation: 0.006,
     pelvisRotation: -0.08,
     chestRotation: 0.1,
-    chestScaleY: 0.905,
+    chestScaleY: 0.82,
     chestScaleX: 1.06,
   ),
   DanceBodyKey(
     13,
-    rootDx: 12,
+    rootDx: 17.592,
     rootDy: 18.5,
     rootRotation: 0.004,
     pelvisRotation: -0.16,
     chestRotation: 0.12,
-    chestScaleY: 0.955,
+    chestScaleY: 0.932,
     chestScaleX: 1.025,
   ),
   DanceBodyKey(
     14,
-    rootDx: 6,
+    rootDx: 9.193,
     rootDy: 15.3,
     rootRotation: -0.001,
     pelvisRotation: -0.24,
     chestRotation: 0.14,
-    chestScaleY: 1.005,
+    chestScaleY: 1.007,
     chestScaleX: 0.99,
   ),
   DanceBodyKey(
     15,
-    rootDx: -1,
+    rootDx: -0.608,
     rootDy: 18.5,
     rootRotation: -0.004,
     pelvisRotation: -0.31,
     chestRotation: 0.16,
-    chestScaleY: 0.955,
+    chestScaleY: 0.932,
     chestScaleX: 1.025,
   ),
   DanceBodyKey(
     16,
-    rootDx: -7,
+    rootDx: -9.007,
     rootDy: 21.7,
     rootRotation: -0.006,
     pelvisRotation: -0.36,
     chestRotation: 0.13,
-    chestScaleY: 0.905,
+    chestScaleY: 0.82,
     chestScaleX: 1.06,
   ),
   DanceBodyKey(
     17,
-    rootDx: -12,
+    rootDx: -16.008,
     rootDy: 18.5,
     rootRotation: -0.007,
     pelvisRotation: -0.37,
     chestRotation: 0.12,
-    chestScaleY: 0.955,
+    chestScaleY: 0.932,
     chestScaleX: 1.025,
   ),
   DanceBodyKey(
     18,
-    rootDx: -12.6,
+    rootDx: -16.848,
     rootDy: 15.3,
     rootRotation: -0.008,
     pelvisRotation: -0.36,
     chestRotation: 0.13,
-    chestScaleY: 1.005,
+    chestScaleY: 1.007,
     chestScaleX: 0.99,
   ),
   DanceBodyKey(
     19,
-    rootDx: -12.2,
+    rootDx: -16.287,
     rootDy: 18.5,
     rootRotation: -0.008,
     pelvisRotation: -0.42,
     chestRotation: 0.135,
-    chestScaleY: 0.955,
+    chestScaleY: 0.932,
     chestScaleX: 1.025,
   ),
   DanceBodyKey(
     20,
-    rootDx: -11.4,
+    rootDx: -15.168,
     rootDy: 21.7,
     rootRotation: -0.006,
     pelvisRotation: -0.47,
     chestRotation: 0.16,
-    chestScaleY: 0.905,
+    chestScaleY: 0.82,
     chestScaleX: 1.06,
   ),
   DanceBodyKey(
     21,
-    rootDx: -9.8,
+    rootDx: -12.928,
     rootDy: 18.5,
     rootRotation: -0.004,
     pelvisRotation: -0.42,
     chestRotation: 0.2,
-    chestScaleY: 0.955,
+    chestScaleY: 0.932,
     chestScaleX: 1.025,
   ),
   DanceBodyKey(
     22,
-    rootDx: -5,
+    rootDx: -6.207,
     rootDy: 15.3,
     rootRotation: -0.002,
     pelvisRotation: -0.28,
     chestRotation: -0.03,
-    chestScaleY: 1.005,
+    chestScaleY: 1.007,
     chestScaleX: 0.99,
   ),
   DanceBodyKey(
     23,
-    rootDx: 2,
+    rootDx: 3.592,
     rootDy: 18.5,
     rootRotation: 0.001,
     pelvisRotation: -0.22,
     chestRotation: -0.055,
-    chestScaleY: 0.955,
+    chestScaleY: 0.932,
     chestScaleX: 1.025,
   ),
   DanceBodyKey(
     24,
-    rootDx: 12,
+    rootDx: 17.592,
     rootDy: 21.7,
     rootRotation: 0.007,
     pelvisRotation: -0.24,
     chestRotation: 0.095,
-    chestScaleY: 0.905,
+    chestScaleY: 0.82,
     chestScaleX: 1.06,
   ),
   DanceBodyKey(
     26,
-    rootDx: 14,
+    rootDx: 20.392,
     rootDy: 15.3,
     rootRotation: 0.008,
     pelvisRotation: -0.08,
     chestRotation: -0.06,
-    chestScaleY: 1.005,
+    chestScaleY: 1.007,
     chestScaleX: 0.99,
   ),
   DanceBodyKey(
     27,
-    rootDx: 13,
+    rootDx: 18.992,
     rootDy: 18.5,
     rootRotation: 0.007,
     pelvisRotation: -0.02,
     chestRotation: -0.08,
-    chestScaleY: 0.955,
+    chestScaleY: 0.932,
     chestScaleX: 1.025,
   ),
   DanceBodyKey(
     28,
-    rootDx: 12,
+    rootDx: 17.592,
     rootDy: 21.7,
     rootRotation: 0.006,
     pelvisRotation: 0.04,
     chestRotation: -0.1,
-    chestScaleY: 0.905,
+    chestScaleY: 0.82,
     chestScaleX: 1.06,
   ),
   DanceBodyKey(
     29,
-    rootDx: 2,
+    rootDx: 3.592,
     rootDy: 18.5,
     rootRotation: 0.001,
     pelvisRotation: 0.12,
     chestRotation: -0.18,
-    chestScaleY: 0.955,
+    chestScaleY: 0.932,
     chestScaleX: 1.025,
   ),
   DanceBodyKey(
     30,
-    rootDx: -7,
+    rootDx: -9.007,
     rootDy: 15.3,
     rootRotation: -0.004,
     pelvisRotation: 0.2,
     chestRotation: -0.15,
-    chestScaleY: 1.005,
+    chestScaleY: 1.007,
     chestScaleX: 0.99,
   ),
   DanceBodyKey(
     31,
-    rootDx: -12.4,
+    rootDx: -16.567,
     rootDy: 18.5,
     rootRotation: -0.006,
     pelvisRotation: 0.27,
     chestRotation: -0.125,
-    chestScaleY: 0.955,
+    chestScaleY: 0.932,
     chestScaleX: 1.025,
   ),
   DanceBodyKey(
     32,
-    rootDx: -14,
+    rootDx: -18.807,
     rootDy: 21.7,
     rootRotation: -0.007,
     pelvisRotation: 0.32,
     chestRotation: -0.09,
-    chestScaleY: 0.905,
+    chestScaleY: 0.82,
     chestScaleX: 1.06,
   ),
 ];
@@ -495,16 +495,34 @@ const _shakuHandLTargetKeys = [
   // — one key per count, no dead-hold duplicates, no tension snap-hints. The
   // hold → snap → settle between them is generated by the pre-simulated spring
   // ([DanceIkTargetTrack.inertialize]), driven by shaku's Bound/Sudden dynamics.
-  // 17 hand-crafted keys → 8 hit shapes.
-  DanceIkTargetKey(0, x: -44, y: -42), // HIT open up-out
-  DanceIkTargetKey(4, x: 10, y: -14), // recover in
-  DanceIkTargetKey(8, x: -44, y: -42),
-  DanceIkTargetKey(12, x: 10, y: -14),
-  // bar 2 — open higher/wider (escalation).
-  DanceIkTargetKey(16, x: -46, y: -44),
-  DanceIkTargetKey(20, x: 12, y: -14),
-  DanceIkTargetKey(24, x: -46, y: -44),
-  DanceIkTargetKey(28, x: 12, y: -14), // L parks low under R's pull
+  // R23 CROSSED-FIST SHAKU SAW re-author (5-lens panel, avg 6.4): the wide
+  // one-arm side-reach (open to ±44/±46 while the other hand parked) was
+  // hype-man vocabulary, not shaku — coach/animator/mocap/physicist ALL flagged
+  // it as the wrong move, and it was the technical lens's one rig-y junction
+  // (the flat pinned-on side-sleeve) too. Shaku's signature is BOTH forearms
+  // carried near the chest, COMPACT (within shoulder width, not a ±44 lockout),
+  // sawing past the midline antiphase. This hand rides the UPPER track (y≈-32):
+  // its fist sweeps left↔right across centre each beat while hand.R rides the
+  // LOWER track antiphase, so the two forearms stay stacked (a height offset →
+  // open sky between them, never the folded-flat centre blob the animator
+  // flagged) and cross past each other L↔R — the "washing-machine" roll —
+  // instead of one arm reaching out while the other parks. The spring still
+  // whips the direction change (crest ~6); only WHAT it snaps between changed.
+  // Compact + chest-height also keeps the two-bone elbow well inside its
+  // reach/bend ceiling (the old deep-cross ceiling no longer bites).
+  // R24 (animator #2): raise the UPPER track ~6px so the stacked-forearm gap
+  // vs hand.R widens from a "thin sliver" (~16) to a forearm-height window
+  // (~23-26) — the crossover reads as two stacked forearms with open sky
+  // between, not a single fist cluster at the tie knot.
+  DanceIkTargetKey(0, x: -22.5, y: -37), // upper-left
+  DanceIkTargetKey(4, x: 17.5, y: -36), // crossed to upper-right
+  DanceIkTargetKey(8, x: -22.5, y: -37),
+  DanceIkTargetKey(12, x: 17.5, y: -36),
+  // bar 2 — the saw opens a touch wider/higher (escalation, still compact).
+  DanceIkTargetKey(16, x: -25, y: -40),
+  DanceIkTargetKey(20, x: 20, y: -38),
+  DanceIkTargetKey(24, x: -25, y: -40),
+  DanceIkTargetKey(28, x: 20, y: -38),
 ];
 const _shakuHandRTargetKeys = [
   // bar 1 — R recovers IN at the left-chest on L's open counts, then OPENS
@@ -518,37 +536,39 @@ const _shakuHandRTargetKeys = [
   // R21 timing: 1-frame SNAP + 3-frame DEAD HOLD (mirror of hand.L; answers on
   // the off-beats). Bar 2 climaxes on the generator pull (count 28).
   // R22 SPARSE re-author (Phase 2 inertializer): mirror of hand.L — one hit-pose
-  // per count, spring-interpolated. Answers on the off-beats; bar 2 climaxes on
-  // the generator pull (count 28). 17 keys → 8.
-  DanceIkTargetKey(0, x: -8, y: -14), // recover low-in
-  DanceIkTargetKey(4, x: 44, y: -42), // HIT open-out
-  DanceIkTargetKey(8, x: -8, y: -14),
-  DanceIkTargetKey(12, x: 44, y: -42),
-  // bar 2 — wider open; the generator pull on count 28.
-  DanceIkTargetKey(16, x: -10, y: -14),
-  DanceIkTargetKey(20, x: 46, y: -44),
-  DanceIkTargetKey(24, x: -10, y: -14),
-  DanceIkTargetKey(28, x: 54, y: -46), // SNAP to GENERATOR PULL (wide AND high)
-  // Settle key: the pull recovers to the low-in hold BEFORE the loop seam
-  // (frame 32≡0), so R holds through the wrap instead of whipping across it —
-  // the seam velocity discontinuity all five panel lenses flagged as the #1
-  // remaining defect. The pull still hits on its beat (28); only the recovery
-  // is pulled forward so the loop closes with velocity continuity.
-  DanceIkTargetKey(30, x: -8, y: -14),
+  // per count, spring-interpolated.
+  // R23 CROSSED-FIST SHAKU SAW (mirror of hand.L, antiphase). This hand rides
+  // the LOWER track (y≈-16): when hand.L is upper-LEFT this fist is lower-RIGHT,
+  // and they SWAP each beat, so the two forearms cross past the midline stacked
+  // one above the other — the shaku saw, not a one-arm reach. The old bar-2
+  // "generator pull" (wide-and-high up-out to x: 25/y:-46) is GONE: that was the
+  // same hype-man extension the panel rejected; the climax is now a slightly
+  // bigger saw crossing. The periodic spring closes the 28→0 seam by
+  // construction, so the old frame-30 settle (added only to tame the big
+  // cross-seam pull) is no longer needed — there is no big pull to tame.
+  DanceIkTargetKey(0, x: 22.5, y: -16), // lower-right
+  DanceIkTargetKey(4, x: -17.5, y: -14), // crossed to lower-left
+  DanceIkTargetKey(8, x: 22.5, y: -16),
+  DanceIkTargetKey(12, x: -17.5, y: -14),
+  // bar 2 — wider saw (escalation, still compact).
+  DanceIkTargetKey(16, x: 25, y: -16),
+  DanceIkTargetKey(20, x: -20, y: -14),
+  DanceIkTargetKey(24, x: 25, y: -16),
+  DanceIkTargetKey(28, x: -20, y: -14),
 ];
 const _shakuFootLTargetKeys = [
   // The support phase is ONE constant plant — the round-3 rigging rater
   // pixel-measured the old ±3-unit authored wander as ice-skating. The
   // handoff to the free phase is a real lift-step (y clears the floor),
   // not a translated sole.
-  DanceIkTargetKey(0, x: -69, y: 103), // planted support, visible outside
-  DanceIkTargetKey(13, x: -69, y: 103), // still exactly there
-  DanceIkTargetKey(14, x: -66, y: 91), // toe-led lift, clears the floor
+  DanceIkTargetKey(0, x: -42.435, y: 103), // planted support, visible outside
+  DanceIkTargetKey(13, x: -42.435, y: 103), // still exactly there
+  DanceIkTargetKey(14, x: -40.59, y: 91), // toe-led lift, clears the floor
   // R24 ornament: GHOST press on the 'and' of the handoff (beat 7.5) — the
   // panel measured a 1.5-beat dead zone (beats 7.5-9) where neither foot
   // articulates while the R foot plants; a half-height press keeps the
   // free foot talking through the transfer.
-  DanceIkTargetKey(15, x: -58, y: 94, tension: 0.5),
+  DanceIkTargetKey(15, x: -35.67, y: 94, tension: 0.5),
   // Free phase re-authored as LIFTED tap-steps (R16 mocap: stance-width
   // changes "all while both feet render flat and weighted... replaced by
   // feet sliding on the floor"; coach: "the signature quick in-out
@@ -559,23 +579,23 @@ const _shakuFootLTargetKeys = [
   // pocket is deep AND right-shifted, and a far cross-body tap from a
   // low pelvis over-rotates the hip past its 1.55 rad dancer envelope
   // (the validator caught 1.76 at the -34 tap).
-  DanceIkTargetKey(16, x: -54, y: 84), // high pickup after the handoff
+  DanceIkTargetKey(16, x: -33.21, y: 84), // high pickup after the handoff
   // DOUBLE-TIME LEGS: bars 3-4 answer in the same per-beat in-out voice
   // (see the R foot's note). Inboard taps stay at/outside -42: the hip
   // envelope caught a -34 cross-body tap from the deep right-shifted
   // bar-3 pelvis at 1.76 rad in R16.
-  DanceIkTargetKey(17, x: -42, y: 96, tension: 0.8), // TAP in
-  DanceIkTargetKey(18, x: -56, y: 82), // high pickup
-  DanceIkTargetKey(19, x: -64, y: 95, tension: 0.8), // TAP out wide
-  DanceIkTargetKey(20, x: -50, y: 81),
-  DanceIkTargetKey(21, x: -42, y: 96, tension: 0.8), // TAP in
-  DanceIkTargetKey(22, x: -54, y: 82),
-  DanceIkTargetKey(23, x: -60, y: 95, tension: 0.8), // TAP out
-  DanceIkTargetKey(24, x: -52, y: 96, tension: 1), // down-OUT on the count
-  DanceIkTargetKey(25, x: -40, y: 82), // high pickup
-  DanceIkTargetKey(26, x: -32, y: 96, tension: 1), // TAP inboard, "and"
-  DanceIkTargetKey(27, x: -46, y: 83),
-  DanceIkTargetKey(28, x: -56, y: 87), // gathering home
+  DanceIkTargetKey(17, x: -25.83, y: 96, tension: 0.8), // TAP in
+  DanceIkTargetKey(18, x: -34.44, y: 82), // high pickup
+  DanceIkTargetKey(19, x: -39.36, y: 95, tension: 0.8), // TAP out wide
+  DanceIkTargetKey(20, x: -30.75, y: 81),
+  DanceIkTargetKey(21, x: -25.83, y: 96, tension: 0.8), // TAP in
+  DanceIkTargetKey(22, x: -33.21, y: 82),
+  DanceIkTargetKey(23, x: -36.9, y: 95, tension: 0.8), // TAP out
+  DanceIkTargetKey(24, x: -31.98, y: 96, tension: 1), // down-OUT on the count
+  DanceIkTargetKey(25, x: -24.6, y: 82), // high pickup
+  DanceIkTargetKey(26, x: -19.68, y: 96, tension: 1), // TAP inboard, "and"
+  DanceIkTargetKey(27, x: -28.29, y: 83),
+  DanceIkTargetKey(28, x: -34.44, y: 87), // gathering home
   // The R14 rigging rater pixel-tracked the old 29→32 travel (y 94→98→103)
   // as a ~28px flat-contact DRAG across the loop seam — the sole never
   // visibly left the floor. Re-shaped as a real recovery step: the flick
@@ -584,10 +604,10 @@ const _shakuFootLTargetKeys = [
   // takes over at 30.125 — holding flat through the loop wrap. tension: 1
   // is the planted-contact stamp: it zeroes the spline tangent so the sole
   // arrives dead instead of overshooting through the floor.
-  DanceIkTargetKey(29, x: -46, y: 87), // lift peak, sole clears the floor
-  DanceIkTargetKey(30, x: -69, y: 103, tension: 1), // airborne flick lands
-  DanceIkTargetKey(31, x: -69, y: 103, tension: 1), // held plant
-  DanceIkTargetKey(32, x: -69, y: 103, tension: 1), // == frame 0, planted
+  DanceIkTargetKey(29, x: -28.29, y: 87), // lift peak, sole clears the floor
+  DanceIkTargetKey(30, x: -42.435, y: 103, tension: 1), // airborne flick lands
+  DanceIkTargetKey(31, x: -42.435, y: 103, tension: 1), // held plant
+  DanceIkTargetKey(32, x: -42.435, y: 103, tension: 1), // == frame 0, planted
 ];
 const _shakuFootRTargetKeys = [
   // DOUBLE-TIME LEGS (owner, 2026-07-05, after watching reference video:
@@ -597,26 +617,26 @@ const _shakuFootRTargetKeys = [
   // 9-unit travel sat under the trace's 25% prominence floor, which is
   // why the legs measured 0.9 events/s and read slow). The trunk keeps
   // its half-time pocket untouched: laid-back body, busy feet.
-  DanceIkTargetKey(0, x: 52, y: 96, tension: 0.8), // TAP out (downbeat)
-  DanceIkTargetKey(1, x: 38, y: 78), // high pickup, matched to the L half
-  DanceIkTargetKey(2, x: 30, y: 95, tension: 0.8), // TAP in
-  DanceIkTargetKey(3, x: 46, y: 77),
-  DanceIkTargetKey(4, x: 58, y: 95, tension: 0.8), // TAP out
-  DanceIkTargetKey(5, x: 42, y: 78),
-  DanceIkTargetKey(6, x: 32, y: 96, tension: 0.8), // TAP in
-  DanceIkTargetKey(7, x: 44, y: 77),
-  DanceIkTargetKey(8, x: 50, y: 96, tension: 0.8), // TAP out on the count
-  DanceIkTargetKey(9, x: 36, y: 78),
-  DanceIkTargetKey(10, x: 28, y: 95, tension: 0.8), // TAP in
-  DanceIkTargetKey(11, x: 48, y: 77),
-  DanceIkTargetKey(12, x: 60, y: 95, tension: 0.8), // TAP out wide
-  DanceIkTargetKey(13, x: 44, y: 84), // gathering toward the plant
+  DanceIkTargetKey(0, x: 31.98, y: 96, tension: 0.8), // TAP out (downbeat)
+  DanceIkTargetKey(1, x: 23.37, y: 78), // high pickup, matched to the L half
+  DanceIkTargetKey(2, x: 18.45, y: 95, tension: 0.8), // TAP in
+  DanceIkTargetKey(3, x: 28.29, y: 77),
+  DanceIkTargetKey(4, x: 35.67, y: 95, tension: 0.8), // TAP out
+  DanceIkTargetKey(5, x: 25.83, y: 78),
+  DanceIkTargetKey(6, x: 19.68, y: 96, tension: 0.8), // TAP in
+  DanceIkTargetKey(7, x: 27.06, y: 77),
+  DanceIkTargetKey(8, x: 30.75, y: 96, tension: 0.8), // TAP out on the count
+  DanceIkTargetKey(9, x: 22.14, y: 78),
+  DanceIkTargetKey(10, x: 17.22, y: 95, tension: 0.8), // TAP in
+  DanceIkTargetKey(11, x: 29.52, y: 77),
+  DanceIkTargetKey(12, x: 36.9, y: 95, tension: 0.8), // TAP out wide
+  DanceIkTargetKey(13, x: 27.06, y: 84), // gathering toward the plant
   // Plants on the "and" BEFORE bar 2 (15, tension:1 = dead arrival), so
   // the foot is genuinely down when the contact span takes over at 14.5
   // and the committed weight sway arrives onto a planted shoe.
-  DanceIkTargetKey(14, x: 58, y: 90), // airborne swing toward the plant
-  DanceIkTargetKey(15, x: 69, y: 103, tension: 1), // plant on the "and"
-  DanceIkTargetKey(16, x: 69, y: 103, tension: 1), // planted support, held
+  DanceIkTargetKey(14, x: 35.67, y: 90), // airborne swing toward the plant
+  DanceIkTargetKey(15, x: 42.435, y: 103, tension: 1), // plant on the "and"
+  DanceIkTargetKey(16, x: 42.435, y: 103, tension: 1), // planted support, held
   // Hold the plant while the L foot makes its airborne recovery (frames
   // 30-31) — the old data peeled R at 30, leaving the seam with NO support
   // at all, which is exactly why the L foot used to slide in at floor
@@ -635,10 +655,10 @@ const _shakuFootRTargetKeys = [
   // travels in the air, and arrives at the f0 tap from above.
   DanceIkTargetKey(
     31,
-    x: 56,
+    x: 34.44,
     y: 84,
   ), // lifted clear, travelling through the wrap
-  DanceIkTargetKey(32, x: 52, y: 96), // == frame 0, tap arrives from above
+  DanceIkTargetKey(32, x: 31.98, y: 96), // == frame 0, tap arrives from above
 ];
 const _shakuFootLKeys = [
   DanceJointKey(0, rotation: 0.3),

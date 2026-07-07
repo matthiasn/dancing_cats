@@ -489,7 +489,11 @@ class CatClips {
         duration: base.duration,
         contactPinning: base.contactPinning,
         supportFootWorldAnchor: true,
-        supportFootWorldAnchorStrength: 0.86,
+        // R24 (physicist#1 / mocap#1): the support foot still slid ~14% of the
+        // root sway in world-x (the "double-foot skate"), so pin it harder —
+        // 0.86 → 0.90 leaves ~10% residual (0.95 tipped foot.R past the 1.5-rad
+        // planted-orientation-stability bound; 0.90 stays under it).
+        supportFootWorldAnchorStrength: 0.90,
         // Transitions panel: shaku's grooved pocket sink DWELLS (avg ~38px,
         // never near standing height) like zanku's fixed bug, at a lower
         // 0.86 base strength (14% residual) — see

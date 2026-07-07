@@ -1115,12 +1115,14 @@ void main() {
         );
         expect(
           headRange,
-          lessThan(0.27),
+          lessThan(0.30),
           reason:
               '${clip.name} head should bank with the body as a damped slice '
-              'of the lean (~10-15°), never a full rubber bobble — the bound '
-              'moved up when panel round 1 scored the near-frozen head down '
-              'on every move',
+              'of the lean (~15-17°), never a full rubber bobble — the bound '
+              'moved up again in R23 when the animator/mocap still read a '
+              '"level bobblehead"; the retained-lean slice went 26%→37% so the '
+              'skull banks with the girdle each saw (smooth/phase-locked lean, '
+              'still well under the relative 0.55×torso and collar-gap bounds)',
         );
       }
     });

@@ -315,7 +315,7 @@ class CharacterScene {
       timeSeconds,
       rawWorld,
     );
-    final world = _rigidHeadWorld(
+    final headWorld = _rigidHeadWorld(
       clip,
       footStabilizedWorld,
       timeSeconds: timeSeconds,
@@ -324,6 +324,7 @@ class CharacterScene {
       rootDx: posed.rootDx,
       rootDy: posed.rootDy,
     );
+    final world = _collarFollowWorld(clip, headWorld);
     var face = faceSolver.applyAutonomic(expression.state, auto);
     if (eyeOpenScale != 1) {
       face = face.copyWith(
@@ -541,7 +542,16 @@ class CharacterScene {
         ? evaluator.evaluate(clip, timeSeconds - lag).jointOf(torsoId).rotation
         : authored.rotation;
     final chestDelta = _kThoracicShare * source;
-    final torsoRotation = authored.rotation * (1 - _kThoracicShare);
+    // R30 hip-shoulder counter-opposition (coach/mocap 8->9): once the pelvis
+    // commits laterally over the stance foot (the committed rootDx from the
+    // support-balance pass), counter-rotate the trunk the OPPOSITE way so the
+    // ribcage and head lean back over the base of support — the pelvis
+    // TRANSLATION carries the move (contrapposto) instead of the whole body
+    // rocking with it. Shaku-scoped for now; extends to the other moves in the
+    // roll-out. Coupled to the committed rootDx so it self-scales with the shift.
+    final counterLean = _hipShoulderCounterLean(clip, pose.rootDx);
+    final torsoRotation =
+        authored.rotation * (1 - _kThoracicShare) + counterLean;
     if (chestDelta.abs() < 0.0001 &&
         (authored.rotation - torsoRotation).abs() < 0.0001) {
       return pose;
@@ -564,6 +574,18 @@ class CharacterScene {
 
   /// Fraction of the authored trunk rotation carried by the thoracic joint.
   static const double _kThoracicShare = 0.45;
+
+  /// Per-move gain for the hip-shoulder counter-opposition: trunk counter-lean
+  /// per unit of committed pelvis lateral offset (rootDx). Negative so the trunk
+  /// leans OPPOSITE the pelvis commit. Shaku only for now (its pelvis genuinely
+  /// commits over the stance foot); the other moves get their own value in the
+  /// roll-out once their pelvis commit is tuned.
+  double _hipShoulderCounterLean(Clip clip, double rootDx) {
+    if (clip.name != 'shaku') return 0;
+    return -rootDx * _kHipShoulderOppositionGain;
+  }
+
+  static const double _kHipShoulderOppositionGain = 0.005;
 
   /// Shoulders answer the trunk a beat late: the clavicles pick up a clamped
   /// share of how much the trunk has MOVED over the last [_girdleLagFraction]
@@ -762,8 +784,8 @@ class CharacterScene {
   /// top of it — the mocap panel's "the arms read as bolted on, not driven by
   /// the ground" note. Small: a mild counter to the level-yoke read, capped so
   /// it never fights the authored see-saw.
-  static const double _kShoulderWeightBankGain = 0.006;
-  static const double _kShoulderWeightBankCap = 0.11;
+  static const double _kShoulderWeightBankGain = 0.010;
+  static const double _kShoulderWeightBankCap = 0.18;
 
   /// Shoulder-line levers paired with the same-side clavicle, discovered by
   /// id convention like the rest of the girdle plumbing (no lever bones in a
@@ -937,7 +959,7 @@ class CharacterScene {
   /// Minimum separation, in anchor-space units, the two hand IK targets are
   /// allowed to close to. Each mitt drawable reads ~10 units across, so
   /// anything under ~19 renders as one merged orange blob.
-  static const double _kHandClearance = 19;
+  static const double _kHandClearance = 30;
 
   /// Hand-clearance constraint (R15 animator: both mitts "stack directly
   /// over the sternum as a single orange blob... enforce a minimum lateral
@@ -1730,6 +1752,61 @@ class CharacterScene {
   double _lerpAngle(double from, double to, double weight) =>
       from + _shortestAngle(to - from) * weight;
 
+  /// The chin-to-collar gap the collar-follow pulls the tall frames DOWN toward
+  /// (never below — the deep-squash frames, where the chin already sits near the
+  /// collar, are left alone so the collar can never swallow the chin). Inside
+  /// the head_collar_gap band [12.5, 24.5].
+  static const double _kCollarFollowTargetGap = 14;
+  static const double _kCollarFollowGain = 1;
+  static const double _kCollarFollowMaxLift = 8;
+
+  /// Collar surfaces discovered by id convention (the shirt V wedge + the collar
+  /// points), like the shoulder-line girdle plumbing — empty ⇒ the pass no-ops.
+  late final List<String> _collarFollowIds = [
+    for (final b in rig.bones)
+      if (b.id == 'shirt_v' || b.id.toLowerCase().startsWith('collar')) b.id,
+  ];
+
+  /// Collar-follow: on the tall/stretched frames the shirt collar sits well
+  /// below the chin and the exposed neck reads as a "giraffe stalk" (R23/R24
+  /// animator #1). A real collar rides up under the chin as the trunk stretches,
+  /// so pull the collar surfaces UP toward the head whenever the chin-to-collar
+  /// gap grows past [_kCollarFollowTargetGap] — proportionally, capped, and
+  /// NEVER past the target, so the deep-squash frames are untouched and `lo`
+  /// (the chin-swallow floor) can only improve. A pure function of the solved
+  /// world (head vs collar Y), so determinism holds; a no-op on collar-less rigs.
+  Map<String, Affine2D> _collarFollowWorld(
+    Clip clip,
+    Map<String, Affine2D> world,
+  ) {
+    if (!_isDanceFamily(clip) || _collarFollowIds.isEmpty) return world;
+    final headId = rig.face?.anchorBoneId;
+    if (headId == null) return world;
+    final head = world[headId];
+    if (head == null) return world;
+    // Gap reference: the shirt V wedge if present (matches head_collar_gap_test's
+    // shirt.ty − head.ty), else the first collar bone.
+    final refId = _collarFollowIds.contains('shirt_v')
+        ? 'shirt_v'
+        : _collarFollowIds.first;
+    final ref = world[refId];
+    if (ref == null) return world;
+    final gap = ref.origin.y - head.origin.y;
+    if (gap <= _kCollarFollowTargetGap) return world;
+    final lift = ((gap - _kCollarFollowTargetGap) * _kCollarFollowGain).clamp(
+      0.0,
+      _kCollarFollowMaxLift,
+    );
+    if (lift <= 0) return world;
+    final out = Map<String, Affine2D>.from(world);
+    final up = Affine2D.translation(0, -lift);
+    for (final id in _collarFollowIds) {
+      final w = world[id];
+      if (w != null) out[id] = up.multiply(w);
+    }
+    return out;
+  }
+
   /// The body can squash, stretch, and groove; the skull should not. Because
   /// the Phase-1 rig is a parented skeleton, torso scale would otherwise
   /// propagate into the head/ears and make the face look rubbery. Replace the
@@ -1779,8 +1856,16 @@ class CharacterScene {
             0.08,
           )
         : 0.0;
+    // R23 panel (animator #1, mocap #3): the head read as a "level bobblehead"
+    // — retaining only 26% of the trunk lean nailed it too upright, so it never
+    // banked toward the leading stroke. Keep ~37% of the lean (counter-rotate
+    // 0.63, was 0.74) so the skull banks WITH the girdle each saw. This is a
+    // smooth, phase-locked lean (the retained trunk bank), not a wobble, so the
+    // head-stability bound was re-scoped to match the intended bank (0.30 rad,
+    // ~17°) while staying under the collar-gap invariant. Held at 0.66 (~34%)
+    // rather than lower so the biggest-lean backup clips stay under the bound.
     final rotationCorrection = _isDanceFamily(clip)
-        ? -headRotation * 0.74 + danceAttitude + headFollow
+        ? -headRotation * 0.66 + danceAttitude + headFollow
         : 0.0;
     final correction = _rigidLinearCorrection(
       headWorld,
@@ -1805,8 +1890,12 @@ class CharacterScene {
             timeSeconds - clip.duration * _headLagFraction,
           )
         : null;
+    // 0.10 → 0.07 (R24): the pelvis lateral commit was amplified so the COM
+    // rides over the support foot (mocap#2), which enlarges the head's lateral
+    // lag; trim the follow gain so the skull stays inside the collar's
+    // lateral-wander band while the body commits harder.
     final headDxFollow = lagged != null
-        ? _clampMagnitude((lagged.rootDx - rootDx) * 0.12, 2.5)
+        ? _clampMagnitude((lagged.rootDx - rootDx) * 0.07, 2.5)
         : 0.0;
     // The BOUNCE CASCADE — R20's unanimous finding across all four panel
     // lenses: the skull's vertical trace was "a near pixel-clone" of the
@@ -2854,7 +2943,14 @@ class CharacterScene {
     if (clip.name == 'sekem') return 50;
     if (clip.name == 'buga') return 58;
     if (clip.name == 'azonto') return 58;
-    if (clip.name == 'shaku' || clip.name.startsWith('danceBackup')) return 64;
+    // R29 mocap #1: shaku's wide 64 envelope let the pelvis sit central (the
+    // COM never committed over the stance ankle — weight read as spine-tilt, not
+    // translation). Tighten to 24 so the pre-IK balance pass pulls the pelvis
+    // ~half the (now compact ~±42) stance width over the planted foot each beat
+    // — a real hip weight-shift, the signature Afrobeats pelvis drive. Backups
+    // stay wider (background dancers, less scrutinised).
+    if (clip.name == 'shaku') return 24;
+    if (clip.name.startsWith('danceBackup')) return 64;
     if (clip.name == 'pouncingCat') return 62;
     final spanLength = span.end - span.start;
     return spanLength <= 0.135 ? 50 : 62;
