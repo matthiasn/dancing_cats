@@ -756,6 +756,15 @@ class CharacterScene {
   /// clavicle channel is quiet (transitions, un-authored moves).
   static const double _kShoulderLineAbductionDeference = 0.25;
 
+  /// Weight-shift bank: how much the shoulder line tilts per unit of the root's
+  /// lateral commit ([Pose.rootDx]). The side the body loads onto drops its
+  /// shoulder, so the girdle banks WITH the lunge instead of riding level on
+  /// top of it — the mocap panel's "the arms read as bolted on, not driven by
+  /// the ground" note. Small: a mild counter to the level-yoke read, capped so
+  /// it never fights the authored see-saw.
+  static const double _kShoulderWeightBankGain = 0.006;
+  static const double _kShoulderWeightBankCap = 0.11;
+
   /// Shoulder-line levers paired with the same-side clavicle, discovered by
   /// id convention like the rest of the girdle plumbing (no lever bones in a
   /// rig ⇒ the pass is a no-op).
@@ -873,6 +882,21 @@ class CharacterScene {
       // side: L=+1, R=−1 — matches the raised-hand shrug's convention where
       // a NEGATIVE right-clavicle rotation is shoulder-up.
       addLever(pair.leverId, side * lift);
+    }
+
+    // Weight-shift bank: the loaded side (toward the root's lateral commit)
+    // drops its shoulder so the girdle banks with the lunge instead of staying
+    // level on top of it. A pure function of the solved root, so determinism
+    // holds.
+    if (_isDanceFamily(clip) && pose.rootDx != 0) {
+      final bank = (pose.rootDx * _kShoulderWeightBankGain).clamp(
+        -_kShoulderWeightBankCap,
+        _kShoulderWeightBankCap,
+      );
+      final leftPair = _shoulderLineBySuffix['.l'];
+      final rightPair = _shoulderLineBySuffix['.r'];
+      if (leftPair != null) addLever(leftPair.leverId, bank);
+      if (rightPair != null) addLever(rightPair.leverId, -bank);
     }
 
     final resolved = joints;
