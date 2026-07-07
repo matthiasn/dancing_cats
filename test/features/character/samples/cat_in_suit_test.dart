@@ -1127,13 +1127,15 @@ void main() {
       },
     );
 
-    test('shaku trades an alternating open-out cross-pump', () {
-      // R13 re-author (v2): each count ONE arm swings OUT to its own side
-      // (breaking the silhouette left, then right, alternately) while the other
-      // recovers IN across the chest — so the arms TRADE the opening every beat
-      // instead of clasping at the sternum (the panel's load-bearing miss was a
-      // centre-clamped hand blob that never opened). Bar 2 climaxes on the
-      // generator-pull.
+    test('shaku saws crossed fists antiphase near the midline', () {
+      // R23 re-author (5-lens panel, avg 6.4): the wide one-arm side-reach
+      // (open to ±44 while the other hand parked) was hype-man vocabulary, not
+      // shaku — coach/animator/mocap/physicist ALL flagged it as the wrong move
+      // and it was the technical lens's one rig-y junction too. Shaku carries
+      // BOTH fists near the chest, COMPACT (within shoulder width), sawing past
+      // the midline ANTIPHASE and stacked one forearm above the other (a height
+      // offset → open sky between them, never the folded-flat centre blob). This
+      // test pins that intent in place of the old open-out/generator-pull.
       final phrase = CatClips.dancePhrase;
       final shaku = CatClips.shaku;
       final handL = _targetFor(shaku, CatBones.handL).channel;
@@ -1162,73 +1164,79 @@ void main() {
         );
       }
 
-      // On L's counts the LEFT hand OPENS out-left while the RIGHT recovers IN
-      // across to the left-chest; on R's counts the roles swap. The opening
-      // hand clears well past its shoulder; the recovering hand sits in near
-      // the midline — so the silhouette breaks alternately, not a centre blob.
-      for (final frame in [0, 8, 16, 24]) {
+      const beats = [0, 4, 8, 12, 16, 20, 24, 28];
+      for (final frame in beats) {
         final p = frame / phrase.frameCount;
         final left = handL.sample(p);
         final right = handR.sample(p);
+        // COMPACT: both fists stay near the midline (within shoulder width),
+        // never the old ±44 side-reach lockout.
         expect(
-          left.x,
-          lessThan(-34),
-          reason: 'Shaku frame $frame: the LEFT arm OPENS out to the left',
+          left.x.abs(),
+          lessThan(26),
+          reason: 'Shaku frame $frame: the LEFT fist stays compact near centre',
         );
         expect(
           right.x.abs(),
-          lessThan(24),
+          lessThan(26),
           reason:
-              'Shaku frame $frame: the RIGHT arm recovers IN near the midline',
+              'Shaku frame $frame: the RIGHT fist stays compact near centre',
+        );
+        // STACKED: the right forearm rides below the left so the two never fold
+        // flat onto the same chest plane (open sky between them).
+        expect(
+          right.y - left.y,
+          greaterThan(12),
+          reason:
+              'Shaku frame $frame: the fists stay stacked (R below L) so the '
+              'forearms keep open sky between them, not a centre blob',
         );
       }
-      for (final frame in [4, 12, 20]) {
+
+      // ANTIPHASE crossing: on L's counts the left fist is left-of-centre and
+      // the right fist right-of-centre; on the off-beats they SWAP — the two
+      // fists cross past the midline, they do not park on one side.
+      for (final frame in [0, 8, 16, 24]) {
         final p = frame / phrase.frameCount;
-        final left = handL.sample(p);
-        final right = handR.sample(p);
         expect(
-          right.x,
-          greaterThan(34),
-          reason: 'Shaku frame $frame: the RIGHT arm OPENS out to the right',
+          handL.sample(p).x,
+          lessThan(0),
+          reason: 'Shaku frame $frame: left fist left-of-centre',
         );
         expect(
-          left.x.abs(),
-          lessThan(24),
-          reason:
-              'Shaku frame $frame: the LEFT arm recovers IN near the midline',
+          handR.sample(p).x,
+          greaterThan(0),
+          reason: 'Shaku frame $frame: right fist right-of-centre',
+        );
+      }
+      for (final frame in [4, 12, 20, 28]) {
+        final p = frame / phrase.frameCount;
+        expect(
+          handL.sample(p).x,
+          greaterThan(0),
+          reason: 'Shaku frame $frame: left fist crossed right-of-centre',
+        );
+        expect(
+          handR.sample(p).x,
+          lessThan(0),
+          reason: 'Shaku frame $frame: right fist crossed left-of-centre',
         );
       }
 
-      // The opening genuinely TRADES sides beat to beat: the left-open counts
-      // reach far left, the right-open counts reach far right.
-      final maxRightOpen = [
-        4,
-        12,
-        20,
-      ].map((f) => handR.sample(f / phrase.frameCount).x).reduce(math.max);
-      final maxLeftOpen = [
-        0,
-        8,
-        16,
-        24,
-      ].map((f) => handL.sample(f / phrase.frameCount).x).reduce(math.min);
-      expect(
-        maxRightOpen - maxLeftOpen,
-        greaterThan(80),
-        reason: 'the silhouette must open to BOTH sides across the loop',
-      );
+      // Both hands genuinely CROSS the midline over the loop (neither parks on
+      // one side): each fist's x spans from clearly-left to clearly-right.
+      final leftXs = beats.map((f) => handL.sample(f / phrase.frameCount).x);
+      final rightXs = beats.map((f) => handR.sample(f / phrase.frameCount).x);
+      expect(leftXs.reduce(math.min), lessThan(-10));
+      expect(leftXs.reduce(math.max), greaterThan(10));
+      expect(rightXs.reduce(math.min), lessThan(-10));
+      expect(rightXs.reduce(math.max), greaterThan(10));
 
-      // Bar 2 climaxes on the generator-pull: the right arm yanks up-and-out.
-      final pull = handR.sample(28 / phrase.frameCount);
+      // Bar 2 escalates: the saw opens a touch wider than bar 1.
       expect(
-        pull.x,
-        greaterThan(50),
-        reason: 'the generator pull sweeps the right arm out and up',
-      );
-      expect(
-        pull.y,
-        lessThan(-40),
-        reason: 'and high, as the bar-2 accent',
+        handL.sample(16 / phrase.frameCount).x.abs(),
+        greaterThanOrEqualTo(handL.sample(0).x.abs()),
+        reason: 'the bar-2 saw is at least as wide as bar 1',
       );
     });
 
