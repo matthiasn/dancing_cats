@@ -1081,9 +1081,15 @@ class CatClips {
               swayHarmonic: 4,
             ),
           ],
-          extraPelvisLayers: const [SineChannel(harmonicAmplitude: 0.17)],
+          // Azonto baseline panel (coach + mocap #2): the signature hip SWIVEL
+          // reads too weak — the groove looks like a bent-knee march, not
+          // hip-driven. In a 2D front-facing rig the swivel reads as a deeper
+          // pelvis ROLL (hip hike over the loaded leg) under a counter-rolling
+          // ribcage; deepened both (pelvis 0.17->0.23, chest -0.11->-0.15) so
+          // the hips lead and the chest opposes visibly.
+          extraPelvisLayers: const [SineChannel(harmonicAmplitude: 0.23)],
           extraChestLayers: const [
-            SineChannel(harmonicAmplitude: -0.11, harmonicPhase: 0.02),
+            SineChannel(harmonicAmplitude: -0.15, harmonicPhase: 0.02),
           ],
         ),
         limbTargetTracks: {
