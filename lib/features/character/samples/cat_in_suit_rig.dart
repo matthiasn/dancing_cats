@@ -1733,7 +1733,7 @@ RigSpec buildCatInSuitRig({
       // Tension profile: soft over the clavicle/deltoid cap (a flat firm
       // tension scalloped the shoulder into per-joint lobes), firm from the
       // bicep out so the elbow keeps a defined vertex at any flexion.
-      jointTensions: const [0.42, 0.42, 0.52, 0.74, 0.74, 0.74],
+      jointTensions: const [0.42, 0.42, 0.52, 0.9, 0.8, 0.78],
       z: 15,
       color: _sleeve,
       outlineColor: _outline,
@@ -1792,7 +1792,7 @@ RigSpec buildCatInSuitRig({
       // Tension profile: soft over the clavicle/deltoid cap (a flat firm
       // tension scalloped the shoulder into per-joint lobes), firm from the
       // bicep out so the elbow keeps a defined vertex at any flexion.
-      jointTensions: const [0.42, 0.42, 0.52, 0.74, 0.74, 0.74],
+      jointTensions: const [0.42, 0.42, 0.52, 0.9, 0.8, 0.78],
       z: 16,
       color: _sleeveNear,
       outlineColor: _outline,
