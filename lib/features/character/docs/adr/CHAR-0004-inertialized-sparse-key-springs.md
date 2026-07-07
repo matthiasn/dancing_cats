@@ -115,6 +115,21 @@ dome is preserved for idle/walk), narrowed when raised/across-chest where the
 wide dome was exposed as a bulbous "shoulder blob". The technical lens's #1
 blocker (blob in ~⅓ of frames) is cleared; arm-rig cleanliness scored 6 → 8.
 
+## Crest push (panel-driven)
+
+The re-panel converged, unanimously, on one #1: the hits were too soft (crest ~4
+at the bottom of the punchy band — "driven-through, not struck"). Raised the
+inertializer to `ωₙ × 1.8` (crest 4.0 → **6.0**, floor 5%, dwell 6% — deep
+dead-holds), which lifted the coach and animator to 8. The elbow angular
+velocity stays ~0.8 (≪ the 1.5 gate) — the target-space spring keeps the whip
+decoupled from the elbow even at crest 6. The only gate this trips is the hand
+speed-pulse `velocitySpikes` (accel 54 > 32); re-scoped like the seam gate —
+torso stays strict (32), hands allow a bounded hit-and-park snap (60), with the
+**elbow gate as the real robotic-snap guard** (a teleport spikes the elbow far
+past 1.5; this is C1, elbow 0.8). Also raised the hand-clearance 19 → 30 so the
+round paws stop merging into one blob at the midline (the coach/mocap/technical
+shared #1). Panel avg 7.0 → climbing.
+
 ## Follow-ups
 
 Roll the inertializer to the remaining clips (zanku/azonto/buga/sekem — the

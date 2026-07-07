@@ -133,7 +133,7 @@ Clip assembleMoveClip(
 /// 40%). A higher ωₙ shortens the settle so the hand snaps in and HOLDS; the ζ
 /// cap removes the slow creep (Flow can still dial a Free move under-damped for
 /// overshoot — it just can't push the inertializer over-damped into a glide).
-const double _kInertializerOmegaScale = 1.4;
+const double _kInertializerOmegaScale = 1.8;
 const double _kInertializerMaxZeta = 1.02;
 
 /// Builds the IK target channel for one limb track: the pre-simulated

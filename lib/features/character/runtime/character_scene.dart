@@ -762,8 +762,8 @@ class CharacterScene {
   /// top of it — the mocap panel's "the arms read as bolted on, not driven by
   /// the ground" note. Small: a mild counter to the level-yoke read, capped so
   /// it never fights the authored see-saw.
-  static const double _kShoulderWeightBankGain = 0.006;
-  static const double _kShoulderWeightBankCap = 0.11;
+  static const double _kShoulderWeightBankGain = 0.010;
+  static const double _kShoulderWeightBankCap = 0.18;
 
   /// Shoulder-line levers paired with the same-side clavicle, discovered by
   /// id convention like the rest of the girdle plumbing (no lever bones in a
@@ -937,7 +937,7 @@ class CharacterScene {
   /// Minimum separation, in anchor-space units, the two hand IK targets are
   /// allowed to close to. Each mitt drawable reads ~10 units across, so
   /// anything under ~19 renders as one merged orange blob.
-  static const double _kHandClearance = 19;
+  static const double _kHandClearance = 30;
 
   /// Hand-clearance constraint (R15 animator: both mitts "stack directly
   /// over the sternum as a single orange blob... enforce a minimum lateral

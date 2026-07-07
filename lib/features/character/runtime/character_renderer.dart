@@ -807,11 +807,19 @@ class CharacterRenderer {
     // at-rest armhole untouched.
     final raise = ((1 - v.dy / len) / 2).clamp(0.0, 1.0);
     if (raise <= 0) return widths;
+    // Bias the narrowing to HIGH flexion (raise²): the bulbous deltoid blob is a
+    // straight-up-arm artifact (raise ≈ 1). An across-chest reach (raise ≈ 0.5)
+    // reads as a flat pinned-on sleeve if it loses the same width, so square the
+    // raise to keep the shoulder-cap volume at reach while still clamping the top.
+    final raiseCurve = raise * raise;
     return [
       for (var i = 0; i < widths.length; i++)
         i < _kProximalNarrowWeights.length
             ? widths[i] *
-                  (1 - _kProximalRaiseNarrow * raise * _kProximalNarrowWeights[i])
+                  (1 -
+                      _kProximalRaiseNarrow *
+                          raiseCurve *
+                          _kProximalNarrowWeights[i])
             : widths[i],
     ];
   }
