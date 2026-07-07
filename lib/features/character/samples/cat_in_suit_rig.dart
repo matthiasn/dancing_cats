@@ -1978,9 +1978,14 @@ RigSpec buildCatInSuitRig({
       coverage: 0.4,
       softness: 0.16,
       // A modest lit-side SHEEN so the fabric/fur reads as catching the key,
-      // without going so bright that the thin limbs/cuffs chrome out.
-      highlightAmount: 0.24,
-      highlightCoverage: 0.24,
+      // without going so bright that the thin limbs/cuffs chrome out. R28: pulled
+      // the highlight back (0.24→0.15 amount, 0.24→0.16 coverage) so the raised
+      // upper-arm/deltoid cap — which lands at the highlight end of the shared
+      // jacket gradient — stops reading as a pale-slate "separate garment" over
+      // the navy torso (technical's top 8→9 blocker). The torso sits at the
+      // mid/shade band so it barely changes; mainly the arm cap darkens to navy.
+      highlightAmount: 0.15,
+      highlightCoverage: 0.16,
       // Painterly form-rounding rounds each volume's contour into a cool
       // occlusion so limbs/torso read as TUBES, not flat sticks (the panel's
       // flat-bodies note). The head + neck opt OUT (BoneDrawable.formRound:false):
