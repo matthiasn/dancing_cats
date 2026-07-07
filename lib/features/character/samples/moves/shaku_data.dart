@@ -529,6 +529,12 @@ const _shakuHandRTargetKeys = [
   DanceIkTargetKey(20, x: 46, y: -44),
   DanceIkTargetKey(24, x: -10, y: -14),
   DanceIkTargetKey(28, x: 54, y: -46), // SNAP to GENERATOR PULL (wide AND high)
+  // Settle key: the pull recovers to the low-in hold BEFORE the loop seam
+  // (frame 32≡0), so R holds through the wrap instead of whipping across it —
+  // the seam velocity discontinuity all five panel lenses flagged as the #1
+  // remaining defect. The pull still hits on its beat (28); only the recovery
+  // is pulled forward so the loop closes with velocity continuity.
+  DanceIkTargetKey(30, x: -8, y: -14),
 ];
 const _shakuFootLTargetKeys = [
   // The support phase is ONE constant plant — the round-3 rigging rater
