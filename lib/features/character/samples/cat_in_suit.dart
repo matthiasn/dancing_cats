@@ -1234,15 +1234,17 @@ class CatClips {
             // regex overshot into sekem): lateral weight under the strides
             // + a beat-level mini-bounce so mid-bar frames stop floating
             // (pocket was 0.8 ev/s over a 97.8 range).
+            // Baseline panel (mocap/physicist/coach): the groove reads as a
+            // lateral LEAN, not a vertical hip POP. Rebalanced the lateral sway
+            // DOWN (-12 -> -8) and the per-beat vertical bounce UP (-9 -> -13)
+            // so the pocket pops vertically on the beat instead of swaying side
+            // to side.
             SineRootChannel(
-              swayAmplitude: -12,
+              swayAmplitude: -8,
               swayPhase: 0.125,
               swayHarmonic: 4,
             ),
-            // r12: -5.5 -> -9 (coach: "the pocket is one slow swell per
-            // two bars — add a per-beat bounce under the strides so the
-            // groove does not float between hits").
-            SineRootChannel(bobAmplitude: -9, bobPhase: 0.09, bobHarmonic: 8),
+            SineRootChannel(bobAmplitude: -13, bobPhase: 0.09, bobHarmonic: 8),
           ],
           extraPelvisLayers: [
             SineChannel(
@@ -1255,6 +1257,17 @@ class CatClips {
               scaleYAmplitude: -0.002,
               scaleYPhase: 0.02,
               scaleYHarmonic: 24,
+            ),
+            // Baseline panel (mocap "the single biggest thing", coach, physicist):
+            // the pelvis stays LEVEL, so the groove reads as a knee-scissor squat,
+            // not a hip-driven pop. Add pelvic OBLIQUITY — a per-bar hip hike/drop
+            // (roll) phased with the lateral weight shift (sway is harmonic 4 at
+            // phase 0.125) so the loaded-side hip hikes on the beat and the
+            // accent reads as pelvis drive, not knee bend.
+            SineChannel(
+              harmonicAmplitude: 0.05,
+              harmonicPhase: 0.125,
+              harmonicMultiplier: 4,
             ),
           ],
         ),

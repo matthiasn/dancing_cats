@@ -467,55 +467,39 @@ const _bugaShoulderSocketLKeys = [
 // target folds the elbow ABOVE the shoulder and the sleeve renders as a
 // fin beside the head, paw dangling at the chest — elbow-led garbage.
 const List<DanceIkTargetKey> _bugaHandRTargetKeys = [
-  // Two-bone reality: the arm is ~48+37 world units, and flexion grows
-  // brutally fast below full reach (83% reach is already a 68-degree
-  // elbow). The lo counts hang the paws by the THIGHS (~96% reach, soft
-  // elbow) and the hit opens a WIDE extended bow (~90% reach) so the
-  // elbow stays slung below the shoulder-hand line through every frame.
-  // The paws POP off the hips on each lo count (director round 3), and the
-  // retraction from the present spends two frames with the R arm leading L
-  // by one frame — the round-3 one-frame teleport read as a glitch.
-  DanceIkTargetKey(0, x: 40, y: 16, tension: 0.6), // count pop off the hip
-  DanceIkTargetKey(2, x: 44, y: 24, tension: 0.3), // resettle on the thigh
-  DanceIkTargetKey(4, x: 52, y: 8, tension: 0.6), // count 2 pop
-  DanceIkTargetKey(6, x: 56, y: 18, tension: 0.3),
-  DanceIkTargetKey(8, x: 62, y: 6, tension: 0.6), // count 3 pop (deepest)
-  DanceIkTargetKey(10, x: 78, y: -16, tension: 0.2), // opening transit
-  DanceIkTargetKey(12, x: 106, y: -34, tension: 1), // BUGA — full peacock
-  DanceIkTargetKey(14, x: 106, y: -34, tension: 1), // held strut
-  DanceIkTargetKey(15, x: 88, y: -4, tension: 0.4), // elbow leads the return
-  DanceIkTargetKey(16, x: 58, y: 24, tension: 0.5), // overshoot past the hip
-  DanceIkTargetKey(18, x: 48, y: 18, tension: 0.3), // settle
-  DanceIkTargetKey(20, x: 46, y: 8, tension: 0.6), // bar-2 count pop
-  DanceIkTargetKey(22, x: 50, y: 18, tension: 0.3),
-  DanceIkTargetKey(24, x: 62, y: 6, tension: 0.6),
-  DanceIkTargetKey(26, x: 78, y: -16, tension: 0.2), // opening transit
-  DanceIkTargetKey(28, x: 106, y: -34, tension: 1), // BUGA
-  DanceIkTargetKey(30, x: 88, y: -4, tension: 0.4), // R leads the return
-  DanceIkTargetKey(31, x: 56, y: 24, tension: 0.5), // overshoot
-  DanceIkTargetKey(32, x: 40, y: 16, tension: 0.6),
+  // Baseline panel (coach 4/animator 5/physicist 5): the arms glide and PARK —
+  // dead hands-on-hips holds, no windup/overshoot/wrist-lag (crest ~3). Sparse
+  // hit-poses + `inertialize` generate the hold->snap->settle + follow-through.
+  // A transit key before each peacock softens the snap into the reach-maxed
+  // present (else the inertializer corners too hard). Small abduction on the
+  // low-reach counts opens the loose elbow without flipping the bend side.
+  DanceIkTargetKey(0, x: 40, y: 16, elbowAbduction: 0.2), // count pop off the hip
+  DanceIkTargetKey(4, x: 52, y: 8, elbowAbduction: 0.2), // count 2 pop
+  DanceIkTargetKey(8, x: 62, y: 6, elbowAbduction: 0.2), // count 3 pop (deepest)
+  DanceIkTargetKey(10, x: 78, y: -16), // opening transit into the present
+  DanceIkTargetKey(12, x: 106, y: -34), // BUGA — full peacock (reach-maxed)
+  DanceIkTargetKey(14, x: 106, y: -34), // held strut
+  DanceIkTargetKey(16, x: 58, y: 24, elbowAbduction: 0.2), // return overshoot
+  DanceIkTargetKey(20, x: 46, y: 8, elbowAbduction: 0.2), // bar-2 count pop
+  DanceIkTargetKey(24, x: 62, y: 6, elbowAbduction: 0.2), // count deepen
+  DanceIkTargetKey(26, x: 78, y: -16), // opening transit
+  DanceIkTargetKey(28, x: 106, y: -34), // BUGA
+  DanceIkTargetKey(32, x: 40, y: 16, elbowAbduction: 0.2), // == frame 0
 ];
 const List<DanceIkTargetKey> _bugaHandLTargetKeys = [
-  DanceIkTargetKey(0, x: -40, y: 16, tension: 0.6), // count pop off the hip
-  DanceIkTargetKey(2, x: -44, y: 24, tension: 0.3),
-  DanceIkTargetKey(4, x: -52, y: 8, tension: 0.6),
-  DanceIkTargetKey(6, x: -56, y: 18, tension: 0.3),
-  DanceIkTargetKey(8, x: -62, y: 6, tension: 0.6),
-  DanceIkTargetKey(10, x: -78, y: -16, tension: 0.2), // opening transit
-  DanceIkTargetKey(12, x: -106, y: -34, tension: 1), // BUGA — full peacock
-  DanceIkTargetKey(14, x: -106, y: -34, tension: 1), // held strut
-  DanceIkTargetKey(15, x: -98, y: -20, tension: 0.4), // trails R by a frame
-  DanceIkTargetKey(16, x: -72, y: 8, tension: 0.4),
-  DanceIkTargetKey(17, x: -56, y: 26, tension: 0.5), // overshoot past the hip
-  DanceIkTargetKey(18, x: -48, y: 18, tension: 0.3), // settle
-  DanceIkTargetKey(20, x: -46, y: 8, tension: 0.6),
-  DanceIkTargetKey(22, x: -50, y: 18, tension: 0.3),
-  DanceIkTargetKey(24, x: -62, y: 6, tension: 0.6),
-  DanceIkTargetKey(26, x: -78, y: -16, tension: 0.2), // opening transit
-  DanceIkTargetKey(28, x: -106, y: -34, tension: 1), // BUGA
-  DanceIkTargetKey(30, x: -98, y: -20, tension: 0.4), // trails the R return
-  DanceIkTargetKey(31, x: -68, y: 12, tension: 0.4),
-  DanceIkTargetKey(32, x: -40, y: 16, tension: 0.6),
+  // Mirror of hand.R (see there).
+  DanceIkTargetKey(0, x: -40, y: 16, elbowAbduction: -0.2),
+  DanceIkTargetKey(4, x: -52, y: 8, elbowAbduction: -0.2),
+  DanceIkTargetKey(8, x: -62, y: 6, elbowAbduction: -0.2),
+  DanceIkTargetKey(10, x: -78, y: -16), // opening transit
+  DanceIkTargetKey(12, x: -106, y: -34), // BUGA
+  DanceIkTargetKey(14, x: -106, y: -34), // held strut
+  DanceIkTargetKey(16, x: -58, y: 24, elbowAbduction: -0.2),
+  DanceIkTargetKey(20, x: -46, y: 8, elbowAbduction: -0.2),
+  DanceIkTargetKey(24, x: -62, y: 6, elbowAbduction: -0.2),
+  DanceIkTargetKey(26, x: -78, y: -16), // opening transit
+  DanceIkTargetKey(28, x: -106, y: -34), // BUGA
+  DanceIkTargetKey(32, x: -40, y: 16, elbowAbduction: -0.2),
 ];
 // The widening step-out lives in the TRANSIT (f10-f11 / f26-f27) so both
 // feet are planted wide with even weight for the whole held present — the
