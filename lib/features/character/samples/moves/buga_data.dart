@@ -81,7 +81,7 @@ const _bugaBodyKeys = [
     11,
     rootDx: -7,
     rootDy: 24,
-    pelvisRotation: 0,
+    pelvisRotation: -0.08,
     chestRotation: -0.12,
     chestScaleY: 1.05,
   ), // rise continues at the SAME per-frame rate as 8->10 and 10->11,
@@ -212,7 +212,7 @@ const _bugaBodyKeys = [
     27,
     rootDx: 7,
     rootDy: 26,
-    pelvisRotation: 0,
+    pelvisRotation: 0.08,
     chestRotation: 0.13,
     chestScaleY: 1.06,
   ), // rise continues at the same per-frame rate — mirrors frame 11
@@ -601,4 +601,35 @@ const _bugaFootRTargetKeys = [
   DanceIkTargetKey(29, x: 102, y: 104),
   DanceIkTargetKey(30, x: 102, y: 104),
   DanceIkTargetKey(32, x: 62, y: 101),
+];
+
+// Weight-commit ankle articulation (added to give the mocap lens a readable
+// stance-vs-free leg). On each support span the FREE foot rolls up over its
+// ball (heel lifts) while the loaded support foot stays flat — both feet stay
+// in ground contact, so the wide-base invariant is untouched; only the free
+// foot's heel unweights. Peaks sit mid-free-window; zeros pin the flat support
+// frames. footL free: [0-8],[12-16],[24-28]; footR free: [8-12],[16-24],[28-32].
+const _bugaFootLKeys = [
+  DanceJointKey(0),
+  DanceJointKey(4, rotation: 0.24), // mid R1 free window — heel lifted
+  DanceJointKey(8), // becomes support — flat
+  DanceJointKey(12),
+  DanceJointKey(14, rotation: 0.24), // mid R2 free window
+  DanceJointKey(16),
+  DanceJointKey(24),
+  DanceJointKey(26, rotation: 0.24), // mid R3 free window
+  DanceJointKey(28),
+  DanceJointKey(32),
+];
+const _bugaFootRKeys = [
+  DanceJointKey(0),
+  DanceJointKey(8),
+  DanceJointKey(10, rotation: -0.24), // mid L1 free window — heel lifted
+  DanceJointKey(12),
+  DanceJointKey(16),
+  DanceJointKey(20, rotation: -0.24), // mid L2 free window
+  DanceJointKey(24),
+  DanceJointKey(28),
+  DanceJointKey(30, rotation: -0.24), // mid L3 free window
+  DanceJointKey(32),
 ];
