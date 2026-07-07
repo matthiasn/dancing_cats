@@ -616,29 +616,30 @@ const _sekemFootRKeys = [
 // reads inside-out) — its original reach is already at the anatomical
 // ceiling, not a style choice, so it is untouched.
 const _sekemHandLTargetKeys = [
-  DanceIkTargetKey(0, x: -15, y: -48, tension: 1), // pinned at the sternum
-  DanceIkTargetKey(4, x: -15, y: -40, tension: 1), // rides the L dig DOWN
-  DanceIkTargetKey(6, x: -15, y: -54, tension: 0.6), // release overshoot
-  DanceIkTargetKey(8, x: -15, y: -48, tension: 1),
-  DanceIkTargetKey(12, x: -15, y: -40, tension: 1), // dig ride
-  DanceIkTargetKey(14, x: -15, y: -54, tension: 0.6),
-  // Free-arm band: |x| stays <= 46 (inside the validator's same-side lane
-  // margin — a hip-pump arm is allowed its elbow bend there) and the punch
-  // lands at ~92% reach so the elbow keeps a visible bend.
-  // Round 6: mirrors the hand.R pump-depth fix above (see its comment) —
-  // only frame 20 is Y-tested here (0..18, still a "quiet" frame, left
-  // alone), so both punch frames (16, 24) got the same deep reach.
-  // Round 7: mirrors the hand.R contrast fix above — quiet frames pulled
-  // back up near the recoil level so punch vs quiet actually differ.
-  DanceIkTargetKey(16, x: -38, y: 32, tension: 1), // swap: FREE hip pump
-  DanceIkTargetKey(18, x: -36, y: -10, tension: 0.4), // peak recovery
-  DanceIkTargetKey(20, x: -40, y: 8, tension: 0.5), // rising back out
-  DanceIkTargetKey(22, x: -38, y: 20, tension: 0.4), // closing in on the punch
-  DanceIkTargetKey(24, x: -40, y: 32, tension: 1), // PUNCH past the hip
-  DanceIkTargetKey(26, x: -36, y: -10, tension: 0.4),
-  DanceIkTargetKey(28, x: -40, y: 8, tension: 0.5),
-  DanceIkTargetKey(30, x: -38, y: 20, tension: 0.4),
-  DanceIkTargetKey(32, x: -15, y: -48, tension: 1),
+  // Alternating shoulder-led digs with a HIGH recover (2026-07-07 re-author).
+  // Big vertical contrast so at any beat one paw is unmistakably LOW-and-out
+  // (dig past the hip) and the other unmistakably HIGH (up near the shoulder),
+  // never both parked at hip level (the akimbo read that held the shallow first
+  // pass at 6). Both extremes are held a frame so the pair snaps between poses
+  // instead of dwelling mid-cross. L digs on 4/12/20/28, recovers HIGH on
+  // 0/8/16/24. cyclic; f32 == f0.
+  DanceIkTargetKey(0, x: -28, y: -50, tension: 0.8), // recover HIGH (R digs)
+  DanceIkTargetKey(1, x: -28, y: -48, tension: 0.6), // high hold
+  DanceIkTargetKey(4, x: -42, y: 30, tension: 0.6), // DIG low-out past the hip
+  DanceIkTargetKey(5, x: -42, y: 28, tension: 0.6), // dig crest hold
+  DanceIkTargetKey(8, x: -28, y: -50, tension: 0.8), // recover HIGH
+  DanceIkTargetKey(9, x: -28, y: -48, tension: 0.6),
+  DanceIkTargetKey(12, x: -42, y: 30, tension: 0.6), // DIG
+  DanceIkTargetKey(13, x: -42, y: 28, tension: 0.6),
+  DanceIkTargetKey(16, x: -28, y: -50, tension: 0.8), // recover HIGH
+  DanceIkTargetKey(17, x: -28, y: -48, tension: 0.6),
+  DanceIkTargetKey(20, x: -42, y: 30, tension: 0.6), // DIG
+  DanceIkTargetKey(21, x: -42, y: 28, tension: 0.6),
+  DanceIkTargetKey(24, x: -28, y: -50, tension: 0.8), // recover HIGH
+  DanceIkTargetKey(25, x: -28, y: -48, tension: 0.6),
+  DanceIkTargetKey(28, x: -42, y: 30, tension: 0.6), // DIG
+  DanceIkTargetKey(29, x: -42, y: 28, tension: 0.6),
+  DanceIkTargetKey(32, x: -28, y: -50, tension: 0.8), // == frame 0
 ];
 // Round 6: every rater independently measured the free arm's excursion —
 // ~4 units in x, ~16 in y — and called it a held pose, not a pump; the
@@ -668,21 +669,26 @@ const _sekemHandLTargetKeys = [
 // so the elbow actually swings through the whole cycle each beat instead
 // of dipping once and holding near-flat for three sampled instants.
 const _sekemHandRTargetKeys = [
-  DanceIkTargetKey(0, x: 38, y: 24, tension: 1), // FREE — punch past the hip
-  DanceIkTargetKey(2, x: 36, y: -10, tension: 0.4), // peak recovery
-  DanceIkTargetKey(4, x: 40, y: 8, tension: 0.5), // rising back out
-  DanceIkTargetKey(6, x: 38, y: 20, tension: 0.4), // closing in on the punch
-  DanceIkTargetKey(8, x: 38, y: 26, tension: 1), // PUNCH on the R dig
-  DanceIkTargetKey(10, x: 36, y: -10, tension: 0.4),
-  DanceIkTargetKey(12, x: 40, y: 8, tension: 0.5),
-  DanceIkTargetKey(14, x: 38, y: 20, tension: 0.4),
-  DanceIkTargetKey(16, x: 15, y: -48, tension: 1), // swap: sternum pin
-  DanceIkTargetKey(20, x: 15, y: -40, tension: 1), // rides the R dig DOWN
-  DanceIkTargetKey(22, x: 15, y: -54, tension: 0.6),
-  DanceIkTargetKey(24, x: 15, y: -48, tension: 1),
-  DanceIkTargetKey(28, x: 15, y: -40, tension: 1),
-  DanceIkTargetKey(30, x: 15, y: -54, tension: 0.6),
-  DanceIkTargetKey(32, x: 38, y: 24, tension: 1),
+  // Mirror of hand.L, one beat out of phase: R digs low-out on 0/8/16/24 and
+  // recovers HIGH on 4/12/20/28. Together the paws are always in high/low
+  // opposition (one up near the shoulder, one digging past the hip).
+  DanceIkTargetKey(0, x: 42, y: 30, tension: 0.6), // DIG low-out past the hip
+  DanceIkTargetKey(1, x: 42, y: 28, tension: 0.6), // dig crest hold
+  DanceIkTargetKey(4, x: 28, y: -50, tension: 0.8), // recover HIGH (L digs)
+  DanceIkTargetKey(5, x: 28, y: -48, tension: 0.6),
+  DanceIkTargetKey(8, x: 42, y: 30, tension: 0.6), // DIG
+  DanceIkTargetKey(9, x: 42, y: 28, tension: 0.6),
+  DanceIkTargetKey(12, x: 28, y: -50, tension: 0.8), // recover HIGH
+  DanceIkTargetKey(13, x: 28, y: -48, tension: 0.6),
+  DanceIkTargetKey(16, x: 42, y: 30, tension: 0.6), // DIG
+  DanceIkTargetKey(17, x: 42, y: 28, tension: 0.6),
+  DanceIkTargetKey(20, x: 28, y: -50, tension: 0.8), // recover HIGH
+  DanceIkTargetKey(21, x: 28, y: -48, tension: 0.6),
+  DanceIkTargetKey(24, x: 42, y: 30, tension: 0.6), // DIG
+  DanceIkTargetKey(25, x: 42, y: 28, tension: 0.6),
+  DanceIkTargetKey(28, x: 28, y: -50, tension: 0.8), // recover HIGH
+  DanceIkTargetKey(29, x: 28, y: -48, tension: 0.6),
+  DanceIkTargetKey(32, x: 42, y: 30, tension: 0.6), // == frame 0
 ];
 // Anchored paws lie quietly: a small settle ride on the pins instead of
 // the old paddle flicks.
