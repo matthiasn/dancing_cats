@@ -161,10 +161,20 @@ HandVelocityProfile sampleHandVelocityProfile(
       ? 0.0
       : kDanceRealTempoSpeedup * samples / clip.duration;
 
-  final authoredL =
-      _handSpeeds(scene, clip, CatBones.handL, samples, toPerSecond);
-  final authoredR =
-      _handSpeeds(scene, clip, CatBones.handR, samples, toPerSecond);
+  final authoredL = _handSpeeds(
+    scene,
+    clip,
+    CatBones.handL,
+    samples,
+    toPerSecond,
+  );
+  final authoredR = _handSpeeds(
+    scene,
+    clip,
+    CatBones.handR,
+    samples,
+    toPerSecond,
+  );
 
   final danced = upperBodyDynamicsWarpedClip(
     clip,
@@ -270,17 +280,34 @@ void paintVelocityProfile(
   final s = profile.shipped;
 
   // ---- header: crest verdict + labelled stat readout + Effort dials ----
-  text('HAND SPEED — velocity of each hand through the loop (rig units / real second)',
-      margin, margin, colors.text, 12.5);
+  text(
+    'HAND SPEED — velocity of each hand through the loop (rig units / real second)',
+    margin,
+    margin,
+    colors.text,
+    12.5,
+  );
 
   // Big crest verdict. Colour by how uniform it is (low crest = uniform = warm).
   final crestColor = s.crest < 3.0
       ? colors.accent
       : (s.crest < 4.0 ? colors.traceR : colors.traceL);
-  text('crest ${s.crest.toStringAsFixed(2)}', margin, margin + 20, crestColor,
-      22, weight: FontWeight.w700);
-  text('peak ÷ mean speed', margin + 130, margin + 31, colors.textLow, 10.5,
-      weight: FontWeight.w500);
+  text(
+    'crest ${s.crest.toStringAsFixed(2)}',
+    margin,
+    margin + 20,
+    crestColor,
+    22,
+    weight: FontWeight.w700,
+  );
+  text(
+    'peak ÷ mean speed',
+    margin + 130,
+    margin + 31,
+    colors.textLow,
+    10.5,
+    weight: FontWeight.w500,
+  );
   text(
     profile.warped
         ? 'as-danced — move base Effort (per-cat & section energy add live) · '
@@ -296,16 +323,22 @@ void paintVelocityProfile(
   final rx = size.width - margin - 330;
   text(
     'floor ${s.floorPct.toStringAsFixed(0)}%     '
-        'dwell ${s.dwellPct.toStringAsFixed(0)}%     '
-        'peak ${s.peak.toStringAsFixed(0)}',
+    'dwell ${s.dwellPct.toStringAsFixed(0)}%     '
+    'peak ${s.peak.toStringAsFixed(0)}',
     rx,
     margin,
     colors.text,
     12,
     weight: FontWeight.w700,
   );
-  text('floor = slowest 10% ÷ peak · dwell = loop at 30–80% peak', rx,
-      margin + 19, colors.textLow, 9.5, weight: FontWeight.w500);
+  text(
+    'floor = slowest 10% ÷ peak · dwell = loop at 30–80% peak',
+    rx,
+    margin + 19,
+    colors.textLow,
+    9.5,
+    weight: FontWeight.w500,
+  );
   final d = profile.dynamics;
   text(
     'Effort   Weight ${_weightWord(d.weight)} · Time ${_timeWord(d.time)} · Flow ${_flowWord(d.flow)}',
@@ -343,8 +376,11 @@ void paintVelocityProfile(
   // horizontal thirds
   for (final f in [0.25, 0.5, 0.75]) {
     final gy = cy0 + (cy1 - cy0) * f;
-    canvas.drawLine(Offset(x0, gy), Offset(x1, gy),
-        Paint()..color = colors.grid);
+    canvas.drawLine(
+      Offset(x0, gy),
+      Offset(x1, gy),
+      Paint()..color = colors.grid,
+    );
   }
   // beat verticals; downbeats heavier
   for (var b = 0; b <= profile.beatsPerLoop; b++) {
@@ -358,8 +394,12 @@ void paintVelocityProfile(
     );
   }
 
-  void plot(List<double> v, Color color,
-      {bool faint = false, bool dashed = false}) {
+  void plot(
+    List<double> v,
+    Color color, {
+    bool faint = false,
+    bool dashed = false,
+  }) {
     final paint = Paint()
       ..color = faint ? color.withValues(alpha: 0.32) : color
       ..strokeWidth = faint ? 1.4 : 2
@@ -397,8 +437,14 @@ void paintVelocityProfile(
   text('L hand', x0 + 4, cy0 + 4, colors.traceL, 10);
   text('R hand', x0 + 52, cy0 + 4, colors.traceR, 10);
   if (profile.warped) {
-    text('(faint = authored, before Effort warp)', x0 + 104, cy0 + 4,
-        colors.textLow, 10, weight: FontWeight.w500);
+    text(
+      '(faint = authored, before Effort warp)',
+      x0 + 104,
+      cy0 + 4,
+      colors.textLow,
+      10,
+      weight: FontWeight.w500,
+    );
   }
 }
 

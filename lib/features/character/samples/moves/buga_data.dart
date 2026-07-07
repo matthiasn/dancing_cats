@@ -503,9 +503,19 @@ const List<DanceIkTargetKey> _bugaHandRTargetKeys = [
   // A transit key before each peacock softens the snap into the reach-maxed
   // present (else the inertializer corners too hard). Small abduction on the
   // low-reach counts opens the loose elbow without flipping the bend side.
-  DanceIkTargetKey(0, x: 40, y: 16, elbowAbduction: 0.2), // count pop off the hip
+  DanceIkTargetKey(
+    0,
+    x: 40,
+    y: 16,
+    elbowAbduction: 0.2,
+  ), // count pop off the hip
   DanceIkTargetKey(4, x: 52, y: 8, elbowAbduction: 0.2), // count 2 pop
-  DanceIkTargetKey(8, x: 62, y: 6, elbowAbduction: 0.2), // count 3 pop (deepest)
+  DanceIkTargetKey(
+    8,
+    x: 62,
+    y: 6,
+    elbowAbduction: 0.2,
+  ), // count 3 pop (deepest)
   DanceIkTargetKey(10, x: 78, y: -16), // opening transit into the present
   DanceIkTargetKey(12, x: 106, y: -34), // BUGA — full peacock (reach-maxed)
   DanceIkTargetKey(14, x: 106, y: -34), // held strut

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:dancing_cats/features/character/model/clip.dart';
 import 'package:dancing_cats/features/character/model/dance_dynamics.dart';
 
@@ -90,6 +92,90 @@ Clip upperBodyDynamicsWarpedClip(
     supportFootWorldAnchorStrength: clip.supportFootWorldAnchorStrength,
     supportFootWorldAnchorVerticalBoost:
         clip.supportFootWorldAnchorVerticalBoost,
+    danceHeadBobScale: clip.danceHeadBobScale,
+    danceHeadLevelClampMin: clip.danceHeadLevelClampMin,
+    enforceSoleFloor: clip.enforceSoleFloor,
+    transitionPlan: clip.transitionPlan,
+    zOrderSwaps: clip.zOrderSwaps,
+    dynamics: clip.dynamics,
+  );
+}
+
+/// Hand IK-target bones the effort/amplitude modulation acts on (the fast,
+/// expressive hands — the legs/feet keep their own grounded motion). These are
+/// the rig's dotted bone-id strings (`CatBones.handL`/`handR` = 'hand.L'/'hand.R').
+const Set<String> kDanceEffortHandBoneIds = {'hand.L', 'hand.R'};
+
+/// Deterministic per-loop amplitude "breath": a periodic (loop-seamless)
+/// pseudo-irregular envelope in ~[-1, 1] so effort varies BEAT TO BEAT — some
+/// beats reach the extreme, others hold back — instead of a flat scale (owner:
+/// "not just flat, there should be deterministic variance"). Integer harmonics
+/// keep it periodic over the loop (scaleOf(0)==scaleOf(1)); the non-1:2 ratios
+/// (3/5/8) keep it from repeating every beat; [lanePhase] offsets each dancer so
+/// the trio doesn't breathe in lockstep. Deterministic — reproducible across
+/// renders and testable, not random jitter.
+double danceEffortVariance(double p, double lanePhase) {
+  final t = 2 * math.pi * p;
+  return 0.55 * math.sin(3 * t + lanePhase) +
+      0.30 * math.sin(5 * t + 1.7 * lanePhase) +
+      0.15 * math.sin(8 * t + 2.3 * lanePhase);
+}
+
+/// Effort amplitude scale as a function of loop phase for one dancer: a
+/// [dynamics]-driven base (higher song energy / Weight → bigger movements) times
+/// the deterministic beat-to-beat [danceEffortVariance] breath. Fast timing is
+/// untouched — only how BIG each move gets changes. Clamped so the hands never
+/// collapse to nothing or overshoot reach.
+double Function(double) danceEffortScaleOf(DanceDynamics dynamics, int lane) {
+  // Energy base: neutral ≈ 1.0; the section-energy gain pushes Weight up in hot
+  // sections (bigger) and down in calm ones (smaller-but-still-fast).
+  final base = (1 + 0.7 * dynamics.weight).clamp(0.72, 1.22);
+  final lanePhase = lane * 2.1; // distinct, deterministic per dancer
+  const varGain = 0.32;
+  return (p) =>
+      (base * (1 + varGain * danceEffortVariance(p, lanePhase)))
+          .clamp(0.5, 1.35);
+}
+
+/// Returns [clip] with its [boneIds] hand IK targets amplitude-modulated by the
+/// phase-dependent [scaleOf] (see [AmplitudeScaledIkTargetChannel]) — the effort
+/// dial with deterministic variance. Timing/frequency is untouched (the fast
+/// base motion stays); only how big each hand move gets changes over the loop.
+/// Returns the SAME clip when no hand target matches or the clip is a one-shot.
+Clip effortModulatedClip(
+  Clip clip,
+  double Function(double p) scaleOf, {
+  Set<String> boneIds = kDanceEffortHandBoneIds,
+}) {
+  if (!clip.loop || clip.duration <= 0 || clip.limbTargets.isEmpty) return clip;
+  var changed = false;
+  final limbTargets = [
+    for (final target in clip.limbTargets)
+      if (boneIds.contains(target.endBoneId)) ...[
+        () {
+          changed = true;
+          return target.withChannel(
+            AmplitudeScaledIkTargetChannel(target.channel, scaleOf),
+          );
+        }(),
+      ] else
+        target,
+  ];
+  if (!changed) return clip;
+  return Clip(
+    name: clip.name,
+    duration: clip.duration,
+    channels: clip.channels,
+    loop: clip.loop,
+    root: clip.root,
+    locomotionSpeed: clip.locomotionSpeed,
+    groundSpans: clip.groundSpans,
+    contactSpans: clip.contactSpans,
+    contactPinning: clip.contactPinning,
+    limbTargets: limbTargets,
+    supportFootWorldAnchor: clip.supportFootWorldAnchor,
+    supportFootWorldAnchorStrength: clip.supportFootWorldAnchorStrength,
+    supportFootWorldAnchorVerticalBoost: clip.supportFootWorldAnchorVerticalBoost,
     danceHeadBobScale: clip.danceHeadBobScale,
     danceHeadLevelClampMin: clip.danceHeadLevelClampMin,
     enforceSoleFloor: clip.enforceSoleFloor,

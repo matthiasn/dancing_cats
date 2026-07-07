@@ -611,7 +611,8 @@ class _DanceMoveInspectorDialogState extends State<_DanceMoveInspectorDialog>
                       'pocket bounce · weight sway · head ride · sole height',
                     _InspectorView.velocity =>
                       'crest · velocity floor · mid-band dwell · authored vs as-danced',
-                    _InspectorView.frames => 'tap a frame to preview it on stage',
+                    _InspectorView.frames =>
+                      'tap a frame to preview it on stage',
                   },
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(

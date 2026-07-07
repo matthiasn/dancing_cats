@@ -1593,49 +1593,47 @@ void main() {
         expect(right.y, greaterThanOrEqualTo(100));
       }
 
-      // Same-side out-points (2026-07 re-author): each beat ONE paw punches OUT
-      // past the torso silhouette on its OWN side while the other chambers at
-      // its own-side hip; they alternate every beat so a paw always clears the
-      // body outline. Replaces the old in-front steering-wheel + cross-body jab,
-      // which the panel read as a clutched blob at the sternum (coach/animator/
-      // mocap all 4-5). R is out on beats 0/8/16/24, L on beats 4/12/20/28.
-      for (final (frame, outPaw, outSign, chamberPaw, chamberSign) in [
-        (0, handR, 1, handL, -1),
-        (4, handL, -1, handR, 1),
-        (8, handR, 1, handL, -1),
-        (12, handL, -1, handR, 1),
-        (16, handR, 1, handL, -1),
-        (20, handL, -1, handR, 1),
-        (24, handR, 1, handL, -1),
-        (28, handL, -1, handR, 1),
-      ]) {
+      // Organic fast roll (2026-07 dance-dynamics): both paws orbit a shared
+      // chest hub 180deg apart, several revs/loop — continuous sub-beat motion
+      // instead of posed hits (owner: "hands rotating around each other... real
+      // afrobeats hands move 2-4x faster"). Assert the motion is genuinely
+      // circular+continuous (wide sweep on both axes) and the two paws stay
+      // antiphase (opposite around the hub), not the old static out-points.
+      var minLx = 1e9;
+      var maxLx = -1e9;
+      var minLy = 1e9;
+      var maxLy = -1e9;
+      for (var f = 0; f <= 32; f++) {
+        final s = handL.sample(f / phrase.frameCount);
+        minLx = math.min(minLx, s.x);
+        maxLx = math.max(maxLx, s.x);
+        minLy = math.min(minLy, s.y);
+        maxLy = math.max(maxLy, s.y);
+      }
+      expect(
+        maxLx - minLx,
+        greaterThan(30),
+        reason:
+            'Azonto: the left paw sweeps a wide horizontal arc (rolling), '
+            'not a held pose',
+      );
+      expect(
+        maxLy - minLy,
+        greaterThan(30),
+        reason:
+            'Azonto: the left paw sweeps a wide vertical arc (rolling), '
+            'not a held pose',
+      );
+      for (final frame in [0, 4, 8, 12, 16, 20, 24, 28]) {
         final p = frame / phrase.frameCount;
-        final out = outPaw.sample(p);
-        final chamber = chamberPaw.sample(p);
+        final l = handL.sample(p);
+        final r = handR.sample(p);
         expect(
-          out.x * outSign,
-          greaterThan(50),
+          (l.x + r.x).abs(),
+          lessThan(26),
           reason:
-              'Azonto frame $frame: the active paw must punch OUT past the torso '
-              'silhouette on its own side, not clutch in front of the chest',
-        );
-        expect(
-          out.y,
-          lessThan(-20),
-          reason:
-              'Azonto frame $frame: the punch lands at torso (rib/chest) height, '
-              'not down at the hip',
-        );
-        expect(
-          chamber.x * chamberSign,
-          inExclusiveRange(18, 44),
-          reason:
-              'Azonto frame $frame: the idle paw chambers at its own-side hip',
-        );
-        expect(
-          chamber.y,
-          greaterThan(-26),
-          reason: 'Azonto frame $frame: the chambered paw sits at hip height',
+              'Azonto frame $frame: the paws orbit the shared hub 180deg '
+              'apart (roll), so their x roughly cancels',
         );
       }
 
@@ -1939,12 +1937,14 @@ void main() {
         expect(
           leftPlantHand.x,
           inInclusiveRange(-42, -22),
-          reason: 'Sekem count 1: the left paw stays on its own side, no sternum pin',
+          reason:
+              'Sekem count 1: the left paw stays on its own side, no sternum pin',
         );
         expect(
           leftPlantHand.y,
           lessThan(0),
-          reason: 'Sekem count 1: the left paw recovers UP while the right digs',
+          reason:
+              'Sekem count 1: the left paw recovers UP while the right digs',
         );
 
         final rightPickup = footR.sample(2 / phrase.frameCount);
@@ -1983,7 +1983,8 @@ void main() {
         expect(
           rightSwapped.y,
           lessThan(0),
-          reason: 'Sekem frame 20: the right paw recovers UP while the left digs',
+          reason:
+              'Sekem frame 20: the right paw recovers UP while the left digs',
         );
         final leftPickup = footL.sample(6 / phrase.frameCount);
         expect(
@@ -2133,7 +2134,8 @@ void main() {
         expect(
           dig.x * digSign,
           inInclusiveRange(30, 48),
-          reason: 'Sekem frame $frame: the digging paw drives down-out past its own hip',
+          reason:
+              'Sekem frame $frame: the digging paw drives down-out past its own hip',
         );
         expect(
           dig.y,
@@ -2143,7 +2145,8 @@ void main() {
         expect(
           up.y,
           lessThan(0),
-          reason: 'Sekem frame $frame: the other paw recovers UP (antiphase pump, not pinned)',
+          reason:
+              'Sekem frame $frame: the other paw recovers UP (antiphase pump, not pinned)',
         );
       }
 

@@ -368,13 +368,6 @@ const List<double> kDanceHeroWeight = [0.9, 1.1, 0.9];
 /// authored ~300-unit body height, 0.78 lands the feet on the painted deck.
 double danceCastScale(double stageHeight) => stageHeight * 0.78 / 300.0;
 
-/// Grades the cats into the twilight plate (static, not beat-driven): a cool sky
-/// wrap up top fading to a lighter warm deck bounce down low.
-const ({Color skyWrap, Color deckWrap}) kDanceBodyGrade = (
-  skyWrap: Color(0x2E1F3354),
-  deckWrap: Color(0x1E3A2616),
-);
-
 /// The waterline haze gradient (a soft cool veil that separates the foreground
 /// cat plane from the distant city/water; fades out above the feet).
 const LinearGradient kDanceHazeGradient = LinearGradient(
@@ -425,12 +418,12 @@ CharacterPainter danceCharacterPainter({
   ],
   ensembleClips: [
     for (var i = 0; i < stage.ensemble.length; i++)
-      _upperBodyWarped(stage.ensemble[i], stage.dynamics[i]),
+      _upperBodyWarped(stage.ensemble[i], stage.dynamics[i], i),
   ],
   synchronousEnsemble: stage.synchronous,
   singingHeadMotion: true,
   walkingPair: true,
-  clip: _upperBodyWarped(stage.lead, stage.dynamics.first),
+  clip: _upperBodyWarped(stage.lead, stage.dynamics.first, 0),
   timeSeconds: stage.seconds,
   cameraOverride: shot,
   onDancerAnchors: useNewBackdrop ? onDancerAnchors : null,
@@ -443,7 +436,11 @@ CharacterPainter danceCharacterPainter({
   backdropCloudsImage: useNewBackdrop ? null : cloudsImage,
   backdropWavesImage: useNewBackdrop ? null : wavesImage,
   memberBacklights: backlights,
-  bodyGrade: useNewBackdrop ? kDanceBodyGrade : null,
+  // Surface grade removed (owner: the cats' surfaces read too washed out from
+  // the sky/deck wrap tint — "get rid of the grading of the cats' surfaces...
+  // I can live with more separation with the background"). bodyGrade defaults
+  // to null (no wrap); the rim halo (memberBacklights, above) is separate and
+  // stays.
   heroStaging: useNewBackdrop,
   // danceViewProjection intentionally stays at the painter default (false):
   // front-lock the shipped trio while the arm/shoulder mesh is being rebuilt.
@@ -463,16 +460,25 @@ CharacterPainter danceCharacterPainter({
 /// dynamics) this builds each warped clip once and reuses it every frame; only
 /// transitions — whose blended clip is already a fresh instance per frame —
 /// pay the wrapper allocation, on top of the `blendedClip` work they already do.
-final Expando<Map<DanceDynamics, Clip>> _warpCache = Expando();
+final Expando<Map<(DanceDynamics, int), Clip>> _warpCache = Expando();
 
-Clip _upperBodyWarped(Clip clip, DanceDynamics dynamics) {
-  if (dynamics.isNeutral || kDanceDynamicsTimeWarpGain == 0) return clip;
+Clip _upperBodyWarped(Clip clip, DanceDynamics dynamics, int lane) {
   final cache = _warpCache[clip] ??= {};
-  return cache[dynamics] ??= upperBodyDynamicsWarpedClip(
-    clip,
-    dynamics,
-    warpBoneIds: kDanceUpperBodyWarpBoneIds,
-  );
+  return cache[(dynamics, lane)] ??= () {
+    // 1. Effort TIME warp (unchanged): reshapes the beat timing by dynamics.
+    final warped = (dynamics.isNeutral || kDanceDynamicsTimeWarpGain == 0)
+        ? clip
+        : upperBodyDynamicsWarpedClip(
+            clip,
+            dynamics,
+            warpBoneIds: kDanceUpperBodyWarpBoneIds,
+          );
+    // 2. Effort AMPLITUDE modulation: scales how BIG the hand moves get by song
+    // energy + a deterministic beat-to-beat breath (per lane), leaving the fast
+    // timing from step 1 intact — so a low-energy pass is fast-but-small and
+    // never 100%-extreme every beat.
+    return effortModulatedClip(warped, danceEffortScaleOf(dynamics, lane));
+  }();
 }
 
 /// The karaoke caption: a short window of lyric words centred on the current

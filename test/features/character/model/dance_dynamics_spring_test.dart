@@ -49,16 +49,19 @@ void main() {
       }
     });
 
-    test('the authored catalogue is all Bound → ζ ≥ 1 (no ringing by default)', () {
-      // Every catalogue move authors flow < 0, so none rings; the overshoot
-      // lobe is opt-in via a Free (positive Flow) dial.
-      for (final flow in [-0.45, -0.4, -0.35, -0.15, -0.1]) {
-        expect(
-          danceSpring(DanceDynamics(flow: flow)).zeta,
-          greaterThanOrEqualTo(1),
-        );
-      }
-    });
+    test(
+      'the authored catalogue is all Bound → ζ ≥ 1 (no ringing by default)',
+      () {
+        // Every catalogue move authors flow < 0, so none rings; the overshoot
+        // lobe is opt-in via a Free (positive Flow) dial.
+        for (final flow in [-0.45, -0.4, -0.35, -0.15, -0.1]) {
+          expect(
+            danceSpring(DanceDynamics(flow: flow)).zeta,
+            greaterThanOrEqualTo(1),
+          );
+        }
+      },
+    );
   });
 
   group('dampedTransitionResponse — exact-frame / taper contract', () {
@@ -84,31 +87,34 @@ void main() {
     const fdBig = 1e6;
     const omegaN = 12.0;
 
-    test('critical (ζ=1) matches v0·t·e^(−ωₙt): single hump peaking at 1/ωₙ', () {
-      double analytic(double t) => t * math.exp(-omegaN * t);
-      for (final t in [0.01, 0.05, 1 / omegaN, 0.2, 0.4]) {
+    test(
+      'critical (ζ=1) matches v0·t·e^(−ωₙt): single hump peaking at 1/ωₙ',
+      () {
+        double analytic(double t) => t * math.exp(-omegaN * t);
+        for (final t in [0.01, 0.05, 1 / omegaN, 0.2, 0.4]) {
+          expect(
+            dampedTransitionResponse(t, fdBig, omegaN, 1),
+            closeTo(analytic(t), 1e-6),
+          );
+        }
+        final peak = dampedTransitionResponse(1 / omegaN, fdBig, omegaN, 1);
         expect(
-          dampedTransitionResponse(t, fdBig, omegaN, 1),
-          closeTo(analytic(t), 1e-6),
+          peak,
+          greaterThan(dampedTransitionResponse(0.5 / omegaN, fdBig, omegaN, 1)),
         );
-      }
-      final peak = dampedTransitionResponse(1 / omegaN, fdBig, omegaN, 1);
-      expect(
-        peak,
-        greaterThan(dampedTransitionResponse(0.5 / omegaN, fdBig, omegaN, 1)),
-      );
-      expect(
-        peak,
-        greaterThan(dampedTransitionResponse(2 / omegaN, fdBig, omegaN, 1)),
-      );
-      // No overshoot lobe: never negative.
-      for (var i = 1; i <= 200; i++) {
         expect(
-          dampedTransitionResponse(i / 200, fdBig, omegaN, 1),
-          greaterThanOrEqualTo(0),
+          peak,
+          greaterThan(dampedTransitionResponse(2 / omegaN, fdBig, omegaN, 1)),
         );
-      }
-    });
+        // No overshoot lobe: never negative.
+        for (var i = 1; i <= 200; i++) {
+          expect(
+            dampedTransitionResponse(i / 200, fdBig, omegaN, 1),
+            greaterThanOrEqualTo(0),
+          );
+        }
+      },
+    );
 
     test('over-damped (ζ>1) never overshoots; under-damped (ζ<1) does', () {
       for (var i = 1; i <= 200; i++) {
@@ -179,10 +185,13 @@ void main() {
       }
     }
 
-    test('critical, over-damped and under-damped all dissipate monotonically', () {
-      expectMonotoneEnergyDecay(1);
-      expectMonotoneEnergyDecay(1.4);
-      expectMonotoneEnergyDecay(0.4);
-    });
+    test(
+      'critical, over-damped and under-damped all dissipate monotonically',
+      () {
+        expectMonotoneEnergyDecay(1);
+        expectMonotoneEnergyDecay(1.4);
+        expectMonotoneEnergyDecay(0.4);
+      },
+    );
   });
 }

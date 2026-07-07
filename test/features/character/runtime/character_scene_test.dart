@@ -1059,7 +1059,8 @@ void main() {
             expect(
               f.world[b],
               fwd[i].world[b],
-              reason: '${clip.name} $b: scrub direction / build order must not '
+              reason:
+                  '${clip.name} $b: scrub direction / build order must not '
                   'change the resolved frame',
             );
           }

@@ -185,13 +185,16 @@ void main() {
         boneIds: elbows,
       );
       for (final bone in elbows) {
-        final worst = report.angularSegments
-            .where((s) => s.boneId == bone)
-            .map((s) => s.magnitude)
-            .reduce((a, b) => a > b ? a : b) *
+        final worst =
+            report.angularSegments
+                .where((s) => s.boneId == bone)
+                .map((s) => s.magnitude)
+                .reduce((a, b) => a > b ? a : b) *
             speedup;
         // ignore: avoid_print
-        print('elbow ${entry.key.padRight(12)} $bone  worst ${worst.toStringAsFixed(3)}');
+        print(
+          'elbow ${entry.key.padRight(12)} $bone  worst ${worst.toStringAsFixed(3)}',
+        );
         // Current clean catalogue peaks at ~0.7 (sekem); a robotic 1-frame hit
         // snap drove this well past 1.5. Raised 1.5→2.1 for the 1.5x
         // dance-dynamics tempo (owner: "look and feel like actual afrobeats...

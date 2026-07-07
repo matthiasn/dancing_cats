@@ -220,31 +220,35 @@ void main() {
       expect(elbowPerp(solveAbd(0.3)), greaterThan(elbowPerp(solveAbd(0))));
     });
 
-    test('it is a SOFT solve — the wrist falls short in proportion to |angle|',
-        () {
-      final targetDist = math.sqrt(tx * tx + ty * ty);
-      double wristReach(double abd) {
-        final w = _wrist(
-          solveAbd(abd),
-          shoulderX: 0,
-          shoulderY: 0,
-          upperLength: u,
-          lowerLength: l,
-        );
-        return math.sqrt(w.x * w.x + w.y * w.y);
-      }
+    test(
+      'it is a SOFT solve — the wrist falls short in proportion to |angle|',
+      () {
+        final targetDist = math.sqrt(tx * tx + ty * ty);
+        double wristReach(double abd) {
+          final w = _wrist(
+            solveAbd(abd),
+            shoulderX: 0,
+            shoulderY: 0,
+            upperLength: u,
+            lowerLength: l,
+          );
+          return math.sqrt(w.x * w.x + w.y * w.y);
+        }
 
-      // 0 hits exactly; a bigger angle undershoots further.
-      expect(wristReach(0), closeTo(targetDist, 1e-9));
-      expect(wristReach(0.4), lessThan(wristReach(0.2)));
-      expect(wristReach(0.2), lessThan(targetDist));
-    });
+        // 0 hits exactly; a bigger angle undershoots further.
+        expect(wristReach(0), closeTo(targetDist, 1e-9));
+        expect(wristReach(0.4), lessThan(wristReach(0.2)));
+        expect(wristReach(0.2), lessThan(targetDist));
+      },
+    );
 
-    test('it is continuous — a tiny angle change moves the elbow a tiny amount',
-        () {
-      final a = solveAbd(0.20);
-      final b = solveAbd(0.21);
-      expect((a.upperAngle - b.upperAngle).abs(), lessThan(0.02));
-    });
+    test(
+      'it is continuous — a tiny angle change moves the elbow a tiny amount',
+      () {
+        final a = solveAbd(0.20);
+        final b = solveAbd(0.21);
+        expect((a.upperAngle - b.upperAngle).abs(), lessThan(0.02));
+      },
+    );
   });
 }

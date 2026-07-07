@@ -19,7 +19,9 @@ void main() {
   setUpAll(() async {
     outputDir.createSync(recursive: true);
     await (FontLoader('Inter')..addFont(
-          rootBundle.load('assets/fonts/Inter/Inter-VariableFont_opsz,wght.ttf'),
+          rootBundle.load(
+            'assets/fonts/Inter/Inter-VariableFont_opsz,wght.ttf',
+          ),
         ))
         .load();
   });
@@ -67,10 +69,12 @@ void main() {
         ..paint(canvas, const Offset(w / 2 - 130, h * 0.5));
       canvas.restore();
       // ignore: avoid_print
-      print('${entry.key.padRight(12)} crest ${profile.shipped.crest.toStringAsFixed(2)}'
-          ' (authored ${profile.authored.crest.toStringAsFixed(2)})'
-          '  floor ${profile.shipped.floorPct.toStringAsFixed(0)}%'
-          '  dwell ${profile.shipped.dwellPct.toStringAsFixed(0)}%');
+      print(
+        '${entry.key.padRight(12)} crest ${profile.shipped.crest.toStringAsFixed(2)}'
+        ' (authored ${profile.authored.crest.toStringAsFixed(2)})'
+        '  floor ${profile.shipped.floorPct.toStringAsFixed(0)}%'
+        '  dwell ${profile.shipped.dwellPct.toStringAsFixed(0)}%',
+      );
       row++;
     }
     final picture = recorder.endRecording();

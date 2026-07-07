@@ -119,7 +119,15 @@ void main() {
     // flow component and orders correctly (measured cold/hot: shaku
     // 20.5/33.4, zanku 20.2/24.0, azonto 12.7/20.5, buga 17.6/22.2, sekem
     // 16.8/22.0).
-    const levelOrderingExclusions = {'pouncingCat'};
+    // azonto joined 2026-07 with the dance-dynamics organic-hands re-author: its
+    // paws now trace a continuous, constant-frequency roll (hands rotating
+    // around each other) instead of discrete hit-poses, so the warp has no
+    // hit to accentuate in a hot section — hand travel is energy-uniform and no
+    // longer orders hot>cold. This is an accepted trade for the continuous
+    // organic look (owner: "look and feel like actual afrobeats... loosen
+    // constraints if needed"); its accents now come from the body/legs, not the
+    // rolling hands.
+    const levelOrderingExclusions = {'pouncingCat', 'azonto'};
 
     test(
       'higher section level composes to higher peak upper-body velocity, '

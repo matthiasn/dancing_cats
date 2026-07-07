@@ -81,47 +81,46 @@ List<DanceBodyKey> _azontoGrooveCalm = [
 // half-reach target folds the elbow across the belly and the sleeve reads
 // as a stump (two-bone flexion grows brutally below full reach).
 const _azontoHandLTargetKeys = [
-  // Same-side out-points (2026-07-07 re-author, owner-approved, replacing the
-  // clutched steering-wheel + cross-body jab that panelled 4-5: the hands never
-  // cleared the torso silhouette). Each beat ONE hand punches OUT to its OWN
-  // side (clearing the body outline against the light background) while the
-  // other chambers at its own-side hip; they alternate every beat. Same-side
-  // reach goes WITH the step-touch weight shift, so it sidesteps the anchor
-  // drift that hard-capped the old cross-body jab (~1.01 reachRatio), and it
-  // clears the silhouette where the in-front wheel geometrically never could.
-  // L is OUT on beats 4/12/20/28, chambered on 0/8/16/24. cyclic spline, so the
-  // sparse hit-poses generate their own transitions; f32 == f0 for the loop.
-  DanceIkTargetKey(0, x: -40, y: -4), // chamber at own-side hip (loop seam)
-  DanceIkTargetKey(4, x: -90, y: -50, tension: 1), // PUNCH out-left, clears silhouette
-  DanceIkTargetKey(5, x: -88, y: -48, tension: 1), // crest hold
-  DanceIkTargetKey(8, x: -40, y: -4, tension: 0.5), // recoil to chamber
-  DanceIkTargetKey(12, x: -90, y: -50, tension: 1), // PUNCH out
-  DanceIkTargetKey(13, x: -88, y: -48, tension: 1), // crest hold
-  DanceIkTargetKey(16, x: -40, y: -4, tension: 0.5), // chamber
-  DanceIkTargetKey(20, x: -90, y: -50, tension: 1), // PUNCH out
-  DanceIkTargetKey(21, x: -88, y: -48, tension: 1), // crest hold
-  DanceIkTargetKey(24, x: -40, y: -4, tension: 0.5), // chamber
-  DanceIkTargetKey(28, x: -90, y: -50, tension: 1), // PUNCH out
-  DanceIkTargetKey(29, x: -88, y: -48, tension: 1), // crest hold
-  DanceIkTargetKey(32, x: -40, y: -4), // == frame 0 chamber
+  // Organic fast hands (owner: real afrobeats hands move 2-4x faster, e.g.
+  // rotating around each other). Both paws orbit a shared chest hub 180 deg
+  // apart, 4 revs/loop -> continuous sub-beat motion, no posed hits. cyclic;
+  // f32==f0.
+  DanceIkTargetKey(0, x: 26, y: -30),
+  DanceIkTargetKey(2, x: 0, y: -4),
+  DanceIkTargetKey(4, x: -26, y: -30),
+  DanceIkTargetKey(6, x: 0, y: -56),
+  DanceIkTargetKey(8, x: 26, y: -30),
+  DanceIkTargetKey(10, x: 0, y: -4),
+  DanceIkTargetKey(12, x: -26, y: -30),
+  DanceIkTargetKey(14, x: 0, y: -56),
+  DanceIkTargetKey(16, x: 26, y: -30),
+  DanceIkTargetKey(18, x: 0, y: -4),
+  DanceIkTargetKey(20, x: -26, y: -30),
+  DanceIkTargetKey(22, x: 0, y: -56),
+  DanceIkTargetKey(24, x: 26, y: -30),
+  DanceIkTargetKey(26, x: 0, y: -4),
+  DanceIkTargetKey(28, x: -26, y: -30),
+  DanceIkTargetKey(30, x: 0, y: -56),
+  DanceIkTargetKey(32, x: 26, y: -30),
 ];
 const _azontoHandRTargetKeys = [
-  // Mirror of hand.L's same-side out-points, offset one beat so exactly ONE
-  // hand is out at any time (the other chambers). R is OUT on beats 0/8/16/24,
-  // chambered on 4/12/20/28. cyclic spline; f32 == f0 for the loop.
-  DanceIkTargetKey(0, x: 90, y: -50, tension: 1), // PUNCH out-right (loop seam)
-  DanceIkTargetKey(1, x: 88, y: -48, tension: 1), // crest hold
-  DanceIkTargetKey(4, x: 40, y: -4, tension: 0.5), // recoil to chamber
-  DanceIkTargetKey(8, x: 90, y: -50, tension: 1), // PUNCH out
-  DanceIkTargetKey(9, x: 88, y: -48, tension: 1), // crest hold
-  DanceIkTargetKey(12, x: 40, y: -4, tension: 0.5), // chamber
-  DanceIkTargetKey(16, x: 90, y: -50, tension: 1), // PUNCH out
-  DanceIkTargetKey(17, x: 88, y: -48, tension: 1), // crest hold
-  DanceIkTargetKey(20, x: 40, y: -4, tension: 0.5), // chamber
-  DanceIkTargetKey(24, x: 90, y: -50, tension: 1), // PUNCH out
-  DanceIkTargetKey(25, x: 88, y: -48, tension: 1), // crest hold
-  DanceIkTargetKey(28, x: 40, y: -4, tension: 0.5), // chamber
-  DanceIkTargetKey(32, x: 90, y: -50, tension: 1), // == frame 0 punch
+  DanceIkTargetKey(0, x: -26, y: -30),
+  DanceIkTargetKey(2, x: 0, y: -56),
+  DanceIkTargetKey(4, x: 26, y: -30),
+  DanceIkTargetKey(6, x: 0, y: -4),
+  DanceIkTargetKey(8, x: -26, y: -30),
+  DanceIkTargetKey(10, x: 0, y: -56),
+  DanceIkTargetKey(12, x: 26, y: -30),
+  DanceIkTargetKey(14, x: 0, y: -4),
+  DanceIkTargetKey(16, x: -26, y: -30),
+  DanceIkTargetKey(18, x: 0, y: -56),
+  DanceIkTargetKey(20, x: 26, y: -30),
+  DanceIkTargetKey(22, x: 0, y: -4),
+  DanceIkTargetKey(24, x: -26, y: -30),
+  DanceIkTargetKey(26, x: 0, y: -56),
+  DanceIkTargetKey(28, x: 26, y: -30),
+  DanceIkTargetKey(30, x: 0, y: -4),
+  DanceIkTargetKey(32, x: -26, y: -30),
 ];
 // R10: every rater independently called the re-positioned wheel-mime and
 // jab "legible but frozen holds" — right reach zone, no gesture motion of
