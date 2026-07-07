@@ -950,8 +950,8 @@ RigSpec buildCatInSuitRig({
       drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
         width: 18 * armWidthScale,
-        height: 7 * armWidthScale,
-        dy: -1,
+        height: 13 * armWidthScale,
+        dy: -4,
         cornerRadius: 3,
         color: _shirt,
         outlineColor: _outline,
@@ -1342,8 +1342,8 @@ RigSpec buildCatInSuitRig({
       drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
         width: 18 * armWidthScale,
-        height: 7 * armWidthScale,
-        dy: -1,
+        height: 13 * armWidthScale,
+        dy: -4,
         cornerRadius: 3,
         color: _shirt,
         outlineColor: _outline,
