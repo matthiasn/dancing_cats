@@ -17,7 +17,7 @@ const _shakuBodyGrooveKeys = [
     rootRotation: -0.007,
     pelvisRotation: 0.32,
     chestRotation: -0.09,
-    chestScaleY: 0.858,
+    chestScaleY: 0.82,
     chestScaleX: 1.06,
   ),
   DanceBodyKey(
@@ -57,7 +57,7 @@ const _shakuBodyGrooveKeys = [
     rootRotation: -0.007,
     pelvisRotation: 0.53,
     chestRotation: -0.25,
-    chestScaleY: 0.858,
+    chestScaleY: 0.82,
     chestScaleX: 1.06,
   ),
   DanceBodyKey(
@@ -95,7 +95,7 @@ const _shakuBodyGrooveKeys = [
     rootRotation: 0.005,
     pelvisRotation: 0.16,
     chestRotation: -0.02,
-    chestScaleY: 0.858,
+    chestScaleY: 0.82,
     chestScaleX: 1.06,
   ),
   DanceBodyKey(
@@ -135,7 +135,7 @@ const _shakuBodyGrooveKeys = [
     rootRotation: 0.006,
     pelvisRotation: -0.08,
     chestRotation: 0.1,
-    chestScaleY: 0.858,
+    chestScaleY: 0.82,
     chestScaleX: 1.06,
   ),
   DanceBodyKey(
@@ -175,7 +175,7 @@ const _shakuBodyGrooveKeys = [
     rootRotation: -0.006,
     pelvisRotation: -0.36,
     chestRotation: 0.13,
-    chestScaleY: 0.858,
+    chestScaleY: 0.82,
     chestScaleX: 1.06,
   ),
   DanceBodyKey(
@@ -215,7 +215,7 @@ const _shakuBodyGrooveKeys = [
     rootRotation: -0.006,
     pelvisRotation: -0.47,
     chestRotation: 0.16,
-    chestScaleY: 0.858,
+    chestScaleY: 0.82,
     chestScaleX: 1.06,
   ),
   DanceBodyKey(
@@ -255,7 +255,7 @@ const _shakuBodyGrooveKeys = [
     rootRotation: 0.007,
     pelvisRotation: -0.24,
     chestRotation: 0.095,
-    chestScaleY: 0.858,
+    chestScaleY: 0.82,
     chestScaleX: 1.06,
   ),
   DanceBodyKey(
@@ -285,7 +285,7 @@ const _shakuBodyGrooveKeys = [
     rootRotation: 0.006,
     pelvisRotation: 0.04,
     chestRotation: -0.1,
-    chestScaleY: 0.858,
+    chestScaleY: 0.82,
     chestScaleX: 1.06,
   ),
   DanceBodyKey(
@@ -325,7 +325,7 @@ const _shakuBodyGrooveKeys = [
     rootRotation: -0.007,
     pelvisRotation: 0.32,
     chestRotation: -0.09,
-    chestScaleY: 0.858,
+    chestScaleY: 0.82,
     chestScaleX: 1.06,
   ),
 ];
