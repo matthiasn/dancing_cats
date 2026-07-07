@@ -1921,22 +1921,31 @@ void main() {
           reason: 'right Sekem support should stay on the floor mid-window',
         );
 
-        // Round-4 Sekem: through bar 1 the left paw stays pinned at the
-        // sternum while the right arm is free to punch down past the hip.
+        // Both paws pump on their OWN side every beat (no sternum pin — the
+        // old glued-arm idiom scored 5). On count 1 the right paw digs down-out
+        // past its hip while the left recovers up; they alternate each beat.
         final leftPlantHand = handL.sample(0);
         final rightPlantHand = handR.sample(0);
         expect(
-          leftPlantHand.x,
-          inInclusiveRange(-16, -4),
-          reason: 'Sekem bar 1: the left paw is pinned at the sternum',
-        );
-        expect(leftPlantHand.y, inInclusiveRange(-54, -40));
-        expect(
           rightPlantHand.x,
-          inInclusiveRange(36, 60),
-          reason: 'Sekem bar 1: the right paw punches past the hip',
+          inInclusiveRange(30, 48),
+          reason: 'Sekem count 1: the right paw digs down-out past its own hip',
         );
-        expect(rightPlantHand.y, inInclusiveRange(10, 36));
+        expect(
+          rightPlantHand.y,
+          greaterThan(20),
+          reason: 'Sekem count 1: the right dig drives DOWN past the hip',
+        );
+        expect(
+          leftPlantHand.x,
+          inInclusiveRange(-42, -22),
+          reason: 'Sekem count 1: the left paw stays on its own side, no sternum pin',
+        );
+        expect(
+          leftPlantHand.y,
+          lessThan(0),
+          reason: 'Sekem count 1: the left paw recovers UP while the right digs',
+        );
 
         final rightPickup = footR.sample(2 / phrase.frameCount);
         expect(
@@ -1952,22 +1961,30 @@ void main() {
           reason: 'Sekem should skim the floor, not lift into a side-kick',
         );
 
-        // The anchors trade sides once per bar: after frame 16 the right paw
-        // takes the sternum pin and the left becomes the free hip pump.
+        // The pump alternates phase: at frame 20 the LEFT paw is the one
+        // digging down past its hip while the right recovers up.
         final leftSwapped = handL.sample(20 / phrase.frameCount);
         final rightSwapped = handR.sample(20 / phrase.frameCount);
         expect(
           leftSwapped.x,
-          inInclusiveRange(-58, -36),
-          reason: 'Sekem bar 2: the left paw pumps past the hip',
+          inInclusiveRange(-48, -30),
+          reason: 'Sekem frame 20: the left paw digs down-out past its own hip',
         );
-        expect(leftSwapped.y, inInclusiveRange(0, 18));
+        expect(
+          leftSwapped.y,
+          greaterThan(20),
+          reason: 'Sekem frame 20: the left dig drives DOWN past the hip',
+        );
         expect(
           rightSwapped.x,
-          inInclusiveRange(4, 16),
-          reason: 'Sekem bar 2: the right paw takes the sternum pin',
+          inInclusiveRange(22, 40),
+          reason: 'Sekem frame 20: the right paw recovers on its own side',
         );
-        expect(rightSwapped.y, inInclusiveRange(-54, -40));
+        expect(
+          rightSwapped.y,
+          lessThan(0),
+          reason: 'Sekem frame 20: the right paw recovers UP while the left digs',
+        );
         final leftPickup = footL.sample(6 / phrase.frameCount);
         expect(
           leftPickup.x,
@@ -2097,32 +2114,36 @@ void main() {
       final handL = _targetFor(sekem, CatBones.handL).channel;
       final handR = _targetFor(sekem, CatBones.handR).channel;
 
-      // Anchor duty cycle: one paw pins while the other pumps; sides swap once
-      // per bar.
-      for (final frame in [0, 4, 8, 12]) {
+      // Both paws pump every beat on their OWN side, antiphase: the digging
+      // paw drives down-out past its hip while the other recovers UP; they
+      // swap which is digging each beat (no sternum pin).
+      for (final (frame, digPaw, digSign, upPaw) in [
+        (0, handR, 1, handL),
+        (4, handL, -1, handR),
+        (8, handR, 1, handL),
+        (12, handL, -1, handR),
+        (16, handR, 1, handL),
+        (20, handL, -1, handR),
+        (24, handR, 1, handL),
+        (28, handL, -1, handR),
+      ]) {
         final p = frame / phrase.frameCount;
+        final dig = digPaw.sample(p);
+        final up = upPaw.sample(p);
         expect(
-          handL.sample(p).x,
-          inInclusiveRange(-16, -4),
-          reason: 'Sekem frame $frame: left paw pinned at the sternum',
+          dig.x * digSign,
+          inInclusiveRange(30, 48),
+          reason: 'Sekem frame $frame: the digging paw drives down-out past its own hip',
         );
         expect(
-          handR.sample(p).x,
-          inInclusiveRange(36, 58),
-          reason: 'Sekem frame $frame: right paw owns the free hip pump',
-        );
-      }
-      for (final frame in [16, 20, 24, 28]) {
-        final p = frame / phrase.frameCount;
-        expect(
-          handR.sample(p).x,
-          inInclusiveRange(4, 16),
-          reason: 'Sekem frame $frame: right paw takes the sternum pin',
+          dig.y,
+          greaterThan(20),
+          reason: 'Sekem frame $frame: the dig goes DOWN past the hip',
         );
         expect(
-          handL.sample(p).x,
-          inInclusiveRange(-58, -36),
-          reason: 'Sekem frame $frame: left paw owns the free hip pump',
+          up.y,
+          lessThan(0),
+          reason: 'Sekem frame $frame: the other paw recovers UP (antiphase pump, not pinned)',
         );
       }
 
