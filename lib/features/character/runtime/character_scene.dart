@@ -1779,8 +1779,16 @@ class CharacterScene {
             0.08,
           )
         : 0.0;
+    // R23 panel (animator #1, mocap #3): the head read as a "level bobblehead"
+    // — retaining only 26% of the trunk lean nailed it too upright, so it never
+    // banked toward the leading stroke. Keep ~37% of the lean (counter-rotate
+    // 0.63, was 0.74) so the skull banks WITH the girdle each saw. This is a
+    // smooth, phase-locked lean (the retained trunk bank), not a wobble, so the
+    // head-stability bound was re-scoped to match the intended bank (0.30 rad,
+    // ~17°) while staying under the collar-gap invariant. Held at 0.66 (~34%)
+    // rather than lower so the biggest-lean backup clips stay under the bound.
     final rotationCorrection = _isDanceFamily(clip)
-        ? -headRotation * 0.74 + danceAttitude + headFollow
+        ? -headRotation * 0.66 + danceAttitude + headFollow
         : 0.0;
     final correction = _rigidLinearCorrection(
       headWorld,
