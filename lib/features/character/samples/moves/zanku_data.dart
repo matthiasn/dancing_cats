@@ -241,17 +241,17 @@ const _zankuClavicleLKeys = [
 // slam. Before this channel zanku's head was runtime-only ("the body
 // dances but the character doesn't").
 const _zankuHeadKeys = [
-  DanceJointKey(0, rotation: 0.02),
-  DanceJointKey(1, rotation: 0.11), // answers the L stamp (r5: pointed crest)
-  DanceJointKey(3, rotation: 0.032), // echo nod
-  DanceJointKey(5, rotation: -0.11), // answers the R stamp
-  DanceJointKey(7, rotation: -0.032),
-  DanceJointKey(9, rotation: 0.1), // varied answer
-  DanceJointKey(11, rotation: 0.028),
-  DanceJointKey(13, rotation: -0.11),
-  DanceJointKey(15, rotation: -0.032),
-  DanceJointKey(17, rotation: 0.12), // varied answer
-  DanceJointKey(19, rotation: 0.038),
+  DanceJointKey(0, rotation: 0.014),
+  DanceJointKey(1, rotation: 0.077), // answers the L stamp (r5: pointed crest)
+  DanceJointKey(3, rotation: 0.022), // echo nod
+  DanceJointKey(5, rotation: -0.077), // answers the R stamp
+  DanceJointKey(7, rotation: -0.022),
+  DanceJointKey(9, rotation: 0.07), // varied answer
+  DanceJointKey(11, rotation: 0.02),
+  DanceJointKey(13, rotation: -0.077),
+  DanceJointKey(15, rotation: -0.022),
+  DanceJointKey(17, rotation: 0.084), // varied answer
+  DanceJointKey(19, rotation: 0.027),
   // r8: the head ANSWERS the bar-3 stamp (the accent landed 'stiff-necked'
   // — pocket-only by gate necessity, so the follow-through rides the
   // rotation channel instead).
@@ -260,14 +260,14 @@ const _zankuHeadKeys = [
   // frames — the rigging lens's "bar-3 head dips read noisy (multiple
   // small events)" was this collision, not an authoring choice. One
   // ordered answer now, crest depth matched to the other three stamps.
-  DanceJointKey(20, rotation: -0.11),
-  DanceJointKey(22, rotation: -0.045),
-  DanceJointKey(23, rotation: -0.015), // r9: one more settle frame
-  DanceJointKey(25, rotation: 0.09), // gathers against the kick side
-  DanceJointKey(26, rotation: -0.1), // tips INTO the gbese
-  DanceJointKey(28, rotation: -0.05), // recoils off the slam
-  DanceJointKey(30, rotation: 0.02),
-  DanceJointKey(32, rotation: 0.02), // == frame 0
+  DanceJointKey(20, rotation: -0.077),
+  DanceJointKey(22, rotation: -0.032),
+  DanceJointKey(23, rotation: -0.01), // r9: one more settle frame
+  DanceJointKey(25, rotation: 0.063), // gathers against the kick side
+  DanceJointKey(26, rotation: -0.07), // tips INTO the gbese
+  DanceJointKey(28, rotation: -0.035), // recoils off the slam
+  DanceJointKey(30, rotation: 0.014),
+  DanceJointKey(32, rotation: 0.014), // == frame 0
 ];
 
 const _zankuHandLKeys = [
