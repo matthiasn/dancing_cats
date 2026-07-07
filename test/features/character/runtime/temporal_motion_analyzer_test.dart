@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:dancing_cats/features/character/engine/autonomic.dart';
 import 'package:dancing_cats/features/character/model/bone.dart';
 import 'package:dancing_cats/features/character/model/clip.dart';
@@ -730,9 +732,18 @@ void main() {
           samples: 192,
           boneIds: watchedBones,
         );
+        // Coarse magnitude backstop. The pure-magnitude jump can't tell a true
+        // tick from a fast-but-continuous accent that merely LANDS on the seam;
+        // when the loop's CLIMAX sits next to the seam (shaku's generator pull
+        // at frame 28) that accent is legitimately the loop's biggest move, so
+        // bound the seam to 2.5× the worst in-loop adjacent jump. The rigorous
+        // guard is the fine-resolution C1-continuity test below — a real tick is
+        // a velocity DISCONTINUITY whose finite-difference jump does NOT shrink
+        // as the sampling interval shrinks; a continuous accent's does.
         final jumps = report.loopSeamVelocityJumps(
           minVelocityJump: 8,
           minSegmentDistance: 1.5,
+          maxInLoopJumpRatio: 2.5,
         );
 
         expect(
@@ -747,6 +758,58 @@ void main() {
         );
       }
     });
+
+    test(
+      'inertialized loop seam is C1-continuous (velocity-jump shrinks with '
+      'sampling resolution)',
+      () {
+        // The stiff inertializer lands shaku's downbeat accents — including the
+        // generator-pull recovery — right on the loop seam: a large but
+        // CONTINUOUS velocity change, not a tick. This is the rigorous guard
+        // for the magnitude backstop's climax relaxation above: a true velocity
+        // DISCONTINUITY keeps its finite-difference jump ~constant as the
+        // sampling interval shrinks, whereas a continuous accent's jump shrinks
+        // toward the (single-valued) seam velocity. Scoped to the inertialized
+        // clip — it is the one landing a hard accent on the seam.
+        final scene = CharacterScene(buildCatInSuitRig());
+        final clip = CatClips.shaku;
+        final dur = clip.duration;
+        double coord(String bone, double phase, {required bool x}) {
+          final p = ((phase % 1) + 1) % 1;
+          final o = scene
+              .frameAt(clip: clip, timeSeconds: p * dur)
+              .world[bone]!
+              .origin;
+          return x ? o.x : o.y;
+        }
+
+        double seamJump(String bone, int n) {
+          final h = 1.0 / n;
+          final vbx = (coord(bone, 0, x: true) - coord(bone, -h, x: true)) / h;
+          final vby =
+              (coord(bone, 0, x: false) - coord(bone, -h, x: false)) / h;
+          final vax = (coord(bone, h, x: true) - coord(bone, 0, x: true)) / h;
+          final vay = (coord(bone, h, x: false) - coord(bone, 0, x: false)) / h;
+          final dvx = vax - vbx;
+          final dvy = vay - vby;
+          return math.sqrt(dvx * dvx + dvy * dvy);
+        }
+
+        for (final bone in [CatBones.handL, CatBones.handR]) {
+          final coarse = seamJump(bone, 192);
+          final fine = seamJump(bone, 384);
+          expect(
+            fine,
+            lessThan(coarse * 0.9),
+            reason:
+                '$bone seam velocity-jump must shrink with finer sampling '
+                '(coarse=${coarse.toStringAsFixed(0)} '
+                'fine=${fine.toStringAsFixed(0)}) — a persistent jump would be '
+                'a true velocity discontinuity (tick), not a continuous accent',
+          );
+        }
+      },
+    );
 
     test('buga peacock hand paths avoid hard corners', () {
       final analyzer = TemporalMotionAnalyzer(

@@ -596,9 +596,21 @@ class TemporalMotionReport {
   /// `0..duration`. A dance loop can still have a visible tick if the last
   /// segment's velocity does not line up with the first segment's velocity at
   /// the phase-0 seam. This query makes that seam explicit for catalogue clips.
+  ///
+  /// [maxInLoopJumpRatio], when set, makes the check **continuity-aware**: the
+  /// raw magnitude of the seam's velocity change cannot, on its own, tell a true
+  /// discontinuity (a tick) from a fast-but-C¹-continuous accent that merely
+  /// *lands on* the loop point (a punchy downbeat hit — the whole point of the
+  /// inertialized spring). So a seam is only flagged when its velocity change
+  /// also exceeds the worst velocity change the SAME bone already makes between
+  /// adjacent segments elsewhere in the loop, times this ratio. A genuine tick
+  /// is anomalous versus the rest of the motion; a downbeat accent no sharper
+  /// than the loop's other accents is not. When null, the legacy pure-magnitude
+  /// behaviour is kept.
   List<TemporalMotionLoopSeamJump> loopSeamVelocityJumps({
     double minVelocityJump = 6,
     double minSegmentDistance = 1,
+    double? maxInLoopJumpRatio,
   }) {
     if (minVelocityJump < 0) {
       throw ArgumentError.value(
@@ -611,6 +623,13 @@ class TemporalMotionReport {
       throw ArgumentError.value(
         minSegmentDistance,
         'minSegmentDistance',
+        'must be non-negative',
+      );
+    }
+    if (maxInLoopJumpRatio != null && maxInLoopJumpRatio < 0) {
+      throw ArgumentError.value(
+        maxInLoopJumpRatio,
+        'maxInLoopJumpRatio',
         'must be non-negative',
       );
     }
@@ -634,6 +653,22 @@ class TemporalMotionReport {
       final dy = first.dy - last.dy;
       final velocityJump = math.sqrt(dx * dx + dy * dy);
       if (velocityJump < minVelocityJump) continue;
+
+      // Continuity-aware gate: allow a seam velocity change up to the worst
+      // adjacent-segment velocity change the motion already makes in-loop
+      // (scaled) — that is a continuous accent landing on the seam, not a tick.
+      if (maxInLoopJumpRatio != null) {
+        var inLoopMaxJump = 0.0;
+        for (var i = 0; i < boneSegments.length - 1; i++) {
+          final a = boneSegments[i];
+          final b = boneSegments[i + 1];
+          final jdx = b.dx - a.dx;
+          final jdy = b.dy - a.dy;
+          final jump = math.sqrt(jdx * jdx + jdy * jdy);
+          if (jump > inLoopMaxJump) inLoopMaxJump = jump;
+        }
+        if (velocityJump <= inLoopMaxJump * maxInLoopJumpRatio) continue;
+      }
 
       final speedDelta = (first.distance - last.distance).abs();
       final slower = math.min(first.distance, last.distance);

@@ -55,17 +55,60 @@ periodic so the loop seam closes.
 - **Exact-frame safe:** authored hits are equality-pinned and read back exactly
   at their frames, so the category-A/B `cat_in_suit_test` bounds hold with no
   test edits; the elbow gate, smoothness, and loop-seam gates stay green.
-- **Motion:** shaku crest 2.94 → 2.99, elbow angular velocity 0.56 → 0.43
-  (smoother), dwell ~flat — equivalent-or-better motion from half the keys. The
-  crest is seam-limited (the generator pull straddles the loop point); the
-  larger crest win is expected on Free/Sudden moves as the mechanism rolls out.
+- **Motion (pilot, pre-tuning):** shaku crest 2.94 → 2.99, elbow angular
+  velocity 0.56 → 0.43 (smoother), from half the keys — but see the tuning pass
+  below: at the pilot's default ζ the motion read as an over-damped GLIDE.
 - **Determinism:** the tables are a pure function of (keys, duration, ωₙ, ζ),
   cached with the clip (mirrors `_LocoTable`), so renders stay reproducible; the
   purity test (`character_scene_test`) covers re-scrub / reverse / seam.
+
+## Panel tuning pass (punch)
+
+A 5-lens expert panel (Afrobeats coach, character animator, mocap/biomechanics,
+**physicist**, technical) read the merged pilot as an **over-damped glide**
+(unanimous, avg 5.4/10): crest 2.99, floor 12%, dwell 40% — the hand never
+rested. The physicist diagnosed it precisely: ζ≈1.2's slow over-damped root has
+a settle time near a whole beat, so the transient never completes before the
+next hit.
+
+**Fix (in `dance_move_compiler.dart`):** the inertializer runs STIFFER and
+nearer-critical than the raw [danceSpring] garnish tuning — `ωₙ × 1.4`
+(`_kInertializerOmegaScale`) and ζ capped at `1.02` (`_kInertializerMaxZeta`,
+removing the slow creep; Flow can still dial a *Free* move under-damped for
+overshoot, it just can't push the inertializer over-damped into a glide). Result:
+shaku **crest 2.99 → 4.41** (into the punchy 4–8 band), floor 12% → 6%, dwell
+40% → 19%, elbow angular velocity still ~0.4 (the target-space spring keeps the
+whip decoupled from the elbow). ωₙ is held just under the acceleration gate
+(`velocitySpikes` minAcceleration 32) — that gate uses AND logic (accel *and*
+ratio), so it already tolerates a high speed-RATIO hit-and-park as long as the
+acceleration stays bounded; no need to relax it.
+
+**Loop-seam gate re-scope.** The stiff spring lands the downbeat accent — and
+the generator-pull recovery — right on the loop seam (frame 0). That is a large
+but **C1-continuous** velocity change (verified by resolution-doubling: the
+finite-difference seam jump SHRINKS 2371 → 1537 → 957 as the sample interval
+halves; a true discontinuity's would stay constant), not a tick. The pure-
+magnitude seam gate couldn't tell the two apart, so `loopSeamVelocityJumps`
+gained an optional `maxInLoopJumpRatio` (bounds the seam to 2.5× the worst
+in-loop adjacent jump — a real tick runs 3–9× and is anomalous; a climax accent
+~1.5–2×), backed by an explicit **C1-continuity test** (the jump must shrink
+with finer sampling). Smooth clips keep the legacy magnitude behaviour.
+
+## The ceiling to 8/10 is now RIG/MESH, not the spring
+
+With the glide fixed the panel rose to ~6.3, and every remaining blocker is
+rig/mesh or amplitude, not the transition physics: the upper-arm ribbon balloons
+into a deltoid blob at deep flexion; the paw hides behind the tie/jacket at the
+tucked poses; the open-hits don't clear the torso far enough (IK-anchor reach
+ceiling); the round mitt can't show a wrist/forearm roll; the shoulder girdle
+doesn't couple to the leg weight-shift. These are the same ceilings prior panels
+identified (the shoulder-mesh gap) — the inertializer proved the *capability*
+(punchy hit-and-park from sparse keys), and the path to 8 is now rig work.
 
 ## Follow-ups
 
 Roll the inertializer to the remaining clips (zanku/azonto/buga/sekem — the
 C1-smooth channel-type assertion becomes an inertialized-channel or
-velocity-continuity check per clip); revisit the seam-vs-snap ωₙ ceiling if a
-move needs a sharper accent adjacent to the loop point.
+velocity-continuity check per clip); the rig-level ceiling work above
+(deltoid-width clamp, open-paw drawable, reach/amplitude, shoulder-girdle
+coupling).
