@@ -119,6 +119,53 @@ class PhaseWarpedIkTargetChannel extends IkTargetChannel {
   IkTargetPose sample(double p) => inner.sample(warpPhase(p));
 }
 
+/// Scales an IK target channel's motion AMPLITUDE around its loop-mean centre by
+/// a PHASE-DEPENDENT [scaleOf], leaving timing/frequency untouched — the
+/// "effort" dial. A scale `< 1` shrinks the movement (fast but small — a
+/// low-effort pass); `> 1` grows it (a high-energy accent). Because [scaleOf]
+/// varies with phase, the effort BREATHES beat-to-beat (some beats reach the
+/// extreme, others don't) instead of being flat — the deterministic variance a
+/// real dancer has. This is how a dancer keeps the same quick underlying rhythm
+/// but varies how BIG each move is with the song energy + choreo. The centre is
+/// the channel's average target over the loop, sampled once at construction (so
+/// the hand shrinks toward where it already spends its time, not the rig origin).
+class AmplitudeScaledIkTargetChannel extends IkTargetChannel {
+  AmplitudeScaledIkTargetChannel(this.inner, this.scaleOf, {int samples = 64})
+    : _meanX = _loopMean(inner, samples, xAxis: true),
+      _meanY = _loopMean(inner, samples, xAxis: false);
+
+  final IkTargetChannel inner;
+
+  /// Amplitude scale as a function of loop phase (0..1). Must be periodic
+  /// (scaleOf(0) == scaleOf(1)) so the loop seam stays continuous.
+  final double Function(double p) scaleOf;
+
+  final double _meanX;
+  final double _meanY;
+
+  static double _loopMean(IkTargetChannel c, int n, {required bool xAxis}) {
+    var sum = 0.0;
+    for (var i = 0; i < n; i++) {
+      final s = c.sample(i / n);
+      sum += xAxis ? s.x : s.y;
+    }
+    return sum / n;
+  }
+
+  @override
+  IkTargetPose sample(double p) {
+    final s = inner.sample(p);
+    final scale = scaleOf(p);
+    return IkTargetPose(
+      x: _meanX + (s.x - _meanX) * scale,
+      y: _meanY + (s.y - _meanY) * scale,
+      weight: s.weight,
+      bendDirection: s.bendDirection,
+      elbowAbduction: s.elbowAbduction,
+    );
+  }
+}
+
 /// Maps the global 0..1 transition progress into a local blend window.
 ///
 /// A plain per-bone mask that never reaches `1` would pop when a temporary
