@@ -1593,79 +1593,49 @@ void main() {
         expect(right.y, greaterThanOrEqualTo(100));
       }
 
-      // Bar 1 is the steering-wheel mime: the grips stay SEPARATED on their
-      // own sides and trade heights in opposing arcs (panel round 1: close
-      // stacked grips read as one blob clutching the tie).
-      for (final frame in [0, 4, 8, 12]) {
-        final p = frame / phrase.frameCount;
-        final left = handL.sample(p);
-        final right = handR.sample(p);
-        // -38 -> -44 (9-path r4, resolving the long-standing task-#43 ask):
-        // two panels measured the wheel dying INSIDE the torso outline
-        // ('the signature move never breaks the silhouette'). The wide grip
-        // now clears the chest edge; the lower bound still forbids the
-        // pointing-out read the original gate was built against.
-        expect(
-          left.x,
-          inExclusiveRange(-44, -18),
-          reason:
-              'Azonto frame $frame: the left paw should grip the mimed wheel '
-              'in front of the body, not point out',
-        );
-        expect(
-          right.x,
-          inExclusiveRange(18, 44),
-          reason:
-              'Azonto frame $frame: the right paw should grip the mimed wheel '
-              'in front of the body, not point out',
-        );
-        expect(left.y, inExclusiveRange(-90, 32));
-        expect(right.y, inExclusiveRange(-90, 32));
-        expect(
-          (left.y - right.y).abs(),
-          greaterThanOrEqualTo(4),
-          reason:
-              'Azonto frame $frame: the grips must trade heights in opposing '
-              'arcs so the wheel visibly turns',
-        );
-      }
-
-      // Bar 2 alternates FULL-EXTENSION cross-body jabs: the jabbing paw
-      // crosses the midline and breaks the far silhouette line while the
-      // other paw chambers at the hip crest (panel round 1: half-reach jabs
-      // fold the elbow across the belly and the sleeve reads as a stump).
-      for (final (frame, jab, chamber, crossSign) in [
-        (16, handL, handR, 1),
-        (20, handR, handL, -1),
-        (24, handL, handR, 1),
-        (28, handR, handL, -1),
+      // Same-side out-points (2026-07 re-author): each beat ONE paw punches OUT
+      // past the torso silhouette on its OWN side while the other chambers at
+      // its own-side hip; they alternate every beat so a paw always clears the
+      // body outline. Replaces the old in-front steering-wheel + cross-body jab,
+      // which the panel read as a clutched blob at the sternum (coach/animator/
+      // mocap all 4-5). R is out on beats 0/8/16/24, L on beats 4/12/20/28.
+      for (final (frame, outPaw, outSign, chamberPaw, chamberSign) in [
+        (0, handR, 1, handL, -1),
+        (4, handL, -1, handR, 1),
+        (8, handR, 1, handL, -1),
+        (12, handL, -1, handR, 1),
+        (16, handR, 1, handL, -1),
+        (20, handL, -1, handR, 1),
+        (24, handR, 1, handL, -1),
+        (28, handL, -1, handR, 1),
       ]) {
         final p = frame / phrase.frameCount;
-        final hit = jab.sample(p);
-        final held = chamber.sample(p);
+        final out = outPaw.sample(p);
+        final chamber = chamberPaw.sample(p);
         expect(
-          hit.x * crossSign,
-          greaterThan(22),
+          out.x * outSign,
+          greaterThan(50),
           reason:
-              'Azonto frame $frame: the jab must cross the midline to full '
-              'extension past the far shoulder line',
+              'Azonto frame $frame: the active paw must punch OUT past the torso '
+              'silhouette on its own side, not clutch in front of the chest',
         );
         expect(
-          hit.y,
-          lessThanOrEqualTo(-42),
-          reason: 'Azonto frame $frame: the jab lands at chest height',
-        );
-        expect(
-          held.x.abs(),
-          greaterThan(24),
+          out.y,
+          lessThan(-20),
           reason:
-              'Azonto frame $frame: the idle paw chambers at the hip on its '
-              'own side',
+              'Azonto frame $frame: the punch lands at torso (rib/chest) height, '
+              'not down at the hip',
         );
         expect(
-          held.y,
+          chamber.x * chamberSign,
+          inExclusiveRange(18, 44),
+          reason:
+              'Azonto frame $frame: the idle paw chambers at its own-side hip',
+        );
+        expect(
+          chamber.y,
           greaterThan(-26),
-          reason: 'Azonto frame $frame: the chamber sits at hip height',
+          reason: 'Azonto frame $frame: the chambered paw sits at hip height',
         );
       }
 

@@ -81,264 +81,47 @@ List<DanceBodyKey> _azontoGrooveCalm = [
 // half-reach target folds the elbow across the belly and the sleeve reads
 // as a stump (two-bone flexion grows brutally below full reach).
 const _azontoHandLTargetKeys = [
-  // 9-path round 2 (coach + animator, twice: the wheel "reads as
-  // hands-on-hips... never breaks the torso silhouette"): the whole
-  // bars-1-2 orbit rises ~38 units to STERNUM height — elbows lifted,
-  // fists rolling in front of the chest, the mime finally legible at
-  // strip distance. The x lane is unchanged (the wheel-lane gate holds).
-  // Round 4, measured in RENDERED space: targets live in the torso anchor
-  // whose origin sits ~50 world units BELOW the shoulder line (a probe of
-  // the round-3 keys showed the "chest-height" jab at y-44 rendering ON
-  // the sternum, and the wheel at belly height with no vertical trade —
-  // every rater called both mimes invisible). Mapping: brow ~ -82,
-  // shoulder line ~ -60, ribs ~ -38, hip crest ~ -10.
-  // Bar 1 wheel: grips at shoulder width counter-rotate around a shared
-  // hub — L rises to the brow while R drops to the ribs, swapping over two
-  // beats, soft elbows, on the rim all bar.
-  // Round 5: the wheel-grip x sat at ~25-28 units from the torso anchor —
-  // only 10-35% of the arm's actual reach, deep inside the two-bone
-  // solver's near-degenerate fold zone (reach below/near minReach makes the
-  // elbow position hypersensitive to tiny target changes, so the elbow
-  // jittered wildly between frames while the wrist stayed tucked near the
-  // chest the whole time — every rater read that as "arms frozen in one
-  // crossed guard"). x is choreographically capped at the -38/-18 lane
-  // (round 1: wider grips read as pointing away from the wheel), so pushed
-  // to the very edge of that band instead of past it, and traded some of
-  // the needed reach for y spread (the tested band there is generous,
-  // -90..32) to pull the target further from the near-degenerate zone.
-  // Round 6: that fix widened the RANGE but every key kept x within a
-  // single unit (-36/-37) — a near-perfectly VERTICAL bob, not a wheel
-  // arc. A hand sliding straight up and down close to the body still
-  // silhouettes as a tucked guard the whole time (every rater's "frozen
-  // hug" read), even though the wrist genuinely moves.
-  //
-  // Round 9 re-author: the oval-arc fix (round 6) still read as a static
-  // crossed guard in the rendered grid — confirmed directly (23 of 24
-  // sampled cells were visually near-identical). Root cause, found by
-  // measuring WORLD-space hand separation: L rising to the brow while R
-  // drops to the ribs (opposing heights, same x-lane throughout) puts
-  // both wrists on their OWN side the entire bar, so nothing ever crosses
-  // or converges — there is no shared "grip" for the eye to read, just two
-  // independent arms doing their own thing. A real wheel-grip needs both
-  // hands legible as gripping the SAME object: held at close to the same
-  // height, rocking together side to side. Swapped which hand is "outboard"
-  // (wide) vs "inboard" (narrow) every 2 beats instead of which hand is
-  // "high" vs "low" — L and R now trade x while keeping a small (8-unit,
-  // over the test's required >=4) height gap, so the dominant visible
-  // motion is a synchronized side-to-side turn, held at each extreme for
-  // 2 frames (not a single-frame spike) so it reads as sustained.
-  // R10 follow-up: widened the swing itself (not just added rotation) —
-  // a reach-ratio probe showed the old wide/narrow pair sat at ~0.75/0.58
-  // (span 0.17); pushing toward the lane's actual edges gave more room,
-  // but the very edge (ratio ~0.80) straightened the elbow to 180 degrees
-  // and broke the elbow-bend validator — backed off to ~0.78/0.55 (span
-  // ~0.23), still a real ~35% bigger visible excursion than before while
-  // clearing both the near-degenerate zone and the straight-elbow ceiling.
-  // Baseline panel (coach/animator/physicist all #1): the wheel read as a
-  // FROZEN clinch because these keys traced a straight diagonal LINE (one
-  // midpoint), not a circle — no circular path, no angular momentum. Now a
-  // real CIRCLE the fist rolls around (inboard->top->outboard->bottom, ~1 rev
-  // per bar). Magnitudes stay inside the old reach envelope; inboard |x|=22
-  // clears the near-degenerate fold.
-  DanceIkTargetKey(0, x: -20, y: -14, elbowAbduction: -0.35), // inboard (loop seam)
-  DanceIkTargetKey(2, x: -30, y: -38, tension: 0.3, elbowAbduction: -0.35), // top (taller wheel)
-  DanceIkTargetKey(4, x: -43, y: -22, tension: 0.4, elbowAbduction: -0.35), // outboard (at chest-edge cap)
-  DanceIkTargetKey(6, x: -34, y: -4, tension: 0.3, elbowAbduction: -0.35), // bottom (taller wheel)
-  DanceIkTargetKey(8, x: -20, y: -14, tension: 0.4, elbowAbduction: -0.35), // inboard (1 rev)
-  DanceIkTargetKey(10, x: -30, y: -38, tension: 0.3, elbowAbduction: -0.35), // top
-  DanceIkTargetKey(12, x: -43, y: -22, tension: 0.4, elbowAbduction: -0.35), // outboard
-  // Bar 2 jabs (beats 5-8, alternating L,R,L,R): fire to near-full
-  // extension PAST the opposite shoulder line in one beat-quarter, hold a
-  // frame, recoil; the idle paw chambers at the OWN-side hip crest.
-  // Round 9: measured world position confirmed the jab and the OTHER
-  // hand's chamber were landing within ~1 world unit of each other in x
-  // (both authored on the same broad side of the body once the crossing
-  // hand reaches over) — the two poses visually merged into one blob
-  // instead of contrasting "one hand out, one hand tucked." The chamber
-  // is already pinned to its test floor (x magnitude just over 24); the
-  // jab has no such ceiling, so pushed it much further across to clear
-  // the chamber's landing zone with real daylight between them.
-  //
-  // R10 follow-up: EVERY rater still calls the jab a static crossed hold
-  // that "never extends." Root-caused with a world-space probe (anchor
-  // basis vectors at the target's own frame, not just position sampling):
-  // the anchor (`torso`) DRIFTS ~24 world units to the left across frames
-  // 14-20 as the step-touch weight shifts — exactly opposing the jab's
-  // rightward local reach, so a big local-space cross-body reach still
-  // lands only slightly right of center in world space (target (33,-50)
-  // resolves to world x~25 at frame 16, barely past the chamber hand's
-  // own ~24). This is a DIFFERENT bug than the reach-zone/rotation issues
-  // fixed elsewhere this round: the target IS being tracked accurately
-  // (no fold-clamp, no IK error) and the local values ARE past every
-  // tested floor — the anchor itself is moving against the gesture.
-  // Tried widening further to compensate (33->38, -50->-55): a follow-up
-  // reach-ratio probe against the ACTUAL shoulder position (not just the
-  // anchor's linear basis) showed the ORIGINAL values already sit at
-  // ratio ~0.81-0.85 — this move's jab was already pushed to near the
-  // hard reach ceiling in an earlier round (matches the old "reach-
-  // limited" note below), so there is no further room in local-target
-  // space to counteract the anchor drift; widening past this breaks the
-  // hard reach-limit validator outright. Reverted the widen. The actual
-  // fix needs the root-motion side: taming how far the pocket keys'
-  // weight-shift drifts the torso specifically during the jab beats
-  // (frames 14-20), which touches footwork/weight-commit timing shared
-  // with other channels — left for a dedicated pass rather than risking
-  // those here.
-  // R follow-up (panel post-PR#54): the anchor-drift damping fix measurably
-  // widened the jab/chamber world-x gap (probe numbers) but a direct render
-  // crop showed it still reads as a tight crossed guard — the panel was
-  // right that a few world units of anchor compensation doesn't survive
-  // down to a legible silhouette. TRIED widening the jab's local reach
-  // further (33,-50 -> 48,-60, then scaled attempts) on the theory that an
-  // elbow-bend-degrees probe (~90.8deg vs a 178deg ceiling) showed room —
-  // that theory was WRONG: the elbow-bend metric was measured against the
-  // wrong reference and looked permissive, but re-probing with the actual
-  // `MotionConstraintValidator.analyze()` (the same mechanism the "hard arm
-  // reach limit" test uses) shows the BASELINE (33,-50) already sits at
-  // reachRatio ~0.97 at its worst phase — essentially maxed out, not the
-  // ~80-85% every earlier round assumed. There is NO room to widen local
-  // reach further; the arm is already at its hard physical limit at
-  // baseline. Reverted the widen. The panel's OTHER suggested levers
-  // (elbow abduction independent of the wrist target, a forward shoulder
-  // roll, a post-strike recoil/rebound) are genuinely different mechanisms
-  // from "move the IK target further" and are the real next step — left
-  // for a dedicated pass since they need new authored motion, not a value
-  // tune. See the panel digest for the specific critiques.
-  // R follow-up (panel post-PR#54, task #45 part 1): the movement rater
-  // flagged the jab as "arrives and freezes" — no rebound after peak
-  // extension. `Ease.easeOutBack` on the recoil key makes the transition
-  // INTO it overshoot past (10,-44) then settle back, the same
-  // anticipation/overshoot pattern already used on the wheel's OUT-point
-  // keys elsewhere in this file — a real spring-back instead of a dead stop.
-  // R follow-up (task #46, transitions r4 panel — buga->azonto/sekem->azonto
-  // both scored the jab a 3-4/10). Re-tried widening the reach further
-  // (33->44) on the theory that a `CharacterScene.frameAt` probe showed
-  // reachRatio only ~0.86 at frame 16 — that theory was WRONG, the same
-  // mistake a prior round already made and documented above: probing world
-  // bone positions directly (not through `MotionConstraintValidator`, which
-  // samples the smooth cyclic spline at high density and catches an
-  // inter-keyframe OVERSHOOT the 32-key-aligned coarse check misses) gives
-  // an optimistic number. Re-checked with the validator itself at matching
-  // density: the baseline (33,-50) already peaks at reachRatio ~1.01
-  // between frames 16 and 17 (the Catmull-Rom curve overshoots past both
-  // keyframes' own values) — there is genuinely NO room to widen, exactly
-  // as documented above. Reverted the widen for good.
-  //
-  // A follow-up tried applying the flip at the WINDUP key (14) instead of
-  // just the peak (16), on the theory that the arm is still well bent
-  // during the approach (where the two bend solutions genuinely diverge),
-  // so flipping there should swing the elbow outward through the whole
-  // approach. That broke three separate motion-quality gates
-  // (`dance_angular_motion_test`, `dance_smoothness_test`,
-  // `temporal_motion_analyzer_test`) — a real kinematic pop, not a test
-  // nuisance: `bendDirection` is a discrete either/or (see
-  // [IkTargetPose.bendDirection]), so switching it mid-swing snaps the
-  // elbow to the OTHER solution in one frame while the wrist keeps moving
-  // continuously, which is exactly the "stop-go"/jerk signature those gates
-  // exist to catch. Reverted.
-  //
-  // A later attempt kept `bendDirection` at ONLY the peak key (16),
-  // reasoning it was geometrically inert there: a probe showed the two bend
-  // solutions converge to nearly the same elbow position at this key's
-  // full-reach extension, so flipping the solver's preference "shouldn't"
-  // change anything visible. That reasoning was wrong — live rendering
-  // showed the arm rendering as an impossible pose (appearing to terminate
-  // near the collar with no visible hand) during this exact jab. The
-  // "converges in the solved pose" probe didn't account for how the
-  // discrete flip interacts with the interpolated approach into the peak,
-  // where the two solutions have NOT yet converged. Removed entirely —
-  // never trust the geometric-convergence argument alone here again;
-  // render and look.
-  DanceIkTargetKey(14, x: -33, y: -20, tension: 0.8), // into bar 2
-  DanceIkTargetKey(16, x: 33, y: -50, tension: 1), // JAB past the far line
-  DanceIkTargetKey(17, x: 32, y: -48, tension: 1), // hold
-  // (leaving 17 itself with no override means the very next segment, 17->19,
-  // goes straight back to the rig default for the recoil's cross-body swing)
-  // R1: a y-only lift (-44 -> -58, keeping x on the SAME side as hand.R's
-  // simultaneous "loads" key) was tried and panel-rejected (3 reviewers,
-  // avg 4.3/10): raising y moved this hand further INTO the torso
-  // silhouette rather than out past it, since both hands stayed on the
-  // same x-side — a screen-space occlusion problem, not a raw-distance
-  // one. Fixed instead by swapping this key to hand.L's OWN (negative)
-  // side: x 10 -> -20, back near chamber's -26 rather than mid-crossover.
-  // Now this hand and hand.R's "loads" key (x +10, still on R's own side)
-  // sit on OPPOSITE sides of the tie at this beat instead of stacked on
-  // one side. Magnitude (|x|+|y| basis) stays well under the JAB key's
-  // already-validated near-max reachRatio (~0.97 at x33,y-50), so this
-  // doesn't reopen the reach-ceiling issue noted above.
-  // R2 (task #45): added `Ease.easeOutBack` on top of the opposite-side fix
-  // above so the transition into this recoil overshoots past it and
-  // settles back, instead of arriving dead — the two fixes are orthogonal
-  // (one is WHERE the key sits, the other is HOW the arm arrives there).
-  DanceIkTargetKey(
-    19,
-    x: -20,
-    y: -44,
-    tension: 0.4,
-    ease: Ease.easeOutBack,
-  ), // recoil through guard, opposite side + spring-back overshoot
-  DanceIkTargetKey(20, x: -26, y: -10, tension: 0.8), // chamber at the hip
-  DanceIkTargetKey(22, x: -27, y: -12, tension: 0.5),
-  DanceIkTargetKey(23, x: -10, y: -34, tension: 0.4), // loads
-  DanceIkTargetKey(24, x: 33, y: -50, tension: 1), // JAB
-  DanceIkTargetKey(25, x: 32, y: -48, tension: 1), // hold
-  DanceIkTargetKey(
-    27,
-    x: -20,
-    y: -44,
-    tension: 0.4,
-    ease: Ease.easeOutBack,
-  ), // recoil through guard, opposite side + spring-back overshoot
-  DanceIkTargetKey(28, x: -26, y: -10, tension: 0.8), // chamber
-  DanceIkTargetKey(30, x: -24, y: 5, tension: 0.5),
-  DanceIkTargetKey(31, x: -22, y: 15, tension: 0.6), // lifts to the wheel
-  DanceIkTargetKey(32, x: -20, y: 25), // == frame 0
+  // Same-side out-points (2026-07-07 re-author, owner-approved, replacing the
+  // clutched steering-wheel + cross-body jab that panelled 4-5: the hands never
+  // cleared the torso silhouette). Each beat ONE hand punches OUT to its OWN
+  // side (clearing the body outline against the light background) while the
+  // other chambers at its own-side hip; they alternate every beat. Same-side
+  // reach goes WITH the step-touch weight shift, so it sidesteps the anchor
+  // drift that hard-capped the old cross-body jab (~1.01 reachRatio), and it
+  // clears the silhouette where the in-front wheel geometrically never could.
+  // L is OUT on beats 4/12/20/28, chambered on 0/8/16/24. cyclic spline, so the
+  // sparse hit-poses generate their own transitions; f32 == f0 for the loop.
+  DanceIkTargetKey(0, x: -40, y: -4), // chamber at own-side hip (loop seam)
+  DanceIkTargetKey(4, x: -90, y: -50, tension: 1), // PUNCH out-left, clears silhouette
+  DanceIkTargetKey(5, x: -88, y: -48, tension: 1), // crest hold
+  DanceIkTargetKey(8, x: -40, y: -4, tension: 0.5), // recoil to chamber
+  DanceIkTargetKey(12, x: -90, y: -50, tension: 1), // PUNCH out
+  DanceIkTargetKey(13, x: -88, y: -48, tension: 1), // crest hold
+  DanceIkTargetKey(16, x: -40, y: -4, tension: 0.5), // chamber
+  DanceIkTargetKey(20, x: -90, y: -50, tension: 1), // PUNCH out
+  DanceIkTargetKey(21, x: -88, y: -48, tension: 1), // crest hold
+  DanceIkTargetKey(24, x: -40, y: -4, tension: 0.5), // chamber
+  DanceIkTargetKey(28, x: -90, y: -50, tension: 1), // PUNCH out
+  DanceIkTargetKey(29, x: -88, y: -48, tension: 1), // crest hold
+  DanceIkTargetKey(32, x: -40, y: -4), // == frame 0 chamber
 ];
 const _azontoHandRTargetKeys = [
-  // Round 9 re-author: mirrors the hand.L rock-together wheel redesign
-  // and jab-reach fix above (see those comments) — same root causes,
-  // mirrored keys.
-  // R10 follow-up: widened to match hand.L's bigger reach-ratio swing
-  // (see that comment above) — same mirrored values.
-  // Mirror of hand.L's circle, 180deg out of phase (one hand tops while the
-  // other bottoms) so the pair reads as a rolling wheel.
-  DanceIkTargetKey(0, x: 43, y: -22, tension: 0.4, elbowAbduction: 0.35), // outboard (opp. L inboard)
-  DanceIkTargetKey(2, x: 34, y: -4, tension: 0.3, elbowAbduction: 0.35), // bottom
-  DanceIkTargetKey(4, x: 20, y: -14, tension: 0.4, elbowAbduction: 0.35), // inboard
-  DanceIkTargetKey(6, x: 30, y: -38, tension: 0.3, elbowAbduction: 0.35), // top
-  DanceIkTargetKey(8, x: 43, y: -22, tension: 0.4, elbowAbduction: 0.35), // outboard
-  DanceIkTargetKey(10, x: 34, y: -4, tension: 0.3, elbowAbduction: 0.35), // bottom
-  DanceIkTargetKey(12, x: 20, y: -14, tension: 0.4, elbowAbduction: 0.35), // inboard
-  DanceIkTargetKey(14, x: 33, y: -20, tension: 0.2), // into bar 2
-  // Bar 2: chambered at the own-side hip while the left jabs, then the
-  // answering cross jab.
-  DanceIkTargetKey(16, x: 26, y: -10, tension: 0.8), // chamber at the hip
-  DanceIkTargetKey(18, x: 27, y: -12, tension: 0.5),
-  // Mirrors hand.L's jab above — see that comment for the full history: a
-  // `bendDirection` override was tried here too and reverted for the same
-  // reason (live rendering showed an impossible arm pose the "geometrically
-  // inert at full reach" probe didn't predict).
-  DanceIkTargetKey(19, x: 10, y: -34, tension: 0.4), // loads
-  DanceIkTargetKey(20, x: -33, y: -50, tension: 1), // JAB past the far line
-  DanceIkTargetKey(21, x: -32, y: -48, tension: 1), // hold
-  // Mirrors hand.L's opposite-side recoil fix above (see that comment):
-  // swapped to hand.R's OWN (positive) side so it doesn't stack with
-  // hand.L's simultaneous "loads" key (also on L's own, negative side).
-  // Also carries the same `Ease.easeOutBack` spring-back overshoot.
-  DanceIkTargetKey(
-    23,
-    x: 20,
-    y: -44,
-    tension: 0.4,
-    ease: Ease.easeOutBack,
-  ), // recoil through guard, opposite side + spring-back overshoot
-  DanceIkTargetKey(24, x: 26, y: -10, tension: 0.8), // chamber
-  DanceIkTargetKey(26, x: 27, y: -12, tension: 0.5),
-  DanceIkTargetKey(27, x: 10, y: -34, tension: 0.4),
-  DanceIkTargetKey(28, x: -33, y: -50, tension: 1), // JAB
-  DanceIkTargetKey(29, x: -32, y: -48, tension: 1), // hold
-  DanceIkTargetKey(31, x: 29, y: 0, tension: 0.6), // settles to the wheel
-  DanceIkTargetKey(32, x: 32, y: 10, tension: 0.6), // == frame 0
+  // Mirror of hand.L's same-side out-points, offset one beat so exactly ONE
+  // hand is out at any time (the other chambers). R is OUT on beats 0/8/16/24,
+  // chambered on 4/12/20/28. cyclic spline; f32 == f0 for the loop.
+  DanceIkTargetKey(0, x: 90, y: -50, tension: 1), // PUNCH out-right (loop seam)
+  DanceIkTargetKey(1, x: 88, y: -48, tension: 1), // crest hold
+  DanceIkTargetKey(4, x: 40, y: -4, tension: 0.5), // recoil to chamber
+  DanceIkTargetKey(8, x: 90, y: -50, tension: 1), // PUNCH out
+  DanceIkTargetKey(9, x: 88, y: -48, tension: 1), // crest hold
+  DanceIkTargetKey(12, x: 40, y: -4, tension: 0.5), // chamber
+  DanceIkTargetKey(16, x: 90, y: -50, tension: 1), // PUNCH out
+  DanceIkTargetKey(17, x: 88, y: -48, tension: 1), // crest hold
+  DanceIkTargetKey(20, x: 40, y: -4, tension: 0.5), // chamber
+  DanceIkTargetKey(24, x: 90, y: -50, tension: 1), // PUNCH out
+  DanceIkTargetKey(25, x: 88, y: -48, tension: 1), // crest hold
+  DanceIkTargetKey(28, x: 40, y: -4, tension: 0.5), // chamber
+  DanceIkTargetKey(32, x: 90, y: -50, tension: 1), // == frame 0 punch
 ];
 // R10: every rater independently called the re-positioned wheel-mime and
 // jab "legible but frozen holds" — right reach zone, no gesture motion of
