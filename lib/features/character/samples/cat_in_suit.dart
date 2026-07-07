@@ -1212,6 +1212,8 @@ class CatClips {
           ),
           CatBones.handL: const DanceJointTrack(_bugaHandLKeys, smooth: true),
           CatBones.handR: const DanceJointTrack(_bugaHandRKeys, smooth: true),
+          CatBones.footL: const DanceJointTrack(_bugaFootLKeys, smooth: true),
+          CatBones.footR: const DanceJointTrack(_bugaFootRKeys, smooth: true),
         },
         bodyMotion: const DanceBodyMotion(
           pelvisBoneId: CatBones.hips,
