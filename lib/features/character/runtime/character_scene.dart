@@ -2003,10 +2003,26 @@ class CharacterScene {
             3,
           )
         : 0.0;
+    // Per-clip LATERAL NECK-COUNTER: pull the skull back toward the collar
+    // centerline by a fraction of its MEASURED lateral offset (whatever the
+    // source — pelvic obliquity, spine lean, follow), so a move can drive a
+    // deeper hip pop without the skull wandering off the collar. Unlike
+    // `_danceHeadHorizontalCounter` (which only cancels the rootDx translation),
+    // this cancels the articulated-chain swing that the obliquity produces.
+    // Opt-in ([Clip.headLateralStabilize] defaults to 0 -> byte-identical).
+    final headWanderAnchor = world[_kThroatBridgeAnchorBone];
+    final headWanderCounter =
+        (_isDanceFamily(clip) &&
+            clip.headLateralStabilize > 0 &&
+            headWanderAnchor != null)
+        ? -(headWorld.origin.x - headWanderAnchor.origin.x) *
+              clip.headLateralStabilize
+        : 0.0;
     final headHorizontalCounter = _isDanceFamily(clip)
         ? (_danceHeadHorizontalCounter(rootDx, clip.danceHeadBobScale) +
-                  headDxFollow) *
-              baseScale
+                      headDxFollow) *
+                  baseScale +
+              headWanderCounter
         : 0.0;
     // Vertical leveling is a TWO-STAGE spine pass (neck, then head): the head
     // over-travels chiefly through the neck (the torso's crouch arcs it out —

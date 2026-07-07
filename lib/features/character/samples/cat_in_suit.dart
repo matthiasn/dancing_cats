@@ -1173,6 +1173,11 @@ class CatClips {
           dynamics: DanceDynamics(weight: 0.5, time: 0.55, flow: -0.15),
         ),
         duration: base.duration,
+        // Lateral neck-counter holds the skull firm over the collar so the
+        // deepened pelvic obliquity below (0.05 -> 0.13) reads as a real hip
+        // pop without tripping the "heads are terribly loose" wander bound.
+        headLateralStabilize: 0.55,
+        danceHeadLevelClampMin: -6,
         contactPinning: base.contactPinning,
         supportFootWorldAnchor: true,
         supportFootWorldAnchorStrength: 0.9,
@@ -1267,7 +1272,7 @@ class CatClips {
             // phase 0.125) so the loaded-side hip hikes on the beat and the
             // accent reads as pelvis drive, not knee bend.
             SineChannel(
-              harmonicAmplitude: 0.05,
+              harmonicAmplitude: 0.11,
               harmonicPhase: 0.125,
               harmonicMultiplier: 4,
             ),

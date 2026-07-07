@@ -1537,6 +1537,7 @@ class Clip {
     this.danceHeadBobScale = 1.0,
     this.danceHeadLevelClampMin = -2.0,
     this.armReachScale = 1.0,
+    this.headLateralStabilize = 0.0,
     this.enforceSoleFloor = false,
     this.transitionPlan,
     this.zOrderSwaps = const [],
@@ -1588,6 +1589,14 @@ class Clip {
   /// (shaku/zanku) stay byte-identical by not opting in. The scene maps this to
   /// a pivotY scale on the arm chain each frame.
   final double armReachScale;
+
+  /// Per-clip LATERAL NECK-COUNTER (default 0 = off). Pulls the head back toward
+  /// the collar centerline by this fraction of its measured lateral offset, so a
+  /// move can drive a deeper hip pop / pelvic obliquity WITHOUT the skull
+  /// wandering off the collar (the owner's "heads are terribly loose" bound). It
+  /// keeps the head FIRM rather than relaxing the gate. Opt-in — moves that fit
+  /// the default envelope (shaku/zanku) leave it 0 and are byte-identical.
+  final double headLateralStabilize;
 
   /// When true, free-foot IK targets are clamped so the shoe bottom never
   /// sinks below the planted support sole (the R27 mocap hard gate: deep
@@ -1788,6 +1797,11 @@ Clip blendedClip({
       rootWeight,
     ),
     armReachScale: _lerp(from.armReachScale, to.armReachScale, rootWeight),
+    headLateralStabilize: _lerp(
+      from.headLateralStabilize,
+      to.headLateralStabilize,
+      rootWeight,
+    ),
     enforceSoleFloor: rootWeight < 0.5
         ? from.enforceSoleFloor
         : to.enforceSoleFloor,

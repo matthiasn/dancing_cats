@@ -183,6 +183,7 @@ class DanceMoveDescriptor {
     this.danceHeadBobScale,
     this.danceHeadLevelClampMin,
     this.armReachScale,
+    this.headLateralStabilize,
     this.enforceSoleFloor,
     this.zOrderSwaps = const [],
     this.transitionPlan,
@@ -244,6 +245,9 @@ class DanceMoveDescriptor {
   /// Per-clip arm-reach multiplier — see [Clip.armReachScale]. Null defers to
   /// the base clip / the 1.0 default.
   final double? armReachScale;
+
+  /// Per-clip lateral neck-counter — see [Clip.headLateralStabilize].
+  final double? headLateralStabilize;
 
   /// See [Clip.enforceSoleFloor] — opt-in per routine.
   final bool? enforceSoleFloor;

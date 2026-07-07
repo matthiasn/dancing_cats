@@ -117,6 +117,8 @@ Clip assembleMoveClip(
     danceHeadLevelClampMin:
         descriptor.danceHeadLevelClampMin ?? base?.danceHeadLevelClampMin ?? -2,
     armReachScale: descriptor.armReachScale ?? base?.armReachScale ?? 1,
+    headLateralStabilize:
+        descriptor.headLateralStabilize ?? base?.headLateralStabilize ?? 0,
     enforceSoleFloor:
         descriptor.enforceSoleFloor ?? base?.enforceSoleFloor ?? false,
     transitionPlan: descriptor.transitionPlan ?? base?.transitionPlan,
