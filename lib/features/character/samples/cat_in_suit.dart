@@ -1258,6 +1258,17 @@ class CatClips {
               scaleYPhase: 0.02,
               scaleYHarmonic: 24,
             ),
+            // Baseline panel (mocap "the single biggest thing", coach, physicist):
+            // the pelvis stays LEVEL, so the groove reads as a knee-scissor squat,
+            // not a hip-driven pop. Add pelvic OBLIQUITY — a per-bar hip hike/drop
+            // (roll) phased with the lateral weight shift (sway is harmonic 4 at
+            // phase 0.125) so the loaded-side hip hikes on the beat and the
+            // accent reads as pelvis drive, not knee bend.
+            SineChannel(
+              harmonicAmplitude: 0.05,
+              harmonicPhase: 0.125,
+              harmonicMultiplier: 4,
+            ),
           ],
         ),
         limbTargetTracks: {
