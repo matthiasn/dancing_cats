@@ -508,7 +508,7 @@ class CharacterScene {
       // legwork in the onion — the eye caught the ears, not the feet. A tighter
       // ceiling bites only the saturated (high-rotation) case; gentle moves
       // (shaku) stay well under it, so their ear life is unchanged.
-      final clampAt = isTip ? 0.12 : 0.06;
+      final clampAt = isTip ? 0.10 : 0.06;
       final delta = _clampMagnitude(
         side * earDrive * gain + flick * gain,
         clampAt,

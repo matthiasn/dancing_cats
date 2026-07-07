@@ -56,13 +56,13 @@ const _zankuFootLTargetKeys = [
   DanceIkTargetKey(0, x: -62, y: 126, tension: 1), // heavy stamp/support
   DanceIkTargetKey(2, x: -62, y: 125, tension: 0.6), // planted, held
   DanceIkTargetKey(4, x: -62, y: 126, tension: 0.4), // plant end — swap
-  DanceIkTargetKey(5, x: -46, y: 78), // compact pickup, clearly airborne (R5: taller lift)
+  DanceIkTargetKey(5, x: -46, y: 70), // compact pickup, clearly airborne (R8: taller still)
   DanceIkTargetKey(6, x: -83, y: 122), // heel-toe knock under hip
   DanceIkTargetKey(7, x: -52, y: 104), // anticipation lift -> snaps into stamp 8
   DanceIkTargetKey(8, x: -62, y: 126, tension: 1), // stamp
   DanceIkTargetKey(10, x: -62, y: 125, tension: 0.6),
   DanceIkTargetKey(12, x: -62, y: 126, tension: 0.4),
-  DanceIkTargetKey(13, x: -46, y: 78),
+  DanceIkTargetKey(13, x: -46, y: 70),
   DanceIkTargetKey(14, x: -79, y: 121), // tighter rep (de-clone, R2)
   DanceIkTargetKey(15, x: -52, y: 104),
   DanceIkTargetKey(16, x: -62, y: 126, tension: 1), // stamp
@@ -101,13 +101,13 @@ const _zankuFootRTargetKeys = [
   DanceIkTargetKey(4, x: 62, y: 126, tension: 1), // stamp/support
   DanceIkTargetKey(6, x: 62, y: 125, tension: 0.6), // planted, held
   DanceIkTargetKey(8, x: 50, y: 123),
-  DanceIkTargetKey(9, x: 44, y: 78),
+  DanceIkTargetKey(9, x: 44, y: 70),
   DanceIkTargetKey(10, x: 80, y: 121), // tighter rep (de-clone, R2)
   DanceIkTargetKey(11, x: 52, y: 104),
   DanceIkTargetKey(12, x: 62, y: 126, tension: 1), // stamp
   DanceIkTargetKey(14, x: 62, y: 125, tension: 0.6),
   DanceIkTargetKey(16, x: 50, y: 123),
-  DanceIkTargetKey(17, x: 44, y: 78),
+  DanceIkTargetKey(17, x: 44, y: 70),
   DanceIkTargetKey(18, x: 86, y: 123), // wider rep (de-clone, R2)
   DanceIkTargetKey(19, x: 52, y: 104),
   DanceIkTargetKey(20, x: 62, y: 126, tension: 1), // stamp
