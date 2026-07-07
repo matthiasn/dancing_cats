@@ -128,10 +128,14 @@ void main() {
               speedupSquared;
           expect(
             worstAcceleration,
-            lessThan(1.5),
+            lessThan(1.8),
             reason:
                 '${clip.name} $bone worst real-tempo angular acceleration '
-                'should stay well clear of a hard rotational stop',
+                'should stay clear of a hard rotational stop. Raised 1.5→1.8 '
+                'for the hit-and-park re-author: real dance hands whip fast '
+                'into an on-beat accent (owner: "hands move fast in dance"), '
+                'which the old smooth-motion bound forbade; a genuine stop-go '
+                'regression still spikes far higher.',
           );
         }
       }

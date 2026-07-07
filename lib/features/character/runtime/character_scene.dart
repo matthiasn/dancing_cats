@@ -979,18 +979,22 @@ class CharacterScene {
 
   /// How far a hand overshoots past a hit at the follow-through peak, as a
   /// fraction of its arrival-window travel. Perceptual dial.
-  static const double _kFollowGain = 1;
+  static const double _kFollowGain = 2;
 
   /// Cap (target-space units) on the arrival-window travel that scales the
   /// overshoot. An extreme hit into a near-degenerate elbow (zanku's volatile
   /// two-bone reach) would otherwise drive a jerk spike; capping the driving
   /// travel scales the whole envelope down uniformly, so it bounds the
   /// amplitude without breaking the C1 shape or touching normal hits.
-  static const double _kFollowMaxArrivalTravel = 9;
+  static const double _kFollowMaxArrivalTravel = 8;
 
-  /// Peak of the C1 envelope `u²·(1-u)³` (at u = 0.4) inverted, so multiplying
-  /// by it normalises the envelope's peak to 1.
-  static const double _kFollowEnvNorm = 28.935;
+  /// Peak of the C1 envelope `u²·(1-u)⁵` (at u ≈ 0.286) inverted, so
+  /// multiplying by it normalises the envelope's peak to 1. The higher power
+  /// peaks the overshoot EARLIER (right after the hit) and returns to ~0 well
+  /// before the next key, so the settle is a crisp bump then a dead hold —
+  /// panel feedback was that the broader `(1-u)³` bump filled the valley
+  /// (raised mid-band dwell) instead of sharpening the accent.
+  static const double _kFollowEnvNorm = 65.94;
 
   /// Damped follow-through in HAND-TARGET space. After a hand IK target
   /// decelerates into a keyframe hit (fast arrival, ~stopped departure), the
@@ -1036,7 +1040,7 @@ class CharacterScene {
         ? _kFollowMaxArrivalTravel / travel
         : 1.0;
     final env =
-        _kFollowGain * _kFollowEnvNorm * u * u * math.pow(1 - u, 3).toDouble();
+        _kFollowGain * _kFollowEnvNorm * u * u * math.pow(1 - u, 5).toDouble();
     return (env * adx * cap, env * ady * cap);
   }
 
