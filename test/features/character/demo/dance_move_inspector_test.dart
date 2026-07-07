@@ -1,4 +1,5 @@
 import 'package:dancing_cats/features/character/demo/dance_move_inspector.dart';
+import 'package:dancing_cats/features/character/demo/dance_velocity_panel.dart';
 import 'package:dancing_cats/features/character/demo/motion_trace_panel.dart';
 import 'package:dancing_cats/features/character/model/clip.dart';
 import 'package:dancing_cats/features/character/runtime/character_scene.dart';
@@ -156,6 +157,29 @@ void main() {
         ),
         findsNothing,
       );
+    });
+
+    testWidgets('the VELOCITY chip swaps the grid for the hand-speed chart', (
+      tester,
+    ) async {
+      await _openInspector(tester, scene: scene, clip: clip);
+
+      await tester.tap(find.byKey(const Key('moveInspectorViewVELOCITY')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining('HAND VELOCITY'),
+        findsOneWidget,
+        reason: 'the section header should switch to the velocity view',
+      );
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is CustomPaint && w.painter is VelocityProfilePainter,
+        ),
+        findsOneWidget,
+        reason: 'the hand-speed chart replaces the keyframe grid',
+      );
+      expect(find.byKey(const ValueKey('moveFrameCell_0')), findsNothing);
     });
   });
 

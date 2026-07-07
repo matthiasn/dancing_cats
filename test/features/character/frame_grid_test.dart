@@ -3,13 +3,19 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:dancing_cats/features/character/demo/dance_performance.dart'
-    show kDancePhraseBars, kDanceRealTempoSpeedup;
+    show
+        kDanceLaneDynamicsProfiles,
+        kDancePhraseBars,
+        kDanceRealTempoSpeedup,
+        sectionEnergyDynamics;
 import 'package:dancing_cats/features/character/demo/motion_trace_panel.dart';
 import 'package:dancing_cats/features/character/engine/autonomic.dart';
 import 'package:dancing_cats/features/character/model/affine2d.dart';
 import 'package:dancing_cats/features/character/model/beat_map.dart';
 import 'package:dancing_cats/features/character/model/bone.dart';
 import 'package:dancing_cats/features/character/model/clip.dart';
+import 'package:dancing_cats/features/character/model/dance_dynamics.dart';
+import 'package:dancing_cats/features/character/model/dance_dynamics_warp.dart';
 import 'package:dancing_cats/features/character/model/face.dart';
 import 'package:dancing_cats/features/character/model/rig_spec.dart';
 import 'package:dancing_cats/features/character/runtime/character_painter.dart';
@@ -174,6 +180,13 @@ void main() {
   final clipsByName = <String, Clip>{
     for (final c in CatClips.all) c.name: c,
   };
+  // GRID_WARP=1 renders each looping dance clip through the shipped upper-body
+  // Effort time warp (lead lane, GRID_WARP_LEVEL section energy) — the raw
+  // catalogue clip the harness renders by default is NOT what the audience
+  // sees live; the live/offline paint path warps it. Feet/legs stay on the
+  // shared clock (the warp only touches kDanceUpperBodyWarpBoneIds).
+  final applyWarp = (env['GRID_WARP'] ?? '0') == '1';
+  final warpLevel = double.tryParse(env['GRID_WARP_LEVEL'] ?? '') ?? 0.85;
   final selected = (env['GRID_CLIPS'] ?? clipsByName.keys.join(','))
       .split(',')
       .map((s) => s.trim())
@@ -771,7 +784,18 @@ void main() {
   testWidgets('renders per-frame contact-sheet grids', (tester) async {
     await tester.runAsync(() async {
       for (final name in selected) {
-        final clip = clipsByName[name]!;
+        final baseClip = clipsByName[name]!;
+        final clip = applyWarp && baseClip.loop && !baseClip.dynamics.isNeutral
+            ? upperBodyDynamicsWarpedClip(
+                baseClip,
+                effectiveDanceDynamics(
+                  moveBase: baseClip.dynamics,
+                  catProfile: kDanceLaneDynamicsProfiles[0],
+                  sectionEnergy: sectionEnergyDynamics(warpLevel),
+                ),
+                warpBoneIds: kDanceUpperBodyWarpBoneIds,
+              )
+            : baseClip;
         final catalogueDance = _isCatalogueDanceClip(clip);
         // Mirror the shipped cast: limb thickness follows each lane's staged
         // plane scale (lead = the front reference, flankers upstage).

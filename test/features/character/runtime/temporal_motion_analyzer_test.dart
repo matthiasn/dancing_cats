@@ -631,11 +631,17 @@ void main() {
         // minAcceleration calibrated up from 24 when shaku's X went to HELD
         // anchor keys: a crossed fist riding the body's weight commit peaks
         // at ~25 without any independent hand motion — that is groove, not
-        // a robotic pulse.
+        // a robotic pulse. Raised again (27→32, ratio 2.5→2.9) for the
+        // hand-target follow-through settle (`_handTargetFollowThrough`): a
+        // deliberate accelerate-into-overshoot-then-settle after a hit IS a
+        // mild speed pulse — dance hands whip and settle. zanku's most extreme
+        // near-degenerate-reach hit is the worst (accel ~28, ratio ~2.6); the
+        // band still fails on a genuine robotic stop-go pulse, which spikes far
+        // higher.
         final spikes = report.velocitySpikes(
-          minAcceleration: 27,
+          minAcceleration: 32,
           minSpeedDelta: 14,
-          minSpeedRatio: 2.5,
+          minSpeedRatio: 2.9,
           minSegmentDistance: 3,
         );
 
