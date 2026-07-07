@@ -166,6 +166,41 @@ class AmplitudeScaledIkTargetChannel extends IkTargetChannel {
   }
 }
 
+/// Adds a small, FAST circular orbit to an IK target on top of its authored
+/// motion — the "fast base" a real dancer's hands always carry (owner: real
+/// afrobeats hands move continuously, 2-4x faster than the per-beat pose
+/// changes; e.g. rotating around each other). [revs] is an INTEGER so the orbit
+/// is loop-seamless (sample(0)==sample(1)); [radius] is small so it reads as
+/// alive/rolling, not a big swing that would whip the elbow. Layered UNDER the
+/// effort amplitude scale, so the orbit shrinks/grows and breathes with the
+/// song energy like everything else.
+class OrbitedIkTargetChannel extends IkTargetChannel {
+  const OrbitedIkTargetChannel(
+    this.inner, {
+    required this.radius,
+    required this.revs,
+    this.phase = 0,
+  });
+
+  final IkTargetChannel inner;
+  final double radius;
+  final int revs;
+  final double phase;
+
+  @override
+  IkTargetPose sample(double p) {
+    final s = inner.sample(p);
+    final a = 2 * math.pi * revs * p + phase;
+    return IkTargetPose(
+      x: s.x + radius * math.cos(a),
+      y: s.y + radius * math.sin(a),
+      weight: s.weight,
+      bendDirection: s.bendDirection,
+      elbowAbduction: s.elbowAbduction,
+    );
+  }
+}
+
 /// Maps the global 0..1 transition progress into a local blend window.
 ///
 /// A plain per-bone mask that never reaches `1` would pop when a temporary
