@@ -650,8 +650,8 @@ class CharacterRenderer {
     spine = insetRibbonSpineEnd(spine, ribbon.distalInset);
     final path = limbRibbonInkPath(
       spine,
-      ribbon.halfWidths,
-      backHalfWidths: ribbon.backHalfWidths,
+      _raiseClampedWidths(ribbon, spine, ribbon.halfWidths)!,
+      backHalfWidths: _raiseClampedWidths(ribbon, spine, ribbon.backHalfWidths),
       jointTensions: ribbon.jointTensions,
       samplesPerSegment: ribbon.samplesPerSegment,
       startFraction: ribbon.inkStartFraction,
@@ -694,8 +694,8 @@ class CharacterRenderer {
     spine = insetRibbonSpineEnd(spine, ribbon.distalInset);
     final path = limbRibbonInkPath(
       spine,
-      ribbon.halfWidths,
-      backHalfWidths: ribbon.backHalfWidths,
+      _raiseClampedWidths(ribbon, spine, ribbon.halfWidths)!,
+      backHalfWidths: _raiseClampedWidths(ribbon, spine, ribbon.backHalfWidths),
       jointTensions: ribbon.jointTensions,
       samplesPerSegment: ribbon.samplesPerSegment,
       startFraction: ribbon.inkStartFraction,
@@ -763,12 +763,57 @@ class CharacterRenderer {
     spine = insetRibbonSpineEnd(spine, ribbon.distalInset);
     return limbRibbonPath(
       spine,
-      ribbon.halfWidths,
-      backHalfWidths: ribbon.backHalfWidths,
+      _raiseClampedWidths(ribbon, spine, ribbon.halfWidths)!,
+      backHalfWidths: _raiseClampedWidths(ribbon, spine, ribbon.backHalfWidths),
       jointTensions: ribbon.jointTensions,
       samplesPerSegment: ribbon.samplesPerSegment,
       roundCaps: ribbon.roundCaps,
     );
+  }
+
+  /// Peak narrowing of the proximal (deltoid) half-widths at full raise, when
+  /// [LimbRibbonSpec.clampProximalOnRaise] is set — see that field.
+  static const double _kProximalRaiseNarrow = 0.3;
+
+  /// Per-index weight of [_kProximalRaiseNarrow] over the deltoid region
+  /// (clavicle, deltoid, bicep), tapering the narrowing to nothing by the elbow
+  /// so the mid-limb width is untouched.
+  static const List<double> _kProximalNarrowWeights = [0.7, 1, 0.5];
+
+  /// Narrows the deltoid dome when the arm's root segment is raised (points
+  /// up), where the wide armhole-filling dome would otherwise read as a bulbous
+  /// shoulder blob. Full width when the segment hangs down (raise ≤ 0), so the
+  /// armhole gap-proofing is preserved for at-rest arms in every clip. A pure
+  /// function of the solved spine, so it stays deterministic.
+  List<double>? _raiseClampedWidths(
+    LimbRibbonSpec ribbon,
+    List<Offset> spine,
+    List<double>? widths,
+  ) {
+    if (widths == null ||
+        !ribbon.clampProximalOnRaise ||
+        spine.length < 3 ||
+        widths.length < 3) {
+      return widths;
+    }
+    final v = spine[2] - spine[0]; // clavicle → bicep, down the upper arm
+    final len = v.distance;
+    if (len < 1e-6) return widths;
+    // Narrow in proportion to how far the upper arm is from hanging STRAIGHT
+    // DOWN (+y is down on screen): 0 when it hangs down (the deltoid dome fills
+    // the armhole — preserved for idle/at-rest arms in every clip), 0.5 when
+    // horizontal/across the chest, 1 when raised straight up. This catches the
+    // exposed lobe on across-chest and raised arms alike while leaving the
+    // at-rest armhole untouched.
+    final raise = ((1 - v.dy / len) / 2).clamp(0.0, 1.0);
+    if (raise <= 0) return widths;
+    return [
+      for (var i = 0; i < widths.length; i++)
+        i < _kProximalNarrowWeights.length
+            ? widths[i] *
+                  (1 - _kProximalRaiseNarrow * raise * _kProximalNarrowWeights[i])
+            : widths[i],
+    ];
   }
 
   void _drawMeshFill(
