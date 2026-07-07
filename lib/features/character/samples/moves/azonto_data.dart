@@ -140,12 +140,12 @@ const _azontoHandLTargetKeys = [
   // real CIRCLE the fist rolls around (inboard->top->outboard->bottom, ~1 rev
   // per bar). Magnitudes stay inside the old reach envelope; inboard |x|=22
   // clears the near-degenerate fold.
-  DanceIkTargetKey(0, x: -22, y: -16), // inboard (loop seam)
-  DanceIkTargetKey(2, x: -30, y: -32, tension: 0.3), // top of the wheel
-  DanceIkTargetKey(4, x: -43, y: -22, tension: 0.4), // outboard
-  DanceIkTargetKey(6, x: -34, y: -8, tension: 0.3), // bottom
-  DanceIkTargetKey(8, x: -22, y: -16, tension: 0.4), // inboard (1 rev)
-  DanceIkTargetKey(10, x: -30, y: -32, tension: 0.3), // top
+  DanceIkTargetKey(0, x: -20, y: -14), // inboard (loop seam)
+  DanceIkTargetKey(2, x: -30, y: -38, tension: 0.3), // top (taller wheel)
+  DanceIkTargetKey(4, x: -43, y: -22, tension: 0.4), // outboard (at chest-edge cap)
+  DanceIkTargetKey(6, x: -34, y: -4, tension: 0.3), // bottom (taller wheel)
+  DanceIkTargetKey(8, x: -20, y: -14, tension: 0.4), // inboard (1 rev)
+  DanceIkTargetKey(10, x: -30, y: -38, tension: 0.3), // top
   DanceIkTargetKey(12, x: -43, y: -22, tension: 0.4), // outboard
   // Bar 2 jabs (beats 5-8, alternating L,R,L,R): fire to near-full
   // extension PAST the opposite shoulder line in one beat-quarter, hold a
@@ -303,12 +303,12 @@ const _azontoHandRTargetKeys = [
   // Mirror of hand.L's circle, 180deg out of phase (one hand tops while the
   // other bottoms) so the pair reads as a rolling wheel.
   DanceIkTargetKey(0, x: 43, y: -22, tension: 0.4), // outboard (opp. L inboard)
-  DanceIkTargetKey(2, x: 34, y: -8, tension: 0.3), // bottom
-  DanceIkTargetKey(4, x: 22, y: -16, tension: 0.4), // inboard
-  DanceIkTargetKey(6, x: 30, y: -32, tension: 0.3), // top
+  DanceIkTargetKey(2, x: 34, y: -4, tension: 0.3), // bottom
+  DanceIkTargetKey(4, x: 20, y: -14, tension: 0.4), // inboard
+  DanceIkTargetKey(6, x: 30, y: -38, tension: 0.3), // top
   DanceIkTargetKey(8, x: 43, y: -22, tension: 0.4), // outboard
-  DanceIkTargetKey(10, x: 34, y: -8, tension: 0.3), // bottom
-  DanceIkTargetKey(12, x: 22, y: -16, tension: 0.4), // inboard
+  DanceIkTargetKey(10, x: 34, y: -4, tension: 0.3), // bottom
+  DanceIkTargetKey(12, x: 20, y: -14, tension: 0.4), // inboard
   DanceIkTargetKey(14, x: 33, y: -20, tension: 0.2), // into bar 2
   // Bar 2: chambered at the own-side hip while the left jabs, then the
   // answering cross jab.
