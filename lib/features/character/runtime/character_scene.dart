@@ -575,17 +575,26 @@ class CharacterScene {
   /// Fraction of the authored trunk rotation carried by the thoracic joint.
   static const double _kThoracicShare = 0.45;
 
-  /// Per-move gain for the hip-shoulder counter-opposition: trunk counter-lean
-  /// per unit of committed pelvis lateral offset (rootDx). Negative so the trunk
-  /// leans OPPOSITE the pelvis commit. Shaku only for now (its pelvis genuinely
-  /// commits over the stance foot); the other moves get their own value in the
-  /// roll-out once their pelvis commit is tuned.
+  /// Hip-shoulder counter-opposition: trunk counter-lean per unit of committed
+  /// pelvis lateral offset (rootDx). Negative so the trunk leans OPPOSITE the
+  /// pelvis commit, keeping the head over the base of support while the hips
+  /// drive laterally (contrapposto). Per-move gain (coupled to rootDx so it
+  /// self-scales with each move's shift). zanku carries fast arms already near
+  /// the warped-jerk ceiling, so it takes a gentler counter (the torso lean
+  /// propagates into the arm chain); shaku's 0.005 is the merged, panel-tuned
+  /// value. Moves absent from the map (pounce, backups) get none.
+  static const Map<String, double> _hipOppositionGain = {
+    'shaku': 0.005,
+    'zanku': 0.0025,
+    'azonto': 0.005,
+    'buga': 0.005,
+    'sekem': 0.005,
+  };
   double _hipShoulderCounterLean(Clip clip, double rootDx) {
-    if (clip.name != 'shaku') return 0;
-    return -rootDx * _kHipShoulderOppositionGain;
+    final gain = _hipOppositionGain[clip.name];
+    if (gain == null) return 0;
+    return -rootDx * gain;
   }
-
-  static const double _kHipShoulderOppositionGain = 0.005;
 
   /// Shoulders answer the trunk a beat late: the clavicles pick up a clamped
   /// share of how much the trunk has MOVED over the last [_girdleLagFraction]
@@ -2939,10 +2948,14 @@ class CharacterScene {
   }
 
   double _supportComEnvelope(Clip clip, GroundSpan span) {
+    // Envelope ≈ ~1.1× half the stance width commits the pelvis over the stance
+    // ankle (shaku's committed ratio). zanku (46 vs ±88) and buga (58 vs ±102)
+    // already sit near that; azonto and sekem were the loose ones (ratio ~1.5-1.8)
+    // — tighten them so their pelvis commits like shaku's (R31 roll-out).
     if (clip.name == 'zanku') return 46;
-    if (clip.name == 'sekem') return 50;
+    if (clip.name == 'sekem') return 37;
     if (clip.name == 'buga') return 58;
-    if (clip.name == 'azonto') return 58;
+    if (clip.name == 'azonto') return 35;
     // R29 mocap #1: shaku's wide 64 envelope let the pelvis sit central (the
     // COM never committed over the stance ankle — weight read as spine-tilt, not
     // translation). Tighten to 24 so the pre-IK balance pass pulls the pelvis
