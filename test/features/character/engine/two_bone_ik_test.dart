@@ -177,7 +177,10 @@ void main() {
 
   group('elbow abduction (soft continuous open)', () {
     // A reachable mid-range target; the rigid solve is the baseline.
-    const u = 10.0, l = 8.0, tx = 11.0, ty = 4.0;
+    const u = 10.0;
+    const l = 8.0;
+    const tx = 11.0;
+    const ty = 4.0;
     TwoBoneIkSolution solveAbd(double abduction) => solveTwoBoneIk(
       shoulderX: 0,
       shoulderY: 0,
