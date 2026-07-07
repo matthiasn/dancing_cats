@@ -1157,11 +1157,12 @@ void main() {
         final rightFoot = footR.sample(p);
         expect(
           rightFoot.x - leftFoot.x,
-          greaterThan(90),
+          greaterThan(58),
           reason:
-              'Shaku frame $frame keeps a stance no wider than ~hip-width (the '
-              'R23 coach: shrink the wide flat lunges to a compact shuffle under '
-              'the hips) while still not crossing the feet under the pelvis',
+              'Shaku frame $frame keeps a compact hip-width shuffle (the R26 '
+              'coach: the 0.82 stance still read as an azonto stride, so it was '
+              'tightened toward hip-width) while the feet never cross under the '
+              'pelvis (separation stays positive and >~half a body width)',
         );
       }
 
