@@ -163,7 +163,7 @@ IkTargetChannel _ikTargetChannel(
     base.keys,
     duration: descriptor.duration,
     omegaN: spring.omegaN * _kInertializerOmegaScale * track.inertializeOmegaScale,
-    zeta: zeta,
+    zeta: zeta * track.inertializeZetaScale,
   );
 }
 
