@@ -167,6 +167,7 @@ class DanceMoveDescriptor {
     this.supportFootWorldAnchorVerticalBoost,
     this.danceHeadBobScale,
     this.danceHeadLevelClampMin,
+    this.armReachScale,
     this.enforceSoleFloor,
     this.zOrderSwaps = const [],
     this.transitionPlan,
@@ -224,6 +225,10 @@ class DanceMoveDescriptor {
   final double? supportFootWorldAnchorVerticalBoost;
   final double? danceHeadBobScale;
   final double? danceHeadLevelClampMin;
+
+  /// Per-clip arm-reach multiplier — see [Clip.armReachScale]. Null defers to
+  /// the base clip / the 1.0 default.
+  final double? armReachScale;
 
   /// See [Clip.enforceSoleFloor] — opt-in per routine.
   final bool? enforceSoleFloor;
