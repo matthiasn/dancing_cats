@@ -750,10 +750,12 @@ class CatClips {
           CatBones.handL: const DanceIkTargetTrack(
             _shakuHandLTargetKeys,
             cyclic: true,
+            inertialize: true,
           ),
           CatBones.handR: const DanceIkTargetTrack(
             _shakuHandRTargetKeys,
             cyclic: true,
+            inertialize: true,
           ),
           CatBones.footL: const DanceIkTargetTrack(_shakuFootLTargetKeys),
           CatBones.footR: const DanceIkTargetTrack(_shakuFootRTargetKeys),

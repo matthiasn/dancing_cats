@@ -63,7 +63,12 @@ Clip upperBodyDynamicsWarpedClip(
 
   final limbTargets = [
     for (final target in clip.limbTargets)
-      warpBoneIds.contains(target.endBoneId)
+      // An inertialized channel already bakes the move's Time/Flow into its
+      // hold → snap → settle timing; phase-warping its sampling clock on top
+      // would double-count Time and shift the hits off their beats. It owns the
+      // hand timing, so the Effort warp leaves it alone.
+      warpBoneIds.contains(target.endBoneId) &&
+              target.channel is! InertializedIkTargetChannel
           ? target.withChannel(
               PhaseWarpedIkTargetChannel(target.channel, warpPhase),
             )
