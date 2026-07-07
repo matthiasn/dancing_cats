@@ -2955,7 +2955,7 @@ class CharacterScene {
     // ankle (shaku's committed ratio). zanku (46 vs ±88) and buga (58 vs ±102)
     // already sit near that; azonto and sekem were the loose ones (ratio ~1.5-1.8)
     // — tighten them so their pelvis commits like shaku's (R31 roll-out).
-    if (clip.name == 'zanku') return 46;
+    if (clip.name == 'zanku') return 40;
     if (clip.name == 'sekem') return 37;
     // R31 catalogue re-tune (mocap): azonto under-committed at 58 — tighten to
     // bump the commit up, but only to 40: at 28 the harder commit made the head
