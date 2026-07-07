@@ -121,6 +121,7 @@ class DanceIkTargetTrack {
     this.cyclic = false,
     this.microFrames = 0,
     this.inertialize = false,
+    this.inertializeOmegaScale = 1.0,
   });
 
   final List<DanceIkTargetKey> keys;
@@ -137,6 +138,13 @@ class DanceIkTargetTrack {
   /// move's `DanceDynamics` rather than hand-keyed. The keys stay the source of
   /// truth (pinned exactly); `smooth` is ignored when this is set.
   final bool inertialize;
+
+  /// Per-track softness knob for the inertializer's natural frequency ωₙ
+  /// (default 1.0 = the move's dynamics-derived stiffness). Below 1 SOFTENS the
+  /// spring — a slower, gentler snap — which lowers the warped-hand jerk a big
+  /// reach-maxed gesture (buga's peacock) would otherwise spike past the
+  /// split-clock ceiling. Only meaningful when [inertialize] is set.
+  final double inertializeOmegaScale;
 }
 
 /// Full data needed to assemble a [Clip] for one move: an [AfrobeatsMove] for
