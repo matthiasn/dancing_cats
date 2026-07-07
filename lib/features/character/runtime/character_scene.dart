@@ -502,8 +502,13 @@ class CharacterScene {
       // The TIP lags and whips well past the base — the tail's gradient,
       // in miniature: bendy cartilage, not a stiff felt triangle.
       final isTip = earId.toLowerCase().contains('tip');
-      final gain = isTip ? 2.6 : 1.0;
-      final clampAt = isTip ? 0.2 : 0.06;
+      final gain = isTip ? 2.1 : 1.0;
+      // Cap the tip sweep: the ear is a long lever, so on the hardest-grooving
+      // moves (zanku's ±0.4 pelvis/chest snap) the tip was out-travelling the
+      // legwork in the onion — the eye caught the ears, not the feet. A tighter
+      // ceiling bites only the saturated (high-rotation) case; gentle moves
+      // (shaku) stay well under it, so their ear life is unchanged.
+      final clampAt = isTip ? 0.12 : 0.06;
       final delta = _clampMagnitude(
         side * earDrive * gain + flick * gain,
         clampAt,
