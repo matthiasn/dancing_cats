@@ -2922,7 +2922,14 @@ class CharacterScene {
     if (clip.name == 'sekem') return 50;
     if (clip.name == 'buga') return 58;
     if (clip.name == 'azonto') return 58;
-    if (clip.name == 'shaku' || clip.name.startsWith('danceBackup')) return 64;
+    // R29 mocap #1: shaku's wide 64 envelope let the pelvis sit central (the
+    // COM never committed over the stance ankle — weight read as spine-tilt, not
+    // translation). Tighten to 24 so the pre-IK balance pass pulls the pelvis
+    // ~half the (now compact ~±42) stance width over the planted foot each beat
+    // — a real hip weight-shift, the signature Afrobeats pelvis drive. Backups
+    // stay wider (background dancers, less scrutinised).
+    if (clip.name == 'shaku') return 24;
+    if (clip.name.startsWith('danceBackup')) return 64;
     if (clip.name == 'pouncingCat') return 62;
     final spanLength = span.end - span.start;
     return spanLength <= 0.135 ? 50 : 62;
