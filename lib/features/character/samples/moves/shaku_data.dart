@@ -491,24 +491,24 @@ const _shakuHandLTargetKeys = [
   // — most frames AT the extreme, few in transit"). The pose is HELD frames
   // n..n+3, then snapped to the opposite pose over the single frame n+3→n+4,
   // arriving ON the next beat; the follow-through injects the arrival bounce.
-  DanceIkTargetKey(0, x: -44, y: -48, tension: 1), // HIT open up-out (arrived)
-  DanceIkTargetKey(3, x: -44, y: -48, tension: 1), // dead HOLD through the beat
+  DanceIkTargetKey(0, x: -40, y: -42, tension: 1), // HIT open up-out (arrived)
+  DanceIkTargetKey(3, x: -40, y: -42, tension: 1), // dead HOLD through the beat
   DanceIkTargetKey(4, x: 10, y: -14, tension: 1), // 1-frame SNAP to recover
   DanceIkTargetKey(7, x: 10, y: -14, tension: 1), // dead HOLD
-  DanceIkTargetKey(8, x: -44, y: -48, tension: 1),
-  DanceIkTargetKey(11, x: -44, y: -48, tension: 1),
+  DanceIkTargetKey(8, x: -40, y: -42, tension: 1),
+  DanceIkTargetKey(11, x: -40, y: -42, tension: 1),
   DanceIkTargetKey(12, x: 10, y: -14, tension: 1),
   DanceIkTargetKey(15, x: 10, y: -14, tension: 1),
   // bar 2 — open higher/wider (escalation).
-  DanceIkTargetKey(16, x: -46, y: -52, tension: 1),
-  DanceIkTargetKey(19, x: -46, y: -52, tension: 1),
+  DanceIkTargetKey(16, x: -42, y: -44, tension: 1),
+  DanceIkTargetKey(19, x: -42, y: -44, tension: 1),
   DanceIkTargetKey(20, x: 12, y: -14, tension: 1),
   DanceIkTargetKey(23, x: 12, y: -14, tension: 1),
-  DanceIkTargetKey(24, x: -46, y: -52, tension: 1),
-  DanceIkTargetKey(27, x: -46, y: -52, tension: 1),
+  DanceIkTargetKey(24, x: -42, y: -44, tension: 1),
+  DanceIkTargetKey(27, x: -42, y: -44, tension: 1),
   DanceIkTargetKey(28, x: 12, y: -14, tension: 1), // L parks low under R's pull
   DanceIkTargetKey(31, x: 12, y: -14, tension: 1),
-  DanceIkTargetKey(32, x: -44, y: -48, tension: 1), // == frame 0
+  DanceIkTargetKey(32, x: -40, y: -42, tension: 1), // == frame 0
 ];
 const _shakuHandRTargetKeys = [
   // bar 1 — R recovers IN at the left-chest on L's open counts, then OPENS
@@ -523,21 +523,21 @@ const _shakuHandRTargetKeys = [
   // the off-beats). Bar 2 climaxes on the generator pull (count 28).
   DanceIkTargetKey(0, x: -8, y: -14, tension: 1), // recover low-in (arrived)
   DanceIkTargetKey(3, x: -8, y: -14, tension: 1), // dead HOLD through the beat
-  DanceIkTargetKey(4, x: 44, y: -48, tension: 1), // 1-frame SNAP, HIT open-out
-  DanceIkTargetKey(7, x: 44, y: -48, tension: 1), // dead HOLD the open
+  DanceIkTargetKey(4, x: 40, y: -42, tension: 1), // 1-frame SNAP, HIT open-out
+  DanceIkTargetKey(7, x: 40, y: -42, tension: 1), // dead HOLD the open
   DanceIkTargetKey(8, x: -8, y: -14, tension: 1),
   DanceIkTargetKey(11, x: -8, y: -14, tension: 1),
-  DanceIkTargetKey(12, x: 44, y: -48, tension: 1),
-  DanceIkTargetKey(15, x: 44, y: -48, tension: 1),
+  DanceIkTargetKey(12, x: 40, y: -42, tension: 1),
+  DanceIkTargetKey(15, x: 40, y: -42, tension: 1),
   // bar 2 — wider open; the generator pull on count 28.
   DanceIkTargetKey(16, x: -10, y: -14, tension: 1),
   DanceIkTargetKey(19, x: -10, y: -14, tension: 1),
-  DanceIkTargetKey(20, x: 46, y: -52, tension: 1),
-  DanceIkTargetKey(23, x: 46, y: -52, tension: 1),
+  DanceIkTargetKey(20, x: 42, y: -44, tension: 1),
+  DanceIkTargetKey(23, x: 42, y: -44, tension: 1),
   DanceIkTargetKey(24, x: -10, y: -14, tension: 1),
   DanceIkTargetKey(27, x: -10, y: -14, tension: 1), // hold before the pull
-  DanceIkTargetKey(28, x: 56, y: -52, tension: 1), // SNAP to GENERATOR PULL
-  DanceIkTargetKey(31, x: 56, y: -52, tension: 1), // hold the pull high
+  DanceIkTargetKey(28, x: 54, y: -46, tension: 1), // SNAP to GENERATOR PULL
+  DanceIkTargetKey(31, x: 54, y: -46, tension: 1), // hold the pull high
   DanceIkTargetKey(32, x: -8, y: -14, tension: 1), // == frame 0
 ];
 const _shakuFootLTargetKeys = [
