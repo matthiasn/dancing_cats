@@ -542,7 +542,16 @@ class CharacterScene {
         ? evaluator.evaluate(clip, timeSeconds - lag).jointOf(torsoId).rotation
         : authored.rotation;
     final chestDelta = _kThoracicShare * source;
-    final torsoRotation = authored.rotation * (1 - _kThoracicShare);
+    // R30 hip-shoulder counter-opposition (coach/mocap 8->9): once the pelvis
+    // commits laterally over the stance foot (the committed rootDx from the
+    // support-balance pass), counter-rotate the trunk the OPPOSITE way so the
+    // ribcage and head lean back over the base of support — the pelvis
+    // TRANSLATION carries the move (contrapposto) instead of the whole body
+    // rocking with it. Shaku-scoped for now; extends to the other moves in the
+    // roll-out. Coupled to the committed rootDx so it self-scales with the shift.
+    final counterLean = _hipShoulderCounterLean(clip, pose.rootDx);
+    final torsoRotation =
+        authored.rotation * (1 - _kThoracicShare) + counterLean;
     if (chestDelta.abs() < 0.0001 &&
         (authored.rotation - torsoRotation).abs() < 0.0001) {
       return pose;
@@ -565,6 +574,18 @@ class CharacterScene {
 
   /// Fraction of the authored trunk rotation carried by the thoracic joint.
   static const double _kThoracicShare = 0.45;
+
+  /// Per-move gain for the hip-shoulder counter-opposition: trunk counter-lean
+  /// per unit of committed pelvis lateral offset (rootDx). Negative so the trunk
+  /// leans OPPOSITE the pelvis commit. Shaku only for now (its pelvis genuinely
+  /// commits over the stance foot); the other moves get their own value in the
+  /// roll-out once their pelvis commit is tuned.
+  double _hipShoulderCounterLean(Clip clip, double rootDx) {
+    if (clip.name != 'shaku') return 0;
+    return -rootDx * _kHipShoulderOppositionGain;
+  }
+
+  static const double _kHipShoulderOppositionGain = 0.005;
 
   /// Shoulders answer the trunk a beat late: the clavicles pick up a clamped
   /// share of how much the trunk has MOVED over the last [_girdleLagFraction]
