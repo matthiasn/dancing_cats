@@ -40,10 +40,10 @@ const SuitFabric kSuitFabric = SuitFabric(0xFF2E3A59);
 const String kJacketShadeGroup = 'suit-cloth';
 const String kTrouserShadeGroup = 'suit-cloth';
 final int _suit = kSuitFabric.plane(1); // navy jacket (torso)
-// Sleeves are the SAME cloth as the jacket — no near/far value step. A
-// crossing arm separates from the chest by its drawn INK LINE (the ribbons'
-// inkOverFill), like hand-drawn animation, so no pose can expose a lighter
-// "patch of different fabric" where the sleeve root sits on the yoke.
+// Sleeves are the SAME cloth as the jacket — no near/far value step and no
+// hard over-fill ribbon-boundary ink. Crossed sleeves separate from the chest
+// with an under-fill contact shadow, so the boundary reads as overlap instead
+// of a false internal elbow contour.
 final int _sleeve = kSuitFabric.plane(1); // far sleeve
 final int _sleeveNear = kSuitFabric.plane(1); // near sleeve
 const int _button = 0xFFAE955C; // muted brass placket button — a dark horn
@@ -1741,10 +1741,10 @@ RigSpec buildCatInSuitRig({
       samplesPerSegment: 12,
       formRound: false,
       shadeGroup: kJacketShadeGroup,
-      inkOverFill: true,
-      // Below the deltoid: the root must merge with the jacket. The ink is
-      // clipped to actual body overlap at render time, so its ends land ON
-      // the silhouette rather than floating mid-cloth.
+      overlapShadow: true,
+      // Below the deltoid: the root must merge with the jacket. The overlap
+      // shadow is clipped to actual body overlap at render time, so it reads as
+      // contact at crossings instead of an armhole outline floating mid-cloth.
       inkStartFraction: 0.2,
       // Sleeve terminates at the CUFF, not the palm: the last spine joint
       // is the hand origin (the mitten's centre) and the wrist cuff sits
@@ -1796,10 +1796,10 @@ RigSpec buildCatInSuitRig({
       samplesPerSegment: 12,
       formRound: false,
       shadeGroup: kJacketShadeGroup,
-      inkOverFill: true,
-      // Below the deltoid: the root must merge with the jacket. The ink is
-      // clipped to actual body overlap at render time, so its ends land ON
-      // the silhouette rather than floating mid-cloth.
+      overlapShadow: true,
+      // Below the deltoid: the root must merge with the jacket. The overlap
+      // shadow is clipped to actual body overlap at render time, so it reads as
+      // contact at crossings instead of an armhole outline floating mid-cloth.
       inkStartFraction: 0.2,
       // Sleeve terminates at the CUFF, not the palm: the last spine joint
       // is the hand origin (the mitten's centre) and the wrist cuff sits

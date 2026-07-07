@@ -193,6 +193,14 @@ class CharacterRenderer {
     var seamIndex = 0;
     for (final bone in drawOrder) {
       while (ribbonIndex < ribbons.length && ribbons[ribbonIndex].z <= bone.z) {
+        if (drawInteriorDetail) {
+          _drawRibbonOverlapShadow(
+            canvas,
+            ribbons[ribbonIndex],
+            world,
+            pathCache,
+          );
+        }
         _drawRibbonFill(canvas, ribbons[ribbonIndex], pathCache);
         if (celShade != null) {
           _celShadeRibbon(
@@ -247,6 +255,14 @@ class CharacterRenderer {
       canvas.restore();
     }
     while (ribbonIndex < ribbons.length) {
+      if (drawInteriorDetail) {
+        _drawRibbonOverlapShadow(
+          canvas,
+          ribbons[ribbonIndex],
+          world,
+          pathCache,
+        );
+      }
       _drawRibbonFill(canvas, ribbons[ribbonIndex], pathCache);
       if (celShade != null) {
         _celShadeRibbon(
@@ -650,6 +666,52 @@ class CharacterRenderer {
     canvas
       ..save()
       ..clipPath(pathCache.pathBelow(ribbon.z))
+      ..drawPath(path, _paint)
+      ..restore();
+  }
+
+  /// A same-cloth sleeve still needs to read as crossing over the torso, but a
+  /// hard over-fill ribbon outline becomes a fake elbow line. Draw the outline
+  /// shadow before the sleeve fill: the sleeve covers the inner half of the
+  /// stroke and only the torso-side contact darkening survives.
+  void _drawRibbonOverlapShadow(
+    Canvas canvas,
+    LimbRibbonSpec ribbon,
+    Map<String, Affine2D> world,
+    _RenderPathCache pathCache,
+  ) {
+    final outline = ribbon.outlineColor;
+    if (!ribbon.overlapShadow || outline == null || ribbon.outlineWidth <= 0) {
+      return;
+    }
+    var spine = <Offset>[];
+    for (final boneId in ribbon.jointBoneIds) {
+      final transform = world[boneId];
+      if (transform == null) return;
+      final origin = transform.origin;
+      spine.add(Offset(origin.x, origin.y));
+    }
+    spine = insetRibbonSpineEnd(spine, ribbon.distalInset);
+    final path = limbRibbonInkPath(
+      spine,
+      ribbon.halfWidths,
+      backHalfWidths: ribbon.backHalfWidths,
+      jointTensions: ribbon.jointTensions,
+      samplesPerSegment: ribbon.samplesPerSegment,
+      startFraction: ribbon.inkStartFraction,
+    );
+    final below = pathCache.pathBelow(ribbon.z);
+    if (below.getBounds().isEmpty) return;
+    _paint
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = ribbon.outlineWidth * 2.4
+      ..strokeJoin = StrokeJoin.round
+      ..strokeCap = StrokeCap.round
+      ..color = Color(outline).withValues(alpha: 0.45)
+      ..isAntiAlias = antiAlias;
+    canvas
+      ..save()
+      ..clipPath(below)
       ..drawPath(path, _paint)
       ..restore();
   }

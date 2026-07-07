@@ -342,27 +342,27 @@ void _clampInnerEdgeToCurvature(List<_Sample> samples) {
     if (turn > 0) {
       // Curving toward +normal: the +normal (front) side is the inside.
       if (here.halfWidth > maxInnerOffset) {
+        final rawInnerFraction = maxInnerOffset / here.halfWidth;
         final clamped = math.max(
           maxInnerOffset,
           here.halfWidth * _kCreaseLegibilityFloor,
         );
-        // A cut below the ink-suppression threshold means this sample sits
-        // deep inside a fold even after the legibility floor — flag it so
-        // the ink line lifts over the crease.
+        // Test the pre-floor inner radius. The legibility floor deliberately
+        // widens a collapsed fold so the sleeve keeps volume, but that should
+        // not trick the ink pass into tracing the collapsed edge anyway.
         here
-          ..creaseFront =
-              clamped < here.halfWidth * _kCreaseInkSuppressionThreshold
+          ..creaseFront = rawInnerFraction < _kCreaseInkSuppressionThreshold
           ..halfWidth = clamped;
       }
     } else {
       if (here.backHalfWidth > maxInnerOffset) {
+        final rawInnerFraction = maxInnerOffset / here.backHalfWidth;
         final clamped = math.max(
           maxInnerOffset,
           here.backHalfWidth * _kCreaseLegibilityFloor,
         );
         here
-          ..creaseBack =
-              clamped < here.backHalfWidth * _kCreaseInkSuppressionThreshold
+          ..creaseBack = rawInnerFraction < _kCreaseInkSuppressionThreshold
           ..backHalfWidth = clamped;
       }
     }

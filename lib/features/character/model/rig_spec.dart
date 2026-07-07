@@ -384,6 +384,7 @@ class LimbRibbonSpec {
     this.roundCaps = true,
     this.shadeGroup,
     this.inkOverFill = false,
+    this.overlapShadow = false,
     this.inkStartFraction = 0,
     this.distalInset = 0,
   }) : assert(
@@ -454,14 +455,16 @@ class LimbRibbonSpec {
   /// touches and read as patched-together fabrics).
   final String? shadeGroup;
 
-  /// When true, the ribbon's outline is ALSO stroked over its fill — the
-  /// hand-drawn ink line that separates an overlapping limb from the body it
-  /// crosses. This replaces value-shifted "near/far fabric" fills: same
-  /// cloth everywhere, separation by line, exactly like drawn animation.
-  /// (The unified silhouette pass deliberately draws no internal outlines,
-  /// so without this an arm in the jacket's own colour would melt into the
-  /// chest whenever it crosses.)
+  /// When true, the ribbon's outline is ALSO stroked over its fill. This is a
+  /// hard hand-drawn internal ink line for cases where the ribbon boundary is a
+  /// legitimate seam, such as one trouser leg crossing the other.
   final bool inkOverFill;
+
+  /// Paint a soft contact shadow UNDER the ribbon fill, clipped to lower-z body
+  /// shapes. This keeps same-colour overlap readable without drawing the
+  /// ribbon boundary on top of the sleeve surface, where it would become a
+  /// false elbow contour in crossed-arm poses.
+  final bool overlapShadow;
 
   /// Where the ink line begins, as a fraction of the ribbon's centreline
   /// (0 = the full closed boundary). A limb rooted in a garment starts its

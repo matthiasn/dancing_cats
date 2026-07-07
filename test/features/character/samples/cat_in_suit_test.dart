@@ -303,7 +303,7 @@ void main() {
       }
     });
 
-    test('sleeves are the jacket cloth, separated by ink lines', () {
+    test('sleeves are jacket cloth separated by contact shadow', () {
       final torso = rig.bone(CatBones.torso)!.drawable!.color;
       for (final id in const ['arm.L.ribbon', 'arm.R.ribbon']) {
         final sleeve = rig.ribbons.singleWhere((ribbon) => ribbon.id == id);
@@ -317,10 +317,17 @@ void main() {
         );
         expect(
           sleeve.inkOverFill,
+          isFalse,
+          reason:
+              'crossed-arm poses must not trace the sleeve boundary as a '
+              'false internal elbow contour over the jacket',
+        );
+        expect(
+          sleeve.overlapShadow,
           isTrue,
           reason:
-              'crossing limbs separate from same-colour cloth by their drawn '
-              'ink line, like hand-drawn animation',
+              'same-colour sleeves still need overlap separation when they '
+              'cross the torso',
         );
       }
       final nearLeg = rig.ribbons.singleWhere((r) => r.id == 'leg.L.ribbon');
