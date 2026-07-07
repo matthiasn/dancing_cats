@@ -165,6 +165,7 @@ class DancePlaybackStepper {
       synchronous: stage.synchronous,
       segmentStartSec: stage.segmentStartSec,
       dynamics: eased,
+      energyLevel: stage.energyLevel,
     );
   }
 
@@ -288,6 +289,7 @@ class DancePlaybackStepper {
       synchronous: stage.synchronous,
       segmentStartSec: stage.segmentStartSec,
       dynamics: stage.dynamics,
+      energyLevel: stage.energyLevel,
     );
   }
 
@@ -418,6 +420,9 @@ DanceStage _heldStage(DanceStage from, DanceStage to, double fromSeconds) => (
   // hold, not the new section's — it hasn't arrived at the new move/section
   // yet, so nothing about it should read as already having changed.
   dynamics: from.dynamics,
+  // ...but the effort AMPLITUDE arc follows the song's current energy (the
+  // section the playhead is actually in).
+  energyLevel: to.energyLevel,
 );
 
 /// The first detected beat strictly after [pos], or null past the map's end.
@@ -578,4 +583,6 @@ DanceStage _blendStage({
     for (var i = 0; i < to.dynamics.length; i++)
       DanceDynamics.lerp(from.dynamics[i], to.dynamics[i], weight),
   ],
+  // Blend the song-energy arc toward the incoming section too.
+  energyLevel: from.energyLevel + (to.energyLevel - from.energyLevel) * weight,
 );

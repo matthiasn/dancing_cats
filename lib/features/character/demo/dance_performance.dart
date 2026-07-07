@@ -106,6 +106,10 @@ typedef DanceStage = ({
   // on the one") instead of whatever bar the global grid dictates.
   double segmentStartSec,
   List<DanceDynamics> dynamics,
+  // Raw 0..1 section energy at this frame (0.5 = neutral). Drives the effort
+  // AMPLITUDE arc (how big the hands move) directly, isolated from the moves'
+  // own Effort weight and the ±budget that clamps energy out of `dynamics`.
+  double energyLevel,
 });
 
 /// Number of bars the looping dance phrase spans; the loop stays beat-locked
@@ -194,6 +198,7 @@ DanceStage danceIdleStage(double pos, {DanceSection? section}) => (
     DanceDynamics.neutral,
     DanceDynamics.neutral,
   ],
+  energyLevel: 0.5,
 );
 
 /// Tags each detected section energetic/calm by its mean waveform energy
@@ -425,6 +430,7 @@ class DancePerformance {
               sectionEnergy: sectionDynamics,
             ),
         ],
+        energyLevel: level,
       );
     }
     return danceIdleStage(pos, section: section);

@@ -1,7 +1,6 @@
 import 'dart:math';
 
 import 'package:dancing_cats/features/character/model/clip.dart';
-import 'package:dancing_cats/features/character/model/dance_dynamics.dart';
 import 'package:dancing_cats/features/character/model/dance_dynamics_warp.dart';
 import 'package:dancing_cats/features/character/samples/cat_in_suit.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -41,7 +40,7 @@ void main() {
     });
 
     test('deterministic variance breathes: not flat, loop-seamless, per-lane', () {
-      final s0 = danceEffortScaleOf(DanceDynamics.neutral, 0);
+      final s0 = danceEffortScaleOf(0.5, 0);
 
       // NOT FLAT: the effort varies beat to beat across the loop.
       final perBeat = [for (var i = 0; i < 8; i++) s0(i / 8)];
@@ -54,7 +53,7 @@ void main() {
       expect(s0(0), closeTo(s0(1), 1e-9));
 
       // PER-LANE DISTINCT: the three dancers do not breathe in lockstep.
-      final s1 = danceEffortScaleOf(DanceDynamics.neutral, 1);
+      final s1 = danceEffortScaleOf(0.5, 1);
       expect((s0(0.3) - s1(0.3)).abs(), greaterThan(1e-3));
 
       // DETERMINISTIC: same inputs → same output every call.
@@ -62,8 +61,6 @@ void main() {
     });
 
     test('higher song energy (Weight) raises the amplitude base', () {
-      const calm = DanceDynamics(weight: -0.2);
-      const hot = DanceDynamics(weight: 0.2);
       // Average the phase-varying scale over the loop to compare the base level.
       double mean(double Function(double) f) {
         var s = 0.0;
@@ -73,8 +70,8 @@ void main() {
         return s / 64;
       }
 
-      final calmMean = mean(danceEffortScaleOf(calm, 0));
-      final hotMean = mean(danceEffortScaleOf(hot, 0));
+      final calmMean = mean(danceEffortScaleOf(0.1, 0));
+      final hotMean = mean(danceEffortScaleOf(0.9, 0));
       expect(hotMean, greaterThan(calmMean),
           reason: 'hot sections move bigger; calm ones smaller (but still fast)');
     });

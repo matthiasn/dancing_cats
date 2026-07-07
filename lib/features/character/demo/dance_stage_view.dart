@@ -418,12 +418,12 @@ CharacterPainter danceCharacterPainter({
   ],
   ensembleClips: [
     for (var i = 0; i < stage.ensemble.length; i++)
-      _upperBodyWarped(stage.ensemble[i], stage.dynamics[i], i),
+      _upperBodyWarped(stage.ensemble[i], stage.dynamics[i], i, stage.energyLevel),
   ],
   synchronousEnsemble: stage.synchronous,
   singingHeadMotion: true,
   walkingPair: true,
-  clip: _upperBodyWarped(stage.lead, stage.dynamics.first, 0),
+  clip: _upperBodyWarped(stage.lead, stage.dynamics.first, 0, stage.energyLevel),
   timeSeconds: stage.seconds,
   cameraOverride: shot,
   onDancerAnchors: useNewBackdrop ? onDancerAnchors : null,
@@ -460,11 +460,17 @@ CharacterPainter danceCharacterPainter({
 /// dynamics) this builds each warped clip once and reuses it every frame; only
 /// transitions — whose blended clip is already a fresh instance per frame —
 /// pay the wrapper allocation, on top of the `blendedClip` work they already do.
-final Expando<Map<(DanceDynamics, int), Clip>> _warpCache = Expando();
+final Expando<Map<(DanceDynamics, int, double), Clip>> _warpCache = Expando();
 
-Clip _upperBodyWarped(Clip clip, DanceDynamics dynamics, int lane) {
+Clip _upperBodyWarped(
+  Clip clip,
+  DanceDynamics dynamics,
+  int lane,
+  double energyLevel,
+) {
   final cache = _warpCache[clip] ??= {};
-  return cache[(dynamics, lane)] ??= () {
+  // energyLevel is per-section-constant, so this stays a small keyed cache.
+  return cache[(dynamics, lane, energyLevel)] ??= () {
     // 1. Effort TIME warp (unchanged): reshapes the beat timing by dynamics.
     final warped = (dynamics.isNeutral || kDanceDynamicsTimeWarpGain == 0)
         ? clip
@@ -473,11 +479,11 @@ Clip _upperBodyWarped(Clip clip, DanceDynamics dynamics, int lane) {
             dynamics,
             warpBoneIds: kDanceUpperBodyWarpBoneIds,
           );
-    // 2. Effort AMPLITUDE modulation: scales how BIG the hand moves get by song
-    // energy + a deterministic beat-to-beat breath (per lane), leaving the fast
-    // timing from step 1 intact — so a low-energy pass is fast-but-small and
-    // never 100%-extreme every beat.
-    return effortModulatedClip(warped, danceEffortScaleOf(dynamics, lane));
+    // 2. Effort AMPLITUDE modulation: scales how BIG the hand moves get by the
+    // raw SONG ENERGY arc + a deterministic beat-to-beat breath (per lane),
+    // leaving the fast timing from step 1 intact — so a low-energy pass is
+    // fast-but-small and never 100%-extreme every beat.
+    return effortModulatedClip(warped, danceEffortScaleOf(energyLevel, lane));
   }();
 }
 

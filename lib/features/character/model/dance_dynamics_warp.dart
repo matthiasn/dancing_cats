@@ -121,20 +121,28 @@ double danceEffortVariance(double p, double lanePhase) {
       0.15 * math.sin(8 * t + 2.3 * lanePhase);
 }
 
+/// How strongly the SONG-ENERGY arc scales movement size — the owner's "increase
+/// the arc with a factor" dial. At this factor a calm section (level 0) scales
+/// the base DOWN to (1 − factor) and a hot section (level 1) UP to (1 + factor);
+/// mid-energy (0.5) is neutral. Driven by the RAW section-energy level, not the
+/// move's Effort weight — the moves' own base weights (zanku 0.7, buga 0.5…)
+/// dominate that, and the ±0.35 modulation budget clamps the energy out, so the
+/// weight path only gave ~±13%. This is the isolated, amplifiable arc.
+const double kDanceEffortEnergyArc = 0.42;
+
 /// Effort amplitude scale as a function of loop phase for one dancer: a
-/// [dynamics]-driven base (higher song energy / Weight → bigger movements) times
+/// song-energy base (calm → smaller, hot → bigger, [kDanceEffortEnergyArc]) times
 /// the deterministic beat-to-beat [danceEffortVariance] breath. Fast timing is
-/// untouched — only how BIG each move gets changes. Clamped so the hands never
-/// collapse to nothing or overshoot reach.
-double Function(double) danceEffortScaleOf(DanceDynamics dynamics, int lane) {
-  // Energy base: neutral ≈ 1.0; the section-energy gain pushes Weight up in hot
-  // sections (bigger) and down in calm ones (smaller-but-still-fast).
-  final base = (1 + 0.7 * dynamics.weight).clamp(0.72, 1.22);
+/// untouched — only how BIG each move gets changes. [energyLevel] is the raw
+/// 0..1 section energy; 0.5 is neutral. Clamped so the hands never collapse to
+/// nothing or overshoot reach.
+double Function(double) danceEffortScaleOf(double energyLevel, int lane) {
+  final base =
+      1 + kDanceEffortEnergyArc * ((energyLevel.clamp(0, 1) - 0.5) * 2);
   final lanePhase = lane * 2.1; // distinct, deterministic per dancer
   const varGain = 0.32;
   return (p) =>
-      (base * (1 + varGain * danceEffortVariance(p, lanePhase)))
-          .clamp(0.5, 1.35);
+      (base * (1 + varGain * danceEffortVariance(p, lanePhase))).clamp(0.4, 1.5);
 }
 
 /// Returns [clip] with its [boneIds] hand IK targets amplitude-modulated by the
