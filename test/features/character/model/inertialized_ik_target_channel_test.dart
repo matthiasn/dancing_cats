@@ -13,13 +13,15 @@ void main() {
     IkTargetKeyframe(p: 0.5, x: 10, y: -4),
   ];
 
-  InertializedIkTargetChannel channel({double zeta = 1.2, double omegaN = 13}) =>
-      InertializedIkTargetChannel(
-        twoHits(),
-        duration: 6,
-        omegaN: omegaN,
-        zeta: zeta,
-      );
+  InertializedIkTargetChannel channel({
+    double zeta = 1.2,
+    double omegaN = 13,
+  }) => InertializedIkTargetChannel(
+    twoHits(),
+    duration: 6,
+    omegaN: omegaN,
+    zeta: zeta,
+  );
 
   test('hits every authored key exactly (equality-pinned)', () {
     final c = channel();

@@ -226,10 +226,11 @@ DanceSpring danceSpring(DanceDynamics d) {
     _kSpringZetaMin,
     _kSpringZetaMax,
   );
-  final omegaN = (kSpringOmegaBase * (1 + _kSpringOmegaTimeGain * d.time)).clamp(
-    _kSpringOmegaMin,
-    _kSpringOmegaMax,
-  );
+  final omegaN = (kSpringOmegaBase * (1 + _kSpringOmegaTimeGain * d.time))
+      .clamp(
+        _kSpringOmegaMin,
+        _kSpringOmegaMax,
+      );
   return (omegaN: omegaN, zeta: zeta);
 }
 

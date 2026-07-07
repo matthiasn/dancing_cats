@@ -153,8 +153,14 @@ class CharacterScene {
   /// lengthens: the segments below the shoulder on both sides. armUpper itself
   /// (a tiny offset under the clavicle) is left alone.
   static const List<String> _armChainBoneIds = [
-    'arm_bicep.L', 'arm_lower.L', 'arm_forearm.L', 'hand.L',
-    'arm_bicep.R', 'arm_lower.R', 'arm_forearm.R', 'hand.R',
+    'arm_bicep.L',
+    'arm_lower.L',
+    'arm_forearm.L',
+    'hand.L',
+    'arm_bicep.R',
+    'arm_lower.R',
+    'arm_forearm.R',
+    'hand.R',
   ];
 
   /// The per-bone pivotY scale for a clip's arm-reach override — const-empty
@@ -164,6 +170,7 @@ class CharacterScene {
     if (s == 1.0) return const {};
     return {for (final id in _armChainBoneIds) id: s};
   }
+
   final FaceSolver faceSolver = const FaceSolver();
   final AutonomicLayer autonomic;
   late final PoseModifierStack _poseModifierStack;

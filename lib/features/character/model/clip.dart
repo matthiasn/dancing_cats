@@ -808,8 +808,22 @@ class InertializedIkTargetChannel extends IkTargetChannel {
        assert(omegaN > 0, 'omegaN must be positive'),
        assert(zeta > 0, 'zeta must be positive'),
        assert(samples >= 8, 'need enough samples to resolve the loop'),
-       _x = _solveInertialized(keys, (k) => k.x, duration, omegaN, zeta, samples),
-       _y = _solveInertialized(keys, (k) => k.y, duration, omegaN, zeta, samples);
+       _x = _solveInertialized(
+         keys,
+         (k) => k.x,
+         duration,
+         omegaN,
+         zeta,
+         samples,
+       ),
+       _y = _solveInertialized(
+         keys,
+         (k) => k.y,
+         duration,
+         omegaN,
+         zeta,
+         samples,
+       );
 
   /// The sparse authored hit-poses (one per beat), phase-addressed.
   final List<IkTargetKeyframe> keys;
@@ -882,7 +896,8 @@ List<double> _solveInertialized(
   // equality constraints q[keyIndex] = keyValue.
   final drive = List<double>.filled(n, 0);
   final pinned = <int, double>{};
-  final sorted = [...keys]..sort((a, b) => _unitPhase(a.p).compareTo(_unitPhase(b.p)));
+  final sorted = [...keys]
+    ..sort((a, b) => _unitPhase(a.p).compareTo(_unitPhase(b.p)));
   for (final k in sorted) {
     final idx = (_unitPhase(k.p) * n).round() % n;
     pinned[idx] = valueOf(k);
@@ -952,7 +967,9 @@ List<double> _solveInertialized(
 /// only near-diagonally-dominant, so pivoting matters more than speed.
 List<double> _solveLinearSystem(List<List<double>> a, List<double> b) {
   final n = b.length;
-  final m = [for (var i = 0; i < n; i++) [...a[i], b[i]]];
+  final m = [
+    for (var i = 0; i < n; i++) [...a[i], b[i]],
+  ];
   for (var col = 0; col < n; col++) {
     var pivot = col;
     for (var r = col + 1; r < n; r++) {
