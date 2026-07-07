@@ -606,7 +606,7 @@ const _zankuPocketBoostKeys = [
     chestScaleY: 0.925,
     chestScaleX: 1.025,
   ),
-  DanceBodyKey(2, rootDy: -3.6, pelvisRotation: -0.02, chestRotation: 0.02),
+  DanceBodyKey(2, rootDy: -3.6, pelvisRotation: -0.02, chestRotation: 0.02, chestScaleY: 1.028, chestScaleX: 0.984),
   DanceBodyKey(
     4,
     rootDy: 12.6,
@@ -615,7 +615,7 @@ const _zankuPocketBoostKeys = [
     chestScaleY: 0.913,
     chestScaleX: 1.03,
   ),
-  DanceBodyKey(6, rootDy: -3.6, pelvisRotation: 0.02, chestRotation: -0.02),
+  DanceBodyKey(6, rootDy: -3.6, pelvisRotation: 0.02, chestRotation: -0.02, chestScaleY: 1.028, chestScaleX: 0.984),
   DanceBodyKey(
     8,
     rootDy: 10.8,
@@ -624,7 +624,7 @@ const _zankuPocketBoostKeys = [
     chestScaleY: 0.913,
     chestScaleX: 1.03,
   ),
-  DanceBodyKey(10, rootDy: -3.6, pelvisRotation: -0.02, chestRotation: 0.02),
+  DanceBodyKey(10, rootDy: -3.6, pelvisRotation: -0.02, chestRotation: 0.02, chestScaleY: 1.028, chestScaleX: 0.984),
   DanceBodyKey(
     12,
     rootDy: 12.6,
@@ -633,7 +633,7 @@ const _zankuPocketBoostKeys = [
     chestScaleY: 0.913,
     chestScaleX: 1.03,
   ),
-  DanceBodyKey(14, rootDy: -3.6, pelvisRotation: 0.02, chestRotation: -0.02),
+  DanceBodyKey(14, rootDy: -3.6, pelvisRotation: 0.02, chestRotation: -0.02, chestScaleY: 1.028, chestScaleX: 0.984),
   DanceBodyKey(
     16,
     rootDy: 10.8,
@@ -642,7 +642,7 @@ const _zankuPocketBoostKeys = [
     chestScaleY: 0.913,
     chestScaleX: 1.03,
   ),
-  DanceBodyKey(18, rootDy: -3.6, pelvisRotation: -0.02, chestRotation: 0.02),
+  DanceBodyKey(18, rootDy: -3.6, pelvisRotation: -0.02, chestRotation: 0.02, chestScaleY: 1.028, chestScaleX: 0.984),
   DanceBodyKey(
     20,
     rootDy: 12.6,
@@ -651,7 +651,7 @@ const _zankuPocketBoostKeys = [
     chestScaleY: 0.913,
     chestScaleX: 1.03,
   ),
-  DanceBodyKey(22, rootDy: -3.6, pelvisRotation: 0.02, chestRotation: -0.02),
+  DanceBodyKey(22, rootDy: -3.6, pelvisRotation: 0.02, chestRotation: -0.02, chestScaleY: 1.028, chestScaleX: 0.984),
   DanceBodyKey(
     24,
     rootDy: 14.4,
