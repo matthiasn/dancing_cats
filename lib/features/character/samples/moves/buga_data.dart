@@ -352,6 +352,36 @@ const _bugaHeadKeys = [
   DanceJointKey(32, rotation: 0.05), // == frame 0
 ];
 
+const _bugaHandRKeys = [
+  DanceJointKey(0),
+  DanceJointKey(8, rotation: -0.04),
+  DanceJointKey(11, rotation: 0.12),
+  DanceJointKey(12, rotation: 0.44),
+  DanceJointKey(13, rotation: 0.54),
+  DanceJointKey(14, rotation: 0.4),
+  DanceJointKey(16, rotation: 0.06),
+  DanceJointKey(24, rotation: -0.04),
+  DanceJointKey(27, rotation: 0.12),
+  DanceJointKey(28, rotation: 0.44),
+  DanceJointKey(29, rotation: 0.54),
+  DanceJointKey(30, rotation: 0.4),
+  DanceJointKey(32),
+];
+const _bugaHandLKeys = [
+  DanceJointKey(0),
+  DanceJointKey(8, rotation: 0.04),
+  DanceJointKey(11, rotation: -0.12),
+  DanceJointKey(12, rotation: -0.44),
+  DanceJointKey(13, rotation: -0.54),
+  DanceJointKey(14, rotation: -0.4),
+  DanceJointKey(16, rotation: -0.06),
+  DanceJointKey(24, rotation: 0.04),
+  DanceJointKey(27, rotation: -0.12),
+  DanceJointKey(28, rotation: -0.44),
+  DanceJointKey(29, rotation: -0.54),
+  DanceJointKey(30, rotation: -0.4),
+  DanceJointKey(32),
+];
 const _bugaClavicleRKeys = [
   // r11: the r10 contrary motion read as "parallel with offset, never a
   // crossing" — both girdles kept a constant-sign difference. The strides
@@ -368,21 +398,21 @@ const _bugaClavicleRKeys = [
   DanceJointKey(4, rotation: -0.2),
   DanceJointKey(6, rotation: 0.08),
   DanceJointKey(8, rotation: -0.28),
-  DanceJointKey(10, rotation: -0.04),
-  DanceJointKey(11, rotation: -0.14),
+  DanceJointKey(10, rotation: -0.24),
+  DanceJointKey(11, rotation: -0.3),
   DanceJointKey(12, rotation: -0.46),
   DanceJointKey(13, rotation: -0.36),
-  DanceJointKey(14, rotation: -0.1),
-  DanceJointKey(16, rotation: -0.08),
+  DanceJointKey(14, rotation: -0.3),
+  DanceJointKey(16, rotation: -0.24),
   DanceJointKey(18, rotation: 0.12),
   DanceJointKey(20, rotation: -0.26),
   DanceJointKey(22, rotation: 0.08),
   DanceJointKey(24, rotation: -0.3),
-  DanceJointKey(26, rotation: -0.04),
-  DanceJointKey(27, rotation: -0.16),
+  DanceJointKey(26, rotation: -0.24),
+  DanceJointKey(27, rotation: -0.3),
   DanceJointKey(28, rotation: -0.46),
   DanceJointKey(29, rotation: -0.36),
-  DanceJointKey(30, rotation: -0.1),
+  DanceJointKey(30, rotation: -0.3),
   DanceJointKey(32, rotation: -0.06),
 ];
 // 9-path r3 (every rater: "L and R crowns track each other almost
@@ -404,12 +434,12 @@ const _bugaClavicleLKeys = [
   DanceJointKey(4, rotation: -0.32, microFrames: 1.5),
   DanceJointKey(6, rotation: 0.22, microFrames: 1.5),
   DanceJointKey(8, rotation: -0.42, microFrames: 1.5),
-  DanceJointKey(10, rotation: 0.1, microFrames: 1.5),
-  DanceJointKey(11, rotation: -0.08, microFrames: 1.5),
+  DanceJointKey(10, rotation: 0.24, microFrames: 1.5),
+  DanceJointKey(11, rotation: 0.28, microFrames: 1.5),
   DanceJointKey(12, rotation: 0.488, microFrames: 1.1),
   DanceJointKey(13, rotation: 0.382, microFrames: 1.1),
-  DanceJointKey(14, rotation: 0.085, microFrames: 1.5),
-  DanceJointKey(16, rotation: -0.16, microFrames: 1.5),
+  DanceJointKey(14, rotation: 0.3, microFrames: 1.5),
+  DanceJointKey(16, rotation: 0.24, microFrames: 1.5),
   // r13: mid-loop counter-keys deepened (mocap/rigging: the differential
   // thins to near-tangent for ~2 beats mid-bar-3) — still under the 0.55
   // envelope with smooth overshoot.
@@ -417,11 +447,11 @@ const _bugaClavicleLKeys = [
   DanceJointKey(20, rotation: -0.42, microFrames: 1.5),
   DanceJointKey(22, rotation: 0.28, microFrames: 1.5),
   DanceJointKey(24, rotation: -0.44, microFrames: 1.5),
-  DanceJointKey(26, rotation: 0.1, microFrames: 1.5),
-  DanceJointKey(27, rotation: -0.1, microFrames: 1.5),
+  DanceJointKey(26, rotation: 0.24, microFrames: 1.5),
+  DanceJointKey(27, rotation: 0.28, microFrames: 1.5),
   DanceJointKey(28, rotation: 0.488, microFrames: 1.1),
   DanceJointKey(29, rotation: 0.382, microFrames: 1.1),
-  DanceJointKey(30, rotation: 0.085, microFrames: 1.5),
+  DanceJointKey(30, rotation: 0.3, microFrames: 1.5),
   DanceJointKey(32, rotation: -0.08, microFrames: 1.5),
 ];
 const _bugaShoulderSocketRKeys = [

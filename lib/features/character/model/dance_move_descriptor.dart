@@ -122,6 +122,7 @@ class DanceIkTargetTrack {
     this.microFrames = 0,
     this.inertialize = false,
     this.inertializeOmegaScale = 1.0,
+    this.inertializeZetaScale = 1.0,
   });
 
   final List<DanceIkTargetKey> keys;
@@ -145,6 +146,12 @@ class DanceIkTargetTrack {
   /// reach-maxed gesture (buga's peacock) would otherwise spike past the
   /// split-clock ceiling. Only meaningful when [inertialize] is set.
   final double inertializeOmegaScale;
+
+  /// Per-track damping-ratio scale (default 1.0). Below 1 UNDER-damps the
+  /// spring — a punchier overshoot-and-settle, which both raises the arm's crest
+  /// and widens the hot-vs-cold velocity spread the split-clock ordering wants.
+  /// Only meaningful when [inertialize] is set.
+  final double inertializeZetaScale;
 }
 
 /// Full data needed to assemble a [Clip] for one move: an [AfrobeatsMove] for
