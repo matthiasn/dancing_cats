@@ -1802,12 +1802,28 @@ class ZOrderSwapWindow {
     required this.boneB,
     required this.start,
     required this.end,
+    this.swap = true,
+    this.shadeBehind = 0,
   });
 
   final String boneA;
   final String boneB;
   final double start;
   final double end;
+
+  /// Whether this window exchanges the two bones' paint order. Default true. Set
+  /// false for a shade-only window ([shadeBehind] > 0) that must NOT reorder —
+  /// e.g. one full-loop window that just darkens whichever bone is currently
+  /// behind, letting separate swap windows own the front/back alternation.
+  final bool swap;
+
+  /// When > 0, the bone of the pair that ends up drawn BEHIND for this frame is
+  /// darkened by a cool shadow overlay at this opacity (0..1). This is an honest
+  /// depth cue for two limbs passing over each other — the occluded one reads as
+  /// sitting in the other's shadow — WITHOUT any fake perspective size change
+  /// (at a camera meters away, hands centimetres apart show no enlargement).
+  /// 0 (default) = no shading, pure occlusion only.
+  final double shadeBehind;
 
   bool activeAt(double phase) => start <= end
       ? (phase >= start && phase < end)

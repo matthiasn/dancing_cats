@@ -54,6 +54,7 @@ class CharacterRenderer {
     FaceState face, {
     Affine2D? memberTransform,
     List<(String, String)> zOrderSwaps = const [],
+    List<(String, String, double)> occludedShades = const [],
     bool drawInteriorDetail = true,
   }) {
     if (memberTransform != null) {
@@ -72,6 +73,7 @@ class CharacterRenderer {
           local,
           face,
           zOrderSwaps: zOrderSwaps,
+          occludedShades: occludedShades,
           drawInteriorDetail: drawInteriorDetail,
         );
         canvas.restore();
@@ -80,6 +82,11 @@ class CharacterRenderer {
     }
     final hiddenBones = rig.hiddenDrawableBoneIds;
     final drawOrder = _effectiveDrawOrder(rig, zOrderSwaps);
+    // Whichever of each shaded pair ends up drawn BEHIND (earlier in the final
+    // order) gets a cool shadow overlay — an honest depth cue with no size
+    // change. Resolved against the post-swap order so it always tags the truly
+    // occluded bone even as the pair toggles front/back.
+    final boneShade = _occludedBoneShades(drawOrder, occludedShades);
     final pathCache = _RenderPathCache(this, rig, world);
 
     // Ribbons are drawn in the same silhouette/fill two-pass style as bones.
@@ -125,6 +132,7 @@ class CharacterRenderer {
       hiddenBones,
       pathCache: pathCache,
       drawInteriorDetail: drawInteriorDetail,
+      boneShade: boneShade,
     );
 
     final faceRig = drawInteriorDetail ? rig.face : null;
@@ -167,6 +175,25 @@ class CharacterRenderer {
     return order;
   }
 
+  /// For each `(boneA, boneB, opacity)` shade request, tags whichever of the
+  /// pair is drawn BEHIND (earlier in the resolved `drawOrder`) with `opacity`.
+  /// Read against the post-swap order so the truly occluded bone is shaded as
+  /// the pair toggles front/back frame to frame.
+  Map<String, double> _occludedBoneShades(
+    List<Bone> drawOrder,
+    List<(String, String, double)> shades,
+  ) {
+    if (shades.isEmpty) return const {};
+    final result = <String, double>{};
+    for (final (aId, bId, opacity) in shades) {
+      final aIndex = drawOrder.indexWhere((bone) => bone.id == aId);
+      final bIndex = drawOrder.indexWhere((bone) => bone.id == bId);
+      if (aIndex == -1 || bIndex == -1) continue;
+      result[aIndex < bIndex ? aId : bId] = opacity;
+    }
+    return result;
+  }
+
   void _drawFills(
     Canvas canvas,
     RigSpec rig,
@@ -175,6 +202,7 @@ class CharacterRenderer {
     Set<String> hiddenBones, {
     required _RenderPathCache pathCache,
     required bool drawInteriorDetail,
+    Map<String, double> boneShade = const {},
   }) {
     final ribbons = rig.ribbonDrawOrder;
     final meshes = rig.meshDrawOrder;
@@ -250,6 +278,10 @@ class CharacterRenderer {
       _drawFill(canvas, drawable);
       if (celShade != null && drawable.celShade) {
         _celShadeKind(canvas, drawable, celShade);
+      }
+      final shade = boneShade[bone.id];
+      if (shade != null && shade > 0) {
+        _drawShadeOverlay(canvas, drawable, shade);
       }
       if (drawInteriorDetail) _drawKindInk(canvas, drawable);
       canvas.restore();
@@ -587,6 +619,19 @@ class CharacterRenderer {
       ..style = PaintingStyle.fill
       ..strokeWidth = 0
       ..color = Color(d.color)
+      ..isAntiAlias = antiAlias;
+    _drawKind(canvas, d, _paint);
+  }
+
+  /// A cool, semi-transparent shadow filled over a bone's own shape — used to
+  /// darken an occluded limb (the one drawn behind in a z-swap) so it reads as
+  /// sitting in the other's shadow. Clipped to the drawable by re-drawing its
+  /// shape, so it never bleeds past the limb.
+  void _drawShadeOverlay(Canvas canvas, BoneDrawable d, double opacity) {
+    _paint
+      ..style = PaintingStyle.fill
+      ..strokeWidth = 0
+      ..color = Color.fromRGBO(20, 26, 40, opacity.clamp(0.0, 1.0))
       ..isAntiAlias = antiAlias;
     _drawKind(canvas, d, _paint);
   }

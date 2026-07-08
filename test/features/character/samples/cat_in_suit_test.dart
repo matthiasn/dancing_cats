@@ -1593,12 +1593,13 @@ void main() {
         expect(right.y, greaterThanOrEqualTo(100));
       }
 
-      // Organic fast roll (2026-07 dance-dynamics): both paws orbit a shared
-      // chest hub 180deg apart, several revs/loop — continuous sub-beat motion
-      // instead of posed hits (owner: "hands rotating around each other... real
-      // afrobeats hands move 2-4x faster"). Assert the motion is genuinely
-      // circular+continuous (wide sweep on both axes) and the two paws stay
-      // antiphase (opposite around the hub), not the old static out-points.
+      // BARREL ROLL v6 (sagittal): the fists roll around each other in the DEPTH
+      // plane, so the SCREEN path is pure vertical antiphase at a CONSTANT x — no
+      // lateral target motion, so the elbows do NOT swing in and out (owner:
+      // "too much elbow in and out laterally, just rotate hands around each
+      // other"). Both hands share x, so they OVERLAP at the mid-line crossings
+      // and one passes BEHIND the other (z-order swap + paw depth-scale).
+      // Assert: a tall vertical sweep, ~zero horizontal travel, antiphase paws.
       var minLx = 1e9;
       var maxLx = -1e9;
       var minLy = 1e9;
@@ -1611,29 +1612,42 @@ void main() {
         maxLy = math.max(maxLy, s.y);
       }
       expect(
-        maxLx - minLx,
-        greaterThan(30),
-        reason:
-            'Azonto: the left paw sweeps a wide horizontal arc (rolling), '
-            'not a held pose',
+        maxLy - minLy,
+        greaterThan(20),
+        reason: 'Azonto: the left paw rolls through a vertical loop',
       );
       expect(
-        maxLy - minLy,
-        greaterThan(30),
+        maxLx - minLx,
+        lessThan(4),
         reason:
-            'Azonto: the left paw sweeps a wide vertical arc (rolling), '
-            'not a held pose',
+            'Azonto: the roll is SAGITTAL — the hand target has ~zero lateral '
+            'travel so the elbows do not swing in and out; the fists circle '
+            'AROUND each other in depth, not by punching apart sideways',
       );
-      for (final frame in [0, 4, 8, 12, 16, 20, 24, 28]) {
+      // The defining feature of the barrel roll: the paws overlap, so one must
+      // pass BEHIND the other — the clip swaps their z-order across the roll.
+      expect(
+        azonto.zOrderSwaps.where(
+          (w) =>
+              {w.boneA, w.boneB}.containsAll({CatBones.handL, CatBones.handR}),
+        ),
+        isNotEmpty,
+        reason: 'Azonto barrel roll swaps the paws front/behind as they roll',
+      );
+      // On the off-beats (the loop y-extremes) the two paws sit on OPPOSITE
+      // sides of the hub in y — one high, one low — i.e. rolling around each
+      // other, half a lap apart.
+      const hubY = -42.0;
+      for (final frame in [2, 6, 10, 14, 18, 22, 26, 30]) {
         final p = frame / phrase.frameCount;
         final l = handL.sample(p);
         final r = handR.sample(p);
         expect(
-          (l.x + r.x).abs(),
-          lessThan(26),
+          (l.y - hubY) * (r.y - hubY),
+          lessThan(0),
           reason:
-              'Azonto frame $frame: the paws orbit the shared hub 180deg '
-              'apart (roll), so their x roughly cancels',
+              'Azonto frame $frame: one paw over the top while the other is '
+              'under — vertically antiphase (rolling around each other)',
         );
       }
 

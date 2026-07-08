@@ -2256,6 +2256,7 @@ class CharacterPainter extends CustomPainter {
       // spindly while the scaled-down backups ballooned.
       memberTransform: prepared.base,
       zOrderSwaps: prepared.frame.zOrderSwaps,
+      occludedShades: prepared.frame.occludedShades,
       drawInteriorDetail: drawInteriorDetail,
     );
   }
