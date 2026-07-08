@@ -1291,10 +1291,22 @@ class CatClips {
             // DOWN (-12 -> -8) and the per-beat vertical bounce UP (-9 -> -13)
             // so the pocket pops vertically on the beat instead of swaying side
             // to side.
+            // "Moving" pass: that -8 was tuned for a GENERIC hit move; this song
+            // sways (Omah Lay "Moving" — a swaying diminished bassline, pensive,
+            // not hectic), so the call reverses for this choreography. Raised to
+            // -14 — a SMOOTH, gentle sway (hips-lateral range 44, between the
+            // too-subtle -8/range-34 and the too-dramatic -12/-22) — plus a
+            // gentle torso body-roll (leanAmplitude, phased with the sway) so the
+            // weight-shift reads as a committed lean, not a lateral slide.
             SineRootChannel(
-              swayAmplitude: -8,
+              swayAmplitude: -14,
               swayPhase: 0.125,
               swayHarmonic: 4,
+              // Torso commits INTO the weighted side (a gentle body-roll phased
+              // with the sway) so the weight-shift reads as a lean, not a slide.
+              leanAmplitude: -0.06,
+              leanPhase: 0.125,
+              leanHarmonic: 4,
             ),
             SineRootChannel(bobAmplitude: -13, bobPhase: 0.09, bobHarmonic: 8),
           ],
