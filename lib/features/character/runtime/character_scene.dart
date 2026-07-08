@@ -24,6 +24,7 @@ class CharacterFrame {
     required this.face,
     required this.locomotionX,
     this.zOrderSwaps = const [],
+    this.occludedShades = const [],
   });
 
   final Map<String, Affine2D> world;
@@ -41,6 +42,12 @@ class CharacterFrame {
   /// every clip/frame — passed straight through to `CharacterRenderer.paint`'s
   /// `zOrderSwaps` parameter.
   final List<(String, String)> zOrderSwaps;
+
+  /// Active `shadeBehind` requests for this frame: `(boneA, boneB, opacity)`
+  /// for each z-swap window that asked the occluded bone be darkened. The
+  /// renderer picks whichever of the pair ends up drawn behind and overlays a
+  /// cool shadow at `opacity`. Empty on almost every clip/frame.
+  final List<(String, String, double)> occludedShades;
 }
 
 /// Ties the engine pieces together: evaluate a clip, layer the autonomic
@@ -361,11 +368,13 @@ class CharacterScene {
     }
     final locomotion = locomotionOffset(clip, timeSeconds);
     final zOrderSwaps = _activeZOrderSwaps(clip, timeSeconds);
+    final occludedShades = _activeOccludedShades(clip, timeSeconds);
     return CharacterFrame(
       world: world,
       face: face,
       locomotionX: locomotion,
       zOrderSwaps: zOrderSwaps,
+      occludedShades: occludedShades,
     );
   }
 
@@ -395,8 +404,33 @@ class CharacterScene {
         ? const <(String, String)>[]
         : [
             for (final window in source.zOrderSwaps)
-              if (window.activeAt(evaluator.phaseAt(source, sourceSeconds)))
+              if (window.swap &&
+                  window.activeAt(evaluator.phaseAt(source, sourceSeconds)))
                 (window.boneA, window.boneB),
+          ];
+
+    final plan = clip.transitionPlan;
+    if (plan == null) return active(clip, timeSeconds);
+    return plan.weight < 0.5
+        ? active(plan.from, timeSeconds + plan.fromTimeShiftSeconds)
+        : active(plan.to, timeSeconds);
+  }
+
+  /// The active `shadeBehind` requests at [timeSeconds] — same window resolution
+  /// as [_activeZOrderSwaps], but only windows that ask the occluded bone be
+  /// darkened, carried as `(boneA, boneB, opacity)`.
+  List<(String, String, double)> _activeOccludedShades(
+    Clip clip,
+    double timeSeconds,
+  ) {
+    List<(String, String, double)> active(Clip source, double sourceSeconds) =>
+        source.zOrderSwaps.isEmpty
+        ? const <(String, String, double)>[]
+        : [
+            for (final window in source.zOrderSwaps)
+              if (window.shadeBehind > 0 &&
+                  window.activeAt(evaluator.phaseAt(source, sourceSeconds)))
+                (window.boneA, window.boneB, window.shadeBehind),
           ];
 
     final plan = clip.transitionPlan;

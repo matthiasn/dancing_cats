@@ -81,46 +81,48 @@ List<DanceBodyKey> _azontoGrooveCalm = [
 // half-reach target folds the elbow across the belly and the sleeve reads
 // as a stump (two-bone flexion grows brutally below full reach).
 const _azontoHandLTargetKeys = [
-  // Organic fast hands (owner: real afrobeats hands move 2-4x faster, e.g.
-  // rotating around each other). Both paws orbit a shared chest hub 180 deg
-  // apart, 4 revs/loop -> continuous sub-beat motion, no posed hits. cyclic;
-  // f32==f0.
-  DanceIkTargetKey(0, x: 26, y: -30),
-  DanceIkTargetKey(2, x: 0, y: -4),
-  DanceIkTargetKey(4, x: -26, y: -30),
-  DanceIkTargetKey(6, x: 0, y: -56),
-  DanceIkTargetKey(8, x: 26, y: -30),
-  DanceIkTargetKey(10, x: 0, y: -4),
-  DanceIkTargetKey(12, x: -26, y: -30),
-  DanceIkTargetKey(14, x: 0, y: -56),
-  DanceIkTargetKey(16, x: 26, y: -30),
-  DanceIkTargetKey(18, x: 0, y: -4),
-  DanceIkTargetKey(20, x: -26, y: -30),
-  DanceIkTargetKey(22, x: 0, y: -56),
-  DanceIkTargetKey(24, x: 26, y: -30),
-  DanceIkTargetKey(26, x: 0, y: -4),
-  DanceIkTargetKey(28, x: -26, y: -30),
-  DanceIkTargetKey(30, x: 0, y: -56),
-  DanceIkTargetKey(32, x: 26, y: -30),
+  // BARREL ROLL v8 (sagittal, occlusion+shadow): each fist holds a small
+  // CONSTANT x on its OWN side (no lateral target motion -> elbows do not
+  // swing in/out) and only travels vertically, antiphase to the other. The
+  // fists stay close enough to OVERLAP (occlusion) but never jam the same
+  // point (that degenerate co-location spiked the IK). Depth is sold by the
+  // z-order swap + a shadow on the occluded fist — NO size change.
+  DanceIkTargetKey(0, x: -6, y: -42),
+  DanceIkTargetKey(2, x: -6, y: -28),
+  DanceIkTargetKey(4, x: -6, y: -42),
+  DanceIkTargetKey(6, x: -6, y: -56),
+  DanceIkTargetKey(8, x: -6, y: -42),
+  DanceIkTargetKey(10, x: -6, y: -28),
+  DanceIkTargetKey(12, x: -6, y: -42),
+  DanceIkTargetKey(14, x: -6, y: -56),
+  DanceIkTargetKey(16, x: -6, y: -42),
+  DanceIkTargetKey(18, x: -6, y: -28),
+  DanceIkTargetKey(20, x: -6, y: -42),
+  DanceIkTargetKey(22, x: -6, y: -56),
+  DanceIkTargetKey(24, x: -6, y: -42),
+  DanceIkTargetKey(26, x: -6, y: -28),
+  DanceIkTargetKey(28, x: -6, y: -42),
+  DanceIkTargetKey(30, x: -6, y: -56),
+  DanceIkTargetKey(32, x: -6, y: -42),
 ];
 const _azontoHandRTargetKeys = [
-  DanceIkTargetKey(0, x: -26, y: -30),
-  DanceIkTargetKey(2, x: 0, y: -56),
-  DanceIkTargetKey(4, x: 26, y: -30),
-  DanceIkTargetKey(6, x: 0, y: -4),
-  DanceIkTargetKey(8, x: -26, y: -30),
-  DanceIkTargetKey(10, x: 0, y: -56),
-  DanceIkTargetKey(12, x: 26, y: -30),
-  DanceIkTargetKey(14, x: 0, y: -4),
-  DanceIkTargetKey(16, x: -26, y: -30),
-  DanceIkTargetKey(18, x: 0, y: -56),
-  DanceIkTargetKey(20, x: 26, y: -30),
-  DanceIkTargetKey(22, x: 0, y: -4),
-  DanceIkTargetKey(24, x: -26, y: -30),
-  DanceIkTargetKey(26, x: 0, y: -56),
-  DanceIkTargetKey(28, x: 26, y: -30),
-  DanceIkTargetKey(30, x: 0, y: -4),
-  DanceIkTargetKey(32, x: -26, y: -30),
+  DanceIkTargetKey(0, x: 6, y: -42),
+  DanceIkTargetKey(2, x: 6, y: -56),
+  DanceIkTargetKey(4, x: 6, y: -42),
+  DanceIkTargetKey(6, x: 6, y: -28),
+  DanceIkTargetKey(8, x: 6, y: -42),
+  DanceIkTargetKey(10, x: 6, y: -56),
+  DanceIkTargetKey(12, x: 6, y: -42),
+  DanceIkTargetKey(14, x: 6, y: -28),
+  DanceIkTargetKey(16, x: 6, y: -42),
+  DanceIkTargetKey(18, x: 6, y: -56),
+  DanceIkTargetKey(20, x: 6, y: -42),
+  DanceIkTargetKey(22, x: 6, y: -28),
+  DanceIkTargetKey(24, x: 6, y: -42),
+  DanceIkTargetKey(26, x: 6, y: -56),
+  DanceIkTargetKey(28, x: 6, y: -42),
+  DanceIkTargetKey(30, x: 6, y: -28),
+  DanceIkTargetKey(32, x: 6, y: -42),
 ];
 // R10: every rater independently called the re-positioned wheel-mime and
 // jab "legible but frozen holds" — right reach zone, no gesture motion of
@@ -166,52 +168,45 @@ const _azontoHeadKeys = [
 ];
 
 const _azontoHandLKeys = [
-  DanceJointKey(0, rotation: 0.28), // wide grip
-  DanceJointKey(1, rotation: 0.36), // flick past the grip (ornament port)
-  DanceJointKey(4, rotation: -0.28), // narrow grip — wheel turns
-  DanceJointKey(5, rotation: -0.36), // flick
-  DanceJointKey(8, rotation: 0.28),
-  DanceJointKey(9, rotation: 0.36), // flick
-  DanceJointKey(12, rotation: -0.28),
-  DanceJointKey(13, rotation: -0.34), // flick, softer into the jab load
-  DanceJointKey(14, rotation: -0.1), // settle before the jab
-  DanceJointKey(16, rotation: 0.4), // JAB snap
-  DanceJointKey(17, rotation: 0.32), // hold
-  DanceJointKey(19, rotation: 0.05), // recoil
-  DanceJointKey(20, rotation: -0.15), // chamber, relaxed
-  DanceJointKey(22, rotation: -0.12),
-  DanceJointKey(23, rotation: 0.05), // loads
-  DanceJointKey(24, rotation: 0.4), // JAB
-  DanceJointKey(25, rotation: 0.32),
-  DanceJointKey(27, rotation: 0.05),
-  DanceJointKey(28, rotation: -0.15), // chamber
-  DanceJointKey(30, rotation: -0.05),
-  DanceJointKey(31, rotation: 0.1), // lifts back to the wheel
-  DanceJointKey(32, rotation: 0.28), // == frame 0
+  // No paw scale or rotation: at this camera distance the near/far hands would
+  // not visibly change size, and a rotating round mitt only reads as a fake
+  // swell. Depth is sold purely by the z-order occlusion in the descriptor.
+  DanceJointKey(0),
+  DanceJointKey(2),
+  DanceJointKey(4),
+  DanceJointKey(6),
+  DanceJointKey(8),
+  DanceJointKey(10),
+  DanceJointKey(12),
+  DanceJointKey(14),
+  DanceJointKey(16),
+  DanceJointKey(18),
+  DanceJointKey(20),
+  DanceJointKey(22),
+  DanceJointKey(24),
+  DanceJointKey(26),
+  DanceJointKey(28),
+  DanceJointKey(30),
+  DanceJointKey(32),
 ];
 const _azontoHandRKeys = [
-  DanceJointKey(0, rotation: -0.28), // narrow grip
-  DanceJointKey(1, rotation: -0.36), // flick past the grip (ornament port)
-  DanceJointKey(4, rotation: 0.28), // wide grip — wheel turns
-  DanceJointKey(5, rotation: 0.36), // flick
-  DanceJointKey(8, rotation: -0.28),
-  DanceJointKey(9, rotation: -0.36), // flick
-  DanceJointKey(12, rotation: 0.28),
-  DanceJointKey(13, rotation: 0.34), // flick, softer into the jab load
-  DanceJointKey(14, rotation: 0.1),
-  DanceJointKey(16, rotation: -0.15), // chamber, relaxed
-  DanceJointKey(18, rotation: -0.12),
-  DanceJointKey(19, rotation: 0.05), // loads
-  DanceJointKey(20, rotation: 0.4), // JAB snap
-  DanceJointKey(21, rotation: 0.32), // hold
-  DanceJointKey(23, rotation: 0.05), // recoil
-  DanceJointKey(24, rotation: -0.15), // chamber
-  DanceJointKey(26, rotation: -0.12),
-  DanceJointKey(27, rotation: 0.05),
-  DanceJointKey(28, rotation: 0.4), // JAB
-  DanceJointKey(29, rotation: 0.32),
-  DanceJointKey(31, rotation: 0.1), // settles toward the wheel
-  DanceJointKey(32, rotation: -0.28), // == frame 0
+  DanceJointKey(0),
+  DanceJointKey(2),
+  DanceJointKey(4),
+  DanceJointKey(6),
+  DanceJointKey(8),
+  DanceJointKey(10),
+  DanceJointKey(12),
+  DanceJointKey(14),
+  DanceJointKey(16),
+  DanceJointKey(18),
+  DanceJointKey(20),
+  DanceJointKey(22),
+  DanceJointKey(24),
+  DanceJointKey(26),
+  DanceJointKey(28),
+  DanceJointKey(30),
+  DanceJointKey(32),
 ];
 // R follow-up (panel post-PR#54, task #45 part 2): the panel wanted the
 // punch to read as thrown "from the shoulder," not just a wrist relocating —

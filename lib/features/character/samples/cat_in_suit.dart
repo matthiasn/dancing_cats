@@ -1006,6 +1006,49 @@ class CatClips {
         // step-touch redirects are floor-adjacent; the clamp guards the
         // deep-accent frames).
         enforceSoleFloor: true,
+        // Sagittal barrel roll: the fists share a screen x and overlap at the
+        // mid-line crossings, so one must pass BEHIND the other. handL is the
+        // NEAR (front) fist while it's on the toward-you half of the roll
+        // (cosθ>0) — draw it on top then; handR on top the rest. 4 rolls/loop →
+        // 4 handL-front swap windows, toggling at the vertical extremes (where
+        // the fists are separated, hiding the flip). A 5th, full-loop shade-only
+        // window (swap:false) darkens whichever fist is currently BEHIND so the
+        // far hand reads as sitting in the near hand's shadow — honest depth with
+        // NO fake perspective size change (camera meters away, hands cm apart).
+        zOrderSwaps: const [
+          ZOrderSwapWindow(
+            boneA: CatBones.handL,
+            boneB: CatBones.handR,
+            start: 0.9375,
+            end: 0.0625,
+          ),
+          ZOrderSwapWindow(
+            boneA: CatBones.handL,
+            boneB: CatBones.handR,
+            start: 0.1875,
+            end: 0.3125,
+          ),
+          ZOrderSwapWindow(
+            boneA: CatBones.handL,
+            boneB: CatBones.handR,
+            start: 0.4375,
+            end: 0.5625,
+          ),
+          ZOrderSwapWindow(
+            boneA: CatBones.handL,
+            boneB: CatBones.handR,
+            start: 0.6875,
+            end: 0.8125,
+          ),
+          ZOrderSwapWindow(
+            boneA: CatBones.handL,
+            boneB: CatBones.handR,
+            start: 0,
+            end: 1,
+            swap: false,
+            shadeBehind: 0.22,
+          ),
+        ],
         baseClip: base,
         jointTracks: {
           CatBones.head: const DanceJointTrack(_azontoHeadKeys, smooth: true),

@@ -8,13 +8,13 @@ import 'package:flutter_test/flutter_test.dart';
 IkTargetChannel _handL(Clip clip) =>
     clip.limbTargets.firstWhere((t) => t.endBoneId == CatBones.handL).channel;
 
-double _xExcursion(IkTargetChannel c) {
+double _yExcursion(IkTargetChannel c) {
   var lo = double.infinity;
   var hi = double.negativeInfinity;
   for (var i = 0; i <= 64; i++) {
     final s = c.sample(i / 64);
-    lo = min(lo, s.x);
-    hi = max(hi, s.x);
+    lo = min(lo, s.y);
+    hi = max(hi, s.y);
   }
   return hi - lo;
 }
@@ -23,13 +23,13 @@ void main() {
   group('effort amplitude modulation', () {
     test('scales hand amplitude around its centre (fast timing untouched)', () {
       final clip = CatClips.azonto; // rolling hands = clear excursion
-      final base = _xExcursion(_handL(clip));
+      final base = _yExcursion(_handL(clip)); // barrel roll is tall in y
       expect(base, greaterThan(20), reason: 'azonto roll has real hand travel');
 
       final low = effortModulatedClip(clip, (p) => 0.6);
       final high = effortModulatedClip(clip, (p) => 1.2);
-      final lowEx = _xExcursion(_handL(low));
-      final highEx = _xExcursion(_handL(high));
+      final lowEx = _yExcursion(_handL(low));
+      final highEx = _yExcursion(_handL(high));
 
       // 0.6 shrinks the movement, 1.2 grows it — around the same centre.
       expect(lowEx, lessThan(base * 0.75));
