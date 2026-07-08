@@ -131,18 +131,22 @@ double danceEffortVariance(double p, double lanePhase) {
 const double kDanceEffortEnergyArc = 0.42;
 
 /// Effort amplitude scale as a function of loop phase for one dancer: a
-/// song-energy base (calm → smaller, hot → bigger, [kDanceEffortEnergyArc]) times
-/// the deterministic beat-to-beat [danceEffortVariance] breath. Fast timing is
-/// untouched — only how BIG each move gets changes. [energyLevel] is the raw
-/// 0..1 section energy; 0.5 is neutral. Clamped so the hands never collapse to
-/// nothing or overshoot reach.
+/// song-energy base times the deterministic beat-to-beat [danceEffortVariance]
+/// breath. Fast timing is untouched — only how BIG each move gets changes.
+/// [energyLevel] is the raw 0..1 section energy.
+///
+/// The base only ever SHRINKS the authored motion (hot section = full authored
+/// ≈ 1.0, calm = down to `1 − arc`). The catalogue's authored hand poses already
+/// sit near the arm's max reach, so scaling ABOVE 1.0 shoved the IK target ~40%
+/// past reach and the elbow clamped/flipped into impossible poses. So the arc is
+/// "calm is smaller, hot is full," never "hot is bigger," and the clamp keeps a
+/// hair of variance headroom below reach.
 double Function(double) danceEffortScaleOf(double energyLevel, int lane) {
-  final base =
-      1 + kDanceEffortEnergyArc * ((energyLevel.clamp(0, 1) - 0.5) * 2);
+  final base = 1.0 - kDanceEffortEnergyArc * (1 - energyLevel.clamp(0, 1));
   final lanePhase = lane * 2.1; // distinct, deterministic per dancer
-  const varGain = 0.32;
-  return (p) =>
-      (base * (1 + varGain * danceEffortVariance(p, lanePhase))).clamp(0.4, 1.5);
+  const varGain = 0.22;
+  return (p) => (base * (1 + varGain * danceEffortVariance(p, lanePhase)))
+      .clamp(0.4, 1.02);
 }
 
 /// Returns [clip] with its [boneIds] hand IK targets amplitude-modulated by the
@@ -197,7 +201,7 @@ Clip effortModulatedClip(
 /// carry continuous fast motion, 2-4x the per-beat pose rate). Small radius so
 /// it reads as alive/rolling without whipping the elbow; integer revs keep it
 /// loop-seamless. Tunable by eye in the app. Set radius 0 to disable.
-const double kDanceFastBaseOrbitRadius = 13;
+const double kDanceFastBaseOrbitRadius = 8;
 const int kDanceFastBaseOrbitRevs = 5;
 
 /// Returns [clip] with its [boneIds] hand IK targets carrying a small fast
@@ -222,14 +226,16 @@ Clip fastBaseOrbitedClip(
   var changed = false;
   for (final target in clip.limbTargets) {
     if (boneIds.contains(target.endBoneId)) {
-      final handPhase = target.endBoneId.endsWith('.L') ? 0.0 : math.pi;
+      // Both hands share the orbit phase (a parallel wobble), NOT opposite: an
+      // opposite phase made the two hands sweep toward centre and read as
+      // rotating THROUGH each other. Parallel keeps their gap and never crosses.
       limbTargets.add(
         target.withChannel(
           OrbitedIkTargetChannel(
             target.channel,
             radius: kDanceFastBaseOrbitRadius,
             revs: kDanceFastBaseOrbitRevs,
-            phase: lanePhase + handPhase,
+            phase: lanePhase,
           ),
         ),
       );

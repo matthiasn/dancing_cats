@@ -46,7 +46,7 @@ void main() {
       final perBeat = [for (var i = 0; i < 8; i++) s0(i / 8)];
       final spread =
           perBeat.reduce(max) - perBeat.reduce(min);
-      expect(spread, greaterThan(0.1),
+      expect(spread, greaterThan(0.05),
           reason: 'effort must vary beat to beat, not be a flat scale');
 
       // LOOP-SEAMLESS: periodic so the amplitude does not jump at the seam.
