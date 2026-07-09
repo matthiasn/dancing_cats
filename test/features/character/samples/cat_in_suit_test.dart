@@ -662,11 +662,11 @@ void main() {
 
       expect(
         base.ribbons.singleWhere((r) => r.id == 'leg.L.ribbon').halfWidths,
-        const [15.0, 14.2, 15.6, 8.6, 9.2, 5.5],
+        const [15.0, 13.8, 12.4, 8.6, 7.8, 5.5],
       );
       expect(
         base.ribbons.singleWhere((r) => r.id == 'leg.L.ribbon').backHalfWidths,
-        const [15.0, 13.0, 11.2, 8.2, 12.2, 5.3],
+        const [15.0, 13.4, 11.0, 8.2, 9.4, 5.3],
       );
       final baseArm = base.ribbons.singleWhere((r) => r.id == 'arm.L.ribbon');
       final farArm = far.ribbons.singleWhere((r) => r.id == 'arm.L.ribbon');

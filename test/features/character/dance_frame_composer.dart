@@ -240,6 +240,8 @@ class DanceFrameComposer {
     // Look-ahead coil before the next hit — same energy scaling as the accent.
     final bodyAnticipation =
         perf.anticipationAt(pos) * (0.45 + 0.55 * stage.energyLevel);
+    // The signature "moving" hook gesture — fires on each hook word.
+    final hook = perf.hookAt(pos);
     final samples = _stageRig.sample(time: pos, beat: beat, bloom: bodyAccent);
 
     // Same trio compositor the live DanceStageView builds — one source of truth.
@@ -250,6 +252,7 @@ class DanceFrameComposer {
       shot: _stepper.shot,
       bodyAccent: bodyAccent,
       bodyAnticipation: bodyAnticipation,
+      hook: hook,
       leadMouth: _stepper.leadMouth,
       bgMouth: _stepper.bgMouth,
       leadShape: _stepper.leadShape,

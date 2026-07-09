@@ -453,12 +453,28 @@ class DancePerformance {
   /// visible as a load, still fast enough to read as one gesture with the hit.
   static const double _kAnticipationWindowSec = 0.1;
 
+  /// The signature HOOK gesture rises over this (a smooth attack, never an
+  /// instant arm snap) then eases back over [_kHookDecaySec] — a punch-out-and-
+  /// settle drive that lands on each "moving" the song sings (see [hookAt]).
+  static const double _kHookAttackSec = 0.12;
+  static const double _kHookDecaySec = 0.55;
+
   /// Only the STRONG onsets fire a visible body accent — the real hits, not
   /// every 16th (which reads hectic). Pre-filtered once.
   late final List<({double time, double strength})> _accentOnsets = [
     for (final o in onsets)
       if (o.strength >= _kAccentStrengthFloor) o,
   ];
+
+  /// Start times of every "moving" the song sings — the hook, the track's
+  /// title and its whole identity ("I've been moving, moving, moving"). The
+  /// signature hook gesture fires on each one ([hookAt]). Any voice carries the
+  /// hook, so it isn't gated to the lead. Pre-filtered + sorted once; empty for
+  /// tracks with no lyrics (the gesture then never fires).
+  late final List<double> _hookWordStarts = [
+    for (final w in words)
+      if (w.word.toLowerCase().contains('moving')) w.start,
+  ]..sort();
 
   /// Music-driven accent envelope at [posSec] (0..1): a quick decay pop on the
   /// most recent STRONG onset, so the body lands WITH the track's hits. 0
@@ -511,6 +527,37 @@ class DancePerformance {
     // at the onset itself (that frame belongs to [accentAt]).
     final ramp = 1 - dt / _kAnticipationWindowSec;
     return (o[lo].strength * ramp).clamp(0.0, 1.0);
+  }
+
+  /// Signature-HOOK envelope at [posSec] (0..1): a smooth-attack, eased-decay
+  /// pulse on the most recent "moving" the song sang, so a recognizable
+  /// gesture LANDS on the hook word every time it repeats — the song's identity
+  /// carried in the body. The smooth attack (not an instant snap) keeps the
+  /// arm drive from reading robotic. 0 between hooks; 0 for tracks with no
+  /// lyrics. Consecutive "moving"s ~1 s apart read as distinct punches; the
+  /// dense "moving, moving, moving" runs overlap into one continuous drive.
+  double hookAt(double posSec) {
+    final h = _hookWordStarts;
+    if (h.isEmpty) return 0;
+    // Most recent hook word at/before posSec (binary search).
+    var lo = 0;
+    var hi = h.length - 1;
+    var idx = -1;
+    while (lo <= hi) {
+      final mid = (lo + hi) >> 1;
+      if (h[mid] <= posSec) {
+        idx = mid;
+        lo = mid + 1;
+      } else {
+        hi = mid - 1;
+      }
+    }
+    if (idx < 0) return 0;
+    final dt = posSec - h[idx];
+    if (dt < 0 || dt >= _kHookAttackSec + _kHookDecaySec) return 0;
+    double smooth(double x) => x * x * (3 - 2 * x);
+    if (dt < _kHookAttackSec) return smooth(dt / _kHookAttackSec);
+    return 1 - smooth((dt - _kHookAttackSec) / _kHookDecaySec);
   }
 
   static final Clip _shaku = CatClips.shaku;

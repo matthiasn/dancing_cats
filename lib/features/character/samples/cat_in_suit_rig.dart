@@ -1640,14 +1640,14 @@ RigSpec buildCatInSuitRig({
       // rather than bodybuilder-wide so the dance reads agile in quarter view.
       // FRONT profile: the quad carries the thigh mass and holds it almost
       // to the knee; the shin's front is near-straight (bone, not muscle).
-      halfWidths: scaledLegWidths(const [15.0, 14.2, 15.6, 8.6, 9.2, 5.5]),
+      halfWidths: scaledLegWidths(const [15.0, 13.8, 12.4, 8.6, 7.8, 5.5]),
       // BACK profile: hamstring eases off the seat, then the CALF bulge —
       // the S-curve that reads athletic where a symmetric tube reads stuffed.
-      backHalfWidths: scaledLegWidths(const [15.0, 13.0, 11.2, 8.2, 12.2, 5.3]),
+      backHalfWidths: scaledLegWidths(const [15.0, 13.4, 11.0, 8.2, 9.4, 5.3]),
       // Tension profile: soft through the hip/seat so the trouser root stays
       // one smooth mass, firm from the knee down so flexion resolves at a
       // visible knee vertex instead of a crescent shin.
-      jointTensions: const [0.42, 0.45, 0.55, 0.9, 0.82, 0.78],
+      jointTensions: const [0.42, 0.45, 0.4, 0.9, 0.42, 0.78],
       z: 3,
       color: _trouserRear,
       outlineColor: _outline,
@@ -1670,14 +1670,14 @@ RigSpec buildCatInSuitRig({
       hiddenBoneIds: const [CatBones.legUpperL, CatBones.legLowerL],
       // FRONT profile: the quad carries the thigh mass and holds it almost
       // to the knee; the shin's front is near-straight (bone, not muscle).
-      halfWidths: scaledLegWidths(const [15.0, 14.2, 15.6, 8.6, 9.2, 5.5]),
+      halfWidths: scaledLegWidths(const [15.0, 13.8, 12.4, 8.6, 7.8, 5.5]),
       // BACK profile: hamstring eases off the seat, then the CALF bulge —
       // the S-curve that reads athletic where a symmetric tube reads stuffed.
-      backHalfWidths: scaledLegWidths(const [15.0, 13.0, 11.2, 8.2, 12.2, 5.3]),
+      backHalfWidths: scaledLegWidths(const [15.0, 13.4, 11.0, 8.2, 9.4, 5.3]),
       // Tension profile: soft through the hip/seat so the trouser root stays
       // one smooth mass, firm from the knee down so flexion resolves at a
       // visible knee vertex instead of a crescent shin.
-      jointTensions: const [0.42, 0.45, 0.55, 0.9, 0.82, 0.78],
+      jointTensions: const [0.42, 0.45, 0.4, 0.9, 0.42, 0.78],
       z: 6,
       color: _trouser,
       outlineColor: _outline,

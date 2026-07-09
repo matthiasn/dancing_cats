@@ -264,6 +264,66 @@ Clip accentDroppedClip(Clip clip, double dropDy) {
   );
 }
 
+/// The signature "moving" HOOK pose the hands drive toward on each hook word —
+/// a wide, high two-fisted LIFT (each hand thrown up and out to its own side),
+/// the recognizable gesture that lands on "moving" every time the song sings it
+/// (the track's title and whole identity). Hand IK-target coordinates: x is
+/// lateral (each hand to its own side — L negative, R positive), y is vertical
+/// with UP negative; sized to reach up-and-out without maxing the arm.
+const double _kHookHandOutX = 38;
+const double _kHookHandUpY = -62;
+
+/// Returns [clip] with its HAND IK targets blended toward the signature hook
+/// lift ([_kHookHandOutX]/[_kHookHandUpY]) by [hook] (0..1) — the "moving"
+/// gesture, layered on whatever move is playing so the hook reads through every
+/// section. [hook] 0 (or a clip with no hand targets) returns the clip
+/// unchanged. The smooth attack/decay lives in the [hook] signal
+/// (`DancePerformance.hookAt`), so the hands GLIDE into the lift and settle
+/// back — they never snap. The base move's hand target is the blend's `from`,
+/// so between hooks the arms fully return to their choreography.
+Clip hookGestureClip(Clip clip, double hook) {
+  final w = hook.clamp(0.0, 1.0);
+  if (w <= 0 || clip.limbTargets.isEmpty) return clip;
+  const handL = FixedIkTargetChannel(x: -_kHookHandOutX, y: _kHookHandUpY);
+  const handR = FixedIkTargetChannel(x: _kHookHandOutX, y: _kHookHandUpY);
+  final blended = [
+    for (final t in clip.limbTargets)
+      if (t.endBoneId == 'hand.L')
+        t.withChannel(
+          BlendedIkTargetChannel(weight: w, from: t.channel, to: handL),
+        )
+      else if (t.endBoneId == 'hand.R')
+        t.withChannel(
+          BlendedIkTargetChannel(weight: w, from: t.channel, to: handR),
+        )
+      else
+        t,
+  ];
+  return Clip(
+    name: clip.name,
+    duration: clip.duration,
+    channels: clip.channels,
+    loop: clip.loop,
+    root: clip.root,
+    locomotionSpeed: clip.locomotionSpeed,
+    groundSpans: clip.groundSpans,
+    contactSpans: clip.contactSpans,
+    contactPinning: clip.contactPinning,
+    limbTargets: blended,
+    supportFootWorldAnchor: clip.supportFootWorldAnchor,
+    supportFootWorldAnchorStrength: clip.supportFootWorldAnchorStrength,
+    supportFootWorldAnchorVerticalBoost: clip.supportFootWorldAnchorVerticalBoost,
+    danceHeadBobScale: clip.danceHeadBobScale,
+    danceHeadLevelClampMin: clip.danceHeadLevelClampMin,
+    armReachScale: clip.armReachScale,
+    headLateralStabilize: clip.headLateralStabilize,
+    enforceSoleFloor: clip.enforceSoleFloor,
+    transitionPlan: clip.transitionPlan,
+    zOrderSwaps: clip.zOrderSwaps,
+    dynamics: clip.dynamics,
+  );
+}
+
 /// Always-on shoulder + chest WIND (coach: the Afrobeats pocket is upper-body-
 /// led — the shoulders/chest roll continuously so the torso is never a static
 /// posed post while the hips bounce underneath). Small, loop-seamless (integer

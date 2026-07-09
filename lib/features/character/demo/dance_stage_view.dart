@@ -48,6 +48,7 @@ class DanceStageView extends StatelessWidget {
     required this.beat,
     this.bodyAccent = 0,
     this.bodyAnticipation = 0,
+    this.hook = 0,
     required this.backdropTimeSeconds,
     required this.lightsTimeSeconds,
     required this.bpm,
@@ -93,6 +94,10 @@ class DanceStageView extends StatelessWidget {
   /// Music-driven anticipation (0..1) — the look-ahead coil before the next hit
   /// (see `DancePerformance.anticipationAt`). 0 = no imminent hit.
   final double bodyAnticipation;
+
+  /// Signature "moving" hook envelope (0..1) — drives the hook lift gesture on
+  /// each hook word (see `DancePerformance.hookAt`). 0 = not on the hook.
+  final double hook;
 
   /// Audio position seconds — drives the scenery (it pauses/seeks with the
   /// track).
@@ -246,6 +251,7 @@ class DanceStageView extends StatelessWidget {
                           shot: shot,
                           bodyAccent: bodyAccent,
                           bodyAnticipation: bodyAnticipation,
+                          hook: hook,
                           leadMouth: leadMouth,
                           bgMouth: bgMouth,
                           leadShape: leadShape,
@@ -431,6 +437,7 @@ CharacterPainter danceCharacterPainter({
   ui.Image? wavesImage,
   double bodyAccent = 0,
   double bodyAnticipation = 0,
+  double hook = 0,
 }) => CharacterPainter(
   scene: cast.lead,
   partnerScene: cast.left,
@@ -440,24 +447,34 @@ CharacterPainter danceCharacterPainter({
     danceSingExpression(bgMouth, Expression.content, bgShape),
     danceSingExpression(bgMouth, Expression.happy, bgShape),
   ],
+  // The signature "moving" hook LIFT rides on top of whatever move is playing
+  // (see [hookGestureClip]) — the whole trio in unison so the hook reads as one
+  // statement. Layered outside the accent drop; both are single-sourced here so
+  // the live player and every offline renderer hit the hook identically.
   ensembleClips: [
     for (var i = 0; i < stage.ensemble.length; i++)
-      accentDroppedClip(
-        _upperBodyWarped(
-          stage.ensemble[i],
-          stage.dynamics[i],
-          i,
-          stage.energyLevel,
+      hookGestureClip(
+        accentDroppedClip(
+          _upperBodyWarped(
+            stage.ensemble[i],
+            stage.dynamics[i],
+            i,
+            stage.energyLevel,
+          ),
+          bodyAccent * kDanceAccentDropUnits,
         ),
-        bodyAccent * kDanceAccentDropUnits,
+        hook,
       ),
   ],
   synchronousEnsemble: stage.synchronous,
   singingHeadMotion: true,
   walkingPair: true,
-  clip: accentDroppedClip(
-    _upperBodyWarped(stage.lead, stage.dynamics.first, 0, stage.energyLevel),
-    bodyAccent * kDanceAccentDropUnits,
+  clip: hookGestureClip(
+    accentDroppedClip(
+      _upperBodyWarped(stage.lead, stage.dynamics.first, 0, stage.energyLevel),
+      bodyAccent * kDanceAccentDropUnits,
+    ),
+    hook,
   ),
   timeSeconds: stage.seconds,
   cameraOverride: shot,
