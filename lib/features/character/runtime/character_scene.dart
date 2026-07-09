@@ -524,7 +524,8 @@ class CharacterScene {
 
     final tailIds = _tailBoneIds();
     final earIds = _outerEarBoneIds();
-    if (tailIds.isEmpty && earIds.isEmpty) return pose;
+    final tieIds = _tieBoneIds();
+    if (tailIds.isEmpty && earIds.isEmpty && tieIds.isEmpty) return pose;
 
     final dt = clip.duration / 64;
     final previous = evaluator.evaluate(clip, timeSeconds - dt);
@@ -586,6 +587,36 @@ class CharacterScene {
       if (delta.abs() < 0.0001) continue;
       joints[earId] = _addJointRotation(pose.jointOf(earId), delta);
       changed = true;
+    }
+
+    // The TIE is a 2-link cloth pendulum on the sternum, but nothing drove it —
+    // it hung dead-straight down the centreline, the single loudest "static
+    // chest / detached metronome" tell (mocap). Swing it off the SAME body
+    // motion the tail/ears read, weighted toward the CHEST rotation it hangs
+    // from: the knot barely moves, the blade lags and swings past it like
+    // fabric, then settles. Rig-level — every move's tie now breathes with the
+    // groove instead of reading as a painted-on stripe.
+    if (tieIds.isNotEmpty) {
+      final tieDrive =
+          (-lateralVelocity * 0.011) -
+          bodyRotation * 0.6 +
+          verticalImpulse * 0.004;
+      for (var i = 0; i < tieIds.length; i++) {
+        final t = tieIds.length == 1 ? 1.0 : i / (tieIds.length - 1);
+        // Pendulum gradient: the blade (tip) swings ~3x the knot and lags it.
+        final swing = _clampMagnitude(
+          tieDrive * (0.3 + 0.9 * t),
+          0.04 + 0.05 * t,
+        );
+        final ripple =
+            math.sin(2 * math.pi * (phase * 4 - t * 0.22)) *
+            tieDrive.abs() *
+            (0.03 + 0.18 * t);
+        final delta = swing + ripple;
+        if (delta.abs() < 0.0001) continue;
+        joints[tieIds[i]] = _addJointRotation(pose.jointOf(tieIds[i]), delta);
+        changed = true;
+      }
     }
 
     if (!changed) return pose;
@@ -2668,10 +2699,14 @@ class CharacterScene {
   }
 
   double _shoulderCorrectiveEngagement(IkTargetPose sample) {
-    // Ramp begins just below shoulder height so a hand AT the shoulder line
-    // (y ≈ -60, where the motion validator starts expecting girdle response)
-    // already carries a slight shrug, reaching the full response overhead.
-    final raised = smoothstep((-sample.y - 34) / 56);
+    // Ramp begins at CHEST height (was shoulder height, y≈-34) so a compact
+    // chest-carried working arm — shaku's saw fist rides y≈-37, never near the
+    // old shoulder-line start — already earns a deltoid hike that rises with the
+    // fist, reaching full response by shoulder height and overhead. Rig-level
+    // fix for the panel's "shoulder line stays horizontal / forearms pinned to
+    // the deltoid" on the COMPACT catalogue (the shrug engaged fine on
+    // wide/overhead moves like buga, but was dormant at chest height).
+    final raised = smoothstep((-sample.y - 20) / 45);
     final wideReach = smoothstep((sample.x.abs() - 62) / 34) * 0.55;
     return math.max(raised, wideReach).clamp(0.0, 1.0);
   }
@@ -3298,6 +3333,19 @@ class CharacterScene {
       for (final bone in rig.bones)
         if (bone.id.toLowerCase().startsWith('tail')) bone.id,
     ]..sort((a, b) => _trailingIndex(a).compareTo(_trailingIndex(b)));
+    return ids;
+  }
+
+  /// The tie's cloth-pendulum links, ordered knot→blade so the secondary-follow
+  /// gradient (base barely moves, tip whips) reads as fabric. Root first: the
+  /// shorter id (`tie`) is the knot, its child (`tie_lower`) the blade.
+  List<String> _tieBoneIds() {
+    final ids = [
+      for (final bone in rig.bones)
+        if (bone.id.toLowerCase() == 'tie' ||
+            bone.id.toLowerCase().startsWith('tie_'))
+          bone.id,
+    ]..sort((a, b) => a.length.compareTo(b.length));
     return ids;
   }
 
