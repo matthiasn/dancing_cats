@@ -11,6 +11,7 @@ import 'package:dancing_cats/features/character/runtime/character_painter.dart';
 import 'package:dancing_cats/features/character/runtime/character_renderer.dart';
 import 'package:dancing_cats/features/scenery/layers/backdrop_layer.dart';
 import 'package:dancing_cats/features/scenery/model/backdrop_palette.dart';
+import 'package:dancing_cats/features/scenery/drop_bloom.dart';
 import 'package:dancing_cats/features/scenery/model/backdrop_scene.dart';
 import 'package:dancing_cats/features/scenery/runtime/scenery_shaders.dart';
 import 'package:dancing_cats/features/scenery/runtime/stage_lights.dart';
@@ -230,7 +231,13 @@ class DanceFrameComposer {
     ).paint(canvas, size);
     const SceneTexturePainter().paint(canvas, size);
 
-    final samples = _stageRig.sample(time: pos, beat: beat);
+    // Whole-body amplitude reacts to energy: the hit is softened through the
+    // low-energy breakdown and full in the high-energy chorus. The SAME signal
+    // blooms the stage lights (rim/halo) and drives the warm flash veil below,
+    // so the lighting punches hardest exactly where the body does — biggest on
+    // the drops (peak energy + strongest onsets).
+    final bodyAccent = perf.accentAt(pos) * (0.45 + 0.55 * stage.energyLevel);
+    final samples = _stageRig.sample(time: pos, beat: beat, bloom: bodyAccent);
 
     // Same trio compositor the live DanceStageView builds — one source of truth.
     danceCharacterPainter(
@@ -238,9 +245,7 @@ class DanceFrameComposer {
       renderer: _renderer,
       stage: stage,
       shot: _stepper.shot,
-      // Whole-body amplitude reacts to energy: the hit is softened through the
-      // low-energy breakdown and full in the high-energy chorus.
-      bodyAccent: perf.accentAt(pos) * (0.45 + 0.55 * stage.energyLevel),
+      bodyAccent: bodyAccent,
       leadMouth: _stepper.leadMouth,
       bgMouth: _stepper.bgMouth,
       leadShape: _stepper.leadShape,
@@ -249,6 +254,8 @@ class DanceFrameComposer {
       backlights: danceMemberBacklights(samples),
       onDancerAnchors: (anchors) => _dancerAnchors = anchors,
     ).paint(canvas, size);
+
+    _paintDropBloom(canvas, bodyAccent);
 
     if (captions && perf.words.isNotEmpty) _paintCaption(canvas, pos);
   }
@@ -293,6 +300,12 @@ class DanceFrameComposer {
         ),
     );
   }
+
+  // The drop flash is single-sourced in `paintDropBloom` (scenery/drop_bloom),
+  // shared verbatim with the live DanceStageView so the two paint paths cannot
+  // drift.
+  void _paintDropBloom(Canvas canvas, double accent) =>
+      paintDropBloom(canvas, size, accent);
 
   void _paintCaption(Canvas canvas, double pos) {
     // Caption window, per-word style and box metrics are single-sourced from

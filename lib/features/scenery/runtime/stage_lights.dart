@@ -51,6 +51,7 @@ class StageLightRig {
     this.colorPeriod = 0.5,
     this.baseIntensity = 0.38,
     this.beatBoost = 0.4,
+    this.bloomBoost = 0.55,
     this.leadGoldIndex,
   }) : assert(count > 0, 'need at least one light'),
        assert(colorPeriod > 0, 'colorPeriod must be > 0');
@@ -80,6 +81,12 @@ class StageLightRig {
   /// Extra brightness added at full beat.
   final double beatBoost;
 
+  /// Extra brightness added at full [sample] `bloom` — the music-driven flare
+  /// that spikes on the accent hits (biggest on the drops), lifting the whole
+  /// row toward saturation for the moment so the stage reads as a punch rather
+  /// than the steady per-beat pulse.
+  final double bloomBoost;
+
   /// When set, this lane (the hero/lead) holds [colors]`[0]` every frame instead
   /// of rotating, so the lead reads as a consistent hero colour (gold) while the
   /// flankers still cycle. Null rotates every lane.
@@ -101,10 +108,12 @@ class StageLightRig {
   List<StageLightSample> sample({
     required double time,
     double beat = 0,
+    double bloom = 0,
     bool reducedMotion = false,
   }) {
     final t = reducedMotion ? 0.0 : time;
     final b = reducedMotion ? 0.0 : beat.clamp(0.0, 1.0);
+    final bl = reducedMotion ? 0.0 : bloom.clamp(0.0, 1.0);
     return List<StageLightSample>.generate(count, (i) {
       final anchor = anchors[i % anchors.length];
       final phase = i * (math.pi * 2 / count);
@@ -117,7 +126,10 @@ class StageLightRig {
       return StageLightSample(
         color: colors[colorIndexAt(i, t)],
         targetX: targetX,
-        intensity: (baseIntensity + beatBoost * b).clamp(0.0, 1.0),
+        intensity: (baseIntensity + beatBoost * b + bloomBoost * bl).clamp(
+          0.0,
+          1.0,
+        ),
       );
     });
   }

@@ -18,6 +18,7 @@ import 'package:dancing_cats/features/scenery/model/backdrop_scene.dart';
 import 'package:dancing_cats/features/scenery/runtime/grade_filter.dart';
 import 'package:dancing_cats/features/scenery/runtime/stage_lights.dart';
 import 'package:dancing_cats/features/scenery/scene_texture_overlay.dart';
+import 'package:dancing_cats/features/scenery/drop_bloom.dart';
 import 'package:dancing_cats/features/scenery/stage_lights_overlay.dart';
 import 'package:flutter/material.dart';
 
@@ -154,7 +155,7 @@ class DanceStageView extends StatelessWidget {
     // pools, gel-cycling on the tempo, so a cat's glow always matches its pool.
     final rig = danceStageRig(bpm);
     final samples = useNewBackdrop
-        ? rig.sample(time: lightsTimeSeconds, beat: beat)
+        ? rig.sample(time: lightsTimeSeconds, beat: beat, bloom: bodyAccent)
         : const <StageLightSample>[];
     final backlights = danceMemberBacklights(samples);
 
@@ -254,6 +255,15 @@ class DanceStageView extends StatelessWidget {
                         child: const SizedBox.expand(),
                       ),
                     ),
+                    // The drop flash: a warm additive flare centred on the
+                    // dancers that spikes on the music accent (biggest on the
+                    // drops). Single-sourced with the offline composer via
+                    // [paintDropBloom] so the two paint paths can't drift.
+                    if (useNewBackdrop && bodyAccent > 0.01)
+                      CustomPaint(
+                        painter: DropBloomPainter(bodyAccent),
+                        child: const SizedBox.expand(),
+                      ),
                   ],
                 ),
               );
