@@ -456,6 +456,12 @@ CharacterPainter danceCharacterPainter({
   cameraOverride: shot,
   onDancerAnchors: useNewBackdrop ? onDancerAnchors : null,
   scale: scale,
+  // The music accent also reaches the painter itself (not just the plié-drop
+  // clip above): it drives the UNISON formation pop — the whole ensemble
+  // surging bigger together on the track's strong transients (see
+  // `CharacterPainter._kUnisonFormationPop`). Single-sourced here so the live
+  // player and every offline renderer pop identically.
+  bodyAccent: bodyAccent,
   groundColor: useNewBackdrop ? null : const Color(0xFF374551),
   backdrop: useNewBackdrop
       ? CharacterBackdrop.none

@@ -483,6 +483,37 @@ class CharacterPainter extends CustomPainter {
   static const double _pairSpacing = 215;
   static const double _trioSpacing = 238;
 
+  /// Peak UNISON "pop" the whole ensemble surges on a music accent — a fraction
+  /// of member scale added at `bodyAccent == 1`. On the track's strong
+  /// transients all three cats grow toward camera IN UNISON, then settle over
+  /// the accent's ~0.2 s decay: the ensemble HIT the chorus launch already
+  /// frames for (see `dance_camera_director`'s chorus launch, which eases the
+  /// frame to give "the drop staging's surge room" rather than punching the
+  /// camera — a bigger camera push was panel-rejected as a jump-cut, so the
+  /// surge belongs on the BODIES). Layered on top of the pure dance-clock
+  /// [_danceFormation] (which stays scale-locked so its tests hold), driven by
+  /// the same `bodyAccent` as the plié drop and the stage-light bloom so the
+  /// surge, the dip and the flare all land on the same transient. Grows about
+  /// each cat's foot anchor (feet stay planted, the body swells up), so with
+  /// the plié drop the ensemble reads as planting HARD into the hit.
+  ///
+  /// Value set by the drop-staging panel (music-video director + Afrobeats
+  /// coach): 0.05 read "too polite — it whispers instead of hitting", so the
+  /// strongest transient (peak `bodyAccent` ≈ 0.82 on this track) now surges
+  /// ~5.7 %, weaker hits proportionally less. Attack stays INSTANT (a
+  /// percussive hit, not a ramp — the animator lens was explicit) and the
+  /// accent's own ~0.2 s decay gives the eased settle.
+  static const double _kUnisonFormationPop = 0.07;
+
+  /// The flankers pop HARDER than the lead by this factor. Same panel: at a
+  /// uniform percentage the upstage backups (drawn smaller by perspective —
+  /// see [_heroStaging]) surged too few pixels to read, so the "unison" hit
+  /// landed as a hero-only pop. Boosting their scale fraction lifts their
+  /// ABSOLUTE pixel-surge toward the lead's so all three read as one hit —
+  /// kept under the point where a backup would out-punch the lead and steal
+  /// the frame (the lead still owns the biggest absolute swell).
+  static const double _kUnisonFormationPopFlankerBoost = 1.2;
+
   // The dance camera's horizontal truck keyframes (danceCameraShot's dx) are authored
   // in pixels of this reference stage (the 2560-wide art space), where the truck
   // across the side dancers keeps them in frame. Applied verbatim to a narrower
@@ -679,6 +710,14 @@ class CharacterPainter extends CustomPainter {
       // first frame — see [_trioDanceWeight]'s doc comment.
       final danceWeight = trioCentre ? _trioDanceWeight(clip) : 0.0;
       final leadCentreOrder = danceWeight > 0;
+      // UNISON accent surge: the whole ensemble pops bigger together on the
+      // track's strong transients, then settles over the accent decay,
+      // reinforcing the plié drop and the stage-light bloom that ride the same
+      // [bodyAccent]. Gated by danceWeight so it eases in/out with the dance
+      // and is a hard no-op while idle. The per-member scale factor (the lead
+      // vs the perspective-compensated flankers) is applied inside the loop.
+      final unisonPopBase =
+          _kUnisonFormationPop * bodyAccent.clamp(0.0, 1.0) * danceWeight;
       final order = trioCentre ? const [1, 0, 2] : null;
       final members = order == null
           ? baseMembers
@@ -752,8 +791,18 @@ class CharacterPainter extends CustomPainter {
             : (depthBonus: 0.0, dy: 0.0, dx: 0.0);
         final memberDepth =
             _roleStageDepth(i, members.length) + heroStage.depthBonus;
+        // Lead lane is index 1 in the [1,0,2] reorder; the flankers pop harder
+        // to compensate for their smaller perspective size (see the boost
+        // constant) so the accent reads as a UNISON hit, not a hero-only pop.
+        final unisonPop =
+            1 +
+            unisonPopBase *
+                (i == 1 ? 1.0 : _kUnisonFormationPopFlankerBoost);
         final memberScale =
-            drawScale * _perspectiveScale(memberDepth) * formation.scale;
+            drawScale *
+            _perspectiveScale(memberDepth) *
+            formation.scale *
+            unisonPop;
         final memberView = leadCentreOrder && danceViewProjection
             ? _danceMemberView(i, members.length)
             : null;
