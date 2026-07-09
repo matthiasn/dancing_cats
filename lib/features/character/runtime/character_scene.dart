@@ -130,6 +130,15 @@ class CharacterScene {
         modifier: _overshootSettledPose,
       ),
       PoseModifierPass(
+        id: 'wrist-follow',
+        description:
+            'The paw trails the IK-solved forearm (a lagged share of its recent '
+            'rotation), so the hand whips out and settles at the wrist — the '
+            'mitt tilting against the sleeve cuff — instead of arriving welded '
+            'to the arm.',
+        modifier: _wristFollowPose,
+      ),
+      PoseModifierPass(
         id: 'joint-limits',
         description:
             'Clamp every limited joint into its anatomical range of motion, '
@@ -616,10 +625,28 @@ class CharacterScene {
     // rocking with it. Shaku-scoped for now; extends to the other moves in the
     // roll-out. Coupled to the committed rootDx so it self-scales with the shift.
     final counterLean = _hipShoulderCounterLean(clip, pose.rootDx);
+    // Pelvic LIST coupled to the SAME committed lateral offset (only the moves
+    // that get a counter-lean): the loaded-side hip hikes with rootDx so the
+    // pelvis tilts and the COM rides over the planted foot — a weight-shifted
+    // groove, not a level squat. Self-scales with each move's shift.
+    final pelvisId = _pelvisBoneId;
+    // azonto is a tight-neck in-place waist groove: even a small pelvic list
+    // dips its chin under the 12.5 chin-to-collar floor ("the neck all but
+    // disappears"), so it opts out of the list.
+    final pelvisList =
+        (pelvisId != null &&
+            clip.name != 'azonto' &&
+            _hipOppositionGain.containsKey(clip.name))
+        ? (pose.rootDx * _kPelvisListGain).clamp(
+            -_kPelvisListMax,
+            _kPelvisListMax,
+          )
+        : 0.0;
     final torsoRotation =
         authored.rotation * (1 - _kThoracicShare) + counterLean;
     if (chestDelta.abs() < 0.0001 &&
-        (authored.rotation - torsoRotation).abs() < 0.0001) {
+        (authored.rotation - torsoRotation).abs() < 0.0001 &&
+        pelvisList.abs() < 0.0001) {
       return pose;
     }
 
@@ -630,6 +657,9 @@ class CharacterScene {
       scaleY: authored.scaleY,
     );
     joints[chestId] = _addJointRotation(pose.jointOf(chestId), chestDelta);
+    if (pelvisList.abs() > 0.0001 && pelvisId != null) {
+      joints[pelvisId] = _addJointRotation(pose.jointOf(pelvisId), pelvisList);
+    }
     return Pose(
       joints: joints,
       rootDx: pose.rootDx,
@@ -649,21 +679,49 @@ class CharacterScene {
   /// the warped-jerk ceiling, so it takes a gentler counter (the torso lean
   /// propagates into the arm chain); shaku's 0.005 is the merged, panel-tuned
   /// value. Moves absent from the map (pounce, backups) get none.
+  // Strengthened for the weight-shift pass (biomech: the trunk read stacked-
+  // vertical, the COM not riding over the planted foot). buga stays under the
+  // 0.009 chin-to-collar wander bound noted in the round it was tuned.
+  // Raised so the trunk clearly OPPOSES the pelvic list (a contrapposto S-curve,
+  // head back over the base of support) instead of both bending the same way
+  // into a "banana" C-curve (biomech). buga kept just under its 0.009 chin-to-
+  // collar wander bound.
+  // Modest increases over the original (0.005/0.0025/0.005/0.006/0.005): a
+  // strong counter-lean over-leans the trunk while the head-leveler pins the
+  // skull, opening the chin-to-collar gap past its 20-unit plausibility bound.
+  // So the OPPOSING S-curve comes mostly from the pelvic list + its tight clamp,
+  // and the trunk counter stays gentle enough to keep the head on its collar.
   static const Map<String, double> _hipOppositionGain = {
-    'shaku': 0.005,
-    'zanku': 0.0025,
+    'shaku': 0.006,
+    'zanku': 0.003,
     'azonto': 0.005,
-    // buga's pelvis travels wide, so the standard 0.005 counter under-held the
-    // head (mocap: head swayed WITH the hips); strengthen it — but only to 0.006,
-    // as 0.009 leaned the trunk enough to trip the chin-to-collar wander bound.
     'buga': 0.006,
-    'sekem': 0.005,
+    'sekem': 0.006,
   };
   double _hipShoulderCounterLean(Clip clip, double rootDx) {
     final gain = _hipOppositionGain[clip.name];
     if (gain == null) return 0;
     return -rootDx * gain;
   }
+
+  /// Pelvic LIST (obliquity) per unit committed rootDx: the loaded-side hip
+  /// HIKES with the lateral weight-shift so the pelvis tilts and the COM rides
+  /// over the planted foot, instead of a level pelvis reading as a stacked-
+  /// vertical squat (biomech's top remaining note). The trunk counter-lean above
+  /// keeps the ribcage/head back over the base of support (contrapposto).
+  static const double _kPelvisListGain = 0.007;
+
+  /// Peak pelvic-list magnitude — caps the tilt at high sway so the combined
+  /// list + trunk lean can't push the head past the outer edge of the support
+  /// foot at the amplitude extremes (biomech: a "banana" over-lean there).
+  static const double _kPelvisListMax = 0.055;
+
+  late final String? _pelvisBoneId = () {
+    for (final id in const ['hips', 'pelvis']) {
+      if (rig.bone(id) != null) return id;
+    }
+    return null;
+  }();
 
   /// Shoulders answer the trunk a beat late: the clavicles pick up a clamped
   /// share of how much the trunk has MOVED over the last [_girdleLagFraction]
@@ -690,6 +748,67 @@ class CharacterScene {
     for (final clavicleId in clavicleIds) {
       joints[clavicleId] = _addJointRotation(pose.jointOf(clavicleId), delta);
     }
+    return Pose(
+      joints: joints,
+      rootDx: pose.rootDx,
+      rootDy: pose.rootDy,
+      rootRotation: pose.rootRotation,
+    );
+  }
+
+  /// Wrist follow-through gain/cap/lag: the paw trails a share of how much the
+  /// SOLVED forearm rotated over the last [_wristLagFraction], so it whips out
+  /// and settles at the wrist against the sleeve cuff instead of arriving welded
+  /// (animator: the last "action-figure" tell). The joint-limits pass after this
+  /// remains the final clamp.
+  static const double _kWristFollowGain = 1.15;
+  static const double _kWristFollowCap = 0.45;
+  static const double _wristLagFraction = 1.6 / 24;
+
+  late final List<(String hand, String forearm)> _handForearmPairs = [
+    for (final bone in rig.bones)
+      if (bone.id.toLowerCase().contains('hand') && bone.parent != null)
+        (bone.id, bone.parent!),
+  ];
+
+  Pose _wristFollowPose(PoseModifierContext context, Pose pose) {
+    final clip = context.clip;
+    if (!_isDanceFamily(clip) || clip.duration <= 0) return pose;
+    final pairs = _handForearmPairs;
+    if (pairs.isEmpty) return pose;
+    // The lagged, IK-solved forearm: re-run the stack up to THIS pass at the
+    // lagged instant (pure function of time; the same discipline overshoot-
+    // settle uses via _preOvershootPoseAt). stopBefore this pass avoids recursion.
+    // Wrap into [0, duration) ourselves (Dart's `%` is non-negative for a
+    // positive divisor) so the loop seam closes exactly: at phase 1 the lag is
+    // an in-range value, at phase 0 it is that same value reached by +duration —
+    // bit-identical, where deferring to the evaluator's internal wrap of a
+    // negative time would diverge at FP epsilon and break the seam-close test.
+    final lagTime =
+        (context.timeSeconds - clip.duration * _wristLagFraction) %
+        clip.duration;
+    final lagged = _poseModifierStack.apply(
+      PoseModifierContext(
+        clip: clip,
+        timeSeconds: lagTime,
+        breath: context.breath,
+        earTwitchLeft: context.earTwitchLeft,
+        earTwitchRight: context.earTwitchRight,
+      ),
+      evaluator.evaluate(clip, lagTime),
+      stopBefore: 'wrist-follow',
+    );
+    Map<String, JointPose>? joints;
+    for (final (handId, forearmId) in pairs) {
+      final v = _shortestAngle(
+        lagged.jointOf(forearmId).rotation - pose.jointOf(forearmId).rotation,
+      );
+      final delta = _clampMagnitude(v * _kWristFollowGain, _kWristFollowCap);
+      if (delta.abs() < 0.001) continue;
+      joints ??= Map<String, JointPose>.of(pose.joints);
+      joints[handId] = _addJointRotation(pose.jointOf(handId), delta);
+    }
+    if (joints == null) return pose;
     return Pose(
       joints: joints,
       rootDx: pose.rootDx,

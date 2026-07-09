@@ -238,6 +238,9 @@ class DanceFrameComposer {
       renderer: _renderer,
       stage: stage,
       shot: _stepper.shot,
+      // Whole-body amplitude reacts to energy: the hit is softened through the
+      // low-energy breakdown and full in the high-energy chorus.
+      bodyAccent: perf.accentAt(pos) * (0.45 + 0.55 * stage.energyLevel),
       leadMouth: _stepper.leadMouth,
       bgMouth: _stepper.bgMouth,
       leadShape: _stepper.leadShape,

@@ -128,7 +128,7 @@ double danceEffortVariance(double p, double lanePhase) {
 /// move's Effort weight — the moves' own base weights (zanku 0.7, buga 0.5…)
 /// dominate that, and the ±0.35 modulation budget clamps the energy out, so the
 /// weight path only gave ~±13%. This is the isolated, amplifiable arc.
-const double kDanceEffortEnergyArc = 0.42;
+const double kDanceEffortEnergyArc = 0.48;
 
 /// Effort amplitude scale as a function of loop phase for one dancer: a
 /// song-energy base times the deterministic beat-to-beat [danceEffortVariance]
@@ -146,7 +146,7 @@ double Function(double) danceEffortScaleOf(double energyLevel, int lane) {
   final lanePhase = lane * 2.1; // distinct, deterministic per dancer
   const varGain = 0.22;
   return (p) => (base * (1 + varGain * danceEffortVariance(p, lanePhase)))
-      .clamp(0.4, 1.02);
+      .clamp(0.3, 1.02);
 }
 
 /// Returns [clip] with its [boneIds] hand IK targets amplitude-modulated by the
@@ -185,6 +185,145 @@ Clip effortModulatedClip(
     contactSpans: clip.contactSpans,
     contactPinning: clip.contactPinning,
     limbTargets: limbTargets,
+    supportFootWorldAnchor: clip.supportFootWorldAnchor,
+    supportFootWorldAnchorStrength: clip.supportFootWorldAnchorStrength,
+    supportFootWorldAnchorVerticalBoost: clip.supportFootWorldAnchorVerticalBoost,
+    danceHeadBobScale: clip.danceHeadBobScale,
+    danceHeadLevelClampMin: clip.danceHeadLevelClampMin,
+    enforceSoleFloor: clip.enforceSoleFloor,
+    transitionPlan: clip.transitionPlan,
+    zOrderSwaps: clip.zOrderSwaps,
+    dynamics: clip.dynamics,
+  );
+}
+
+/// How the song energy scales the WHOLE-BODY groove (sway, bob, dips) — the
+/// owner's "whole-body amplitude". Low energy shrinks the groove (eased through
+/// the breakdown), high energy fills it out. Clamped so a hot section can't
+/// throw the dips past a plausible depth. Neutral-ish (~1) at chorus energy.
+double danceBodyGrooveScaleOf(double energyLevel) =>
+    (0.6 + 0.4 * energyLevel.clamp(0, 1)).clamp(0.6, 1.05);
+
+/// Returns [clip] with its root MOTION (sway/bob/dips) scaled by [scale],
+/// mean-preserving (see [ScaledRootChannel]) — whole-body amplitude reacting to
+/// the song energy. Same clip back at scale 1 or for a one-shot/empty clip.
+Clip bodyGrooveScaledClip(Clip clip, double scale) {
+  if (scale == 1.0 || !clip.loop || clip.duration <= 0) return clip;
+  return Clip(
+    name: clip.name,
+    duration: clip.duration,
+    channels: clip.channels,
+    loop: clip.loop,
+    root: ScaledRootChannel(clip.root, scale),
+    locomotionSpeed: clip.locomotionSpeed,
+    groundSpans: clip.groundSpans,
+    contactSpans: clip.contactSpans,
+    contactPinning: clip.contactPinning,
+    limbTargets: clip.limbTargets,
+    supportFootWorldAnchor: clip.supportFootWorldAnchor,
+    supportFootWorldAnchorStrength: clip.supportFootWorldAnchorStrength,
+    supportFootWorldAnchorVerticalBoost: clip.supportFootWorldAnchorVerticalBoost,
+    danceHeadBobScale: clip.danceHeadBobScale,
+    danceHeadLevelClampMin: clip.danceHeadLevelClampMin,
+    enforceSoleFloor: clip.enforceSoleFloor,
+    transitionPlan: clip.transitionPlan,
+    zOrderSwaps: clip.zOrderSwaps,
+    dynamics: clip.dynamics,
+  );
+}
+
+/// How many root-units the strongest accent drops the body — turned into a
+/// knee-bending plié by the support-foot anchor (see [RootDyOffsetChannel]).
+const double kDanceAccentDropUnits = 16;
+
+/// Returns [clip] with a constant [dropDy] added to its root — the music accent
+/// as a grounded body dip (the support-foot anchor bends the knee into a plié,
+/// feet stay planted). Same clip back at 0.
+Clip accentDroppedClip(Clip clip, double dropDy) {
+  if (dropDy == 0 || clip.duration <= 0) return clip;
+  return Clip(
+    name: clip.name,
+    duration: clip.duration,
+    channels: clip.channels,
+    loop: clip.loop,
+    root: RootDyOffsetChannel(clip.root, dropDy),
+    locomotionSpeed: clip.locomotionSpeed,
+    groundSpans: clip.groundSpans,
+    contactSpans: clip.contactSpans,
+    contactPinning: clip.contactPinning,
+    limbTargets: clip.limbTargets,
+    supportFootWorldAnchor: clip.supportFootWorldAnchor,
+    supportFootWorldAnchorStrength: clip.supportFootWorldAnchorStrength,
+    supportFootWorldAnchorVerticalBoost: clip.supportFootWorldAnchorVerticalBoost,
+    danceHeadBobScale: clip.danceHeadBobScale,
+    danceHeadLevelClampMin: clip.danceHeadLevelClampMin,
+    enforceSoleFloor: clip.enforceSoleFloor,
+    transitionPlan: clip.transitionPlan,
+    zOrderSwaps: clip.zOrderSwaps,
+    dynamics: clip.dynamics,
+  );
+}
+
+/// Always-on shoulder + chest WIND (coach: the Afrobeats pocket is upper-body-
+/// led — the shoulders/chest roll continuously so the torso is never a static
+/// posed post while the hips bounce underneath). Small, loop-seamless (integer
+/// harmonics), per-lane phase so the trio isn't in lockstep.
+const double kDanceShoulderWindAmplitude = 0.026;
+const double kDanceChestWindAmplitude = 0.03;
+const int kDanceShoulderWindHarmonic = 2;
+
+/// Returns [clip] with a small continuous sine roll added to the clavicles
+/// (opposite phase L/R = a shoulder roll) and the chest, so the upper body keeps
+/// winding even between authored poses. Live-path; same clip back if disabled or
+/// no shoulder/chest channel is present.
+Clip shoulderWoundClip(Clip clip, int lane) {
+  if (!clip.loop || clip.duration <= 0 || kDanceShoulderWindAmplitude == 0) {
+    return clip;
+  }
+  final lanePhase = lane * 0.17;
+  var changed = false;
+  final channels = <String, JointChannel>{};
+  clip.channels.forEach((id, ch) {
+    if (id == 'clavicle.L') {
+      channels[id] = WoundJointChannel(
+        ch,
+        amplitude: kDanceShoulderWindAmplitude,
+        harmonic: kDanceShoulderWindHarmonic,
+        phase: lanePhase,
+      );
+      changed = true;
+    } else if (id == 'clavicle.R') {
+      channels[id] = WoundJointChannel(
+        ch,
+        amplitude: -kDanceShoulderWindAmplitude,
+        harmonic: kDanceShoulderWindHarmonic,
+        phase: lanePhase,
+      );
+      changed = true;
+    } else if (id == 'torso' || id == 'chest') {
+      channels[id] = WoundJointChannel(
+        ch,
+        amplitude: kDanceChestWindAmplitude,
+        harmonic: 3,
+        phase: lanePhase + 0.12,
+      );
+      changed = true;
+    } else {
+      channels[id] = ch;
+    }
+  });
+  if (!changed) return clip;
+  return Clip(
+    name: clip.name,
+    duration: clip.duration,
+    channels: channels,
+    loop: clip.loop,
+    root: clip.root,
+    locomotionSpeed: clip.locomotionSpeed,
+    groundSpans: clip.groundSpans,
+    contactSpans: clip.contactSpans,
+    contactPinning: clip.contactPinning,
+    limbTargets: clip.limbTargets,
     supportFootWorldAnchor: clip.supportFootWorldAnchor,
     supportFootWorldAnchorStrength: clip.supportFootWorldAnchorStrength,
     supportFootWorldAnchorVerticalBoost: clip.supportFootWorldAnchorVerticalBoost,

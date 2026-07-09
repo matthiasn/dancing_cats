@@ -45,6 +45,7 @@ class DanceStageView extends StatelessWidget {
     required this.stage,
     required this.shot,
     required this.beat,
+    this.bodyAccent = 0,
     required this.backdropTimeSeconds,
     required this.lightsTimeSeconds,
     required this.bpm,
@@ -82,6 +83,10 @@ class DanceStageView extends StatelessWidget {
 
   /// 0..1 beat pulse (lights/foam brightness; never the cat bodies).
   final double beat;
+
+  /// Music-driven body accent (0..1) — the onset-hit weight-drop applied to the
+  /// cat bodies (see `DancePerformance.accentAt`). 0 = no accent.
+  final double bodyAccent;
 
   /// Audio position seconds — drives the scenery (it pauses/seeks with the
   /// track).
@@ -233,6 +238,7 @@ class DanceStageView extends StatelessWidget {
                           renderer: renderer,
                           stage: stage,
                           shot: shot,
+                          bodyAccent: bodyAccent,
                           leadMouth: leadMouth,
                           bgMouth: bgMouth,
                           leadShape: leadShape,
@@ -407,6 +413,7 @@ CharacterPainter danceCharacterPainter({
   ui.Image? backdropImage,
   ui.Image? cloudsImage,
   ui.Image? wavesImage,
+  double bodyAccent = 0,
 }) => CharacterPainter(
   scene: cast.lead,
   partnerScene: cast.left,
@@ -418,12 +425,23 @@ CharacterPainter danceCharacterPainter({
   ],
   ensembleClips: [
     for (var i = 0; i < stage.ensemble.length; i++)
-      _upperBodyWarped(stage.ensemble[i], stage.dynamics[i], i, stage.energyLevel),
+      accentDroppedClip(
+        _upperBodyWarped(
+          stage.ensemble[i],
+          stage.dynamics[i],
+          i,
+          stage.energyLevel,
+        ),
+        bodyAccent * kDanceAccentDropUnits,
+      ),
   ],
   synchronousEnsemble: stage.synchronous,
   singingHeadMotion: true,
   walkingPair: true,
-  clip: _upperBodyWarped(stage.lead, stage.dynamics.first, 0, stage.energyLevel),
+  clip: accentDroppedClip(
+    _upperBodyWarped(stage.lead, stage.dynamics.first, 0, stage.energyLevel),
+    bodyAccent * kDanceAccentDropUnits,
+  ),
   timeSeconds: stage.seconds,
   cameraOverride: shot,
   onDancerAnchors: useNewBackdrop ? onDancerAnchors : null,
@@ -487,7 +505,21 @@ Clip _upperBodyWarped(
     // orbit) by the raw SONG ENERGY arc + a deterministic beat-to-beat breath,
     // leaving the fast timing intact — so a low-energy pass is fast-but-small
     // and never 100%-extreme every beat.
-    return effortModulatedClip(orbited, danceEffortScaleOf(energyLevel, lane));
+    final effort = effortModulatedClip(
+      orbited,
+      danceEffortScaleOf(energyLevel, lane),
+    );
+    // 4. WHOLE-BODY groove amplitude: scale the root sway/bob/dips by the song
+    // energy too (not just the hands), so the whole body eases through the
+    // breakdown and fills into the chorus — mean-preserving so the stance stays.
+    final grooved = bodyGrooveScaledClip(
+      effort,
+      danceBodyGrooveScaleOf(energyLevel),
+    );
+    // 5. Continuous shoulder/chest WIND: the upper body keeps rolling so it is
+    // never a static posed post while the hips bounce (the pocket is upper-
+    // body-led — coach).
+    return shoulderWoundClip(grooved, lane);
   }();
 }
 

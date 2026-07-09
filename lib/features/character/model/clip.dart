@@ -107,6 +107,35 @@ class PhaseWarpedJointChannel extends JointChannel {
   JointPose sample(double p) => inner.sample(warpPhase(p));
 }
 
+/// Adds a small continuous sine to an inner joint channel's ROTATION — the
+/// always-on shoulder/chest WIND that keeps the upper body from freezing into
+/// posed shapes between authored keys (the Afrobeats pocket is upper-body-led).
+/// A live-path layer (see `shoulderWoundClip`); authored channels are untouched.
+class WoundJointChannel extends JointChannel {
+  const WoundJointChannel(
+    this.inner, {
+    required this.amplitude,
+    required this.harmonic,
+    this.phase = 0,
+  });
+
+  final JointChannel inner;
+  final double amplitude;
+  final int harmonic;
+  final double phase;
+
+  @override
+  JointPose sample(double p) {
+    final s = inner.sample(p);
+    final wind = amplitude * math.sin(harmonic * 2 * math.pi * (p + phase));
+    return JointPose(
+      rotation: s.rotation + wind,
+      scaleX: s.scaleX,
+      scaleY: s.scaleY,
+    );
+  }
+}
+
 /// The [IkTargetChannel] counterpart of [PhaseWarpedJointChannel], used to warp
 /// hand IK targets (never foot targets — those must stay on the shared clock).
 class PhaseWarpedIkTargetChannel extends IkTargetChannel {
@@ -1246,6 +1275,62 @@ class SineRootChannel extends RootChannel {
             leanHarmonic * twoPi * (p + leanPhase),
           ),
     );
+  }
+}
+
+/// Scales an inner root channel's MOTION (its deviation from the loop mean) by
+/// [scale] while preserving the rest pose (the mean) — the whole-body groove
+/// amplitude dial, so the song energy can grow/shrink the sway, bob and dips
+/// without drifting where the body stands (a naive scale of the raw channel
+/// would move the standing height). The loop mean is sampled once at build.
+class ScaledRootChannel extends RootChannel {
+  ScaledRootChannel(this.inner, this.scale) {
+    var mdx = 0.0;
+    var mdy = 0.0;
+    var mr = 0.0;
+    const n = 64;
+    for (var i = 0; i < n; i++) {
+      final s = inner.sample(i / n);
+      mdx += s.dx;
+      mdy += s.dy;
+      mr += s.rotation;
+    }
+    _meanDx = mdx / n;
+    _meanDy = mdy / n;
+    _meanRot = mr / n;
+  }
+
+  final RootChannel inner;
+  final double scale;
+  late final double _meanDx;
+  late final double _meanDy;
+  late final double _meanRot;
+
+  @override
+  ({double dx, double dy, double rotation}) sample(double p) {
+    final s = inner.sample(p);
+    return (
+      dx: _meanDx + (s.dx - _meanDx) * scale,
+      dy: _meanDy + (s.dy - _meanDy) * scale,
+      rotation: _meanRot + (s.rotation - _meanRot) * scale,
+    );
+  }
+}
+
+/// Adds a constant [dy] (down) to an inner root channel — the music ACCENT as a
+/// grounded body DROP. Because the support foot is world-anchored, dropping the
+/// root makes the knee flex and the pelvis descend over a planted foot (a plié)
+/// instead of translating the whole figure down (a pogo that skates the feet).
+class RootDyOffsetChannel extends RootChannel {
+  const RootDyOffsetChannel(this.inner, this.dy);
+
+  final RootChannel inner;
+  final double dy;
+
+  @override
+  ({double dx, double dy, double rotation}) sample(double p) {
+    final s = inner.sample(p);
+    return (dx: s.dx, dy: s.dy + dy, rotation: s.rotation);
   }
 }
 

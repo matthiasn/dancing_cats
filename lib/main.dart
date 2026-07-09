@@ -908,6 +908,10 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
     final posSec = _positionSec;
     final stage = _perf?.stageAt(posSec) ?? danceIdleStage(posSec);
     final beat = _perf?.beatPulse(posSec) ?? 0;
+    // Music-driven body accent — the onset-hit weight-drop, softened by the
+    // section energy (matches the offline render path).
+    final bodyAccent =
+        (_perf?.accentAt(posSec) ?? 0) * (0.45 + 0.55 * stage.energyLevel);
     // The director owns the camera; the stepper holds the eased framing and the
     // singing mouths. The whole composite is the generalized DanceStageView,
     // rendered identically by the live app and every offline renderer — there is
@@ -939,6 +943,7 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
       stage: stage,
       shot: _stepper.shot,
       beat: beat,
+      bodyAccent: bodyAccent,
       backdropTimeSeconds: posSec,
       // Ambient stage lights run on a steady wall clock (decoupled from the
       // looping dance); offline renderers pass the audio position instead so a

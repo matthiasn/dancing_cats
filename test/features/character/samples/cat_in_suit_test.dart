@@ -1744,15 +1744,16 @@ void main() {
       }
     });
 
-    test('buga peacock snaps open on the hits and releases', () {
+    test('buga presents once (bar 1), then vibes — no second hit', () {
       final phrase = CatClips.dancePhrase;
       final buga = CatClips.buga;
       final handL = _targetFor(buga, CatBones.handL).channel;
       final handR = _targetFor(buga, CatBones.handR).channel;
 
-      // Full wingspan through each held hit; frame 30 is already the bar-2
-      // release, so it stays wide but no longer carries the low bow height.
-      for (final frame in [12, 14, 28]) {
+      // The ONE highlight: the bar-1 peacock opens to full wingspan through its
+      // held hit (frames 12/14). Chill re-choreograph for "Moving" — the second
+      // bar-2 present was dropped so the flaunt lands rare, not every bar.
+      for (final frame in [12, 14]) {
         final p = frame / phrase.frameCount;
         expect(
           handR.sample(p).x,
@@ -1771,8 +1772,22 @@ void main() {
         );
       }
 
-      // The bow releases after the strut instead of freezing into the next
-      // groove count.
+      // Bar 2 is a relaxed groove now, NOT a second present: the old frame-28
+      // hit is a low, settled paw — well inside the wingspan, below the bow.
+      final p28 = 28 / phrase.frameCount;
+      expect(
+        handR.sample(p28).x,
+        lessThan(72),
+        reason: 'bar 2 no longer throws a second peacock present',
+      );
+      expect(
+        handR.sample(p28).y,
+        greaterThan(0),
+        reason: 'bar 2 paws stay low/relaxed, not up in the bow',
+      );
+
+      // The bar-1 bow releases after the strut instead of freezing into the
+      // next groove count.
       expect(
         _targetDistance(handR, 14, 16),
         greaterThan(12),
@@ -1792,13 +1807,14 @@ void main() {
             'does not read as a fall',
       );
 
-      // DOUBLE shrug: both clavicles lift together on BOTH hits, and the
-      // sleeve caps carry the girdle response on each side.
+      // Shrug on the ONE hit (bar 1): both clavicles lift together and the
+      // sleeve caps carry the girdle response. Bar 2's shrug was dropped with
+      // its present in the chill re-choreograph (asserted absent below).
       final clavicleR = buga.channels[CatBones.clavicleR]!;
       final clavicleL = buga.channels[CatBones.clavicleL]!;
       final shoulderSocketR = buga.channels[CatBones.shoulderSocketR]!;
       final shoulderSocketL = buga.channels[CatBones.shoulderSocketL]!;
-      for (final hitFrame in [13, 29]) {
+      for (final hitFrame in [13]) {
         final p = hitFrame / phrase.frameCount;
         expect(
           clavicleR.sample(p).rotation,
@@ -1819,6 +1835,14 @@ void main() {
         expect(leftSocket.scaleX, greaterThan(1.17));
         expect(leftSocket.scaleY, lessThanOrEqualTo(0.92));
       }
+
+      // Bar 2 holds its relaxed baseline — no second shrug.
+      final p29 = 29 / phrase.frameCount;
+      expect(
+        shoulderSocketR.sample(p29).rotation,
+        greaterThan(-0.2),
+        reason: 'bar 2 shoulder holds baseline — no second shrug',
+      );
 
       final rootHit = buga.root.sample(12 / phrase.frameCount);
       final rootMirrorHit = buga.root.sample(28 / phrase.frameCount);

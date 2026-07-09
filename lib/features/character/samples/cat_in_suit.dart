@@ -1308,7 +1308,9 @@ class CatClips {
               leanPhase: 0.125,
               leanHarmonic: 4,
             ),
-            SineRootChannel(bobAmplitude: -13, bobPhase: 0.09, bobHarmonic: 8),
+            // Calmed for the chill groove: a lighter per-beat bounce (was -13)
+            // so the body vibes rather than pumps.
+            SineRootChannel(bobAmplitude: -7, bobPhase: 0.09, bobHarmonic: 8),
           ],
           extraPelvisLayers: [
             SineChannel(

@@ -334,6 +334,7 @@ class CharacterPainter extends CustomPainter {
     this.bodyGrade,
     this.heroStaging = false,
     this.danceViewProjection = false,
+    this.bodyAccent = 0.0,
     CharacterRenderer? renderer,
   }) : _renderer = renderer ?? CharacterRenderer();
 
@@ -411,6 +412,12 @@ class CharacterPainter extends CustomPainter {
   /// from [bodyGrade] so it only changes geometry where requested (the audio
   /// player); every other surface keeps its even trio.
   final bool heroStaging;
+
+  /// Music-driven body ACCENT (0..1), a per-frame pop on the track's onset hits
+  /// (see `DancePerformance.accentAt`). Drops each dancer's body a touch into
+  /// the beat so the trio lands WITH the music. 0 = no accent (the default for
+  /// every non-dance surface). Concert dance only.
+  final double bodyAccent;
 
   /// When true (concert dance only), applies a subtle per-lane quarter turn to
   /// the trio: flankers turn inward and the lead keeps a near-front angle. This
@@ -2624,6 +2631,7 @@ class CharacterPainter extends CustomPainter {
       !listEquals(old.memberBacklights, memberBacklights) ||
       old.bodyGrade != bodyGrade ||
       old.heroStaging != heroStaging ||
+      old.bodyAccent != bodyAccent ||
       old.danceViewProjection != danceViewProjection ||
       old._renderer != _renderer;
 }

@@ -322,6 +322,8 @@ class DancePerformance {
     required this.sectionSpans,
     required this.trackDurationSec,
     this.words = const [],
+    this.waveform = const [],
+    this.onsets = const [],
   });
 
   /// Builds a performance from a parsed beat-map [json] document (the embedded
@@ -359,6 +361,16 @@ class DancePerformance {
       sectionSpans: buildDanceSectionSpans(words, trackDurationSec),
       trackDurationSec: trackDurationSec,
       words: words,
+      waveform: amplitudes,
+      onsets: ((json['onsets'] as List?) ?? const [])
+          .cast<Map<String, Object?>>()
+          .map(
+            (o) => (
+              time: (o['time_sec']! as num).toDouble(),
+              strength: (o['strength'] as num?)?.toDouble() ?? 1.0,
+            ),
+          )
+          .toList(),
     );
   }
 
@@ -379,6 +391,92 @@ class DancePerformance {
 
   /// Whole-track duration in seconds (normalizes the director's build progress).
   final double trackDurationSec;
+
+  /// The embedded 0..1 loudness envelope over the whole track (the beat map's
+  /// `waveform`), stored so motion can react to the CONTINUOUS song energy
+  /// (music-reactive amplitude) instead of the coarse per-section step. Empty
+  /// for synthetic/test performances built without a waveform.
+  final List<double> waveform;
+
+  late final ({double min, double max}) _waveformRange = (() {
+    if (waveform.isEmpty) return (min: 0.0, max: 1.0);
+    var lo = waveform.first;
+    var hi = waveform.first;
+    for (final v in waveform) {
+      if (v < lo) lo = v;
+      if (v > hi) hi = v;
+    }
+    return (min: lo, max: hi);
+  })();
+
+  /// Smoothed, normalized continuous loudness at [posSec] (0..1) — "how loud is
+  /// the track right now." Drives the dance amplitude so movement swells into
+  /// the drops and eases through the breakdown, instead of stepping once per
+  /// section. Smoothed over ~0.3 s so per-hit spikes don't jitter the size.
+  /// Falls back to 0.5 when no waveform is embedded (synthetic performances).
+  double intensityAt(double posSec) {
+    final n = waveform.length;
+    if (n == 0 || trackDurationSec <= 0) return 0.5;
+    final binsPerSec = n / trackDurationSec;
+    final center = posSec / trackDurationSec * n;
+    final half = (0.15 * binsPerSec).clamp(1.0, n.toDouble());
+    var i0 = (center - half).floor();
+    var i1 = (center + half).ceil();
+    if (i0 < 0) i0 = 0;
+    if (i1 > n) i1 = n;
+    if (i1 <= i0) i1 = (i0 + 1).clamp(1, n);
+    var sum = 0.0;
+    for (var i = i0; i < i1; i++) {
+      sum += waveform[i];
+    }
+    final mean = sum / (i1 - i0);
+    final span = _waveformRange.max - _waveformRange.min;
+    return span > 0
+        ? ((mean - _waveformRange.min) / span).clamp(0.0, 1.0)
+        : 0.5;
+  }
+
+  /// Per-transient ACCENT onsets from the beat map's `onsets`
+  /// (`{time_sec, strength}`), so the body can HIT on the track's actual
+  /// transients. Empty for synthetic/test performances.
+  final List<({double time, double strength})> onsets;
+
+  // Only the top-tier transients fire a visible accent (~0.66/s in the chorus,
+  // roughly one per bar) so the body lands on the strong hits with space
+  // between — NOT a bob on every 16th, which reads hectic.
+  static const double _kAccentStrengthFloor = 0.5;
+  static const double _kAccentDecaySec = 0.2;
+
+  /// Only the STRONG onsets fire a visible body accent — the real hits, not
+  /// every 16th (which reads hectic). Pre-filtered once.
+  late final List<({double time, double strength})> _accentOnsets = [
+    for (final o in onsets)
+      if (o.strength >= _kAccentStrengthFloor) o,
+  ];
+
+  /// Music-driven accent envelope at [posSec] (0..1): a quick decay pop on the
+  /// most recent STRONG onset, so the body lands WITH the track's hits. 0
+  /// between hits; 0 with no onsets (synthetic performances).
+  double accentAt(double posSec) {
+    final o = _accentOnsets;
+    if (o.isEmpty) return 0;
+    var lo = 0;
+    var hi = o.length - 1;
+    var idx = -1;
+    while (lo <= hi) {
+      final mid = (lo + hi) >> 1;
+      if (o[mid].time <= posSec) {
+        idx = mid;
+        lo = mid + 1;
+      } else {
+        hi = mid - 1;
+      }
+    }
+    if (idx < 0) return 0;
+    final dt = posSec - o[idx].time;
+    if (dt < 0 || dt > _kAccentDecaySec) return 0;
+    return (o[idx].strength * (1 - dt / _kAccentDecaySec)).clamp(0.0, 1.0);
+  }
 
   static final Clip _shaku = CatClips.shaku;
   static final Clip _zanku = CatClips.zanku;
@@ -410,6 +508,12 @@ class DancePerformance {
         sectionSeconds: lyric.seconds,
       );
       final sectionDynamics = sectionEnergyDynamics(level);
+      // Music-reactive amplitude: the dance size follows the CONTINUOUS track
+      // loudness (swells into drops, eases through the breakdown) instead of the
+      // coarse per-section step. Quantized to 0.05 to bound the effort-clip
+      // cache; falls back to the section level for synthetic (no-waveform) perfs.
+      final danceEnergy =
+          waveform.isEmpty ? level : (intensityAt(pos) * 20).round() / 20;
       return (
         lead: trio.lead,
         ensemble: trio.ensemble,
@@ -430,7 +534,7 @@ class DancePerformance {
               sectionEnergy: sectionDynamics,
             ),
         ],
-        energyLevel: level,
+        energyLevel: danceEnergy,
       );
     }
     return danceIdleStage(pos, section: section);
