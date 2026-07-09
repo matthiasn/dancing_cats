@@ -237,6 +237,9 @@ class DanceFrameComposer {
     // so the lighting punches hardest exactly where the body does — biggest on
     // the drops (peak energy + strongest onsets).
     final bodyAccent = perf.accentAt(pos) * (0.45 + 0.55 * stage.energyLevel);
+    // Look-ahead coil before the next hit — same energy scaling as the accent.
+    final bodyAnticipation =
+        perf.anticipationAt(pos) * (0.45 + 0.55 * stage.energyLevel);
     final samples = _stageRig.sample(time: pos, beat: beat, bloom: bodyAccent);
 
     // Same trio compositor the live DanceStageView builds — one source of truth.
@@ -246,6 +249,7 @@ class DanceFrameComposer {
       stage: stage,
       shot: _stepper.shot,
       bodyAccent: bodyAccent,
+      bodyAnticipation: bodyAnticipation,
       leadMouth: _stepper.leadMouth,
       bgMouth: _stepper.bgMouth,
       leadShape: _stepper.leadShape,

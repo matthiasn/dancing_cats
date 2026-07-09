@@ -447,6 +447,12 @@ class DancePerformance {
   static const double _kAccentStrengthFloor = 0.5;
   static const double _kAccentDecaySec = 0.2;
 
+  /// Window (seconds) BEFORE a strong onset over which the body "coils" in
+  /// anticipation of the hit — a short gather that releases into [accentAt]'s
+  /// pop on the beat. ~0.1 s is a couple of frames of wind-up at any real fps:
+  /// visible as a load, still fast enough to read as one gesture with the hit.
+  static const double _kAnticipationWindowSec = 0.1;
+
   /// Only the STRONG onsets fire a visible body accent — the real hits, not
   /// every 16th (which reads hectic). Pre-filtered once.
   late final List<({double time, double strength})> _accentOnsets = [
@@ -476,6 +482,35 @@ class DancePerformance {
     final dt = posSec - o[idx].time;
     if (dt < 0 || dt > _kAccentDecaySec) return 0;
     return (o[idx].strength * (1 - dt / _kAccentDecaySec)).clamp(0.0, 1.0);
+  }
+
+  /// Look-ahead "coil" envelope at [posSec] (0..1): rises as the NEXT strong
+  /// onset approaches (within [_kAnticipationWindowSec]) and returns to 0 AT
+  /// the onset, where [accentAt]'s instant attack takes over — so the body
+  /// gathers into the hit, then releases on the beat. Scaled by the imminent
+  /// onset's strength (a bigger hit earns a bigger wind-up). 0 when no strong
+  /// onset is near, and 0 for synthetic performances with no onsets.
+  double anticipationAt(double posSec) {
+    final o = _accentOnsets;
+    if (o.isEmpty) return 0;
+    // First strong onset STRICTLY after posSec.
+    var lo = 0;
+    var hi = o.length;
+    while (lo < hi) {
+      final mid = (lo + hi) >> 1;
+      if (o[mid].time <= posSec) {
+        lo = mid + 1;
+      } else {
+        hi = mid;
+      }
+    }
+    if (lo >= o.length) return 0;
+    final dt = o[lo].time - posSec; // > 0
+    if (dt >= _kAnticipationWindowSec) return 0;
+    // Rise 0 -> 1 as the onset nears; the half-open window leaves it exactly 0
+    // at the onset itself (that frame belongs to [accentAt]).
+    final ramp = 1 - dt / _kAnticipationWindowSec;
+    return (o[lo].strength * ramp).clamp(0.0, 1.0);
   }
 
   static final Clip _shaku = CatClips.shaku;

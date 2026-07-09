@@ -544,17 +544,17 @@ void main() {
     });
   });
 
-  testWidgets('a music accent pops the whole trio bigger IN UNISON', (
-    tester,
-  ) async {
+  testWidgets('a music accent pops the trio bigger (and coils it smaller '
+      'first) IN UNISON', (tester) async {
     await tester.runAsync(() async {
       // Opaque-pixel area per screen lane (the trio stages left / centre /
       // right), for a given accent. The unison pop scales every member about
       // its own foot anchor, so a stronger accent = strictly more silhouette
       // area in EVERY lane.
       Future<({int left, int centre, int right})> laneAreas(
-        double bodyAccent,
-      ) async {
+        double bodyAccent, {
+        double bodyAnticipation = 0,
+      }) async {
         const w = 760, h = 420;
         final recorder = ui.PictureRecorder();
         final canvas = Canvas(recorder);
@@ -587,6 +587,7 @@ void main() {
           walkingPair: true,
           shadowColor: const Color(0x00000000),
           bodyAccent: bodyAccent,
+          bodyAnticipation: bodyAnticipation,
           renderer: renderer,
         ).paint(canvas, Size(w.toDouble(), h.toDouble()));
         final picture = recorder.endRecording();
@@ -643,6 +644,26 @@ void main() {
         hitTotal,
         greaterThan((restTotal * 1.04).round()),
         reason: 'the accent should visibly enlarge the ensemble silhouette',
+      );
+
+      // The COIL is the inverse: just before the hit (bodyAnticipation, no
+      // accent yet) the ensemble gathers strictly SMALLER in every lane, so it
+      // reads as a load that releases into the pop above.
+      final coil = await laneAreas(0, bodyAnticipation: 1);
+      expect(
+        coil.left,
+        lessThan(rest.left),
+        reason: 'left backup should gather smaller in the coil',
+      );
+      expect(
+        coil.centre,
+        lessThan(rest.centre),
+        reason: 'centre lead should gather smaller in the coil',
+      );
+      expect(
+        coil.right,
+        lessThan(rest.right),
+        reason: 'right backup should gather smaller in the coil',
       );
     });
   });

@@ -47,6 +47,7 @@ class DanceStageView extends StatelessWidget {
     required this.shot,
     required this.beat,
     this.bodyAccent = 0,
+    this.bodyAnticipation = 0,
     required this.backdropTimeSeconds,
     required this.lightsTimeSeconds,
     required this.bpm,
@@ -88,6 +89,10 @@ class DanceStageView extends StatelessWidget {
   /// Music-driven body accent (0..1) — the onset-hit weight-drop applied to the
   /// cat bodies (see `DancePerformance.accentAt`). 0 = no accent.
   final double bodyAccent;
+
+  /// Music-driven anticipation (0..1) — the look-ahead coil before the next hit
+  /// (see `DancePerformance.anticipationAt`). 0 = no imminent hit.
+  final double bodyAnticipation;
 
   /// Audio position seconds — drives the scenery (it pauses/seeks with the
   /// track).
@@ -240,6 +245,7 @@ class DanceStageView extends StatelessWidget {
                           stage: stage,
                           shot: shot,
                           bodyAccent: bodyAccent,
+                          bodyAnticipation: bodyAnticipation,
                           leadMouth: leadMouth,
                           bgMouth: bgMouth,
                           leadShape: leadShape,
@@ -424,6 +430,7 @@ CharacterPainter danceCharacterPainter({
   ui.Image? cloudsImage,
   ui.Image? wavesImage,
   double bodyAccent = 0,
+  double bodyAnticipation = 0,
 }) => CharacterPainter(
   scene: cast.lead,
   partnerScene: cast.left,
@@ -460,8 +467,10 @@ CharacterPainter danceCharacterPainter({
   // clip above): it drives the UNISON formation pop — the whole ensemble
   // surging bigger together on the track's strong transients (see
   // `CharacterPainter._kUnisonFormationPop`). Single-sourced here so the live
-  // player and every offline renderer pop identically.
+  // player and every offline renderer pop identically. Its look-ahead partner
+  // [bodyAnticipation] drives the coil that precedes the pop.
   bodyAccent: bodyAccent,
+  bodyAnticipation: bodyAnticipation,
   groundColor: useNewBackdrop ? null : const Color(0xFF374551),
   backdrop: useNewBackdrop
       ? CharacterBackdrop.none

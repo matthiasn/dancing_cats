@@ -335,6 +335,7 @@ class CharacterPainter extends CustomPainter {
     this.heroStaging = false,
     this.danceViewProjection = false,
     this.bodyAccent = 0.0,
+    this.bodyAnticipation = 0.0,
     CharacterRenderer? renderer,
   }) : _renderer = renderer ?? CharacterRenderer();
 
@@ -418,6 +419,13 @@ class CharacterPainter extends CustomPainter {
   /// the beat so the trio lands WITH the music. 0 = no accent (the default for
   /// every non-dance surface). Concert dance only.
   final double bodyAccent;
+
+  /// Music-driven ANTICIPATION (0..1), the look-ahead "coil" that rises as the
+  /// next strong onset nears (see `DancePerformance.anticipationAt`). Gathers
+  /// the ensemble smaller together just before the hit so [bodyAccent]'s pop
+  /// reads as a release, not a bump from nowhere. 0 = no imminent hit (the
+  /// default everywhere but concert dance).
+  final double bodyAnticipation;
 
   /// When true (concert dance only), applies a subtle per-lane quarter turn to
   /// the trio: flankers turn inward and the lead keeps a near-front angle. This
@@ -513,6 +521,17 @@ class CharacterPainter extends CustomPainter {
   /// kept under the point where a backup would out-punch the lead and steal
   /// the frame (the lead still owns the biggest absolute swell).
   static const double _kUnisonFormationPopFlankerBoost = 1.2;
+
+  /// Peak UNISON "coil" the ensemble gathers just BEFORE a hit — a fraction of
+  /// member scale SUBTRACTED as `bodyAnticipation` rises toward the onset
+  /// (`DancePerformance.anticipationAt`). The whole row dips smaller together
+  /// through the ~0.1 s wind-up, then releases into [_kUnisonFormationPop]'s
+  /// surge on the beat: gather → snap, the "load and release" the drop-staging
+  /// panel asked for so the hit reads as weighted rather than a size bump that
+  /// appears from nowhere. Kept smaller than the pop (a wind-up is subtler than
+  /// the hit it launches); shares the flanker boost so the coil stays unison.
+  /// Zero unless a strong onset is imminent while dancing.
+  static const double _kUnisonFormationCoil = 0.04;
 
   // The dance camera's horizontal truck keyframes (danceCameraShot's dx) are authored
   // in pixels of this reference stage (the 2560-wide art space), where the truck
@@ -718,6 +737,15 @@ class CharacterPainter extends CustomPainter {
       // vs the perspective-compensated flankers) is applied inside the loop.
       final unisonPopBase =
           _kUnisonFormationPop * bodyAccent.clamp(0.0, 1.0) * danceWeight;
+      // ...and the UNISON coil that precedes it: the row gathers smaller in the
+      // ~0.1 s wind-up before the hit ([bodyAnticipation] rising toward the
+      // onset), then releases into the surge above on the beat — gather → snap.
+      final unisonCoilBase =
+          _kUnisonFormationCoil * bodyAnticipation.clamp(0.0, 1.0) * danceWeight;
+      // Net scale delta before the per-role factor: coil (smaller) before the
+      // hit, pop (bigger) on/after it. The two signals barely overlap — the
+      // coil window is half-open up to the onset, where the pop takes over.
+      final unisonScaleDelta = unisonPopBase - unisonCoilBase;
       final order = trioCentre ? const [1, 0, 2] : null;
       final members = order == null
           ? baseMembers
@@ -791,12 +819,13 @@ class CharacterPainter extends CustomPainter {
             : (depthBonus: 0.0, dy: 0.0, dx: 0.0);
         final memberDepth =
             _roleStageDepth(i, members.length) + heroStage.depthBonus;
-        // Lead lane is index 1 in the [1,0,2] reorder; the flankers pop harder
-        // to compensate for their smaller perspective size (see the boost
-        // constant) so the accent reads as a UNISON hit, not a hero-only pop.
+        // Lead lane is index 1 in the [1,0,2] reorder; the flankers pop (and
+        // coil) harder to compensate for their smaller perspective size (see
+        // the boost constant) so the accent reads as a UNISON hit, not a
+        // hero-only pop.
         final unisonPop =
             1 +
-            unisonPopBase *
+            unisonScaleDelta *
                 (i == 1 ? 1.0 : _kUnisonFormationPopFlankerBoost);
         final memberScale =
             drawScale *
@@ -2681,6 +2710,7 @@ class CharacterPainter extends CustomPainter {
       old.bodyGrade != bodyGrade ||
       old.heroStaging != heroStaging ||
       old.bodyAccent != bodyAccent ||
+      old.bodyAnticipation != bodyAnticipation ||
       old.danceViewProjection != danceViewProjection ||
       old._renderer != _renderer;
 }
