@@ -533,6 +533,26 @@ class CharacterPainter extends CustomPainter {
   /// Zero unless a strong onset is imminent while dancing.
   static const double _kUnisonFormationCoil = 0.04;
 
+  /// The pop/coil is ANISOTROPIC — a squash-and-stretch, not a uniform scale.
+  /// A uniform scale read as "closer to camera" for the pop and a flat shrink
+  /// for the coil (the drop-staging panel wanted a REACH on the hit and a
+  /// weighted drop-into-the-knees before it). The vertical scale is EMPHASISED
+  /// ([_kUnisonSquashYGain]) and the horizontal COUNTERS it (the pop/coil
+  /// X-counter constants below), roughly volume-preserving: the pop reaches UP
+  /// (taller, a touch narrower), the coil SQUASHES DOWN (shorter, a touch
+  /// wider). Applied as a canvas scale about the foot anchor so the body, its
+  /// rim halo and its contact shadow all stay consistent and the feet stay
+  /// planted.
+  static const double _kUnisonSquashYGain = 1.3;
+
+  /// Horizontal counter to the vertical squash-stretch, applied ASYMMETRICALLY:
+  /// the COIL widens more than the POP narrows. The panel read the pop's slim
+  /// reach as right, but the coil's "touch wider" barely registered — so the
+  /// gather gets extra lateral spread to sell the drop-into-the-knees weight
+  /// (the floor pushing back) while the pop keeps its clean vertical reach.
+  static const double _kUnisonSquashXCounterPop = 0.45;
+  static const double _kUnisonSquashXCounterCoil = 0.9;
+
   // The dance camera's horizontal truck keyframes (danceCameraShot's dx) are authored
   // in pixels of this reference stage (the 2560-wide art space), where the truck
   // across the side dancers keeps them in frame. Applied verbatim to a narrower
@@ -819,19 +839,17 @@ class CharacterPainter extends CustomPainter {
             : (depthBonus: 0.0, dy: 0.0, dx: 0.0);
         final memberDepth =
             _roleStageDepth(i, members.length) + heroStage.depthBonus;
-        // Lead lane is index 1 in the [1,0,2] reorder; the flankers pop (and
-        // coil) harder to compensate for their smaller perspective size (see
-        // the boost constant) so the accent reads as a UNISON hit, not a
-        // hero-only pop.
-        final unisonPop =
-            1 +
+        // The unison pop/coil is applied ANISOTROPICALLY as a squash-stretch
+        // about the foot (see the squash-gain constants and the wrapper below),
+        // NOT baked into memberScale — so memberScale stays the neutral size and
+        // the shadow, rim halo and body all squash together. Lead lane is index
+        // 1 in the [1,0,2] reorder; the flankers pop (and coil) harder to offset
+        // their smaller perspective size so the accent reads as a UNISON hit.
+        final popDelta =
             unisonScaleDelta *
-                (i == 1 ? 1.0 : _kUnisonFormationPopFlankerBoost);
+            (i == 1 ? 1.0 : _kUnisonFormationPopFlankerBoost);
         final memberScale =
-            drawScale *
-            _perspectiveScale(memberDepth) *
-            formation.scale *
-            unisonPop;
+            drawScale * _perspectiveScale(memberDepth) * formation.scale;
         final memberView = leadCentreOrder && danceViewProjection
             ? _danceMemberView(i, members.length)
             : null;
@@ -861,6 +879,26 @@ class CharacterPainter extends CustomPainter {
               cameraMatrix[5] * memberFloorY +
               cameraMatrix[13];
           anchors[i] = Offset(sx / size.width, sy / size.height);
+        }
+        // ANISOTROPIC unison squash-stretch about the foot anchor: reach UP on
+        // the hit (taller, a touch narrower), gather DOWN into it on the coil
+        // (shorter, a touch wider). Wraps the shadow + rim halo + body so they
+        // squash together; the foot pivot keeps the feet planted. A hard no-op
+        // whenever there is no accent/coil (popDelta == 0), which is most frames.
+        final squashing = popDelta != 0;
+        if (squashing) {
+          canvas
+            ..save()
+            ..translate(memberCentreX, memberFloorY)
+            ..scale(
+              1 -
+                  popDelta *
+                      (popDelta < 0
+                          ? _kUnisonSquashXCounterCoil
+                          : _kUnisonSquashXCounterPop),
+              1 + popDelta * _kUnisonSquashYGain,
+            )
+            ..translate(-memberCentreX, -memberFloorY);
         }
         // GROUNDED contact shadow: a soft, dark elliptical occlusion pressed into
         // the deck right under this member's feet, drawn FIRST so the figure (and
@@ -1064,6 +1102,7 @@ class CharacterPainter extends CustomPainter {
           );
           canvas.restore(); // pop the isolation layer
         }
+        if (squashing) canvas.restore(); // pop the unison squash-stretch
       }
       if (anchors != null) onDancerAnchors!(anchors);
       canvas.restore();
