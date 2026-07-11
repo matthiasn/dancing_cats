@@ -534,6 +534,7 @@ class DancePerformance {
   static final Clip _movingBreakdown = CatClips.movingBreakdownGroove;
   static final Clip _movingChorusTravel = CatClips.movingChorusTravel;
   static final Clip _movingBridgeRock = CatClips.movingBridgeRock;
+  static final Clip _movingBodyRoll = CatClips.movingBodyRoll;
 
   /// How far open the lyric-synced mouth slack window is dilated so short gaps
   /// between a phrase's words don't make the mouth flicker shut.
@@ -735,6 +736,10 @@ class DancePerformance {
       lead: _movingBridgeRock,
       ensemble: [_movingBridgeRock, _movingBreakdown, _movingVerseWindow],
     );
+    final bodyRoll = (
+      lead: _movingBodyRoll,
+      ensemble: [_movingBodyRoll, _movingVerse, _movingBridgeRock],
+    );
     final lowCounter = (
       lead: _movingLowCounter,
       ensemble: [_movingLowCounter, _movingBreakdown, _movingSideAnswer],
@@ -761,31 +766,31 @@ class DancePerformance {
         return _rotateSetlist(score, phase, sectionSeconds);
       case 'post-chorus':
         return _rotateSetlist(
-          [hookReturn, hookTravel, sideVerse, windowBridge],
+          [hookReturn, hookTravel, bodyRoll, windowBridge],
           phase,
           sectionSeconds,
         );
       case 'pre-chorus':
         return _rotateSetlist(
-          [verseShuffle, bridgeRock, sideVerse, hookTravel],
+          [verseShuffle, bridgeRock, bodyRoll, hookTravel],
           phase,
           sectionSeconds,
         );
       case 'verse':
         return _rotateSetlist(
-          [verseShuffle, verseWindow, bridgeRock, sideVerse],
+          [verseShuffle, verseWindow, bodyRoll, sideVerse],
           phase,
           sectionSeconds,
         );
       case 'bridge':
         return _rotateSetlist(
-          [breakdown, bridgeRock, windowBridge, sideVerse],
+          [breakdown, bridgeRock, bodyRoll, sideVerse],
           phase,
           sectionSeconds,
         );
       case 'outro':
         return _rotateSetlist(
-          [sideVerse, bridgeRock, lowCounter, verseShuffle],
+          [sideVerse, bodyRoll, bridgeRock, bodyRoll],
           phase,
           sectionSeconds,
         );

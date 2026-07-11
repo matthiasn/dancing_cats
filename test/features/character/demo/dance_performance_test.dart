@@ -627,9 +627,9 @@ void main() {
             .map((c) => c.name)
             .toList(),
         [
-          'movingHookLowCounter',
+          'movingBridgeRock',
           'movingBridgeBounce',
-          'movingHookSideAnswer',
+          'movingVerseWindow',
         ],
       );
       expect(
@@ -643,7 +643,7 @@ void main() {
             )
             .lead
             .name,
-        'movingHookSideAnswer',
+        'movingBodyRoll',
       );
     });
 
@@ -697,20 +697,20 @@ void main() {
         expect(score('verse', 0), [
           'movingVerseShuffle',
           'movingVerseWindow',
-          'movingBridgeRock',
+          'movingBodyRoll',
           'movingHookSideAnswer',
         ]);
         expect(score('bridge', 0), [
           'movingBridgeBounce',
           'movingBridgeRock',
-          'movingVerseWindow',
+          'movingBodyRoll',
           'movingHookSideAnswer',
         ]);
         expect(score('outro', 0), [
           'movingHookSideAnswer',
+          'movingBodyRoll',
           'movingBridgeRock',
-          'movingHookLowCounter',
-          'movingVerseShuffle',
+          'movingBodyRoll',
         ]);
       },
     );

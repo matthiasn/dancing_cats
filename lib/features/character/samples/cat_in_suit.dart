@@ -603,6 +603,25 @@ class CatClips {
     contactSpans: _movingBridgeRockContactSpans,
   );
 
+  /// Body-led pocket phrase: long plants and toe drags carry a slow rib roll
+  /// while both paws spend most of the phrase below the ribs. This breaks the
+  /// score's recurring lifted-shoe / shoulder-fist silhouette.
+  static Clip get movingBodyRoll => _movingGroove(
+    name: 'movingBodyRoll',
+    handLTargets: _movingBodyRollHandLTargetKeys,
+    handRTargets: _movingBodyRollHandRTargetKeys,
+    bodyKeys: _movingBodyRollBodyKeys,
+    footLTargets: _movingBodyRollFootLTargetKeys,
+    footRTargets: _movingBodyRollFootRTargetKeys,
+    footLKeys: _movingBodyRollFootLKeys,
+    footRKeys: _movingBodyRollFootRKeys,
+    handLKeys: _movingBodyRollHandLKeys,
+    handRKeys: _movingBodyRollHandRKeys,
+    clavicleLKeys: _movingBodyRollClavicleLKeys,
+    clavicleRKeys: _movingBodyRollClavicleRKeys,
+    contactSpans: _movingBodyRollContactSpans,
+  );
+
   static Clip _movingGroove({
     required String name,
     required List<DanceIkTargetKey> handLTargets,

@@ -2006,11 +2006,11 @@ const _movingBridgeRockHandLTargetKeys = [
 const _movingBridgeRockHandRTargetKeys = [
   DanceIkTargetKey(0, x: 76, y: -78, bendDirection: 1),
   DanceIkTargetKey(4, x: 86, y: -42, bendDirection: 1),
-  DanceIkTargetKey(8, x: 92, y: 16, bendDirection: 1),
+  DanceIkTargetKey(8, x: 92, y: 4, bendDirection: 1),
   DanceIkTargetKey(12, x: 88, y: -50, bendDirection: 1),
   DanceIkTargetKey(16, x: 72, y: -88, bendDirection: 1),
   DanceIkTargetKey(20, x: 84, y: -44, bendDirection: 1),
-  DanceIkTargetKey(24, x: 90, y: 18, bendDirection: 1),
+  DanceIkTargetKey(24, x: 90, y: 4, bendDirection: 1),
   DanceIkTargetKey(28, x: 88, y: -48, bendDirection: 1),
   DanceIkTargetKey(32, x: 76, y: -78, bendDirection: 1),
 ];
@@ -2093,6 +2093,193 @@ const _movingBridgeRockHandRKeys = [
   DanceJointKey(24, rotation: -0.08),
   DanceJointKey(29, rotation: 0.04),
   DanceJointKey(32, rotation: 0.18),
+];
+
+// Body-led pocket: two four-beat plants instead of four two-beat step-touches.
+// The free shoe brushes inward and returns along the floor arc while the ribs
+// complete one slow roll. Hands remain low enough that the torso—not a fist—
+// owns the phrase silhouette.
+const _movingBodyRollContactSpans = [
+  GroundSpan(CatBones.footL, 0, 0.5),
+  GroundSpan(CatBones.footR, 0.5, 1),
+];
+
+const _movingBodyRollBodyKeys = [
+  DanceBodyKey(
+    0,
+    rootDx: -20,
+    rootDy: 35,
+    rootRotation: -0.025,
+    pelvisRotation: -0.27,
+    chestRotation: 0.23,
+    chestScaleY: 0.92,
+  ),
+  DanceBodyKey(
+    4,
+    rootDx: -24,
+    rootDy: 22,
+    rootRotation: -0.04,
+    pelvisRotation: -0.30,
+    chestRotation: 0.12,
+    chestScaleY: 0.98,
+  ),
+  DanceBodyKey(
+    8,
+    rootDx: -18,
+    rootDy: 13,
+    rootRotation: -0.015,
+    pelvisRotation: -0.18,
+    chestRotation: -0.04,
+    chestScaleY: 1.03,
+  ),
+  DanceBodyKey(
+    12,
+    rootDx: -7,
+    rootDy: 20,
+    rootRotation: 0.025,
+    pelvisRotation: -0.05,
+    chestRotation: -0.16,
+  ),
+  DanceBodyKey(
+    16,
+    rootDx: 21,
+    rootDy: 36,
+    rootRotation: 0.03,
+    pelvisRotation: 0.28,
+    chestRotation: -0.24,
+    chestScaleY: 0.91,
+  ),
+  DanceBodyKey(
+    20,
+    rootDx: 25,
+    rootDy: 23,
+    rootRotation: 0.04,
+    pelvisRotation: 0.31,
+    chestRotation: -0.12,
+    chestScaleY: 0.98,
+  ),
+  DanceBodyKey(
+    24,
+    rootDx: 18,
+    rootDy: 13,
+    rootRotation: 0.015,
+    pelvisRotation: 0.18,
+    chestRotation: 0.05,
+    chestScaleY: 1.03,
+  ),
+  DanceBodyKey(
+    28,
+    rootDx: 6,
+    rootDy: 20,
+    rootRotation: -0.025,
+    pelvisRotation: 0.04,
+    chestRotation: 0.17,
+  ),
+  DanceBodyKey(
+    32,
+    rootDx: -20,
+    rootDy: 35,
+    rootRotation: -0.025,
+    pelvisRotation: -0.27,
+    chestRotation: 0.23,
+    chestScaleY: 0.92,
+  ),
+];
+
+const _movingBodyRollHandLTargetKeys = [
+  DanceIkTargetKey(0, x: -76, y: 8, bendDirection: -1),
+  DanceIkTargetKey(4, x: -86, y: 2, bendDirection: -1),
+  DanceIkTargetKey(8, x: -94, y: -14, bendDirection: -1),
+  DanceIkTargetKey(12, x: -88, y: -28, bendDirection: -1),
+  DanceIkTargetKey(16, x: -76, y: 10, bendDirection: -1),
+  DanceIkTargetKey(20, x: -72, y: 18, bendDirection: -1),
+  DanceIkTargetKey(24, x: -82, y: 10, bendDirection: -1),
+  DanceIkTargetKey(28, x: -92, y: -8, bendDirection: -1),
+  DanceIkTargetKey(32, x: -76, y: 8, bendDirection: -1),
+];
+
+const _movingBodyRollHandRTargetKeys = [
+  DanceIkTargetKey(0, x: 72, y: 18, bendDirection: 1),
+  DanceIkTargetKey(4, x: 78, y: 10, bendDirection: 1),
+  DanceIkTargetKey(8, x: 90, y: -8, bendDirection: 1),
+  DanceIkTargetKey(12, x: 84, y: 4, bendDirection: 1),
+  DanceIkTargetKey(16, x: 76, y: 8, bendDirection: 1),
+  DanceIkTargetKey(20, x: 88, y: 0, bendDirection: 1),
+  DanceIkTargetKey(24, x: 98, y: -22, bendDirection: 1),
+  DanceIkTargetKey(28, x: 86, y: -30, bendDirection: 1),
+  DanceIkTargetKey(32, x: 72, y: 18, bendDirection: 1),
+];
+
+const _movingBodyRollFootLTargetKeys = [
+  DanceIkTargetKey(0, x: -62, y: 110),
+  DanceIkTargetKey(16, x: -62, y: 110),
+  DanceIkTargetKey(19, x: -55, y: 94),
+  DanceIkTargetKey(22, x: -36, y: 104),
+  DanceIkTargetKey(25, x: -44, y: 91),
+  DanceIkTargetKey(28, x: -56, y: 101),
+  DanceIkTargetKey(32, x: -62, y: 110),
+];
+
+const _movingBodyRollFootRTargetKeys = [
+  DanceIkTargetKey(0, x: 62, y: 110),
+  DanceIkTargetKey(3, x: 55, y: 94),
+  DanceIkTargetKey(6, x: 36, y: 104),
+  DanceIkTargetKey(9, x: 44, y: 91),
+  DanceIkTargetKey(12, x: 56, y: 101),
+  DanceIkTargetKey(16, x: 62, y: 110),
+  DanceIkTargetKey(32, x: 62, y: 110),
+];
+
+const _movingBodyRollFootLKeys = [
+  DanceJointKey(0),
+  DanceJointKey(16),
+  DanceJointKey(19, rotation: 0.08),
+  DanceJointKey(22, rotation: 0.16),
+  DanceJointKey(25, rotation: 0.07),
+  DanceJointKey(28, rotation: 0.03),
+  DanceJointKey(32),
+];
+
+const _movingBodyRollFootRKeys = [
+  DanceJointKey(0),
+  DanceJointKey(3, rotation: -0.08),
+  DanceJointKey(6, rotation: -0.16),
+  DanceJointKey(9, rotation: -0.07),
+  DanceJointKey(12, rotation: -0.03),
+  DanceJointKey(16),
+  DanceJointKey(32),
+];
+
+const _movingBodyRollHandLKeys = [
+  DanceJointKey(0, rotation: 0.08),
+  DanceJointKey(8, rotation: -0.10),
+  DanceJointKey(16, rotation: 0.06),
+  DanceJointKey(24, rotation: -0.08),
+  DanceJointKey(32, rotation: 0.08),
+];
+
+const _movingBodyRollHandRKeys = [
+  DanceJointKey(0, rotation: -0.08),
+  DanceJointKey(8, rotation: 0.08),
+  DanceJointKey(16, rotation: -0.06),
+  DanceJointKey(24, rotation: 0.11),
+  DanceJointKey(32, rotation: -0.08),
+];
+
+const _movingBodyRollClavicleLKeys = [
+  DanceJointKey(0, rotation: 0.012),
+  DanceJointKey(8, rotation: -0.018),
+  DanceJointKey(16, rotation: 0.010),
+  DanceJointKey(24, rotation: -0.015),
+  DanceJointKey(32, rotation: 0.012),
+];
+
+const _movingBodyRollClavicleRKeys = [
+  DanceJointKey(0, rotation: -0.012),
+  DanceJointKey(8, rotation: 0.018),
+  DanceJointKey(16, rotation: -0.010),
+  DanceJointKey(24, rotation: 0.015),
+  DanceJointKey(32, rotation: -0.012),
 ];
 
 // Backup 1: one low scoop per bar. It deliberately HOLDS its counter-pose

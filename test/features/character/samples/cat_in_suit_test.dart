@@ -853,6 +853,7 @@ void main() {
         CatClips.movingBreakdownGroove,
         CatClips.movingChorusTravel,
         CatClips.movingBridgeRock,
+        CatClips.movingBodyRoll,
       ]) {
         for (var i = 0; i < 96; i++) {
           final p = i / 96;
@@ -907,6 +908,31 @@ void main() {
       );
     });
 
+    test('Moving body roll stays low-armed over long planted phrases', () {
+      final roll = CatClips.movingBodyRoll;
+      expect(roll.contactSpans, hasLength(2));
+      for (final span in roll.contactSpans) {
+        expect(span.end - span.start, closeTo(0.5, 1e-9));
+      }
+
+      for (final handId in [CatBones.handL, CatBones.handR]) {
+        final hand = _targetFor(roll, handId).channel;
+        for (var i = 0; i < 64; i++) {
+          expect(
+            hand.sample(i / 64).y,
+            greaterThan(-40),
+            reason: '$handId should stay below the rib line throughout',
+          );
+        }
+      }
+      expect(
+        _targetFor(roll, CatBones.footR).channel.sample(6 / 32).x,
+        lessThan(45),
+        reason:
+            'the free shoe should visibly drag inward during the long plant',
+      );
+    });
+
     test('every scored Moving phrase articulates both paws', () {
       for (final clip in [
         CatClips.movingGroove,
@@ -917,6 +943,7 @@ void main() {
         CatClips.movingVerseWindow,
         CatClips.movingBreakdownGroove,
         CatClips.movingBridgeRock,
+        CatClips.movingBodyRoll,
       ]) {
         for (final handId in [CatBones.handL, CatBones.handR]) {
           expect(
