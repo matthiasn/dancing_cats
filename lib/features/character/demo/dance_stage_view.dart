@@ -443,21 +443,34 @@ CharacterPainter danceCharacterPainter({
   ensembleClips: [
     for (var i = 0; i < stage.ensemble.length; i++)
       accentDroppedClip(
-        _upperBodyWarped(
+        productionDanceClip(
           stage.ensemble[i],
           stage.dynamics[i],
           i,
           stage.energyLevel,
         ),
-        bodyAccent * kDanceAccentDropUnits,
+        _bodyLoadEnvelope(
+              stage.lead.belongsToFamily('moving') ? 0 : bodyAccent,
+              stage.lead.belongsToFamily('moving') ? 0 : bodyAnticipation,
+            ) *
+            kDanceAccentDropUnits,
       ),
   ],
   synchronousEnsemble: stage.synchronous,
   singingHeadMotion: true,
   walkingPair: true,
   clip: accentDroppedClip(
-    _upperBodyWarped(stage.lead, stage.dynamics.first, 0, stage.energyLevel),
-    bodyAccent * kDanceAccentDropUnits,
+    productionDanceClip(
+      stage.lead,
+      stage.dynamics.first,
+      0,
+      stage.energyLevel,
+    ),
+    _bodyLoadEnvelope(
+          stage.lead.belongsToFamily('moving') ? 0 : bodyAccent,
+          stage.lead.belongsToFamily('moving') ? 0 : bodyAnticipation,
+        ) *
+        kDanceAccentDropUnits,
   ),
   timeSeconds: stage.seconds,
   cameraOverride: shot,
@@ -469,8 +482,11 @@ CharacterPainter danceCharacterPainter({
   // `CharacterPainter._kUnisonFormationPop`). Single-sourced here so the live
   // player and every offline renderer pop identically. Its look-ahead partner
   // [bodyAnticipation] drives the coil that precedes the pop.
-  bodyAccent: bodyAccent,
-  bodyAnticipation: bodyAnticipation,
+  // Moving's arm hook has its own lyric clock over an independent lower-body
+  // groove. Suppress the generic unison spring/coil so the formation does not
+  // appear to tug the phrase around at every music onset.
+  bodyAccent: stage.lead.belongsToFamily('moving') ? 0 : bodyAccent,
+  bodyAnticipation: stage.lead.belongsToFamily('moving') ? 0 : bodyAnticipation,
   groundColor: useNewBackdrop ? null : const Color(0xFF374551),
   backdrop: useNewBackdrop
       ? CharacterBackdrop.none
@@ -492,6 +508,15 @@ CharacterPainter danceCharacterPainter({
   renderer: renderer,
 );
 
+/// Joins the look-ahead coil to the post-onset release for the BODY'S vertical
+/// load. Both envelopes are smooth at their endpoints and trade ownership at
+/// the onset, so the knees compress into the beat continuously. The lights and
+/// formation pop still receive [bodyAccent] and [bodyAnticipation] separately:
+/// they retain their crisp gather->release contrast while the skeleton carries
+/// believable mass instead of teleporting down on the hit frame.
+double _bodyLoadEnvelope(double bodyAccent, double bodyAnticipation) =>
+    bodyAccent >= bodyAnticipation ? bodyAccent : bodyAnticipation;
+
 /// Per-clip-instance cache of [upperBodyDynamicsWarpedClip] results, keyed by
 /// the effective dynamics that produced them. This is the single call site
 /// both the live player and every offline renderer go through, so it is the
@@ -505,7 +530,14 @@ CharacterPainter danceCharacterPainter({
 /// pay the wrapper allocation, on top of the `blendedClip` work they already do.
 final Expando<Map<(DanceDynamics, int, double), Clip>> _warpCache = Expando();
 
-Clip _upperBodyWarped(
+/// The exact per-lane clip transformation used by both the live stage and the
+/// offline exporter.
+///
+/// Kept public so production-level motion audits can measure the same clip the
+/// painter consumes after effort, energy, and shoulder-wind modulation. Tests
+/// that inspect an unwarped catalogue clip are useful rig checks, but cannot
+/// prove that the scheduled/exported performance itself stays continuous.
+Clip productionDanceClip(
   Clip clip,
   DanceDynamics dynamics,
   int lane,
@@ -514,8 +546,14 @@ Clip _upperBodyWarped(
   final cache = _warpCache[clip] ??= {};
   // energyLevel is per-section-constant, so this stays a small keyed cache.
   return cache[(dynamics, lane, energyLevel)] ??= () {
+    final songGroove = clip.belongsToFamily('moving');
     // 1. Effort TIME warp (unchanged): reshapes the beat timing by dynamics.
-    final warped = (dynamics.isNeutral || kDanceDynamicsTimeWarpGain == 0)
+    // The Moving phrase already authors long multi-beat arm arcs. Re-syncing
+    // their clock independently inside every beat puts tiny hinges into those
+    // arcs, so this move keeps its authored clock; its body still reacts to
+    // song energy and its shoulders still carry per-lane wind below.
+    final warped =
+        (songGroove || dynamics.isNeutral || kDanceDynamicsTimeWarpGain == 0)
         ? clip
         : upperBodyDynamicsWarpedClip(
             clip,
@@ -525,15 +563,24 @@ Clip _upperBodyWarped(
     // 2. FAST-BASE orbit: a small continuous per-lane hand roll layered on the
     // authored motion, so every move's hands always carry fast sub-beat motion
     // (not just posed hits), the two hands counter-rotating around each other.
-    final orbited = fastBaseOrbitedClip(warped, lane);
+    // "Moving" owns broad sustained arm events. The catalogue-wide fast orbit
+    // makes its wrists buzz independently of those events (and swings its
+    // hand-parented cuffs), so disable the generic garnish for this move.
+    final orbited = fastBaseOrbitedClip(
+      warped,
+      lane,
+      radius: songGroove ? 0 : kDanceFastBaseOrbitRadius,
+    );
     // 3. Effort AMPLITUDE modulation: scales how BIG the hand moves get (base +
     // orbit) by the raw SONG ENERGY arc + a deterministic beat-to-beat breath,
     // leaving the fast timing intact — so a low-energy pass is fast-but-small
     // and never 100%-extreme every beat.
-    final effort = effortModulatedClip(
-      orbited,
-      danceEffortScaleOf(energyLevel, lane),
-    );
+    final effort = songGroove
+        ? orbited
+        : effortModulatedClip(
+            orbited,
+            danceEffortScaleOf(energyLevel, lane),
+          );
     // 4. WHOLE-BODY groove amplitude: scale the root sway/bob/dips by the song
     // energy too (not just the hands), so the whole body eases through the
     // breakdown and fills into the chorus — mean-preserving so the stance stays.

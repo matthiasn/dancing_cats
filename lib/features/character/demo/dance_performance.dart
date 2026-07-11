@@ -128,7 +128,7 @@ typedef DanceStage = ({
 /// review-vs-ship gap drops from 1.5x to 0.75x. (The still-earlier 3-bar
 /// binding gave 2 2/3 frames per beat — accents BETWEEN beats — and stays
 /// wrong for a different reason.)
-const int kDancePhraseBars = 2;
+const int kDancePhraseBars = 4;
 
 /// How much faster the shipped app's beat-warped pose clock runs than the
 /// raw, authored clip clock (`_danceBase.duration`) motion-quality tests
@@ -152,7 +152,7 @@ const int kDancePhraseBars = 2;
 /// `k` scales the n-th time-derivative by `k^n`, so callers multiply speed by
 /// `k`, acceleration by `k^2`, and jerk by `k^3` rather than resampling at a
 /// different clock.
-const double kDanceRealTempoSpeedup = 6 / 4;
+const double kDanceRealTempoSpeedup = 6 / 8;
 
 /// Fraction of the track's energy range below which a section counts as "calm"
 /// (and, if also long enough, eases the trio into idle). See [kMinCalmSeconds].
@@ -481,7 +481,12 @@ class DancePerformance {
     if (idx < 0) return 0;
     final dt = posSec - o[idx].time;
     if (dt < 0 || dt > _kAccentDecaySec) return 0;
-    return (o[idx].strength * (1 - dt / _kAccentDecaySec)).clamp(0.0, 1.0);
+    final u = (dt / _kAccentDecaySec).clamp(0.0, 1.0);
+    // Ease out with zero velocity at the onset and at release. The visual hit
+    // still attacks instantly for lights/formation, but its body-load partner
+    // can join the eased anticipation below into a C1 rise->fall envelope.
+    final release = 1 - u * u * (3 - 2 * u);
+    return (o[idx].strength * release).clamp(0.0, 1.0);
   }
 
   /// Look-ahead "coil" envelope at [posSec] (0..1): rises as the NEXT strong
@@ -507,9 +512,12 @@ class DancePerformance {
     if (lo >= o.length) return 0;
     final dt = o[lo].time - posSec; // > 0
     if (dt >= _kAnticipationWindowSec) return 0;
-    // Rise 0 -> 1 as the onset nears; the half-open window leaves it exactly 0
-    // at the onset itself (that frame belongs to [accentAt]).
-    final ramp = 1 - dt / _kAnticipationWindowSec;
+    // Rise 0 -> 1 as the onset nears with zero endpoint velocity. The half-open
+    // window leaves the onset itself to [accentAt]; combining the two envelopes
+    // for the body load therefore produces a continuous planted compression,
+    // not a one-frame downward teleport on every detected hit.
+    final u = (1 - dt / _kAnticipationWindowSec).clamp(0.0, 1.0);
+    final ramp = u * u * (3 - 2 * u);
     return (o[lo].strength * ramp).clamp(0.0, 1.0);
   }
 
@@ -518,6 +526,12 @@ class DancePerformance {
   static final Clip _azonto = CatClips.azonto;
   static final Clip _buga = CatClips.buga;
   static final Clip _sekem = CatClips.sekem;
+  static final Clip _moving = CatClips.movingGroove;
+  static final Clip _movingLowCounter = CatClips.movingGrooveLowCounter;
+  static final Clip _movingSideAnswer = CatClips.movingGrooveSideAnswer;
+  static final Clip _movingVerse = CatClips.movingVerseGroove;
+  static final Clip _movingVerseWindow = CatClips.movingVerseWindow;
+  static final Clip _movingBreakdown = CatClips.movingBreakdownGroove;
 
   /// How far open the lyric-synced mouth slack window is dilated so short gaps
   /// between a phrase's words don't make the mouth flicker shut.
@@ -547,8 +561,9 @@ class DancePerformance {
       // loudness (swells into drops, eases through the breakdown) instead of the
       // coarse per-section step. Quantized to 0.05 to bound the effort-clip
       // cache; falls back to the section level for synthetic (no-waveform) perfs.
-      final danceEnergy =
-          waveform.isEmpty ? level : (intensityAt(pos) * 20).round() / 20;
+      final danceEnergy = waveform.isEmpty
+          ? level
+          : (intensityAt(pos) * 20).round() / 20;
       return (
         lead: trio.lead,
         ensemble: trio.ensemble,
@@ -614,9 +629,6 @@ class DancePerformance {
     switch (lyric.section) {
       case 'chorus':
       case 'post-chorus':
-        return lyric.phase >= 0.55
-            ? lyric.start + 0.55 * lyric.seconds
-            : lyric.start;
       case 'verse':
       case 'bridge':
       case 'outro':
@@ -624,7 +636,7 @@ class DancePerformance {
         // [k/slots, (k+1)/slots).
         final slots = lyric.seconds <= 0
             ? 1
-            : (lyric.seconds / kChoreoSlotSeconds).floor().clamp(1, 64);
+            : (lyric.seconds / kChoreoSlotSeconds).ceil().clamp(1, 64);
         final slot = (lyric.phase * slots).floor().clamp(0, slots - 1);
         return lyric.start + slot * lyric.seconds / slots;
       default:
@@ -646,7 +658,7 @@ class DancePerformance {
 
   /// How long one choreography SLOT lasts inside a long section: after this
   /// many seconds the trio rotates to the next entry of the section's
-  /// mini-setlist. Two loops of the 2-bar phrase at 120 BPM — long enough for
+  /// mini-setlist. One 4-bar phrase at 120 BPM — long enough for
   /// a move to read, short enough that a bridge never parks on one move.
   static const double kChoreoSlotSeconds = 8;
 
@@ -660,9 +672,15 @@ class DancePerformance {
     double sectionSeconds, {
     int offset = 0,
   }) {
+    // Round UP: a 15-second chorus is almost two complete 8-second phrases,
+    // not one enormous slot. `floor()` left the same front-cat sentence on
+    // screen for the entire chorus, which is exactly the repetition the full-
+    // song review exposed. Dividing the section evenly across `ceil()` slots
+    // keeps each statement at or below the target phrase length and still
+    // changes only on a musically stable section-relative boundary.
     final slots = sectionSeconds <= 0
         ? 1
-        : (sectionSeconds / kChoreoSlotSeconds).floor().clamp(1, 64);
+        : (sectionSeconds / kChoreoSlotSeconds).ceil().clamp(1, 64);
     final slot = (phase * slots).floor().clamp(0, slots - 1);
     return setlist[(slot + offset) % setlist.length];
   }
@@ -686,36 +704,107 @@ class DancePerformance {
     switch (section) {
       case 'chorus':
       case 'post-chorus':
-        if (phase >= 0.55) {
-          return (lead: _buga, ensemble: [_buga, _buga, _buga]);
-        }
-        // The first half of the hook needs one unmistakable legwork statement.
-        // Mixing Zanku/Sekem/Buga here made each dancer tell a different arm
-        // story on the same beat, which read as generic stage posing. Variation
-        // happens across repeated hook occurrences, not inside the same beat.
-        final front = variant.isEven ? _zanku : _shaku;
-        return (lead: front, ensemble: [front, front, front]);
+        // The hook returns as a recognisable motif, but it must EVOLVE across
+        // a long lyric span instead of replaying one 4-second loop. The first
+        // slot states the call; the next lets the backs take it; the third
+        // drops into a shuffle before the next lyric section turns.
+        return _rotateSetlist(
+          [
+            (
+              lead: _moving,
+              ensemble: [_moving, _movingLowCounter, _movingSideAnswer],
+            ),
+            (
+              lead: _movingSideAnswer,
+              ensemble: [_movingSideAnswer, _moving, _movingLowCounter],
+            ),
+            (
+              lead: _movingVerseWindow,
+              ensemble: [
+                _movingVerseWindow,
+                _movingVerse,
+                _movingSideAnswer,
+              ],
+            ),
+          ],
+          phase,
+          sectionSeconds,
+          // The hook's lead signature belongs on the front cat when each of
+          // the first two choruses arrives. Previously the second chorus used
+          // `offset: 1`, promoting the intentionally restrained backup side-
+          // answer to lead for the entire short section; production review at
+          // 42–50s therefore never showed the choreography being authored and
+          // tested as the lead. Later returns may rotate the statement, but the
+          // main hook first has to read twice as a recognisable motif.
+          offset: variant <= 1 ? 0 : variant - 1,
+        );
       case 'pre-chorus':
-        return (lead: _shaku, ensemble: [_shaku, _zanku, _sekem]);
+        return _rotateSetlist(
+          [
+            (
+              lead: _movingVerse,
+              ensemble: [_movingVerse, _movingVerseWindow, _movingLowCounter],
+            ),
+            (
+              lead: _movingBreakdown,
+              ensemble: [_movingBreakdown, _movingVerse, _movingLowCounter],
+            ),
+          ],
+          phase,
+          sectionSeconds,
+          offset: variant,
+        );
       case 'verse':
         return _rotateSetlist(
           [
-            (lead: _azonto, ensemble: [_azonto, _shaku, _zanku]),
-            (lead: _shaku, ensemble: [_shaku, _azonto, _zanku]),
-            (lead: _zanku, ensemble: [_zanku, _sekem, _shaku]),
+            (
+              lead: _movingVerse,
+              ensemble: [_movingVerse, _movingVerseWindow, _movingLowCounter],
+            ),
+            (
+              lead: _movingVerseWindow,
+              ensemble: [
+                _movingVerseWindow,
+                _movingVerse,
+                _movingSideAnswer,
+              ],
+            ),
+            (
+              lead: _movingBreakdown,
+              ensemble: [_movingBreakdown, _movingVerse, _movingLowCounter],
+            ),
+            (
+              lead: _movingSideAnswer,
+              ensemble: [_movingSideAnswer, _movingVerse, _movingBreakdown],
+            ),
           ],
           phase,
           sectionSeconds,
           offset: variant,
         );
       case 'bridge':
-        // Grounded pocket, but a WALKED one: unison sekem states the drop,
-        // then the flanks split, then a shaku X-hold before the section turns.
         return _rotateSetlist(
           [
-            (lead: _sekem, ensemble: [_sekem, _sekem, _sekem]),
-            (lead: _sekem, ensemble: [_sekem, _azonto, _shaku]),
-            (lead: _shaku, ensemble: [_shaku, _sekem, _sekem]),
+            (
+              lead: _movingBreakdown,
+              ensemble: [_movingBreakdown, _movingVerse, _movingLowCounter],
+            ),
+            (
+              lead: _movingLowCounter,
+              ensemble: [
+                _movingLowCounter,
+                _movingBreakdown,
+                _movingSideAnswer,
+              ],
+            ),
+            (
+              lead: _movingVerseWindow,
+              ensemble: [
+                _movingVerseWindow,
+                _movingBreakdown,
+                _movingLowCounter,
+              ],
+            ),
           ],
           phase,
           sectionSeconds,
@@ -724,8 +813,18 @@ class DancePerformance {
       case 'outro':
         return _rotateSetlist(
           [
-            (lead: _sekem, ensemble: [_sekem, _sekem, _shaku]),
-            (lead: _azonto, ensemble: [_azonto, _sekem, _sekem]),
+            (
+              lead: _movingVerse,
+              ensemble: [
+                _movingVerse,
+                _movingVerseWindow,
+                _movingSideAnswer,
+              ],
+            ),
+            (
+              lead: _moving,
+              ensemble: [_moving, _movingVerse, _movingLowCounter],
+            ),
           ],
           phase,
           sectionSeconds,
@@ -739,7 +838,9 @@ class DancePerformance {
   /// Energy-only fallback (no lyrics): map the section's normalized [level] to a
   /// trio, building from the grounded Sekem pocket up to the unison Buga hit.
   DanceTrio choreoTrioByLevel(double level) {
-    if (level >= 0.90) return (lead: _buga, ensemble: [_buga, _buga, _buga]);
+    if (level >= 0.90) {
+      return (lead: _moving, ensemble: [_moving, _moving, _moving]);
+    }
     if (level >= 0.78) {
       return (lead: _zanku, ensemble: [_zanku, _sekem, _buga]);
     }

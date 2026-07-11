@@ -68,8 +68,8 @@ void main() {
 
       expect(socketL?.parent, CatBones.clavicleL);
       expect(socketR?.parent, CatBones.clavicleR);
-      expect(rig.bone(CatBones.armUpperL)?.parent, CatBones.clavicleL);
-      expect(rig.bone(CatBones.armUpperR)?.parent, CatBones.clavicleR);
+      expect(rig.bone(CatBones.armUpperL)?.parent, CatBones.shoulderSocketL);
+      expect(rig.bone(CatBones.armUpperR)?.parent, CatBones.shoulderSocketR);
 
       final jacket = rig.meshes.singleWhere((mesh) => mesh.id == 'jacket.mesh');
       expect(
@@ -127,13 +127,13 @@ void main() {
         // One centreline through shoulder→bicep→elbow→forearm→wrist: the arm
         // bends through a curve at the elbow like the legs already do,
         // instead of folding as separate weighted patches.
-        // The first TWO joints (clavicle, socket) are both clavicle-anchored:
-        // the ribbon's root section cannot rotate with the arm, so the bend
-        // reads as a fabric crease below the deltoid instead of the shoulder
-        // cap sweeping around a rivet.
+        // One anatomical chain: the clavicle ends at the shoulder socket, a
+        // short armUpper root carries the deltoid, and the bicep/elbow/forearm
+        // continue to the wrist. The rendered ribbon and IK humerus therefore
+        // cannot choose different shoulder origins.
         expect(ribbon.jointBoneIds, [
-          side.clavicle,
           side.socket,
+          side.upper,
           side.bicep,
           side.lower,
           side.forearm,
@@ -152,11 +152,11 @@ void main() {
           reason: 'the start cap is the deltoid dome; the end cap the wrist',
         );
 
-        // The socket is rigidly clavicle-parented: the root strut cannot
-        // rotate with the arm, and the deltoid dome travels with the armhole
-        // in every pose, so no pose can open a gap.
+        // The socket rides the sternum-pivot clavicle and the humerus begins
+        // under that socket, rather than existing as a sibling chain.
         final socket = rig.bone(side.socket)!;
         expect(socket.parent, side.clavicle);
+        expect(rig.bone(side.upper)!.parent, side.socket);
       }
     });
 
@@ -166,7 +166,12 @@ void main() {
         final ribbon = scene.rig.ribbons.singleWhere((r) => r.id == ribbonId);
         final rootId = ribbon.jointBoneIds.first;
         final socketId = ribbon.jointBoneIds[1];
-        for (final clip in [CatClips.shaku, CatClips.sekem, CatClips.buga]) {
+        for (final clip in [
+          CatClips.movingGroove,
+          CatClips.shaku,
+          CatClips.sekem,
+          CatClips.buga,
+        ]) {
           for (
             var frame = 0;
             frame <= CatClips.dancePhrase.frameCount;
@@ -183,10 +188,10 @@ void main() {
             final dy = socket.y - root.y;
             expect(
               math.sqrt(dx * dx + dy * dy),
-              inInclusiveRange(7, 13),
+              inInclusiveRange(4, 7),
               reason:
-                  '${clip.name} frame $frame: the clavicle→socket root strut '
-                  'must ride the girdle at near rest length so the deltoid '
+                  '${clip.name} frame $frame: the socket→humerus root strut '
+                  'must stay at its six-unit rest length so the deltoid '
                   'reads welded to the jacket in every pose',
             );
           }
@@ -220,18 +225,21 @@ void main() {
       }
     });
 
-    test('hand-parented cuffs expose the wrists during crossed-arm poses', () {
-      final shirtColor = rig.bone(CatBones.shirtV)?.drawable?.color;
-      final cuffL = rig.bone(CatBones.wristCuffL);
-      final cuffR = rig.bone(CatBones.wristCuffR);
+    test(
+      'forearm-parented cuffs close the sleeves without following paw spin',
+      () {
+        final shirtColor = rig.bone(CatBones.shirtV)?.drawable?.color;
+        final cuffL = rig.bone(CatBones.wristCuffL);
+        final cuffR = rig.bone(CatBones.wristCuffR);
 
-      expect(cuffL?.parent, CatBones.handL);
-      expect(cuffR?.parent, CatBones.handR);
-      expect(cuffL?.drawable?.color, shirtColor);
-      expect(cuffR?.drawable?.color, shirtColor);
-      expect(cuffL?.z, lessThan(rig.bone(CatBones.handL)!.z));
-      expect(cuffR?.z, lessThan(rig.bone(CatBones.handR)!.z));
-    });
+        expect(cuffL?.parent, CatBones.armLowerL);
+        expect(cuffR?.parent, CatBones.armLowerR);
+        expect(cuffL?.drawable?.color, shirtColor);
+        expect(cuffR?.drawable?.color, shirtColor);
+        expect(cuffL?.z, lessThan(rig.bone(CatBones.handL)!.z));
+        expect(cuffR?.z, lessThan(rig.bone(CatBones.handR)!.z));
+      },
+    );
 
     test('arm guide bones do not render as hard elbow details', () {
       final bicepL = rig.bone(CatBones.armBicepL);
@@ -374,8 +382,8 @@ void main() {
       final cuff = rig.bone(CatBones.wristCuffL)!.drawable!;
       final hand = rig.bone(CatBones.handL)!.drawable!;
 
-      // Index 0 is the CLAVICLE ROOT (the round start cap / armhole
-      // gap-proofing dome); index 1 is the DELTOID. They stay close in width
+      // Index 0 is the SHOULDER SOCKET (the round armhole cap); index 1 is the
+      // short DELTOID root. They stay close in width
       // so the cap reads as one continuous mass with the shoulder instead of
       // a pinched neck-then-bulge (the "separate clavicle" tell).
       final deltoid = ribbon.halfWidths[1];
@@ -719,6 +727,7 @@ void main() {
         CatClips.all.map((c) => c.name).toSet(),
         {
           'kick',
+          'movingHookLead',
           'shaku',
           'zanku',
           'azonto',
@@ -731,6 +740,7 @@ void main() {
     });
 
     test('cyclic clips loop and one-shots do not', () {
+      expect(CatClips.movingGroove.loop, isTrue);
       expect(CatClips.shaku.loop, isTrue);
       expect(CatClips.zanku.loop, isTrue);
       expect(CatClips.azonto.loop, isTrue);
@@ -740,6 +750,445 @@ void main() {
       expect(CatClips.idle.loop, isTrue);
       expect(CatClips.kick.loop, isFalse);
     });
+
+    test(
+      'Moving hook compiles its pose cells into grounded steps and accents',
+      () {
+        final moving = CatClips.movingGroove;
+        final footL = _targetFor(moving, CatBones.footL).channel;
+        final footR = _targetFor(moving, CatBones.footR).channel;
+        final handL = _targetFor(moving, CatBones.handL).channel;
+        final handR = _targetFor(moving, CatBones.handR).channel;
+
+        // The free shoe touches in, gets airborne again, then lands as the next
+        // support. This guards against the old floor-height touch->plant scrape.
+        expect(footR.sample(4 / 32).y, greaterThan(100));
+        expect(footR.sample(6 / 32).y, lessThan(100));
+        expect(footR.sample(8 / 32).y, greaterThan(105));
+        expect(footL.sample(12 / 32).y, greaterThan(100));
+        expect(footL.sample(14 / 32).y, lessThan(100));
+        expect(footL.sample(16 / 32).y, greaterThan(105));
+
+        double radiusFromRestShoulder(dynamic target) {
+          final shoulderX = target.x.isNegative ? -35.0 : 35.0;
+          return math.sqrt(
+            math.pow(target.x - shoulderX, 2) + math.pow(target.y + 56, 2),
+          );
+        }
+
+        // A full reach is welcome, but it must be an elbow-led UNFURL followed
+        // by a tangential outside exit—not a reversal that reels the paw back
+        // along the same line.
+        final rightStart = handR.sample(0 / 32);
+        final rightLead = handR.sample(2 / 32);
+        final rightReach = handR.sample(4 / 32);
+        final rightExit = handR.sample(6 / 32);
+        expect(rightLead.x, greaterThan(rightStart.x));
+        expect(rightReach.x, greaterThan(rightStart.x + 35));
+        expect(rightReach.y, lessThan(rightStart.y - 35));
+        expect(
+          radiusFromRestShoulder(rightReach) -
+              radiusFromRestShoulder(rightStart),
+          greaterThan(15),
+        );
+        expect(
+          (radiusFromRestShoulder(rightExit) -
+                  radiusFromRestShoulder(rightReach))
+              .abs(),
+          lessThan(6),
+          reason: 'the reached paw should travel around, not spring inward',
+        );
+        expect(rightExit.y, greaterThan(rightReach.y + 18));
+        expect(rightExit.x, greaterThanOrEqualTo(rightReach.x));
+
+        // The second four bars answer on the left and open into "ooh" rather
+        // than replaying the first half of the phrase.
+        // The left track intentionally trails by 0.55 authored frames.
+        final leftPrep = handL.sample((14 + 0.55) / 32);
+        final leftReach = handL.sample((20 + 0.55) / 32);
+        expect(
+          radiusFromRestShoulder(leftReach) - radiusFromRestShoulder(leftPrep),
+          greaterThan(15),
+        );
+        final oohLeft = handL.sample((20 + 0.55) / 32);
+        final oohRight = handR.sample((20 + 0.2) / 32);
+        expect(oohLeft.y, lessThan(-125));
+        expect(oohLeft.x, greaterThan(-70));
+        expect(oohRight.y, greaterThan(-80));
+        expect(oohRight.x - oohLeft.x, greaterThan(150));
+
+        // No authored hand target is allowed to make the old puppet-arm leap.
+        // One frame is half a musical beat in this phrase, so this guards the
+        // path itself rather than relying on runtime smoothing to hide jumps.
+        for (final hand in [handL, handR]) {
+          for (var frame = 1; frame <= 32; frame++) {
+            final previous = hand.sample((frame - 1) / 32);
+            final current = hand.sample(frame / 32);
+            final travel = math.sqrt(
+              math.pow(current.x - previous.x, 2) +
+                  math.pow(current.y - previous.y, 2),
+            );
+            expect(
+              travel,
+              lessThan(45),
+              reason: 'hand target jumps $travel units at frame $frame',
+            );
+          }
+        }
+
+        expect(moving.channels, contains(CatBones.handL));
+        expect(moving.channels, contains(CatBones.handR));
+      },
+    );
+
+    test('Moving phrases never ask the arm solver for an impossible fold', () {
+      final scene = CharacterScene(buildCatInSuitRig());
+      for (final moving in [
+        CatClips.movingGroove,
+        CatClips.movingGrooveLowCounter,
+        CatClips.movingGrooveSideAnswer,
+        CatClips.movingVerseGroove,
+        CatClips.movingVerseWindow,
+        CatClips.movingBreakdownGroove,
+      ]) {
+        for (var i = 0; i < 96; i++) {
+          final p = i / 96;
+          final raw = scene.preClampPoseAt(
+            clip: moving,
+            timeSeconds: p * moving.duration,
+          );
+          expect(
+            scene.armFoldCorrections(raw),
+            isEmpty,
+            reason:
+                '${moving.name} p=$p must stay inside the planar arm ROM; any '
+                'anti-fold correction means the authored elbow is impossible',
+          );
+        }
+      }
+    });
+
+    test('Moving side-answer crown keeps a visibly bent elbow', () {
+      final scene = CharacterScene(buildCatInSuitRig());
+      final moving = CatClips.movingGrooveSideAnswer;
+      var maxRightElbowDegrees = 0.0;
+
+      for (var i = 0; i <= 192; i++) {
+        final p = i / 192;
+        final world = scene
+            .frameAt(clip: moving, timeSeconds: p * moving.duration)
+            .world;
+        final shoulder = world[CatBones.armUpperR]!.origin;
+        final elbow = world[CatBones.armLowerR]!.origin;
+        final wrist = world[CatBones.handR]!.origin;
+        final upperX = shoulder.x - elbow.x;
+        final upperY = shoulder.y - elbow.y;
+        final lowerX = wrist.x - elbow.x;
+        final lowerY = wrist.y - elbow.y;
+        final cosine =
+            (upperX * lowerX + upperY * lowerY) /
+            (math.sqrt(upperX * upperX + upperY * upperY) *
+                math.sqrt(lowerX * lowerX + lowerY * lowerY));
+        maxRightElbowDegrees = math.max(
+          maxRightElbowDegrees,
+          math.acos(cosine.clamp(-1.0, 1.0)) * 180 / math.pi,
+        );
+      }
+
+      // The rejected version measured 179.98° here: technically solvable,
+      // but visibly a rigid stick. Preserve generous overhead reach while
+      // retaining enough flex for the elbow to lead and settle naturally.
+      expect(maxRightElbowDegrees, lessThan(155));
+
+      final apex = scene
+          .frameAt(
+            clip: moving,
+            timeSeconds: (14 / 32) * moving.duration,
+          )
+          .world;
+      expect(
+        apex[CatBones.handR]!.origin.y,
+        lessThan(apex[CatBones.head]!.origin.y - 20),
+        reason: 'the bent arm must still read clearly above the head',
+      );
+    });
+
+    test('Moving signature puts the rendered left paw above the head', () {
+      final scene = CharacterScene(buildCatInSuitRig());
+      final moving = CatClips.movingGroove;
+      final world = scene
+          .frameAt(
+            clip: moving,
+            timeSeconds: ((20 + 0.55) / 32) * moving.duration,
+          )
+          .world;
+      final handY = world[CatBones.handL]!.origin.y;
+      final headY = world[CatBones.head]!.origin.y;
+      // The paw itself extends roughly ten units above its origin. Requiring
+      // the origin 46 units above the skull origin puts the visible paw cap
+      // above the head mass rather than merely beside the ear.
+      expect(
+        handY,
+        lessThan(headY - 46),
+        reason:
+            'overhead payoff must be visible in the rendered rig: '
+            'handY=$handY headY=$headY',
+      );
+    });
+
+    test('Moving groove keeps each cuff on the sleeve side of the paw', () {
+      final scene = CharacterScene(buildCatInSuitRig());
+      final moving = CatClips.movingGroove;
+      const arms = [
+        (
+          hand: CatBones.handL,
+          cuff: CatBones.wristCuffL,
+          elbow: CatBones.armLowerL,
+        ),
+        (
+          hand: CatBones.handR,
+          cuff: CatBones.wristCuffR,
+          elbow: CatBones.armLowerR,
+        ),
+      ];
+      for (var i = 0; i < 96; i++) {
+        final p = i / 96;
+        final world = scene
+            .frameAt(clip: moving, timeSeconds: p * moving.duration)
+            .world;
+        for (final arm in arms) {
+          final handTransform = world[arm.hand]!;
+          final cuffTransform = world[arm.cuff]!;
+          final elbowTransform = world[arm.elbow]!;
+          final hand = handTransform.origin;
+          final cuff = cuffTransform.origin;
+          final elbow = elbowTransform.origin;
+          final cuffX = cuff.x - hand.x;
+          final cuffY = cuff.y - hand.y;
+          final sleeveX = elbow.x - hand.x;
+          final sleeveY = elbow.y - hand.y;
+          final alignment =
+              (cuffX * sleeveX + cuffY * sleeveY) /
+              (math.sqrt(cuffX * cuffX + cuffY * cuffY) *
+                  math.sqrt(sleeveX * sleeveX + sleeveY * sleeveY));
+          expect(
+            alignment,
+            greaterThan(0.82),
+            reason:
+                'movingGroove p=$p ${arm.cuff} must sit back toward the '
+                'forearm, not rotate into the palm or away from the sleeve',
+          );
+          final cuffAngle = math.atan2(cuffTransform.b, cuffTransform.a);
+          final sleeveAngle = math.atan2(elbowTransform.b, elbowTransform.a);
+          final angleDelta = math.atan2(
+            math.sin(cuffAngle - sleeveAngle),
+            math.cos(cuffAngle - sleeveAngle),
+          );
+          expect(
+            angleDelta.abs(),
+            lessThan(1e-9),
+            reason:
+                'movingGroove p=$p ${arm.cuff} must inherit the sleeve axis, '
+                'never the independently lagging paw rotation',
+          );
+        }
+      }
+    });
+
+    test(
+      'Moving groove arm geometry stays inside a human-looking envelope',
+      () {
+        final scene = CharacterScene(buildCatInSuitRig());
+        final moving = CatClips.movingGroove;
+        const arms = [
+          (
+            socket: CatBones.shoulderSocketL,
+            shoulder: CatBones.armUpperL,
+            elbow: CatBones.armLowerL,
+            wrist: CatBones.handL,
+          ),
+          (
+            socket: CatBones.shoulderSocketR,
+            shoulder: CatBones.armUpperR,
+            elbow: CatBones.armLowerR,
+            wrist: CatBones.handR,
+          ),
+        ];
+        var minElbowDegrees = double.infinity;
+        var maxElbowDegrees = double.negativeInfinity;
+        var maxElbowAt = '';
+        var maxElbowOutsideWrist = 0.0;
+        var maxElbowOutsideAt = '';
+        var maxShoulderDriverMismatch = 0.0;
+        final minSocketRelativeY = <String, double>{};
+        final maxSocketRelativeY = <String, double>{};
+
+        for (var i = 0; i < 192; i++) {
+          final p = i / 192;
+          final world = scene
+              .frameAt(clip: moving, timeSeconds: p * moving.duration)
+              .world;
+          final chestInverse = world[CatBones.chest]!.inverse()!;
+          for (final pair in [
+            (clavicle: CatBones.clavicleL, lever: CatBones.shoulderLineL),
+            (clavicle: CatBones.clavicleR, lever: CatBones.shoulderLineR),
+          ]) {
+            final clavicle = world[pair.clavicle]!;
+            final lever = world[pair.lever]!;
+            final delta = math.atan2(
+              math.sin(
+                math.atan2(lever.b, lever.a) -
+                    math.atan2(clavicle.b, clavicle.a),
+              ),
+              math.cos(
+                math.atan2(lever.b, lever.a) -
+                    math.atan2(clavicle.b, clavicle.a),
+              ),
+            );
+            maxShoulderDriverMismatch = math.max(
+              maxShoulderDriverMismatch,
+              delta.abs(),
+            );
+          }
+          for (final arm in arms) {
+            final socket = world[arm.socket]!.origin;
+            final shoulder = world[arm.shoulder]!.origin;
+            final elbow = world[arm.elbow]!.origin;
+            final wrist = world[arm.wrist]!.origin;
+            final upperX = shoulder.x - elbow.x;
+            final upperY = shoulder.y - elbow.y;
+            final lowerX = wrist.x - elbow.x;
+            final lowerY = wrist.y - elbow.y;
+            final cosine =
+                (upperX * lowerX + upperY * lowerY) /
+                (math.sqrt(upperX * upperX + upperY * upperY) *
+                    math.sqrt(lowerX * lowerX + lowerY * lowerY));
+            final elbowDegrees =
+                math.acos(cosine.clamp(-1.0, 1.0)) * 180 / math.pi;
+            minElbowDegrees = math.min(minElbowDegrees, elbowDegrees);
+            if (elbowDegrees > maxElbowDegrees) {
+              maxElbowDegrees = elbowDegrees;
+              maxElbowAt = 'p=${p.toStringAsFixed(3)} ${arm.wrist}';
+            }
+
+            final side = wrist.x >= shoulder.x ? 1.0 : -1.0;
+            final outside = (elbow.x - wrist.x) * side;
+            if (outside > maxElbowOutsideWrist) {
+              maxElbowOutsideWrist = outside;
+              maxElbowOutsideAt = 'p=${p.toStringAsFixed(3)} ${arm.wrist}';
+            }
+            // Measure the socket in chest-local coordinates. A world-Y
+            // subtraction still counts the whole thorax rotating under the
+            // arm; this assertion is specifically about shoulder articulation.
+            final socketRelativeY = chestInverse
+                .transformPoint(socket.x, socket.y)
+                .y;
+            minSocketRelativeY[arm.wrist] = math.min(
+              minSocketRelativeY[arm.wrist] ?? double.infinity,
+              socketRelativeY,
+            );
+            maxSocketRelativeY[arm.wrist] = math.max(
+              maxSocketRelativeY[arm.wrist] ?? double.negativeInfinity,
+              socketRelativeY,
+            );
+          }
+        }
+
+        // ignore: avoid_print
+        print(
+          'moving arm envelope: elbow '
+          '${minElbowDegrees.toStringAsFixed(1)}..'
+          '${maxElbowDegrees.toStringAsFixed(1)} deg ($maxElbowAt), '
+          'outside-wrist ${maxElbowOutsideWrist.toStringAsFixed(1)} '
+          '($maxElbowOutsideAt), '
+          'socket-relative-y '
+          '${minSocketRelativeY.entries.map((entry) => '${entry.key} '
+              '${entry.value.toStringAsFixed(1)}..'
+              '${maxSocketRelativeY[entry.key]!.toStringAsFixed(1)}').join(', ')}',
+        );
+        expect(minElbowDegrees, greaterThan(25));
+        expect(maxElbowDegrees, lessThan(175));
+        // The overhead pathway legitimately lets the elbow sit just outside
+        // the paw centre while the shoulder elevates; keep it inside one sleeve
+        // half-width so it still reads as a connected arm, not a lateral fold.
+        expect(maxElbowOutsideWrist, lessThan(15.5));
+        expect(
+          maxShoulderDriverMismatch,
+          lessThan(1e-9),
+          reason:
+              'movingGroove jacket shoulder and anatomical socket must have '
+              'one clavicle driver—no extra gain, lag, or humeral lift',
+        );
+        for (final apex in [
+          (
+            phase: (4 + 0.2) / 32,
+            shoulder: CatBones.armUpperR,
+            elbow: CatBones.armLowerR,
+            wrist: CatBones.handR,
+          ),
+          (
+            phase: (20 + 0.55) / 32,
+            shoulder: CatBones.armUpperL,
+            elbow: CatBones.armLowerL,
+            wrist: CatBones.handL,
+          ),
+        ]) {
+          final world = scene
+              .frameAt(
+                clip: moving,
+                timeSeconds: apex.phase * moving.duration,
+              )
+              .world;
+          final shoulder = world[apex.shoulder]!.origin;
+          final elbow = world[apex.elbow]!.origin;
+          final wrist = world[apex.wrist]!.origin;
+          expect(
+            elbow.y,
+            inInclusiveRange(shoulder.y - 55, shoulder.y + 18),
+            reason:
+                '${apex.elbow} may rise with a real overhead reach, but must '
+                'stay connected to the shoulder rather than teleporting upward',
+          );
+          expect(
+            wrist.y,
+            lessThan(shoulder.y - 4),
+            reason:
+                '${apex.wrist} should land above shoulder level on the call '
+                'without forcing the humerus into the old vertical pose',
+          );
+          expect(
+            wrist.y,
+            lessThan(elbow.y - 10),
+            reason:
+                '${apex.wrist} must continue above its raised elbow at the '
+                'call apex; a horizontal forearm reads as an elbow-led flap',
+          );
+          final upperDx = elbow.x - shoulder.x;
+          final upperDy = elbow.y - shoulder.y;
+          final abductionDegrees =
+              math.acos(
+                (upperDy / math.sqrt(upperDx * upperDx + upperDy * upperDy))
+                    .clamp(-1.0, 1.0),
+              ) *
+              180 /
+              math.pi;
+          expect(
+            abductionDegrees,
+            inInclusiveRange(60, 175),
+            reason:
+                '${apex.shoulder} upper arm must follow the call or overhead '
+                'orbit without collapsing into a downward hang',
+          );
+        }
+        for (final arm in arms) {
+          expect(
+            maxSocketRelativeY[arm.wrist]! - minSocketRelativeY[arm.wrist]!,
+            inInclusiveRange(2, 14),
+            reason: '${arm.socket} should articulate without popping',
+          );
+        }
+      },
+    );
 
     test('shaku drives both legs and both arms', () {
       final channels = CatClips.shaku.channels;

@@ -82,6 +82,7 @@ void main() {
       const speedup = kDanceRealTempoSpeedup;
 
       for (final clip in [
+        CatClips.movingGroove,
         CatClips.shaku,
         CatClips.zanku,
         CatClips.azonto,
@@ -123,6 +124,7 @@ void main() {
       const speedupSquared = speedup * speedup;
 
       for (final clip in [
+        CatClips.movingGroove,
         CatClips.shaku,
         CatClips.zanku,
         CatClips.azonto,
@@ -164,6 +166,7 @@ void main() {
       const speedupCubed = speedup * speedup * speedup;
 
       for (final clip in [
+        CatClips.movingGroove,
         CatClips.shaku,
         CatClips.zanku,
         CatClips.azonto,

@@ -667,7 +667,8 @@ class CharacterScene {
     final pelvisList =
         (pelvisId != null &&
             clip.name != 'azonto' &&
-            _hipOppositionGain.containsKey(clip.name))
+            (clip.belongsToFamily('moving') ||
+                _hipOppositionGain.containsKey(clip.name)))
         ? (pose.rootDx * _kPelvisListGain).clamp(
             -_kPelvisListMax,
             _kPelvisListMax,
@@ -730,7 +731,9 @@ class CharacterScene {
     'sekem': 0.006,
   };
   double _hipShoulderCounterLean(Clip clip, double rootDx) {
-    final gain = _hipOppositionGain[clip.name];
+    final gain = clip.belongsToFamily('moving')
+        ? 0.005
+        : _hipOppositionGain[clip.name];
     if (gain == null) return 0;
     return -rootDx * gain;
   }
@@ -834,7 +837,12 @@ class CharacterScene {
       final v = _shortestAngle(
         lagged.jointOf(forearmId).rotation - pose.jointOf(forearmId).rotation,
       );
-      final delta = _clampMagnitude(v * _kWristFollowGain, _kWristFollowCap);
+      // "Moving" uses long shoulder-led arm arcs; a full 0.45-radian paw whip
+      // reads like a loose prop at this calmer tempo. Retain a visible delayed
+      // wrist response, but keep it subordinate to the forearm gesture.
+      final gain = clip.belongsToFamily('moving') ? 0.65 : _kWristFollowGain;
+      final cap = clip.belongsToFamily('moving') ? 0.14 : _kWristFollowCap;
+      final delta = _clampMagnitude(v * gain, cap);
       if (delta.abs() < 0.001) continue;
       joints ??= Map<String, JointPose>.of(pose.joints);
       joints[handId] = _addJointRotation(pose.jointOf(handId), delta);
@@ -925,6 +933,10 @@ class CharacterScene {
 
   Pose _shoulderCorrectedPose(Clip clip, double timeSeconds, Pose pose) {
     if (clip.limbTargets.isEmpty) return pose;
+    // This phrase has shoulder-lead keys authored against its exact hand arcs.
+    // Applying the generic reach-driven minimum on top made the shoulder flip
+    // ownership mid-gesture and visibly pop despite smooth inputs.
+    if (clip.belongsToFamily('moving')) return pose;
 
     final phase = evaluator.phaseAt(clip, timeSeconds);
     final joints = Map<String, JointPose>.of(pose.joints);
@@ -944,12 +956,15 @@ class CharacterScene {
       final side = _sideSign(target.endBoneId);
       if (side == 0) continue;
 
-      // Only a real girdle bone may shrug. In a rig whose arm hangs straight
-      // off the trunk there is nothing anatomical to rotate — and the motion
-      // validator should keep flagging that rig, not have this pass twist the
-      // trunk to fake a response.
-      final clavicleId = upper.parent!;
-      if (!clavicleId.toLowerCase().contains('clavicle')) continue;
+      // Only a real girdle bone may shrug. The anatomical arm chain may include
+      // a shoulder-socket link between humerus and clavicle, so walk upward to
+      // the nearest clavicle rather than requiring it to be the direct parent.
+      // A rig with no clavicle still receives no fake trunk twist.
+      final clavicleId = _nearestAncestorMatching(
+        upper.id,
+        (id) => id.toLowerCase().contains('clavicle'),
+      );
+      if (clavicleId == null) continue;
       joints[clavicleId] = _ensureSignedRotation(
         pose: joints[clavicleId] ?? JointPose.identity,
         signedRotation: side * 0.13 * engagement,
@@ -1063,6 +1078,28 @@ class CharacterScene {
   /// disturbed.
   Pose _shoulderLinePose(Clip clip, double timeSeconds, Pose pose) {
     if (_shoulderLinePairs.isEmpty) return pose;
+    if (clip.belongsToFamily('moving')) {
+      // One shoulder, one driver: the production jacket contour and the
+      // anatomical socket must share the same clavicle rotation. The generic
+      // path below deliberately adds gain, lag, humeral coupling, and body-bank
+      // for the punchier catalogue moves; stacking those here made the suit
+      // shoulder visibly detach from the arm despite a smooth clavicle curve.
+      final joints = Map<String, JointPose>.of(pose.joints);
+      for (final pair in _shoulderLinePairs) {
+        final lever = pose.jointOf(pair.leverId);
+        joints[pair.leverId] = JointPose(
+          rotation: pose.jointOf(pair.clavicleId).rotation,
+          scaleX: lever.scaleX,
+          scaleY: lever.scaleY,
+        );
+      }
+      return Pose(
+        joints: joints,
+        rootDx: pose.rootDx,
+        rootDy: pose.rootDy,
+        rootRotation: pose.rootRotation,
+      );
+    }
     // FOLLOW-THROUGH (R2 panels on buga/zanku/shaku: "the skull and both
     // crowns track the pocket 1:1 — the body pops as one block"): each
     // crown lags HALFWAY toward its clavicle's authored value ~1.5 frames
@@ -1335,10 +1372,7 @@ class CharacterScene {
     // `_transitionSpans`) don't get evaluated against the wrong side's clock
     // — same fix as `_danceSupportFootStabilizedWorld`'s own doc comment.
     final contactSource = _contactSourceFor(clip, timeSeconds);
-    final footAnchor = _supportFootWorldAnchor(
-      contactSource.clip,
-      _clipPhase(contactSource.clip, contactSource.timeSeconds),
-    );
+    final footAnchor = _supportFootWorldAnchorFor(clip, timeSeconds);
 
     final clearedHands = _handClearanceAdjustedSamples(clip, phase);
 
@@ -1400,6 +1434,7 @@ class CharacterScene {
       // spring (Phase 2), so the Phase-1 garnish would double-stack it.
       if (_isHandBone(target.endBoneId) &&
           _isDanceFamily(clip) &&
+          !clip.belongsToFamily('moving') &&
           handFrameDuration > 0 &&
           target.channel is! InertializedIkTargetChannel) {
         final (fdx, fdy) = _handTargetFollowThrough(
@@ -2622,6 +2657,69 @@ class CharacterScene {
         : (clip: plan.to, timeSeconds: timeSeconds);
   }
 
+  /// Continuous support-foot anchor for a blended clip.
+  ///
+  /// [_contactSourceFor] intentionally chooses one discrete side for values
+  /// that cannot be interpolated, but a world-space IK anchor is continuous
+  /// data. Switching it at `weight == .5` changed the planted leg's analytic
+  /// solution by ~1 radian in one frame and the later contact lock compensated
+  /// by teleporting the whole root (123.90s). When both phrases stand on the
+  /// same foot, blend their anchor point and strength. If they stand on
+  /// different feet, release the outgoing anchor to zero before taking the
+  /// incoming one, modelling a brief double-unweighted transfer instead of a
+  /// hard ownership flip.
+  ({String bone, double x, double y, double blend, double blendY})?
+  _supportFootWorldAnchorFor(Clip clip, double timeSeconds) {
+    final plan = clip.transitionPlan;
+    if (plan == null) {
+      return _supportFootWorldAnchor(clip, _clipPhase(clip, timeSeconds));
+    }
+
+    final fromSeconds = timeSeconds + plan.fromTimeShiftSeconds;
+    final from = _supportFootWorldAnchor(
+      plan.from,
+      _clipPhase(plan.from, fromSeconds),
+    );
+    final to = _supportFootWorldAnchor(
+      plan.to,
+      _clipPhase(plan.to, timeSeconds),
+    );
+    final weight = plan.weight.clamp(0.0, 1.0);
+
+    if (from == null && to == null) return null;
+    if (from != null && to != null && from.bone == to.bone) {
+      return (
+        bone: from.bone,
+        x: from.x + (to.x - from.x) * weight,
+        y: from.y + (to.y - from.y) * weight,
+        blend: from.blend * (1 - weight) + to.blend * weight,
+        blendY: from.blendY * (1 - weight) + to.blendY * weight,
+      );
+    }
+
+    if (weight < 0.5 && from != null) {
+      final release = 1 - smoothstep(weight * 2);
+      return (
+        bone: from.bone,
+        x: from.x,
+        y: from.y,
+        blend: from.blend * release,
+        blendY: from.blendY * release,
+      );
+    }
+    if (to != null) {
+      final engage = smoothstep((weight - 0.5) * 2);
+      return (
+        bone: to.bone,
+        x: to.x,
+        y: to.y,
+        blend: to.blend * engage,
+        blendY: to.blendY * engage,
+      );
+    }
+    return null;
+  }
+
   /// The contact-lock pins the support point, but the shoe can still rotate
   /// through the planted frames as the leg keys keep moving. That reads as
   /// sliding on a deck. During the stable middle of a dance contact, keep the
@@ -2696,6 +2794,18 @@ class CharacterScene {
       parent = rig.bone(parent)?.parent;
     }
     return false;
+  }
+
+  String? _nearestAncestorMatching(
+    String boneId,
+    bool Function(String id) matches,
+  ) {
+    var parent = rig.bone(boneId)?.parent;
+    while (parent != null) {
+      if (matches(parent)) return parent;
+      parent = rig.bone(parent)?.parent;
+    }
+    return null;
   }
 
   double _shoulderCorrectiveEngagement(IkTargetPose sample) {
@@ -3200,6 +3310,7 @@ class CharacterScene {
     // ankle (shaku's committed ratio). zanku (46 vs ±88) and buga (58 vs ±102)
     // already sit near that; azonto and sekem were the loose ones (ratio ~1.5-1.8)
     // — tighten them so their pelvis commits like shaku's (R31 roll-out).
+    if (clip.belongsToFamily('moving')) return 32;
     if (clip.name == 'zanku') return 40;
     if (clip.name == 'sekem') return 37;
     // R31 catalogue re-tune (mocap): azonto under-committed at 58 — tighten to
@@ -3375,7 +3486,8 @@ class CharacterScene {
   bool _isDanceFamily(Clip clip) => clip.transitionPlan != null
       ? _isDanceFamily(clip.transitionPlan!.from) ||
             _isDanceFamily(clip.transitionPlan!.to)
-      : clip.name == 'shaku' ||
+      : clip.belongsToFamily('moving') ||
+            clip.name == 'shaku' ||
             clip.name == 'zanku' ||
             clip.name == 'azonto' ||
             clip.name == 'buga' ||

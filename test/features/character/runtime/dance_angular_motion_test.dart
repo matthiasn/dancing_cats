@@ -57,6 +57,7 @@ void main() {
       const known = <String>{};
 
       for (final clip in [
+        CatClips.movingGroove,
         CatClips.shaku,
         CatClips.zanku,
         CatClips.azonto,
@@ -104,6 +105,7 @@ void main() {
       const known = <String>{};
 
       for (final clip in [
+        CatClips.movingGroove,
         CatClips.shaku,
         CatClips.zanku,
         CatClips.azonto,
@@ -161,6 +163,7 @@ void main() {
     const elbows = [CatBones.armLowerL, CatBones.armLowerR];
 
     final clips = {
+      'movingHookLead': CatClips.movingGroove,
       'shaku': CatClips.shaku,
       'zanku': CatClips.zanku,
       'azonto': CatClips.azonto,
@@ -185,15 +188,16 @@ void main() {
         boneIds: elbows,
       );
       for (final bone in elbows) {
-        final worst =
-            report.angularSegments
-                .where((s) => s.boneId == bone)
-                .map((s) => s.magnitude)
-                .reduce((a, b) => a > b ? a : b) *
-            speedup;
+        final worstSegment = report.angularSegments
+            .where((s) => s.boneId == bone)
+            .reduce((a, b) => a.magnitude > b.magnitude ? a : b);
+        final worst = worstSegment.magnitude * speedup;
         // ignore: avoid_print
         print(
-          'elbow ${entry.key.padRight(12)} $bone  worst ${worst.toStringAsFixed(3)}',
+          'elbow ${entry.key.padRight(12)} $bone  worst '
+          '${worst.toStringAsFixed(3)} at '
+          '${worstSegment.fromPhase.toStringAsFixed(3)}..'
+          '${worstSegment.toPhase.toStringAsFixed(3)}',
         );
         // Current clean catalogue peaks at ~0.7 (sekem); a robotic 1-frame hit
         // snap drove this well past 1.5. Raised 1.5→2.1 for the 1.5x
@@ -210,6 +214,20 @@ void main() {
               'it far past this — the defect that slipped through when only '
               'hand/torso were gated)',
         );
+        if (entry.key == 'movingHookLead') {
+          // Moving deliberately opts out of the generic velocity-driven hand
+          // follow-through spring. Re-enabling it does not violate the broad
+          // catalogue safety ceiling above, but it roughly doubles this value
+          // (0.07-0.09 -> 0.16-0.17) and visibly reels the paw back after a
+          // lyric carve. Keep a song-specific perceptual regression gate.
+          expect(
+            worst,
+            lessThan(0.12),
+            reason:
+                '$bone must follow the authored Moving path directly; a '
+                'higher value indicates the generic hand spring is active',
+          );
+        }
       }
     }
   });

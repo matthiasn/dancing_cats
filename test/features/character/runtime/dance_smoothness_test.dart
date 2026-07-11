@@ -32,9 +32,17 @@ void main() {
 
     // Per-clip ceiling: zanku's near-degenerate reach + the follow-through
     // settle earns headroom; azonto stays at the original stop-go bound.
-    const jerkCeiling = {'zanku': 58.0, 'azonto': 28.0};
+    const jerkCeiling = {
+      'movingHookLead': 28.0,
+      'zanku': 58.0,
+      'azonto': 28.0,
+    };
 
-    for (final clip in [CatClips.zanku, CatClips.azonto]) {
+    for (final clip in [
+      CatClips.movingGroove,
+      CatClips.zanku,
+      CatClips.azonto,
+    ]) {
       final report = analyzer.analyze(
         clip: clip,
         samples: 192,

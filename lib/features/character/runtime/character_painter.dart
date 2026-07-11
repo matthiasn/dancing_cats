@@ -159,14 +159,16 @@ const List<Offset> _kRimDirections = [
 /// a "crash-wide camera cut" at the boundary and a "pop back in" ~4 frames
 /// later, with flank pose/brightness snaps bracketing every handoff — the
 /// real camera was gliding smoothly the whole time.
-bool _isTrioDanceClip(Clip clip) => clip.transitionPlan != null
-    ? _isTrioDanceClip(clip.transitionPlan!.from) ||
-          _isTrioDanceClip(clip.transitionPlan!.to)
-    : clip.name == 'shaku' ||
-          clip.name == 'zanku' ||
-          clip.name == 'azonto' ||
-          clip.name == 'buga' ||
-          clip.name == 'sekem';
+bool _isTrioDanceClip(Clip clip) =>
+    clip.belongsToFamily('moving') ||
+    (clip.transitionPlan != null &&
+        (_isTrioDanceClip(clip.transitionPlan!.from) ||
+            _isTrioDanceClip(clip.transitionPlan!.to))) ||
+    clip.name == 'shaku' ||
+    clip.name == 'zanku' ||
+    clip.name == 'azonto' ||
+    clip.name == 'buga' ||
+    clip.name == 'sekem';
 
 /// Continuous 0..1 "how much dance staging should show" — [_isTrioDanceClip]
 /// as a weight instead of a boolean, so idle<->dance handoffs fade the
@@ -761,7 +763,9 @@ class CharacterPainter extends CustomPainter {
       // ~0.1 s wind-up before the hit ([bodyAnticipation] rising toward the
       // onset), then releases into the surge above on the beat — gather → snap.
       final unisonCoilBase =
-          _kUnisonFormationCoil * bodyAnticipation.clamp(0.0, 1.0) * danceWeight;
+          _kUnisonFormationCoil *
+          bodyAnticipation.clamp(0.0, 1.0) *
+          danceWeight;
       // Net scale delta before the per-role factor: coil (smaller) before the
       // hit, pop (bigger) on/after it. The two signals barely overlap — the
       // coil window is half-open up to the onset, where the pop takes over.

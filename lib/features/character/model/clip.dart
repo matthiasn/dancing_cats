@@ -51,6 +51,7 @@ class BlendedJointChannel extends JointChannel {
     this.to,
     this.fromTimeShift = 0,
     this.fromDuration = 0,
+    this.toDuration = 0,
   }) : assert(weight >= 0 && weight <= 1, 'weight must be in 0..1');
 
   final JointChannel? from;
@@ -67,10 +68,17 @@ class BlendedJointChannel extends JointChannel {
   /// The outgoing clip's duration, for wrapping [fromTimeShift]; 0 = no wrap.
   final double fromDuration;
 
+  /// The incoming clip's duration. Together with [fromDuration] this converts
+  /// the shared normalized phase back through seconds when source durations
+  /// differ (notably dance→idle transitions).
+  final double toDuration;
+
   @override
   JointPose sample(double p) {
     final a =
-        from?.sample(_shifted(p, fromTimeShift, fromDuration)) ??
+        from?.sample(
+          _shifted(p, fromTimeShift, fromDuration, toDuration),
+        ) ??
         JointPose.identity;
     final b = to?.sample(p) ?? JointPose.identity;
     return JointPose(
@@ -82,11 +90,28 @@ class BlendedJointChannel extends JointChannel {
 }
 
 /// The outgoing side's shifted-and-wrapped sample time for a blended channel.
-double _shifted(double p, double shift, double duration) {
-  if (shift == 0) return p;
-  if (duration <= 0) return p + shift;
-  final t = (p + shift) % duration;
-  return t < 0 ? t + duration : t;
+double _shifted(
+  double p,
+  double shift,
+  double fromDuration,
+  double toDuration,
+) {
+  if (fromDuration <= 0 || toDuration <= 0) return p + shift;
+  // `p` is a NORMALIZED clip phase while `shift` is explicitly measured in
+  // SECONDS (see [BlendedJointChannel.fromTimeShift]). Adding them directly
+  // sampled an unrelated part of the outgoing loop at the first transition
+  // frame — e.g. `0.62 + (-1.51 seconds)` on a six-second clip became phase
+  // `5.11`, which the cyclic channel then wrapped to `0.11` instead of the
+  // intended `0.37`. That produced the production arm teleports measured at
+  // 63.13s, 112.05s, and other setlist cuts. Convert seconds to phase first,
+  // then wrap in the phase domain.
+  // Convert the incoming normalized phase to incoming SECONDS first, apply
+  // the seconds offset, then normalize by the outgoing duration. Merely adding
+  // `shift / fromDuration` to `p` is only valid when both clips have the same
+  // duration; dance→idle exposed the mismatch as a second first-frame snap.
+  final shiftedPhase = (p * toDuration + shift) / fromDuration;
+  final wrapped = shiftedPhase - shiftedPhase.floorToDouble();
+  return wrapped < 0 ? wrapped + 1 : wrapped;
 }
 
 /// Wraps [inner] so it samples a warped phase instead of the raw one.
@@ -624,6 +649,7 @@ class BlendedIkTargetChannel extends IkTargetChannel {
     this.to,
     this.fromTimeShift = 0,
     this.fromDuration = 0,
+    this.toDuration = 0,
   }) : assert(weight >= 0 && weight <= 1, 'weight must be in 0..1');
 
   final IkTargetChannel? from;
@@ -633,10 +659,13 @@ class BlendedIkTargetChannel extends IkTargetChannel {
   /// See [BlendedJointChannel.fromTimeShift].
   final double fromTimeShift;
   final double fromDuration;
+  final double toDuration;
 
   @override
   IkTargetPose sample(double p) {
-    final a = from?.sample(_shifted(p, fromTimeShift, fromDuration));
+    final a = from?.sample(
+      _shifted(p, fromTimeShift, fromDuration, toDuration),
+    );
     final b = to?.sample(p);
     if (a == null && b == null) {
       return const IkTargetPose(x: 0, y: 0, weight: 0);
@@ -1209,6 +1238,7 @@ class BlendedRootChannel extends RootChannel {
     this.to,
     this.fromTimeShift = 0,
     this.fromDuration = 0,
+    this.toDuration = 0,
   }) : assert(weight >= 0 && weight <= 1, 'weight must be in 0..1');
 
   final RootChannel? from;
@@ -1218,11 +1248,14 @@ class BlendedRootChannel extends RootChannel {
   /// See [BlendedJointChannel.fromTimeShift].
   final double fromTimeShift;
   final double fromDuration;
+  final double toDuration;
 
   @override
   ({double dx, double dy, double rotation}) sample(double p) {
     final a =
-        from?.sample(_shifted(p, fromTimeShift, fromDuration)) ??
+        from?.sample(
+          _shifted(p, fromTimeShift, fromDuration, toDuration),
+        ) ??
         (dx: 0.0, dy: 0.0, rotation: 0.0);
     final b = to?.sample(p) ?? (dx: 0.0, dy: 0.0, rotation: 0.0);
     return (
@@ -1708,6 +1741,7 @@ class Clip {
     required this.name,
     required this.duration,
     required this.channels,
+    this.family,
     this.loop = true,
     this.root = const SineRootChannel(),
     this.locomotionSpeed = 0,
@@ -1739,6 +1773,20 @@ class Clip {
 
   /// Display/lookup name.
   final String name;
+
+  /// Semantic movement family shared by distinct choreographic phrases.
+  ///
+  /// Runtime behavior should key off this value instead of overloading [name]:
+  /// `movingHookLead`, `movingVerseShuffle`, and a transition between them are
+  /// different clips, but all belong to the `moving` family.
+  final String? family;
+
+  bool belongsToFamily(String value) {
+    if (family == value) return true;
+    final plan = transitionPlan;
+    return plan != null &&
+        (plan.from.belongsToFamily(value) || plan.to.belongsToFamily(value));
+  }
 
   /// Scales the shared dance head treatment for this clip in [0, 1], applied in
   /// `CharacterScene`'s rigid-head pass. At `1.0` (the original behavior, shipped
@@ -1922,6 +1970,7 @@ Clip blendedClip({
   String? name,
   ClipBlendMask blendMask = ClipBlendMask.full,
   double fromTimeShiftSeconds = 0,
+  double? fromPlaybackTimeShiftSeconds,
 }) {
   assert(weight >= 0 && weight <= 1, 'weight must be in 0..1');
   final channelIds = {...from.channels.keys, ...to.channels.keys};
@@ -1933,15 +1982,16 @@ Clip blendedClip({
   };
   final targetIds = {...fromTargets.keys, ...toTargets.keys};
   final transitionWeight = _smoothUnit(weight);
+  final rootWeight = blendMask.rootWeight(weight);
   final supportFootAnchorStrength = _transitionSupportAnchorStrength(
     from,
     to,
     transitionWeight,
   );
-  final rootWeight = blendMask.rootWeight(weight);
 
   return Clip(
     name: name ?? '${from.name}->${to.name}',
+    family: from.family == to.family ? from.family : null,
     duration: to.duration,
     loop: from.loop && to.loop,
     channels: {
@@ -1952,6 +2002,7 @@ Clip blendedClip({
           weight: blendMask.jointWeight(id, weight),
           fromTimeShift: fromTimeShiftSeconds,
           fromDuration: from.duration,
+          toDuration: to.duration,
         ),
     },
     root: BlendedRootChannel(
@@ -1960,6 +2011,7 @@ Clip blendedClip({
       weight: rootWeight,
       fromTimeShift: fromTimeShiftSeconds,
       fromDuration: from.duration,
+      toDuration: to.duration,
     ),
     locomotionSpeed: _lerp(
       from.locomotionSpeed,
@@ -1977,6 +2029,7 @@ Clip blendedClip({
           blendMask.limbTargetWeight(id, weight),
           fromTimeShift: fromTimeShiftSeconds,
           fromDuration: from.duration,
+          toDuration: to.duration,
         ),
     ],
     supportFootWorldAnchor: supportFootAnchorStrength > 0,
@@ -2023,7 +2076,12 @@ Clip blendedClip({
       from: from,
       to: to,
       weight: weight,
-      fromTimeShiftSeconds: fromTimeShiftSeconds,
+      // Channel sampling receives normalized local phase and therefore uses a
+      // local-time offset. Scene/painter transition logic still owns absolute
+      // playback seconds (for contacts, feet and ensemble lanes), so it needs
+      // the separate absolute-clock offset when the caller has one.
+      fromTimeShiftSeconds:
+          fromPlaybackTimeShiftSeconds ?? fromTimeShiftSeconds,
     ),
     dynamics: DanceDynamics.lerp(from.dynamics, to.dynamics, rootWeight),
   );
@@ -2098,6 +2156,7 @@ LimbIkTarget _blendLimbTarget(
   double weight, {
   double fromTimeShift = 0,
   double fromDuration = 0,
+  double toDuration = 0,
 }) {
   final template = weight < 0.5 ? from ?? to! : to ?? from!;
   return LimbIkTarget(
@@ -2111,6 +2170,7 @@ LimbIkTarget _blendLimbTarget(
       weight: weight,
       fromTimeShift: fromTimeShift,
       fromDuration: fromDuration,
+      toDuration: toDuration,
     ),
     bendDirection: template.bendDirection,
   );

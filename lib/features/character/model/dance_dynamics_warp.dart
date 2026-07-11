@@ -79,6 +79,7 @@ Clip upperBodyDynamicsWarpedClip(
 
   return Clip(
     name: clip.name,
+    family: clip.family,
     duration: clip.duration,
     channels: channels,
     loop: clip.loop,
@@ -176,6 +177,7 @@ Clip effortModulatedClip(
   if (!changed) return clip;
   return Clip(
     name: clip.name,
+    family: clip.family,
     duration: clip.duration,
     channels: clip.channels,
     loop: clip.loop,
@@ -187,7 +189,8 @@ Clip effortModulatedClip(
     limbTargets: limbTargets,
     supportFootWorldAnchor: clip.supportFootWorldAnchor,
     supportFootWorldAnchorStrength: clip.supportFootWorldAnchorStrength,
-    supportFootWorldAnchorVerticalBoost: clip.supportFootWorldAnchorVerticalBoost,
+    supportFootWorldAnchorVerticalBoost:
+        clip.supportFootWorldAnchorVerticalBoost,
     danceHeadBobScale: clip.danceHeadBobScale,
     danceHeadLevelClampMin: clip.danceHeadLevelClampMin,
     enforceSoleFloor: clip.enforceSoleFloor,
@@ -211,6 +214,7 @@ Clip bodyGrooveScaledClip(Clip clip, double scale) {
   if (scale == 1.0 || !clip.loop || clip.duration <= 0) return clip;
   return Clip(
     name: clip.name,
+    family: clip.family,
     duration: clip.duration,
     channels: clip.channels,
     loop: clip.loop,
@@ -222,7 +226,8 @@ Clip bodyGrooveScaledClip(Clip clip, double scale) {
     limbTargets: clip.limbTargets,
     supportFootWorldAnchor: clip.supportFootWorldAnchor,
     supportFootWorldAnchorStrength: clip.supportFootWorldAnchorStrength,
-    supportFootWorldAnchorVerticalBoost: clip.supportFootWorldAnchorVerticalBoost,
+    supportFootWorldAnchorVerticalBoost:
+        clip.supportFootWorldAnchorVerticalBoost,
     danceHeadBobScale: clip.danceHeadBobScale,
     danceHeadLevelClampMin: clip.danceHeadLevelClampMin,
     enforceSoleFloor: clip.enforceSoleFloor,
@@ -243,6 +248,7 @@ Clip accentDroppedClip(Clip clip, double dropDy) {
   if (dropDy == 0 || clip.duration <= 0) return clip;
   return Clip(
     name: clip.name,
+    family: clip.family,
     duration: clip.duration,
     channels: clip.channels,
     loop: clip.loop,
@@ -254,7 +260,8 @@ Clip accentDroppedClip(Clip clip, double dropDy) {
     limbTargets: clip.limbTargets,
     supportFootWorldAnchor: clip.supportFootWorldAnchor,
     supportFootWorldAnchorStrength: clip.supportFootWorldAnchorStrength,
-    supportFootWorldAnchorVerticalBoost: clip.supportFootWorldAnchorVerticalBoost,
+    supportFootWorldAnchorVerticalBoost:
+        clip.supportFootWorldAnchorVerticalBoost,
     danceHeadBobScale: clip.danceHeadBobScale,
     danceHeadLevelClampMin: clip.danceHeadLevelClampMin,
     enforceSoleFloor: clip.enforceSoleFloor,
@@ -315,6 +322,7 @@ Clip shoulderWoundClip(Clip clip, int lane) {
   if (!changed) return clip;
   return Clip(
     name: clip.name,
+    family: clip.family,
     duration: clip.duration,
     channels: channels,
     loop: clip.loop,
@@ -326,7 +334,8 @@ Clip shoulderWoundClip(Clip clip, int lane) {
     limbTargets: clip.limbTargets,
     supportFootWorldAnchor: clip.supportFootWorldAnchor,
     supportFootWorldAnchorStrength: clip.supportFootWorldAnchorStrength,
-    supportFootWorldAnchorVerticalBoost: clip.supportFootWorldAnchorVerticalBoost,
+    supportFootWorldAnchorVerticalBoost:
+        clip.supportFootWorldAnchorVerticalBoost,
     danceHeadBobScale: clip.danceHeadBobScale,
     danceHeadLevelClampMin: clip.danceHeadLevelClampMin,
     enforceSoleFloor: clip.enforceSoleFloor,
@@ -353,10 +362,12 @@ Clip fastBaseOrbitedClip(
   Clip clip,
   int lane, {
   Set<String> boneIds = kDanceEffortHandBoneIds,
+  double radius = kDanceFastBaseOrbitRadius,
+  int revs = kDanceFastBaseOrbitRevs,
 }) {
   if (!clip.loop ||
       clip.duration <= 0 ||
-      kDanceFastBaseOrbitRadius == 0 ||
+      radius == 0 ||
       clip.limbTargets.isEmpty) {
     return clip;
   }
@@ -372,8 +383,8 @@ Clip fastBaseOrbitedClip(
         target.withChannel(
           OrbitedIkTargetChannel(
             target.channel,
-            radius: kDanceFastBaseOrbitRadius,
-            revs: kDanceFastBaseOrbitRevs,
+            radius: radius,
+            revs: revs,
             phase: lanePhase,
           ),
         ),
@@ -386,6 +397,7 @@ Clip fastBaseOrbitedClip(
   if (!changed) return clip;
   return Clip(
     name: clip.name,
+    family: clip.family,
     duration: clip.duration,
     channels: clip.channels,
     loop: clip.loop,
@@ -397,7 +409,8 @@ Clip fastBaseOrbitedClip(
     limbTargets: limbTargets,
     supportFootWorldAnchor: clip.supportFootWorldAnchor,
     supportFootWorldAnchorStrength: clip.supportFootWorldAnchorStrength,
-    supportFootWorldAnchorVerticalBoost: clip.supportFootWorldAnchorVerticalBoost,
+    supportFootWorldAnchorVerticalBoost:
+        clip.supportFootWorldAnchorVerticalBoost,
     danceHeadBobScale: clip.danceHeadBobScale,
     danceHeadLevelClampMin: clip.danceHeadLevelClampMin,
     enforceSoleFloor: clip.enforceSoleFloor,

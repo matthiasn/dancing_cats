@@ -930,6 +930,7 @@ void main() {
 }
 
 bool _isCatalogueDanceClip(Clip clip) =>
+    clip.name == CatClips.movingGroove.name ||
     clip.name == CatClips.shaku.name ||
     clip.name == CatClips.zanku.name ||
     clip.name == CatClips.azonto.name ||

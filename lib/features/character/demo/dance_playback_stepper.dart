@@ -183,8 +183,22 @@ class DancePlaybackStepper {
     // here on the first downbeat at/after its own choreo statement's start
     // ([DanceStage.segmentStartSec]), so each entry opens on its own bar 1
     // — the dancer takes the new move on the one.
-    final raw = _rebasedStage(perf, rawGlobal, pos);
     final previousRaw = _rawStage;
+    // A semantic section boundary may select the exact same trio again. In
+    // that case restarting the same clip on the new section's phrase anchor is
+    // not a choreographic cut at all; it is an invisible clock reset. Because
+    // the name-only signature correctly says "same move", no blend follows and
+    // the whole skeleton teleports to the new phase (measured at 74.03s: 36u
+    // hands / 52u foot). Carry the existing statement anchor across identical
+    // trios so the dancer simply keeps doing the phrase through the boundary.
+    final continuedGlobal =
+        previousRaw != null &&
+            previousRaw.energetic &&
+            rawGlobal.energetic &&
+            _stageSignature(previousRaw) == _stageSignature(rawGlobal)
+        ? _stageWithSegmentStart(rawGlobal, previousRaw.segmentStartSec)
+        : rawGlobal;
+    final raw = _rebasedStage(perf, continuedGlobal, pos);
     if (previousRaw == null) {
       _rawStage = raw;
       _transition = null;
@@ -242,8 +256,14 @@ class DancePlaybackStepper {
     final elapsed = transition.elapsed + dt;
     // Dance↔dance keeps the tight window (hits survive); easing into or out
     // of REST takes a longer, calmer settle.
-    final window = transition.from.energetic && raw.energetic
-        ? kDanceMoveTransitionSeconds
+    final danceToDance = transition.from.energetic && raw.energetic;
+    final movingFamilyTransition =
+        transition.from.lead.belongsToFamily('moving') ||
+        raw.lead.belongsToFamily('moving');
+    final window = danceToDance
+        ? (movingFamilyTransition
+              ? _movingTransitionSeconds(transition.from, raw)
+              : kDanceMoveTransitionSeconds)
         : kDanceRestTransitionSeconds;
     if (elapsed >= window) {
       _transition = null;
@@ -259,7 +279,24 @@ class DancePlaybackStepper {
       from: transition.from,
       to: raw,
       weight: weight,
-      fromTimeShiftSeconds: fromSeconds - raw.seconds,
+      // A Clip is sampled with normalized LOCAL phase, so its channel mixer no
+      // longer knows how many incoming loops elapsed in absolute song time.
+      // Compare the outgoing clock with the incoming clip's local seconds;
+      // subtracting absolute `raw.seconds` only happened to work when both
+      // clips shared a duration. At dance→idle it selected an unrelated source
+      // pose and produced the measured one-frame limb teleport at 138.03s.
+      fromTimeShiftSeconds:
+          fromSeconds - _localClipSeconds(raw.seconds, raw.lead.duration),
+      fromPlaybackTimeShiftSeconds: fromSeconds - raw.seconds,
+      // Moving's body, support and arms are authored as one whole-body phrase.
+      // The catalogue mask deliberately makes feet/body arrive early and hands
+      // late, but on these connected arcs that staging compresses each limb's
+      // travel into a smaller slice of the already-short handoff and reads as
+      // mechanical reassembly. Blend the song phrases coherently over the full
+      // one-beat window; keep the hit-preserving staged mask for the catalogue.
+      blendMask: danceToDance && movingFamilyTransition
+          ? ClipBlendMask.full
+          : _danceMoveBlendMask,
     );
   }
 
@@ -302,7 +339,12 @@ class DancePlaybackStepper {
     DanceStage to,
     double pos,
   ) {
-    if (perf == null || !from.energetic || !to.energetic) return to.seconds;
+    if (perf == null || !from.energetic) return to.seconds;
+    // A dance→rest transition must keep the OUTGOING dance on its own phrase
+    // clock too. Reusing idle's raw seconds here jumped the outgoing clip to an
+    // unrelated phase on the first blend frame (full-song probe: 138.03s,
+    // 62-unit right-hand and 89-unit left-foot teleports). Idle has no musical
+    // pose clock worth preserving; the dancing side does.
     return perf.map.clipSecondsAt(
       pos,
       clipDuration: from.lead.duration,
@@ -398,6 +440,29 @@ const Map<String, double> kDanceEntryPhaseOffset = {'azonto': 0.65};
 /// It is intentionally less than half a beat at 120 BPM: long enough to remove
 /// robotic pose cuts, short enough to preserve Afrobeats hits and foot plants.
 const double kDanceMoveTransitionSeconds = 0.18;
+
+/// Song-authored Moving phrases carry broad, multi-beat arm paths. Changing
+/// between two of them in the catalogue's 0.18s hit-preserving window forces a
+/// hand to traverse an overhead-to-low delta in roughly nine frames, which the
+/// production probe measured as 20–30 rig units per 60fps frame even after the
+/// seconds/phase teleport bug was fixed. A little over one beat keeps the cut
+/// musical while allowing the overhead payoff to pour into the next phrase;
+/// at exactly 0.5s the 117.4s handoff was continuous numerically but still read
+/// as a small teleport in the exported silhouette.
+const double kMovingPhraseTransitionSeconds = 0.65;
+
+/// The hook-to-answer exchange has the largest deliberate silhouette change
+/// in Moving: lead crown, support leg, ribs and both arm diagonals all trade
+/// roles. A generic one-beat crossfade made every part travel fastest on the
+/// same frame (112.36s in the production probe), which reads as one residual
+/// whole-body teleport even though no individual channel is discontinuous.
+/// Give that named exchange two beats; other Moving handoffs stay tighter.
+const double kMovingHookAnswerTransitionSeconds = 1.0;
+
+double _movingTransitionSeconds(DanceStage from, DanceStage to) =>
+    from.lead.name == 'movingHookLead' && to.lead.name == 'movingHookSideAnswer'
+    ? kMovingHookAnswerTransitionSeconds
+    : kMovingPhraseTransitionSeconds;
 
 /// The longest a dance->dance handoff may be HELD waiting for the next beat
 /// (the cut-quantize above). One beat at 120 BPM is 0.5s; the guard only
@@ -541,6 +606,24 @@ String _stageSignature(DanceStage stage) => [
   for (final clip in stage.ensemble) clip.name,
 ].join('|');
 
+DanceStage _stageWithSegmentStart(DanceStage stage, double segmentStartSec) => (
+  lead: stage.lead,
+  ensemble: stage.ensemble,
+  seconds: stage.seconds,
+  section: stage.section,
+  energetic: stage.energetic,
+  synchronous: stage.synchronous,
+  segmentStartSec: segmentStartSec,
+  dynamics: stage.dynamics,
+  energyLevel: stage.energyLevel,
+);
+
+double _localClipSeconds(double seconds, double duration) {
+  if (duration <= 0) return seconds;
+  final local = seconds % duration;
+  return local < 0 ? local + duration : local;
+}
+
 bool _canBlendStages(DanceStage from, DanceStage to) =>
     // Blending needs matching member counts; everything else crossfades.
     // Idle↔dance and duration-mismatched stages used to HARD-CUT here — the
@@ -554,14 +637,17 @@ DanceStage _blendStage({
   required DanceStage to,
   required double weight,
   double fromTimeShiftSeconds = 0,
+  double? fromPlaybackTimeShiftSeconds,
+  ClipBlendMask blendMask = _danceMoveBlendMask,
 }) => (
   lead: blendedClip(
     from: from.lead,
     to: to.lead,
     weight: weight,
     name: '${from.lead.name}->${to.lead.name}',
-    blendMask: _danceMoveBlendMask,
+    blendMask: blendMask,
     fromTimeShiftSeconds: fromTimeShiftSeconds,
+    fromPlaybackTimeShiftSeconds: fromPlaybackTimeShiftSeconds,
   ),
   ensemble: [
     for (var i = 0; i < to.ensemble.length; i++)
@@ -570,8 +656,9 @@ DanceStage _blendStage({
         to: to.ensemble[i],
         weight: weight,
         name: '${from.ensemble[i].name}->${to.ensemble[i].name}',
-        blendMask: _danceMoveBlendMask,
+        blendMask: blendMask,
         fromTimeShiftSeconds: fromTimeShiftSeconds,
+        fromPlaybackTimeShiftSeconds: fromPlaybackTimeShiftSeconds,
       ),
   ],
   seconds: to.seconds,
