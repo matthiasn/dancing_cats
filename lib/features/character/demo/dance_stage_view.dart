@@ -588,10 +588,21 @@ Clip productionDanceClip(
       effort,
       danceBodyGrooveScaleOf(energyLevel),
     );
-    // 5. Continuous shoulder/chest WIND: the upper body keeps rolling so it is
+    // 5. CREW MICROTIMING: the backups anticipate/drag by a few tens of
+    // milliseconds in their upper bodies only. Feet, root, and support changes
+    // stay on the shared clock, so the formation lands together without the
+    // machine-perfect simultaneous arm reversals of a cloned timeline.
+    final microTimed = songGroove
+        ? upperBodyPhaseOffsetClip(
+            grooved,
+            kDanceLaneUpperBodyPhaseOffsets[lane],
+            upperBodyBoneIds: kDanceUpperBodyWarpBoneIds,
+          )
+        : grooved;
+    // 6. Continuous shoulder/chest WIND: the upper body keeps rolling so it is
     // never a static posed post while the hips bounce (the pocket is upper-
     // body-led — coach).
-    final wound = shoulderWoundClip(grooved, lane);
+    final wound = shoulderWoundClip(microTimed, lane);
     final transition = clip.transitionPlan;
     if (transition == null) return wound;
 

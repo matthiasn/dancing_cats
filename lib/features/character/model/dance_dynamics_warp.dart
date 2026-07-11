@@ -9,6 +9,13 @@ import 'package:dancing_cats/features/character/model/dance_dynamics.dart';
 /// boundaries regardless of dynamics.
 const int kDanceBeatsPerPhraseLoop = 8;
 
+/// Per-lane upper-body microtiming in normalized clip phase. The lead owns the
+/// beat; backup-left anticipates by roughly 24ms and backup-right drags by
+/// roughly 32ms at Moving's production clock (one 6s authored loop played over
+/// four real seconds). Only upper-body channels and hand IK receive this shift;
+/// the support chain stays on the shared beat clock.
+const List<double> kDanceLaneUpperBodyPhaseOffsets = [0, 0.006, -0.008];
+
 /// Global strength of the upper-body Effort time warp. A perceptual dial
 /// (ADR CHAR-0001 D6) tuned by eye on rendered 60fps motion per ADR
 /// CHAR-0003's rollout: `0` was the plumbing PR's provable-no-op value.
@@ -73,6 +80,65 @@ Clip upperBodyDynamicsWarpedClip(
               target.channel is! InertializedIkTargetChannel
           ? target.withChannel(
               PhaseWarpedIkTargetChannel(target.channel, warpPhase),
+            )
+          : target,
+  ];
+
+  return Clip(
+    name: clip.name,
+    family: clip.family,
+    duration: clip.duration,
+    channels: channels,
+    loop: clip.loop,
+    root: clip.root,
+    locomotionSpeed: clip.locomotionSpeed,
+    groundSpans: clip.groundSpans,
+    contactSpans: clip.contactSpans,
+    contactPinning: clip.contactPinning,
+    limbTargets: limbTargets,
+    supportFootWorldAnchor: clip.supportFootWorldAnchor,
+    supportFootWorldAnchorStrength: clip.supportFootWorldAnchorStrength,
+    supportFootWorldAnchorVerticalBoost:
+        clip.supportFootWorldAnchorVerticalBoost,
+    danceHeadBobScale: clip.danceHeadBobScale,
+    danceHeadLevelClampMin: clip.danceHeadLevelClampMin,
+    enforceSoleFloor: clip.enforceSoleFloor,
+    transitionPlan: clip.transitionPlan,
+    zOrderSwaps: clip.zOrderSwaps,
+    dynamics: clip.dynamics,
+  );
+}
+
+/// Returns [clip] with a constant cyclic phase offset applied only to
+/// [upperBodyBoneIds] and matching hand IK targets.
+///
+/// This creates crew microtiming without the foot pops caused by shifting a
+/// whole dancer's sampled time. Every support/contact-critical channel remains
+/// the original object and therefore samples bit-identically.
+Clip upperBodyPhaseOffsetClip(
+  Clip clip,
+  double phaseOffset, {
+  required Set<String> upperBodyBoneIds,
+}) {
+  if (phaseOffset == 0 || !clip.loop || clip.duration <= 0) return clip;
+
+  double shiftedPhase(double p) {
+    var shifted = p + phaseOffset;
+    shifted -= shifted.floorToDouble();
+    return shifted < 0 ? shifted + 1 : shifted;
+  }
+
+  final channels = {
+    for (final entry in clip.channels.entries)
+      entry.key: upperBodyBoneIds.contains(entry.key)
+          ? PhaseWarpedJointChannel(entry.value, shiftedPhase)
+          : entry.value,
+  };
+  final limbTargets = [
+    for (final target in clip.limbTargets)
+      upperBodyBoneIds.contains(target.endBoneId)
+          ? target.withChannel(
+              PhaseWarpedIkTargetChannel(target.channel, shiftedPhase),
             )
           : target,
   ];

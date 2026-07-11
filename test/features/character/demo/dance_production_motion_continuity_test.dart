@@ -15,6 +15,7 @@ typedef _Point = ({double x, double y});
 typedef _MotionSpike = ({
   double magnitude,
   double seconds,
+  int lane,
   String bone,
   String clip,
   double? transitionWeight,
@@ -40,12 +41,17 @@ void main() {
       words: parseDanceWords(wordsJson),
     );
     final stepper = DancePlaybackStepper();
-    final scene = CharacterScene(buildCatInSuitRig());
-    final previous = <String, _Point>{};
-    final previousVelocity = <String, _Point>{};
+    final scenes = [
+      for (var lane = 0; lane < 3; lane++) CharacterScene(buildCatInSuitRig()),
+    ];
+    final previous = [for (var lane = 0; lane < 3; lane++) <String, _Point>{}];
+    final previousVelocity = [
+      for (var lane = 0; lane < 3; lane++) <String, _Point>{},
+    ];
     _MotionSpike maxSpeed = (
       magnitude: 0.0,
       seconds: 0.0,
+      lane: 0,
       bone: '',
       clip: '',
       transitionWeight: null,
@@ -65,53 +71,60 @@ void main() {
     for (var t = 0.0; t <= 144.066; t += dt) {
       stepper.advance(performance, const [], t, dt);
       final stage = stepper.stage!;
-      final clip = productionDanceClip(
-        stage.lead,
-        stage.dynamics.first,
-        0,
-        stage.energyLevel,
-      );
-      final world = scene.frameAt(clip: clip, timeSeconds: stage.seconds).world;
-      for (final id in ids) {
-        final origin = world[id]!.origin;
-        final point = (x: origin.x, y: origin.y);
-        final prior = previous[id];
-        previous[id] = point;
-        if (prior == null) continue;
-        final velocity = (x: point.x - prior.x, y: point.y - prior.y);
-        final speed = math.sqrt(
-          velocity.x * velocity.x + velocity.y * velocity.y,
+      for (var lane = 0; lane < stage.ensemble.length; lane++) {
+        final clip = productionDanceClip(
+          stage.ensemble[lane],
+          stage.dynamics[lane],
+          lane,
+          stage.energyLevel,
         );
-        final plan = stage.lead.transitionPlan;
-        if (speed > maxSpeed.magnitude) {
-          maxSpeed = (
-            magnitude: speed,
-            seconds: t,
-            bone: id,
-            clip: stage.lead.name,
-            transitionWeight: plan?.weight,
+        final world = scenes[lane]
+            .frameAt(clip: clip, timeSeconds: stage.seconds)
+            .world;
+        for (final id in ids) {
+          final origin = world[id]!.origin;
+          final point = (x: origin.x, y: origin.y);
+          final prior = previous[lane][id];
+          previous[lane][id] = point;
+          if (prior == null) continue;
+          final velocity = (x: point.x - prior.x, y: point.y - prior.y);
+          final speed = math.sqrt(
+            velocity.x * velocity.x + velocity.y * velocity.y,
           );
-        }
-        final priorVelocity = previousVelocity[id];
-        previousVelocity[id] = velocity;
-        if (priorVelocity == null) continue;
-        final ax = velocity.x - priorVelocity.x;
-        final ay = velocity.y - priorVelocity.y;
-        final acceleration = math.sqrt(ax * ax + ay * ay);
-        if (acceleration > maxAcceleration.magnitude) {
-          maxAcceleration = (
-            magnitude: acceleration,
-            seconds: t,
-            bone: id,
-            clip: stage.lead.name,
-            transitionWeight: plan?.weight,
-          );
+          final plan = stage.ensemble[lane].transitionPlan;
+          if (speed > maxSpeed.magnitude) {
+            maxSpeed = (
+              magnitude: speed,
+              seconds: t,
+              lane: lane,
+              bone: id,
+              clip: stage.ensemble[lane].name,
+              transitionWeight: plan?.weight,
+            );
+          }
+          final priorVelocity = previousVelocity[lane][id];
+          previousVelocity[lane][id] = velocity;
+          if (priorVelocity == null) continue;
+          final ax = velocity.x - priorVelocity.x;
+          final ay = velocity.y - priorVelocity.y;
+          final acceleration = math.sqrt(ax * ax + ay * ay);
+          if (acceleration > maxAcceleration.magnitude) {
+            maxAcceleration = (
+              magnitude: acceleration,
+              seconds: t,
+              lane: lane,
+              bone: id,
+              clip: stage.ensemble[lane].name,
+              transitionWeight: plan?.weight,
+            );
+          }
         }
       }
     }
 
     String describe(_MotionSpike spike) =>
         '${spike.seconds.toStringAsFixed(3)} '
+        'lane ${spike.lane} '
         '${spike.bone.padRight(12)} ${spike.magnitude.toStringAsFixed(2)} '
         '${spike.clip} w=${spike.transitionWeight?.toStringAsFixed(3) ?? '-'}';
     // The restored two-bar Moving clock intentionally carries faster authored

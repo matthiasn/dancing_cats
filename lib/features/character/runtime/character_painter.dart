@@ -2074,13 +2074,11 @@ class CharacterPainter extends CustomPainter {
   ) {
     if (duration <= 0) return 0;
     if (memberCount >= 3) {
-      // Dance crews should breathe during transitions but land their accents
-      // together. Keep trio variance in pose, arms, faces, and formation; do
-      // not offset the actual sampled time, because even sub-frame lead/trail
-      // offsets cross support-foot handoffs at different moments and make side
-      // dancers pop while the centre lead stays smooth.
-      // A trio crew breathes in pose/arms/faces/formation but lands its accents
-      // together, so it takes no per-member sampled-time offset.
+      // Never offset the WHOLE member clock: even sub-frame lead/trail offsets
+      // cross support-foot handoffs at different moments and make side dancers
+      // pop while the centre lead stays smooth. The production clip may still
+      // offset upper-body channels only (see upperBodyPhaseOffsetClip), which
+      // loosens arm arrivals while feet and accents keep this shared clock.
       return 0;
     }
     if (index == 0) return 0;
