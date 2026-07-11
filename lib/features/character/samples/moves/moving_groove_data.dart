@@ -1855,6 +1855,57 @@ const _movingChorusTravelFootRKeys = [
   DanceJointKey(32),
 ];
 
+// Small authored paw pronation/supination rides on top of the runtime's delayed
+// forearm-follow. The keys crest after the clavicle but around the hand apex;
+// they articulate the paw without the catalogue moves' large wrist flicks.
+const _movingChorusTravelHandLKeys = [
+  DanceJointKey(0, rotation: 0.06),
+  DanceJointKey(4, rotation: -0.10),
+  DanceJointKey(7, rotation: -0.24),
+  DanceJointKey(10, rotation: -0.04),
+  DanceJointKey(14, rotation: 0.12),
+  DanceJointKey(18, rotation: 0.02),
+  DanceJointKey(24, rotation: -0.08),
+  DanceJointKey(28, rotation: -0.26),
+  DanceJointKey(31, rotation: 0.02),
+  DanceJointKey(32, rotation: 0.06),
+];
+
+const _movingChorusTravelHandRKeys = [
+  DanceJointKey(0, rotation: 0.08),
+  DanceJointKey(5, rotation: -0.10),
+  DanceJointKey(10, rotation: 0.04),
+  DanceJointKey(15, rotation: 0.24),
+  DanceJointKey(18, rotation: 0.06),
+  DanceJointKey(22, rotation: -0.10),
+  DanceJointKey(26, rotation: 0.08),
+  DanceJointKey(30, rotation: -0.06),
+  DanceJointKey(32, rotation: 0.08),
+];
+
+// The shoulder initiates each overhead pour before the corresponding paw.
+const _movingChorusTravelClavicleLKeys = [
+  DanceJointKey(0),
+  DanceJointKey(3, rotation: 0.008),
+  DanceJointKey(5, rotation: 0.024),
+  DanceJointKey(9, rotation: -0.006),
+  DanceJointKey(16),
+  // Preserve the already-smooth inherited hook timing for the second rise.
+  DanceJointKey(20, rotation: -0.01),
+  DanceJointKey(24, rotation: 0.018),
+  DanceJointKey(28, rotation: -0.008),
+  DanceJointKey(32),
+];
+
+const _movingChorusTravelClavicleRKeys = [
+  DanceJointKey(0),
+  DanceJointKey(9, rotation: 0.005),
+  DanceJointKey(12, rotation: -0.024),
+  DanceJointKey(16, rotation: 0.006),
+  DanceJointKey(24),
+  DanceJointKey(32),
+];
+
 // Bridge rock: the target paths visibly pass through double support, but the
 // contact metadata names one stabilisation owner at a time. CharacterScene's
 // support anchor is singular; overlapping ownership would make two planted
@@ -2016,6 +2067,32 @@ const _movingBridgeRockFootRKeys = [
   DanceJointKey(26, rotation: -0.08),
   DanceJointKey(28),
   DanceJointKey(32),
+];
+
+// The bridge has a slower wrist pour than the travelling chorus: one change of
+// facing per diagonal rock, delayed behind the shoulder and elbow pathway.
+const _movingBridgeRockHandLKeys = [
+  DanceJointKey(0, rotation: 0.08),
+  DanceJointKey(5, rotation: -0.04),
+  DanceJointKey(9, rotation: -0.18),
+  DanceJointKey(13, rotation: -0.02),
+  DanceJointKey(16, rotation: 0.10),
+  DanceJointKey(21, rotation: -0.04),
+  DanceJointKey(25, rotation: -0.20),
+  DanceJointKey(29, rotation: -0.02),
+  DanceJointKey(32, rotation: 0.08),
+];
+
+const _movingBridgeRockHandRKeys = [
+  DanceJointKey(0, rotation: 0.18),
+  DanceJointKey(4, rotation: 0.02),
+  DanceJointKey(8, rotation: -0.08),
+  DanceJointKey(13, rotation: 0.04),
+  DanceJointKey(17, rotation: 0.20),
+  DanceJointKey(21, rotation: 0.02),
+  DanceJointKey(24, rotation: -0.08),
+  DanceJointKey(29, rotation: 0.04),
+  DanceJointKey(32, rotation: 0.18),
 ];
 
 // Backup 1: one low scoop per bar. It deliberately HOLDS its counter-pose
@@ -2457,6 +2534,112 @@ const _movingBreakdownHandRTargetKeys = [
   DanceIkTargetKey(24, x: 76, y: -28, bendDirection: 1),
   DanceIkTargetKey(28, x: 102, y: -72, bendDirection: 1),
   DanceIkTargetKey(32, x: 72, y: -24, bendDirection: 1),
+];
+
+// Phrase-specific paw facing. These are intentionally smaller and more
+// sustained than the catalogue's hit flicks: the paw turns through an arm arc,
+// settles after the endpoint, and never stays welded to the forearm.
+const _movingGrooveLowCounterHandLKeys = [
+  DanceJointKey(0, rotation: 0.05),
+  DanceJointKey(5, rotation: -0.04),
+  DanceJointKey(9, rotation: -0.16),
+  DanceJointKey(13, rotation: -0.03),
+  DanceJointKey(16, rotation: 0.04),
+  DanceJointKey(24, rotation: -0.02),
+  DanceJointKey(32, rotation: 0.05),
+];
+
+const _movingGrooveLowCounterHandRKeys = [
+  DanceJointKey(0, rotation: -0.03),
+  DanceJointKey(16, rotation: 0.04),
+  DanceJointKey(21, rotation: 0.06),
+  DanceJointKey(25, rotation: 0.17),
+  DanceJointKey(29, rotation: 0.03),
+  DanceJointKey(32, rotation: -0.03),
+];
+
+const _movingGrooveSideAnswerHandLKeys = [
+  DanceJointKey(0, rotation: 0.05),
+  DanceJointKey(7, rotation: -0.03),
+  DanceJointKey(15, rotation: -0.14),
+  DanceJointKey(19, rotation: -0.06),
+  DanceJointKey(25, rotation: 0.05),
+  DanceJointKey(30, rotation: 0.10),
+  DanceJointKey(32, rotation: 0.05),
+];
+
+const _movingGrooveSideAnswerHandRKeys = [
+  DanceJointKey(0, rotation: -0.04),
+  DanceJointKey(7, rotation: 0.08),
+  DanceJointKey(15, rotation: 0.19),
+  DanceJointKey(18, rotation: 0.10),
+  DanceJointKey(23, rotation: -0.04),
+  DanceJointKey(28, rotation: -0.12),
+  DanceJointKey(32, rotation: -0.04),
+];
+
+const _movingVerseHandLKeys = [
+  DanceJointKey(0, rotation: 0.04),
+  DanceJointKey(5, rotation: -0.04),
+  DanceJointKey(9, rotation: -0.13),
+  DanceJointKey(13, rotation: 0.02),
+  DanceJointKey(17, rotation: 0.06),
+  DanceJointKey(25, rotation: -0.14),
+  DanceJointKey(29, rotation: -0.02),
+  DanceJointKey(32, rotation: 0.04),
+];
+
+const _movingVerseHandRKeys = [
+  DanceJointKey(0, rotation: -0.06),
+  DanceJointKey(5, rotation: 0.04),
+  DanceJointKey(13, rotation: 0.14),
+  DanceJointKey(17, rotation: -0.02),
+  DanceJointKey(21, rotation: 0.13),
+  DanceJointKey(25, rotation: 0.05),
+  DanceJointKey(29, rotation: -0.05),
+  DanceJointKey(32, rotation: -0.06),
+];
+
+const _movingVerseWindowHandLKeys = [
+  DanceJointKey(0, rotation: 0.06),
+  DanceJointKey(9, rotation: -0.12),
+  DanceJointKey(14, rotation: -0.02),
+  DanceJointKey(19, rotation: -0.08),
+  DanceJointKey(25, rotation: -0.19),
+  DanceJointKey(29, rotation: -0.05),
+  DanceJointKey(32, rotation: 0.06),
+];
+
+const _movingVerseWindowHandRKeys = [
+  DanceJointKey(0, rotation: -0.05),
+  DanceJointKey(7, rotation: 0.04),
+  DanceJointKey(13, rotation: 0.17),
+  DanceJointKey(17, rotation: 0.04),
+  DanceJointKey(24, rotation: -0.10),
+  DanceJointKey(29, rotation: -0.03),
+  DanceJointKey(32, rotation: -0.05),
+];
+
+const _movingBreakdownHandLKeys = [
+  DanceJointKey(0, rotation: 0.05),
+  DanceJointKey(5, rotation: -0.04),
+  DanceJointKey(9, rotation: -0.15),
+  DanceJointKey(13, rotation: -0.02),
+  DanceJointKey(17, rotation: 0.05),
+  DanceJointKey(25, rotation: -0.10),
+  DanceJointKey(29, rotation: -0.15),
+  DanceJointKey(32, rotation: 0.05),
+];
+
+const _movingBreakdownHandRKeys = [
+  DanceJointKey(0, rotation: -0.05),
+  DanceJointKey(8, rotation: -0.02),
+  DanceJointKey(13, rotation: 0.08),
+  DanceJointKey(17, rotation: 0.16),
+  DanceJointKey(21, rotation: 0.04),
+  DanceJointKey(25, rotation: -0.04),
+  DanceJointKey(29, rotation: 0.15),
+  DanceJointKey(32, rotation: -0.05),
 ];
 
 // Step-touch feet. The support shoe stays broad and quiet for two beats. The

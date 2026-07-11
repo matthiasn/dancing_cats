@@ -497,6 +497,8 @@ class CatClips {
     name: 'movingHookLowCounter',
     handLTargets: _movingGrooveLowCounterHandLTargetKeys,
     handRTargets: _movingGrooveLowCounterHandRTargetKeys,
+    handLKeys: _movingGrooveLowCounterHandLKeys,
+    handRKeys: _movingGrooveLowCounterHandRKeys,
   );
 
   /// Backup 2 answers the lead on the off-beats.  This is intentionally a
@@ -510,6 +512,8 @@ class CatClips {
     clavicleLKeys: _movingGrooveSideAnswerClavicleLKeys,
     clavicleRKeys: _movingGrooveSideAnswerClavicleRKeys,
     headKeys: _movingGrooveSideAnswerHeadKeys,
+    handLKeys: _movingGrooveSideAnswerHandLKeys,
+    handRKeys: _movingGrooveSideAnswerHandRKeys,
   );
 
   /// Later-chorus travel phrase: the feet skate outside the stance while the
@@ -524,6 +528,10 @@ class CatClips {
     footRTargets: _movingChorusTravelFootRTargetKeys,
     footLKeys: _movingChorusTravelFootLKeys,
     footRKeys: _movingChorusTravelFootRKeys,
+    handLKeys: _movingChorusTravelHandLKeys,
+    handRKeys: _movingChorusTravelHandRKeys,
+    clavicleLKeys: _movingChorusTravelClavicleLKeys,
+    clavicleRKeys: _movingChorusTravelClavicleRKeys,
     contactSpans: _movingChorusTravelContactSpans,
   );
 
@@ -539,6 +547,8 @@ class CatClips {
     footRTargets: _movingVerseFootRTargetKeys,
     footLKeys: _movingVerseFootLKeys,
     footRKeys: _movingVerseFootRKeys,
+    handLKeys: _movingVerseHandLKeys,
+    handRKeys: _movingVerseHandRKeys,
   );
 
   /// Verse variation: the heel shuffle remains independent underneath while
@@ -556,6 +566,8 @@ class CatClips {
     footRKeys: _movingVerseFootRKeys,
     clavicleLKeys: _movingVerseWindowClavicleLKeys,
     clavicleRKeys: _movingVerseWindowClavicleRKeys,
+    handLKeys: _movingVerseWindowHandLKeys,
+    handRKeys: _movingVerseWindowHandRKeys,
   );
 
   /// Breakdown phrase: compact double-time heel lifts under a low centre.
@@ -570,6 +582,8 @@ class CatClips {
     footRTargets: _movingBreakdownFootRTargetKeys,
     footLKeys: _movingBreakdownFootLKeys,
     footRKeys: _movingBreakdownFootRKeys,
+    handLKeys: _movingBreakdownHandLKeys,
+    handRKeys: _movingBreakdownHandRKeys,
   );
 
   /// Bridge counterphrase: long diagonal plants overlap through double
@@ -584,6 +598,8 @@ class CatClips {
     footRTargets: _movingBridgeRockFootRTargetKeys,
     footLKeys: _movingBridgeRockFootLKeys,
     footRKeys: _movingBridgeRockFootRKeys,
+    handLKeys: _movingBridgeRockHandLKeys,
+    handRKeys: _movingBridgeRockHandRKeys,
     contactSpans: _movingBridgeRockContactSpans,
   );
 

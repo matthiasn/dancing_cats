@@ -889,6 +889,45 @@ void main() {
       // preventing the repeated two-fists-at-shoulders guard silhouette.
       expect(travelHandL.sample(0).y, greaterThan(-5));
       expect(bridgeHandL.sample(0).y, greaterThan(-5));
+
+      // Paws and shoulder girdles articulate with the pathways instead of
+      // inheriting the old Moving clip's neutral 0→0 wrist and mismatched
+      // hook clavicle timing.
+      expect(
+        travel.channels[CatBones.handL]!.sample(7 / 32).rotation.abs(),
+        greaterThan(0.15),
+      );
+      expect(
+        bridge.channels[CatBones.handL]!.sample(25 / 32).rotation.abs(),
+        greaterThan(0.12),
+      );
+      expect(
+        travel.channels[CatBones.clavicleL]!.sample(5 / 32).rotation,
+        greaterThan(0.015),
+      );
+    });
+
+    test('every scored Moving phrase articulates both paws', () {
+      for (final clip in [
+        CatClips.movingGroove,
+        CatClips.movingGrooveLowCounter,
+        CatClips.movingGrooveSideAnswer,
+        CatClips.movingChorusTravel,
+        CatClips.movingVerseGroove,
+        CatClips.movingVerseWindow,
+        CatClips.movingBreakdownGroove,
+        CatClips.movingBridgeRock,
+      ]) {
+        for (final handId in [CatBones.handL, CatBones.handR]) {
+          expect(
+            _rotationRange(clip.channels[handId]!),
+            greaterThan(0.08),
+            reason:
+                '${clip.name} $handId must change facing through its arm path, '
+                'not inherit a neutral 0→0 mitten',
+          );
+        }
+      }
     });
 
     test('Moving side-answer crown keeps a visibly bent elbow', () {
