@@ -474,10 +474,23 @@ const double kMovingPhraseTransitionSeconds = 0.4;
 /// the old two-beat/1.0s dissolve that the full-song review found low-energy.
 const double kMovingHookAnswerTransitionSeconds = 0.55;
 
-double _movingTransitionSeconds(DanceStage from, DanceStage to) =>
-    from.lead.name == 'movingHookLead' && to.lead.name == 'movingHookSideAnswer'
-    ? kMovingHookAnswerTransitionSeconds
-    : kMovingPhraseTransitionSeconds;
+/// Body-roll entries/exits trade a high arm-led phrase for the lowest,
+/// torso-led silhouette in the score. The generic 0.4s Moving handoff still
+/// reverses a rendered hand within one 30fps frame on that full-range change;
+/// one extra tenth lets the arm pour through the contrast without changing
+/// either phrase's authored tempo.
+const double kMovingBodyRollTransitionSeconds = 0.5;
+
+double _movingTransitionSeconds(DanceStage from, DanceStage to) {
+  if (from.lead.name == 'movingHookLead' &&
+      to.lead.name == 'movingHookSideAnswer') {
+    return kMovingHookAnswerTransitionSeconds;
+  }
+  if (from.lead.name == 'movingBodyRoll' || to.lead.name == 'movingBodyRoll') {
+    return kMovingBodyRollTransitionSeconds;
+  }
+  return kMovingPhraseTransitionSeconds;
+}
 
 /// The longest a dance->dance handoff may be HELD waiting for the next beat
 /// (the cut-quantize above). One beat at 120 BPM is 0.5s; the guard only

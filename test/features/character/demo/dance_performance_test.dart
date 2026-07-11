@@ -690,7 +690,7 @@ void main() {
         ]);
         expect(score('chorus', 1), [
           'movingHookLead',
-          'movingChorusTravel',
+          'movingChorusOpen',
           'movingHookSideAnswer',
           'movingHookLead',
         ]);

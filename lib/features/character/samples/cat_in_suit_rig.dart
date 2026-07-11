@@ -501,15 +501,16 @@ RigSpec buildCatInSuitRig({
         kind: BoneShapeKind.roundedRect,
         // The vamp. Toe points -x (local), which — through the locomotion
         // mirror — makes the shoe LEAD the direction of travel instead of
-        // trailing it. The sole plane stays at local y=10: the contact
-        // solvers key off this drawable's bottom. FLAT white, no interior
-        // ink: the boot is ONE union silhouette, and cel gradients made the
-        // white leather look dingy.
-        width: 33,
+        // trailing it. This rigid rear vamp ends at the ball joint; the
+        // flex-joint toe box owns everything forward of x=-16. Extending the
+        // parent through the toe left a second rounded white end visible under
+        // the sole whenever the real toe bent. The sole plane stays at local
+        // y=10 so contact solving is unchanged.
+        width: 26,
         height: 12,
-        dx: -7,
+        dx: -3.5,
         dy: 4,
-        cornerRadius: 5,
+        cornerRadius: 3,
         color: _shoe,
         outlineColor: _outline,
         outlineWidth: 2,
@@ -693,15 +694,16 @@ RigSpec buildCatInSuitRig({
         kind: BoneShapeKind.roundedRect,
         // The vamp. Toe points -x (local), which — through the locomotion
         // mirror — makes the shoe LEAD the direction of travel instead of
-        // trailing it. The sole plane stays at local y=10: the contact
-        // solvers key off this drawable's bottom. FLAT white, no interior
-        // ink: the boot is ONE union silhouette, and cel gradients made the
-        // white leather look dingy.
-        width: 33,
+        // trailing it. This rigid rear vamp ends at the ball joint; the
+        // flex-joint toe box owns everything forward of x=-16. Extending the
+        // parent through the toe left a second rounded white end visible under
+        // the sole whenever the real toe bent. The sole plane stays at local
+        // y=10 so contact solving is unchanged.
+        width: 26,
         height: 12,
-        dx: -7,
+        dx: -3.5,
         dy: 4,
-        cornerRadius: 5,
+        cornerRadius: 3,
         color: _shoe,
         outlineColor: _outline,
         outlineWidth: 2,

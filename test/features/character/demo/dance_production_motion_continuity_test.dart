@@ -22,6 +22,145 @@ typedef _MotionSpike = ({
 });
 
 void main() {
+  test('full-song 30fps arms do not reverse within one rendered frame', () {
+    final beatJson =
+        jsonDecode(
+              File('assets/sample_track/moving.json').readAsStringSync(),
+            )
+            as Map<String, Object?>;
+    final wordsJson =
+        jsonDecode(
+              File('assets/sample_track/moving.words.json').readAsStringSync(),
+            )
+            as Map<String, Object?>;
+    final map = BeatMap.fromJson(beatJson);
+    final performance = DancePerformance.fromBeatMapJson(
+      json: beatJson,
+      map: map,
+      trackDurationSec: 144.066,
+      words: parseDanceWords(wordsJson),
+    );
+    final stepper = DancePlaybackStepper();
+    final scenes = [
+      for (var lane = 0; lane < 3; lane++) CharacterScene(buildCatInSuitRig()),
+    ];
+    const ids = [
+      CatBones.clavicleL,
+      CatBones.armUpperL,
+      CatBones.armBicepL,
+      CatBones.armLowerL,
+      CatBones.armForearmL,
+      CatBones.handL,
+      CatBones.clavicleR,
+      CatBones.armUpperR,
+      CatBones.armBicepR,
+      CatBones.armLowerR,
+      CatBones.armForearmR,
+      CatBones.handR,
+    ];
+    final priorPoint = [for (var i = 0; i < 3; i++) <String, _Point>{}];
+    final priorVelocity = [for (var i = 0; i < 3; i++) <String, _Point>{}];
+    final priorAngle = [for (var i = 0; i < 3; i++) <String, double>{}];
+    final priorAngularVelocity = [
+      for (var i = 0; i < 3; i++) <String, double>{},
+    ];
+    final peaks =
+        <
+          ({
+            double value,
+            String kind,
+            double t,
+            int lane,
+            String bone,
+            String clip,
+            double phase,
+          })
+        >[];
+    const dt = 1 / 30;
+    for (var t = 0.0; t <= 144.066; t += dt) {
+      stepper.advance(performance, const [], t, dt);
+      final stage = stepper.stage!;
+      for (var lane = 0; lane < 3; lane++) {
+        final clip = productionDanceClip(
+          stage.ensemble[lane],
+          stage.dynamics[lane],
+          lane,
+          stage.energyLevel,
+        );
+        final world = scenes[lane]
+            .frameAt(clip: clip, timeSeconds: stage.seconds)
+            .world;
+        for (final id in ids) {
+          final transform = world[id]!;
+          final point = transform.origin;
+          final oldPoint = priorPoint[lane][id];
+          priorPoint[lane][id] = point;
+          if (oldPoint != null) {
+            final velocity = (x: point.x - oldPoint.x, y: point.y - oldPoint.y);
+            final oldVelocity = priorVelocity[lane][id];
+            priorVelocity[lane][id] = velocity;
+            if (oldVelocity != null) {
+              final ax = velocity.x - oldVelocity.x;
+              final ay = velocity.y - oldVelocity.y;
+              peaks.add((
+                value: math.sqrt(ax * ax + ay * ay),
+                kind: 'posA',
+                t: t,
+                lane: lane,
+                bone: id,
+                clip: stage.ensemble[lane].name,
+                phase: (stage.seconds / clip.duration) % 1,
+              ));
+            }
+          }
+          final angle = math.atan2(transform.b, transform.a);
+          final oldAngle = priorAngle[lane][id];
+          priorAngle[lane][id] = angle;
+          if (oldAngle != null) {
+            final angularVelocity = math.atan2(
+              math.sin(angle - oldAngle),
+              math.cos(angle - oldAngle),
+            );
+            final oldAngularVelocity = priorAngularVelocity[lane][id];
+            priorAngularVelocity[lane][id] = angularVelocity;
+            if (oldAngularVelocity != null) {
+              final angularAcceleration = math
+                  .atan2(
+                    math.sin(angularVelocity - oldAngularVelocity),
+                    math.cos(angularVelocity - oldAngularVelocity),
+                  )
+                  .abs();
+              peaks.add((
+                value: angularAcceleration,
+                kind: 'angA',
+                t: t,
+                lane: lane,
+                bone: id,
+                clip: stage.ensemble[lane].name,
+                phase: (stage.seconds / clip.duration) % 1,
+              ));
+            }
+          }
+        }
+      }
+    }
+    peaks.sort((a, b) => b.value.compareTo(a.value));
+    final peak = peaks.first;
+    // The old catastrophic-jump gate sampled at 60fps. It missed sharp
+    // V-shaped arm paths that reverse between adjacent 30fps export frames:
+    // the rejected later-chorus window peaked at 10.58 units/frame² and read
+    // as a visible arm teleport despite passing the 60fps threshold. Enforce
+    // the actual export cadence across the complete 144-second choreography.
+    expect(
+      peak.value,
+      lessThan(8.2),
+      reason:
+          '${peak.kind} ${peak.value.toStringAsFixed(3)} at '
+          '${peak.t.toStringAsFixed(3)} lane=${peak.lane} '
+          'phase=${peak.phase.toStringAsFixed(4)} ${peak.bone} ${peak.clip}',
+    );
+  });
+
   test('full-song production motion has no one-frame teleport', () {
     final beatJson =
         jsonDecode(

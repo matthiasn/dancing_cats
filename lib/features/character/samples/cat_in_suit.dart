@@ -535,6 +535,24 @@ class CatClips {
     contactSpans: _movingChorusTravelContactSpans,
   );
 
+  /// Later-chorus escalation: a wide grounded base and two-arm opposing
+  /// diagonals grow the hook without returning to the compact guard pose.
+  static Clip get movingChorusOpen => _movingGroove(
+    name: 'movingChorusOpen',
+    handLTargets: _movingChorusOpenHandLTargetKeys,
+    handRTargets: _movingChorusOpenHandRTargetKeys,
+    bodyKeys: _movingChorusOpenBodyKeys,
+    footLTargets: _movingChorusOpenFootLTargetKeys,
+    footRTargets: _movingChorusOpenFootRTargetKeys,
+    footLKeys: _movingChorusOpenFootLKeys,
+    footRKeys: _movingChorusOpenFootRKeys,
+    handLKeys: _movingChorusOpenHandLKeys,
+    handRKeys: _movingChorusOpenHandRKeys,
+    clavicleLKeys: _movingChorusOpenClavicleLKeys,
+    clavicleRKeys: _movingChorusOpenClavicleRKeys,
+    contactSpans: _movingChorusOpenContactSpans,
+  );
+
   /// Verse phrase: a visible heel-tap shuffle with the hips travelling over
   /// the planted shoe. It is deliberately a different lower-body sentence
   /// from the chorus hook, rather than the same step-touch with new arms.

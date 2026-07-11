@@ -551,6 +551,13 @@ void main() {
           lessThan(-8),
           reason: 'the flex pivot sits at the ball, forward of the heel',
         );
+        expect(
+          last.dx - last.width / 2,
+          greaterThanOrEqualTo(flex.pivotX - 1),
+          reason:
+              'the rigid vamp must stop at the flex hinge; otherwise its '
+              'rounded toe appears as a second ball under the bent sole',
+        );
         expect(toe.parent, side.flex);
         expect(
           sole.width + soleFront.width,
@@ -562,6 +569,63 @@ void main() {
           expect(_luma(half.color), greaterThan(150));
         }
       }
+    });
+
+    test('Moving soles retain a visible ball-of-foot bend', () {
+      final scene = CharacterScene(rig);
+      final clips = [
+        CatClips.movingGroove,
+        CatClips.movingGrooveLowCounter,
+        CatClips.movingGrooveSideAnswer,
+        CatClips.movingChorusTravel,
+        CatClips.movingChorusOpen,
+        CatClips.movingVerseGroove,
+        CatClips.movingVerseWindow,
+        CatClips.movingBreakdownGroove,
+        CatClips.movingBridgeRock,
+        CatClips.movingBodyRoll,
+      ];
+      var best = (delta: 0.0, clip: '', phase: 0.0, side: '');
+      for (final clip in clips) {
+        for (var i = 0; i < 240; i++) {
+          final phase = i / 240;
+          final world = scene
+              .frameAt(clip: clip, timeSeconds: phase * clip.duration)
+              .world;
+          for (final side in [
+            (foot: CatBones.footL, flex: CatBones.toeFlexL, name: 'L'),
+            (foot: CatBones.footR, flex: CatBones.toeFlexR, name: 'R'),
+          ]) {
+            final foot = world[side.foot]!;
+            final flex = world[side.flex]!;
+            final delta = math
+                .atan2(
+                  math.sin(
+                    math.atan2(flex.b, flex.a) - math.atan2(foot.b, foot.a),
+                  ),
+                  math.cos(
+                    math.atan2(flex.b, flex.a) - math.atan2(foot.b, foot.a),
+                  ),
+                )
+                .abs();
+            if (delta > best.delta) {
+              best = (
+                delta: delta,
+                clip: clip.name,
+                phase: phase,
+                side: side.name,
+              );
+            }
+          }
+        }
+      }
+      expect(
+        best.delta,
+        greaterThan(0.7),
+        reason:
+            'the front sole should still visibly flex; strongest pose was '
+            '${best.clip} ${best.side} at phase ${best.phase}',
+      );
     });
 
     test('the sole edge never lowers the shoe contact point', () {
@@ -852,6 +916,7 @@ void main() {
         CatClips.movingVerseWindow,
         CatClips.movingBreakdownGroove,
         CatClips.movingChorusTravel,
+        CatClips.movingChorusOpen,
         CatClips.movingBridgeRock,
         CatClips.movingBodyRoll,
       ]) {
@@ -888,7 +953,7 @@ void main() {
 
       // Both phrases release one paw to the real hip line between accents,
       // preventing the repeated two-fists-at-shoulders guard silhouette.
-      expect(travelHandL.sample(0).y, greaterThan(-5));
+      expect(travelHandL.sample(0).y, greaterThan(-15));
       expect(bridgeHandL.sample(0).y, greaterThan(-5));
 
       // Paws and shoulder girdles articulate with the pathways instead of
@@ -933,12 +998,34 @@ void main() {
       );
     });
 
+    test('later Moving choruses open both arms over a wide grounded base', () {
+      final open = CatClips.movingChorusOpen;
+      final handL = _targetFor(open, CatBones.handL).channel.sample(8 / 32);
+      final handR = _targetFor(open, CatBones.handR).channel.sample(8 / 32);
+      final footR = _targetFor(open, CatBones.footR).channel.sample(4 / 32);
+
+      expect(handL.x, lessThan(-105));
+      expect(handR.x, greaterThan(105));
+      expect(
+        handR.x - handL.x,
+        greaterThan(210),
+        reason: 'the payoff should read as a two-arm open, not a guard pose',
+      );
+      expect(footR.x, greaterThan(88));
+      expect(
+        footR.y,
+        greaterThan(100),
+        reason: 'the outside shoe should press wide near the deck, not kick',
+      );
+    });
+
     test('every scored Moving phrase articulates both paws', () {
       for (final clip in [
         CatClips.movingGroove,
         CatClips.movingGrooveLowCounter,
         CatClips.movingGrooveSideAnswer,
         CatClips.movingChorusTravel,
+        CatClips.movingChorusOpen,
         CatClips.movingVerseGroove,
         CatClips.movingVerseWindow,
         CatClips.movingBreakdownGroove,

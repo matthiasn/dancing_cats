@@ -533,6 +533,7 @@ class DancePerformance {
   static final Clip _movingVerseWindow = CatClips.movingVerseWindow;
   static final Clip _movingBreakdown = CatClips.movingBreakdownGroove;
   static final Clip _movingChorusTravel = CatClips.movingChorusTravel;
+  static final Clip _movingChorusOpen = CatClips.movingChorusOpen;
   static final Clip _movingBridgeRock = CatClips.movingBridgeRock;
   static final Clip _movingBodyRoll = CatClips.movingBodyRoll;
 
@@ -720,6 +721,10 @@ class DancePerformance {
       lead: _movingChorusTravel,
       ensemble: [_movingChorusTravel, _movingSideAnswer, _movingLowCounter],
     );
+    final hookOpen = (
+      lead: _movingChorusOpen,
+      ensemble: [_movingChorusOpen, _movingChorusTravel, _movingSideAnswer],
+    );
     final verseShuffle = (
       lead: _movingVerse,
       ensemble: [_movingVerse, _movingVerseWindow, _movingLowCounter],
@@ -760,8 +765,8 @@ class DancePerformance {
         // of one selected loop replaying automatically for eight seconds.
         final score = switch (variant) {
           0 => [hookCall, hookAnswer, hookTravel, hookReturn],
-          1 => [hookCall, hookTravel, hookAnswer, hookReturn],
-          _ => [hookAnswer, hookTravel, hookReturn, hookCall],
+          1 => [hookCall, hookOpen, hookAnswer, hookReturn],
+          _ => [hookAnswer, hookOpen, hookReturn, hookCall],
         };
         return _rotateSetlist(score, phase, sectionSeconds);
       case 'post-chorus':
