@@ -376,7 +376,17 @@ class DancePlaybackStepper {
     double segmentStartSec,
   ) {
     return _segmentBindings.putIfAbsent((moveName, segmentStartSec), () {
-      final loopLengthBeats = perf.binding.loopLengthBeats;
+      // Moving is authored as an eight-beat/32-frame phrase: its signature
+      // calls sit at frames 4/8/12 and therefore belong on consecutive beats.
+      // The catalogue-wide four-bar binding stretches those events across 16
+      // beats (0.75x authored speed on this track), which the full-song owner
+      // review correctly read as slow and low-energy. Keep the older catalogue
+      // on its sustainable four-bar calibration, but let the song-specific
+      // Moving family run on its natural two-bar clock (1.5x authored speed,
+      // four authored frames per detected beat at 120 BPM).
+      final loopLengthBeats = moveName.startsWith('moving')
+          ? kMovingPhraseLoopBeats
+          : perf.binding.loopLengthBeats;
       final offsetBeats =
           ((kDanceEntryPhaseOffset[moveName] ?? 0) * loopLengthBeats).round();
       int rotate(int anchorBeatIndex) {
@@ -435,6 +445,9 @@ const double kDanceDynamicsEaseSeconds = 0.15;
 /// change) and the transitions-panel finding that motivated it.
 const Map<String, double> kDanceEntryPhaseOffset = {'azonto': 0.65};
 
+/// Moving's authored 32-frame phrase spans eight musical beats (two 4/4 bars).
+const int kMovingPhraseLoopBeats = 8;
+
 /// The short window used when one catalogue move changes to another.
 ///
 /// It is intentionally less than half a beat at 120 BPM: long enough to remove
@@ -445,19 +458,21 @@ const double kDanceMoveTransitionSeconds = 0.18;
 /// between two of them in the catalogue's 0.18s hit-preserving window forces a
 /// hand to traverse an overhead-to-low delta in roughly nine frames, which the
 /// production probe measured as 20–30 rig units per 60fps frame even after the
-/// seconds/phase teleport bug was fixed. A little over one beat keeps the cut
-/// musical while allowing the overhead payoff to pour into the next phrase;
-/// at exactly 0.5s the 117.4s handoff was continuous numerically but still read
-/// as a small teleport in the exported silhouette.
-const double kMovingPhraseTransitionSeconds = 0.65;
+/// seconds/phase teleport bug was fixed. The earlier 0.65s window then became
+/// a different failure: with Moving restored to its authored two-bar clock,
+/// more than a full beat of whole-body crossfade reads as a slow pose morph.
+/// 0.4s keeps a coherent path but lets the new phrase take ownership before
+/// its accent has been washed out.
+const double kMovingPhraseTransitionSeconds = 0.4;
 
 /// The hook-to-answer exchange has the largest deliberate silhouette change
 /// in Moving: lead crown, support leg, ribs and both arm diagonals all trade
 /// roles. A generic one-beat crossfade made every part travel fastest on the
 /// same frame (112.36s in the production probe), which reads as one residual
 /// whole-body teleport even though no individual channel is discontinuous.
-/// Give that named exchange two beats; other Moving handoffs stay tighter.
-const double kMovingHookAnswerTransitionSeconds = 1.0;
+/// Give that named exchange a small amount of extra travel time, but no longer
+/// the old two-beat/1.0s dissolve that the full-song review found low-energy.
+const double kMovingHookAnswerTransitionSeconds = 0.55;
 
 double _movingTransitionSeconds(DanceStage from, DanceStage to) =>
     from.lead.name == 'movingHookLead' && to.lead.name == 'movingHookSideAnswer'

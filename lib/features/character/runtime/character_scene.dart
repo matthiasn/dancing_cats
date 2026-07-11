@@ -1373,7 +1373,7 @@ class CharacterScene {
     // — same fix as `_danceSupportFootStabilizedWorld`'s own doc comment.
     final contactSource = _contactSourceFor(clip, timeSeconds);
     final footAnchor = _supportFootWorldAnchorFor(clip, timeSeconds);
-    final transfersSupport = _transitionTransfersSupportFoot(
+    final supportPolicyStrength = _transitionSupportPolicyStrength(
       clip,
       timeSeconds,
     );
@@ -1390,8 +1390,7 @@ class CharacterScene {
     // Same per-side clock fix as [footAnchor] above — the merged clip's
     // contactSpans evaluated at the wrong side's phase can name the wrong
     // bone as the "floor" reference for the free foot's clamp.
-    final contactForFloor =
-        clip.enforceSoleFloor && _isDanceFamily(clip) && !transfersSupport
+    final contactForFloor = clip.enforceSoleFloor && _isDanceFamily(clip)
         ? _activeContactAt(
             contactSource.clip,
             _clipPhase(contactSource.clip, contactSource.timeSeconds),
@@ -1412,7 +1411,8 @@ class CharacterScene {
       final fadeOut = smoothstep(
         (span.end - contactForFloor.strengthPhase) / fade,
       );
-      soleFloorFade = fadeIn < fadeOut ? fadeIn : fadeOut;
+      soleFloorFade =
+          (fadeIn < fadeOut ? fadeIn : fadeOut) * supportPolicyStrength;
     }
 
     // Solve the PLANTED foot before free feet: the free feet's sole floor
@@ -1423,7 +1423,7 @@ class CharacterScene {
       ..sort((a, b) {
         int rank(LimbIkTarget t) => !_isFootBone(t.endBoneId)
             ? 0
-            : (!transfersSupport && t.endBoneId == plantedFoot)
+            : (t.endBoneId == plantedFoot)
             ? 1
             : 2;
         return rank(a).compareTo(rank(b));
@@ -2726,17 +2726,19 @@ class CharacterScene {
     return null;
   }
 
-  /// Whether a runtime blend is transferring support between different feet.
+  /// Strength for discrete support-foot policies during a cross-foot blend.
   ///
   /// The world anchors themselves release and engage continuously in
   /// [_supportFootWorldAnchorFor]. During that neutral interval, however,
   /// choosing one foot as "planted" for IK ordering or as the other foot's
-  /// sole floor is still a discrete operation. Keep those two secondary
-  /// policies neutral for the whole cross-foot blend; the continuously
-  /// weighted world anchors and contact lock remain active.
-  bool _transitionTransfersSupportFoot(Clip clip, double timeSeconds) {
+  /// sole floor is still a discrete operation. Fade the floor policy to zero
+  /// as the outgoing foot releases, switch ownership only at zero, then fade
+  /// it back to full with the incoming anchor. The endpoints remain identical
+  /// to the raw source/destination clips, avoiding a second snap when the
+  /// temporary blend object disappears.
+  double _transitionSupportPolicyStrength(Clip clip, double timeSeconds) {
     final plan = clip.transitionPlan;
-    if (plan == null) return false;
+    if (plan == null) return 1;
     final from = _supportFootWorldAnchor(
       plan.from,
       _clipPhase(
@@ -2748,7 +2750,11 @@ class CharacterScene {
       plan.to,
       _clipPhase(plan.to, timeSeconds),
     );
-    return from?.bone != to?.bone;
+    if (from?.bone == to?.bone) return 1;
+    final weight = plan.weight.clamp(0.0, 1.0);
+    return weight < 0.5
+        ? 1 - smoothstep(weight * 2)
+        : smoothstep((weight - 0.5) * 2);
   }
 
   /// The contact-lock pins the support point, but the shoe can still rotate
@@ -2762,17 +2768,48 @@ class CharacterScene {
     Map<String, Affine2D> world,
   ) {
     if (!_isDanceFamily(clip)) return world;
-    // Confirmed via transitions-r6 world-bone probing: shaku's own contact
-    // lock (correctly stabilizing its plant every frame right up to a
-    // shaku->buga cut) got evaluated one frame later against buga's fresh
-    // near-zero clock, and the resulting correction dragged the support
-    // leg ~30 world units in a single 60fps frame with no other channel
-    // moving at all — see [_contactSourceFor].
-    final source = _contactSourceFor(clip, timeSeconds);
-    final contactClip = source.clip;
+    final transition = clip.transitionPlan;
+    if (transition == null) {
+      return _supportFootStabilizedWorldFor(
+        clip,
+        timeSeconds,
+        world,
+        scale: 1,
+      );
+    }
+
+    // Orientation stabilization used to choose one transition side via
+    // `_contactSourceFor`, switching discretely at weight 0.5. Even though the
+    // root/contact and world-anchor passes were continuous, rotating a shoe
+    // subtree around its contact point moved the foot origin 4-6 units in one
+    // frame at 63.45s, 117.92s and 137.57s. Blend both semantic sides on their
+    // OWN clocks instead; different support feet naturally release/engage,
+    // while identical support feet converge on the destination orientation.
+    final weight = smoothstep(transition.weight);
+    final outgoing = _supportFootStabilizedWorldFor(
+      transition.from,
+      timeSeconds + transition.fromTimeShiftSeconds,
+      world,
+      scale: 1 - weight,
+    );
+    return _supportFootStabilizedWorldFor(
+      transition.to,
+      timeSeconds,
+      outgoing,
+      scale: weight,
+    );
+  }
+
+  Map<String, Affine2D> _supportFootStabilizedWorldFor(
+    Clip contactClip,
+    double timeSeconds,
+    Map<String, Affine2D> world, {
+    required double scale,
+  }) {
+    if (scale <= 0) return world;
     final contact = _activeContactAt(
       contactClip,
-      _clipPhase(contactClip, source.timeSeconds),
+      _clipPhase(contactClip, timeSeconds),
     );
     if (contact == null) return world;
     final boneId = contact.span.bone;
@@ -2793,10 +2830,11 @@ class CharacterScene {
       contact.span,
       contact.strengthPhase,
     ).x;
-    final strength = _isDanceFamily(clip)
+    final strength = _isDanceFamily(contactClip)
         ? math.min(1, contactStrength * 1.35)
         : contactStrength;
-    if (strength < 0.05) return world;
+    final scaledStrength = strength * scale;
+    if (scaledStrength < 0.001) return world;
 
     final delta = _shortestAngle(
       _worldRotation(anchor) - _worldRotation(current),
@@ -2804,7 +2842,7 @@ class CharacterScene {
     if (delta.abs() < 0.01) return world;
 
     final correction = Affine2D.translation(contactPoint.x, contactPoint.y)
-        .multiply(Affine2D.rotation(delta * strength))
+        .multiply(Affine2D.rotation(delta * scaledStrength))
         .multiply(Affine2D.translation(-contactPoint.x, -contactPoint.y));
     final shifted = Map<String, Affine2D>.of(world);
     for (final bone in rig.bones) {

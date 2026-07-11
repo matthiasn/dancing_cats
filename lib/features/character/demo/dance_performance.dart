@@ -629,6 +629,7 @@ class DancePerformance {
     switch (lyric.section) {
       case 'chorus':
       case 'post-chorus':
+      case 'pre-chorus':
       case 'verse':
       case 'bridge':
       case 'outro':
@@ -636,7 +637,7 @@ class DancePerformance {
         // [k/slots, (k+1)/slots).
         final slots = lyric.seconds <= 0
             ? 1
-            : (lyric.seconds / kChoreoSlotSeconds).ceil().clamp(1, 64);
+            : (lyric.seconds / kChoreoSlotSeconds).round().clamp(1, 64);
         final slot = (lyric.phase * slots).floor().clamp(0, slots - 1);
         return lyric.start + slot * lyric.seconds / slots;
       default:
@@ -656,31 +657,30 @@ class DancePerformance {
     return occ;
   }
 
-  /// How long one choreography SLOT lasts inside a long section: after this
-  /// many seconds the trio rotates to the next entry of the section's
-  /// mini-setlist. One 4-bar phrase at 120 BPM — long enough for
-  /// a move to read, short enough that a bridge never parks on one move.
-  static const double kChoreoSlotSeconds = 8;
+  /// How long one authored statement lasts inside the song score.
+  ///
+  /// Moving's 32-frame vocabulary is an eight-beat/two-bar phrase: four real
+  /// seconds at this track's 120 BPM. The old eight-second slot replayed every
+  /// selected phrase twice before advancing, so a nominally complete 144s
+  /// schedule still read as six loops on rotation. One slot now owns one full
+  /// phrase; recurring motifs must be selected deliberately in the section
+  /// score below rather than appearing through automatic repetition.
+  static const double kChoreoSlotSeconds = 4;
 
-  /// One entry of [setlist], time-sliced across a section of
-  /// [sectionSeconds] at [kChoreoSlotSeconds] per slot. Short sections stay
-  /// on their opening statement; long ones walk the list (wrapping), so no
-  /// stretch of the song holds one trio for more than ~two phrase loops.
+  /// One entry of [setlist], time-sliced across a semantic song section at one
+  /// complete two-bar phrase per slot. Section duration is rounded to the
+  /// nearest phrase count so pickups/tails do not manufacture a fifth tiny
+  /// statement. Production section scores provide an entry for every slot;
+  /// wrapping remains only as a defensive fallback for synthetic tests.
   DanceTrio _rotateSetlist(
     List<DanceTrio> setlist,
     double phase,
     double sectionSeconds, {
     int offset = 0,
   }) {
-    // Round UP: a 15-second chorus is almost two complete 8-second phrases,
-    // not one enormous slot. `floor()` left the same front-cat sentence on
-    // screen for the entire chorus, which is exactly the repetition the full-
-    // song review exposed. Dividing the section evenly across `ceil()` slots
-    // keeps each statement at or below the target phrase length and still
-    // changes only on a musically stable section-relative boundary.
     final slots = sectionSeconds <= 0
         ? 1
-        : (sectionSeconds / kChoreoSlotSeconds).ceil().clamp(1, 64);
+        : (sectionSeconds / kChoreoSlotSeconds).round().clamp(1, 64);
     final slot = (phase * slots).floor().clamp(0, slots - 1);
     return setlist[(slot + offset) % setlist.length];
   }
@@ -701,134 +701,87 @@ class DancePerformance {
     int variant, {
     double sectionSeconds = 0,
   }) {
+    final hookCall = (
+      lead: _moving,
+      ensemble: [_moving, _movingLowCounter, _movingSideAnswer],
+    );
+    final hookAnswer = (
+      lead: _movingSideAnswer,
+      ensemble: [_movingSideAnswer, _moving, _movingLowCounter],
+    );
+    final hookWindow = (
+      lead: _movingVerseWindow,
+      ensemble: [_movingVerseWindow, _movingVerse, _movingSideAnswer],
+    );
+    final hookReturn = (
+      lead: _moving,
+      ensemble: [_moving, _movingSideAnswer, _movingVerse],
+    );
+    final verseShuffle = (
+      lead: _movingVerse,
+      ensemble: [_movingVerse, _movingVerseWindow, _movingLowCounter],
+    );
+    final verseWindow = (
+      lead: _movingVerseWindow,
+      ensemble: [_movingVerseWindow, _movingVerse, _movingSideAnswer],
+    );
+    final breakdown = (
+      lead: _movingBreakdown,
+      ensemble: [_movingBreakdown, _movingVerse, _movingLowCounter],
+    );
+    final lowCounter = (
+      lead: _movingLowCounter,
+      ensemble: [_movingLowCounter, _movingBreakdown, _movingSideAnswer],
+    );
+    final sideVerse = (
+      lead: _movingSideAnswer,
+      ensemble: [_movingSideAnswer, _movingVerse, _movingBreakdown],
+    );
+    final windowBridge = (
+      lead: _movingVerseWindow,
+      ensemble: [_movingVerseWindow, _movingBreakdown, _movingLowCounter],
+    );
+
     switch (section) {
       case 'chorus':
+        // Four explicitly scored statements per chorus occurrence. The hook
+        // returns, but its answer/window/ensemble ownership develops instead
+        // of one selected loop replaying automatically for eight seconds.
+        final score = switch (variant) {
+          0 => [hookCall, hookAnswer, hookWindow, hookReturn],
+          1 => [hookCall, hookWindow, hookAnswer, hookReturn],
+          _ => [hookAnswer, hookWindow, hookReturn, hookCall],
+        };
+        return _rotateSetlist(score, phase, sectionSeconds);
       case 'post-chorus':
-        // The hook returns as a recognisable motif, but it must EVOLVE across
-        // a long lyric span instead of replaying one 4-second loop. The first
-        // slot states the call; the next lets the backs take it; the third
-        // drops into a shuffle before the next lyric section turns.
         return _rotateSetlist(
-          [
-            (
-              lead: _moving,
-              ensemble: [_moving, _movingLowCounter, _movingSideAnswer],
-            ),
-            (
-              lead: _movingSideAnswer,
-              ensemble: [_movingSideAnswer, _moving, _movingLowCounter],
-            ),
-            (
-              lead: _movingVerseWindow,
-              ensemble: [
-                _movingVerseWindow,
-                _movingVerse,
-                _movingSideAnswer,
-              ],
-            ),
-          ],
+          [hookReturn, hookWindow, sideVerse, windowBridge],
           phase,
           sectionSeconds,
-          // The hook's lead signature belongs on the front cat when each of
-          // the first two choruses arrives. Previously the second chorus used
-          // `offset: 1`, promoting the intentionally restrained backup side-
-          // answer to lead for the entire short section; production review at
-          // 42–50s therefore never showed the choreography being authored and
-          // tested as the lead. Later returns may rotate the statement, but the
-          // main hook first has to read twice as a recognisable motif.
-          offset: variant <= 1 ? 0 : variant - 1,
         );
       case 'pre-chorus':
         return _rotateSetlist(
-          [
-            (
-              lead: _movingVerse,
-              ensemble: [_movingVerse, _movingVerseWindow, _movingLowCounter],
-            ),
-            (
-              lead: _movingBreakdown,
-              ensemble: [_movingBreakdown, _movingVerse, _movingLowCounter],
-            ),
-          ],
+          [verseShuffle, breakdown, sideVerse, hookWindow],
           phase,
           sectionSeconds,
-          offset: variant,
         );
       case 'verse':
         return _rotateSetlist(
-          [
-            (
-              lead: _movingVerse,
-              ensemble: [_movingVerse, _movingVerseWindow, _movingLowCounter],
-            ),
-            (
-              lead: _movingVerseWindow,
-              ensemble: [
-                _movingVerseWindow,
-                _movingVerse,
-                _movingSideAnswer,
-              ],
-            ),
-            (
-              lead: _movingBreakdown,
-              ensemble: [_movingBreakdown, _movingVerse, _movingLowCounter],
-            ),
-            (
-              lead: _movingSideAnswer,
-              ensemble: [_movingSideAnswer, _movingVerse, _movingBreakdown],
-            ),
-          ],
+          [verseShuffle, verseWindow, breakdown, sideVerse],
           phase,
           sectionSeconds,
-          offset: variant,
         );
       case 'bridge':
         return _rotateSetlist(
-          [
-            (
-              lead: _movingBreakdown,
-              ensemble: [_movingBreakdown, _movingVerse, _movingLowCounter],
-            ),
-            (
-              lead: _movingLowCounter,
-              ensemble: [
-                _movingLowCounter,
-                _movingBreakdown,
-                _movingSideAnswer,
-              ],
-            ),
-            (
-              lead: _movingVerseWindow,
-              ensemble: [
-                _movingVerseWindow,
-                _movingBreakdown,
-                _movingLowCounter,
-              ],
-            ),
-          ],
+          [breakdown, lowCounter, windowBridge, sideVerse],
           phase,
           sectionSeconds,
-          offset: variant,
         );
       case 'outro':
         return _rotateSetlist(
-          [
-            (
-              lead: _movingVerse,
-              ensemble: [
-                _movingVerse,
-                _movingVerseWindow,
-                _movingSideAnswer,
-              ],
-            ),
-            (
-              lead: _moving,
-              ensemble: [_moving, _movingVerse, _movingLowCounter],
-            ),
-          ],
+          [sideVerse, windowBridge, lowCounter, verseShuffle],
           phase,
           sectionSeconds,
-          offset: variant,
         );
       default:
         return choreoTrioByLevel(level);

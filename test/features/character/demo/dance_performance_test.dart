@@ -358,8 +358,24 @@ void main() {
     });
 
     test('verses rotate body-led song phrases rather than catalogue moves', () {
-      final shuffle = perf.choreoTrioForSection('verse', 0, 0.5, 0).lead;
-      final window = perf.choreoTrioForSection('verse', 0, 0.5, 1).lead;
+      final shuffle = perf
+          .choreoTrioForSection(
+            'verse',
+            0,
+            0.5,
+            0,
+            sectionSeconds: 16,
+          )
+          .lead;
+      final window = perf
+          .choreoTrioForSection(
+            'verse',
+            0.3,
+            0.5,
+            0,
+            sectionSeconds: 16,
+          )
+          .lead;
       final shuffleFoot = shuffle.limbTargets
           .singleWhere((t) => t.endBoneId == 'foot.R')
           .channel;
@@ -600,19 +616,34 @@ void main() {
       );
       expect(
         perf
-            .choreoTrioForSection('outro', 0.5, 0.5, 0)
+            .choreoTrioForSection(
+              'outro',
+              0.5,
+              0.5,
+              0,
+              sectionSeconds: 16,
+            )
             .ensemble
             .map((c) => c.name)
             .toList(),
         [
-          'movingVerseShuffle',
-          'movingVerseWindow',
+          'movingHookLowCounter',
+          'movingBridgeBounce',
           'movingHookSideAnswer',
         ],
       );
       expect(
-        perf.choreoTrioForSection('post-chorus', 0.6, 0.5, 0).lead.name,
-        'movingHookLead',
+        perf
+            .choreoTrioForSection(
+              'post-chorus',
+              0.6,
+              0.5,
+              0,
+              sectionSeconds: 16,
+            )
+            .lead
+            .name,
+        'movingHookSideAnswer',
       );
     });
 
@@ -631,6 +662,56 @@ void main() {
             'movingHookLowCounter',
           ],
         );
+      },
+    );
+
+    test(
+      'the 144s score assigns one deliberate statement per two-bar slot',
+      () {
+        List<String> score(String section, int occurrence) => [
+          for (final phase in [0.05, 0.3, 0.55, 0.8])
+            perf
+                .choreoTrioForSection(
+                  section,
+                  phase,
+                  0.5,
+                  occurrence,
+                  sectionSeconds: 16,
+                )
+                .lead
+                .name,
+        ];
+
+        expect(score('chorus', 0), [
+          'movingHookLead',
+          'movingHookSideAnswer',
+          'movingVerseWindow',
+          'movingHookLead',
+        ]);
+        expect(score('chorus', 1), [
+          'movingHookLead',
+          'movingVerseWindow',
+          'movingHookSideAnswer',
+          'movingHookLead',
+        ]);
+        expect(score('verse', 0), [
+          'movingVerseShuffle',
+          'movingVerseWindow',
+          'movingBridgeBounce',
+          'movingHookSideAnswer',
+        ]);
+        expect(score('bridge', 0), [
+          'movingBridgeBounce',
+          'movingHookLowCounter',
+          'movingVerseWindow',
+          'movingHookSideAnswer',
+        ]);
+        expect(score('outro', 0), [
+          'movingHookSideAnswer',
+          'movingVerseWindow',
+          'movingHookLowCounter',
+          'movingVerseShuffle',
+        ]);
       },
     );
   });

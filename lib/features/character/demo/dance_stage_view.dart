@@ -591,9 +591,66 @@ Clip productionDanceClip(
     // 5. Continuous shoulder/chest WIND: the upper body keeps rolling so it is
     // never a static posed post while the hips bounce (the pocket is upper-
     // body-led — coach).
-    return shoulderWoundClip(grooved, lane);
+    final wound = shoulderWoundClip(grooved, lane);
+    final transition = clip.transitionPlan;
+    if (transition == null) return wound;
+
+    // Scene-level transition consumers (support balance, contact locking,
+    // world anchors, z-order) evaluate `transitionPlan.from/to` directly.
+    // Decorating only the temporary blended clip left those metadata sources
+    // raw, so the last blended frame converged on an undecorated foot/root
+    // while the next frame sampled the decorated destination. Full-song
+    // production probes measured the resulting wrapper-boundary jumps at
+    // 85.47s and 137.87s. Carry the exact same production decoration into the
+    // plan's two semantic sources while preserving the already-mixed channels.
+    return _clipWithTransitionPlan(
+      wound,
+      ClipTransitionPlan(
+        from: productionDanceClip(
+          transition.from,
+          dynamics,
+          lane,
+          energyLevel,
+        ),
+        to: productionDanceClip(
+          transition.to,
+          dynamics,
+          lane,
+          energyLevel,
+        ),
+        weight: transition.weight,
+        fromTimeShiftSeconds: transition.fromTimeShiftSeconds,
+      ),
+    );
   }();
 }
+
+Clip _clipWithTransitionPlan(Clip clip, ClipTransitionPlan transitionPlan) =>
+    Clip(
+      name: clip.name,
+      family: clip.family,
+      duration: clip.duration,
+      channels: clip.channels,
+      loop: clip.loop,
+      root: clip.root,
+      locomotionSpeed: clip.locomotionSpeed,
+      groundSpans: clip.groundSpans,
+      contactSpans: clip.contactSpans,
+      contactPinning: clip.contactPinning,
+      limbTargets: clip.limbTargets,
+      supportFootWorldAnchor: clip.supportFootWorldAnchor,
+      supportFootWorldAnchorStrength: clip.supportFootWorldAnchorStrength,
+      supportFootWorldAnchorVerticalBoost:
+          clip.supportFootWorldAnchorVerticalBoost,
+      danceHeadBobScale: clip.danceHeadBobScale,
+      danceHeadLevelClampMin: clip.danceHeadLevelClampMin,
+      armReachScale: clip.armReachScale,
+      headLateralStabilize: clip.headLateralStabilize,
+      enforceSoleFloor: clip.enforceSoleFloor,
+      transitionPlan: transitionPlan,
+      zOrderSwaps: clip.zOrderSwaps,
+      dynamics: clip.dynamics,
+    );
 
 /// The karaoke caption: a short window of lyric words centred on the current
 /// one (highlighted). Empty when no word is active. Shared by the live player
