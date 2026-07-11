@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:dancing_cats/features/character/model/affine2d.dart';
 import 'package:dancing_cats/features/character/model/clip.dart';
 import 'package:dancing_cats/features/character/runtime/character_scene.dart';
 import 'package:dancing_cats/features/character/samples/cat_in_suit.dart';
@@ -912,6 +913,88 @@ void main() {
         reason: 'the bent arm must still read clearly above the head',
       );
     });
+
+    test(
+      'Moving recoveries separate a loose low hand from the high phrase',
+      () {
+        final scene = CharacterScene(buildCatInSuitRig());
+
+        double elbowDegrees(
+          Map<String, Affine2D> world,
+          String shoulderId,
+          String elbowId,
+          String wristId,
+        ) {
+          final shoulder = world[shoulderId]!.origin;
+          final elbow = world[elbowId]!.origin;
+          final wrist = world[wristId]!.origin;
+          final upperX = shoulder.x - elbow.x;
+          final upperY = shoulder.y - elbow.y;
+          final lowerX = wrist.x - elbow.x;
+          final lowerY = wrist.y - elbow.y;
+          final cosine =
+              (upperX * lowerX + upperY * lowerY) /
+              (math.sqrt(upperX * upperX + upperY * upperY) *
+                  math.sqrt(lowerX * lowerX + lowerY * lowerY));
+          return math.acos(cosine.clamp(-1.0, 1.0)) * 180 / math.pi;
+        }
+
+        final answer = CatClips.movingGrooveSideAnswer;
+        final answerRecovery = scene
+            .frameAt(
+              clip: answer,
+              timeSeconds: (28 / 32) * answer.duration,
+            )
+            .world;
+        expect(
+          answerRecovery[CatBones.handR]!.origin.y,
+          greaterThan(answerRecovery[CatBones.armUpperR]!.origin.y + 20),
+          reason:
+              'the crown must pour into a visibly low loose hand instead of '
+              'springing back beside the shoulder',
+        );
+        expect(
+          elbowDegrees(
+            answerRecovery,
+            CatBones.armUpperR,
+            CatBones.armLowerR,
+            CatBones.handR,
+          ),
+          lessThan(155),
+          reason: 'the low waterfall still needs a relaxed, flexed elbow',
+        );
+
+        final window = CatClips.movingVerseWindow;
+        final windowCounter = scene
+            .frameAt(
+              clip: window,
+              timeSeconds: (24 / 32) * window.duration,
+            )
+            .world;
+        final high = windowCounter[CatBones.handL]!.origin;
+        final low = windowCounter[CatBones.handR]!.origin;
+        expect(
+          low.y - high.y,
+          greaterThan(85),
+          reason:
+              'bar 2 should read as one face-window arm over a pendular low '
+              'counter, not two fists waving at shoulder height',
+        );
+        expect(
+          low.y,
+          greaterThan(windowCounter[CatBones.armUpperR]!.origin.y + 20),
+        );
+        expect(
+          elbowDegrees(
+            windowCounter,
+            CatBones.armUpperR,
+            CatBones.armLowerR,
+            CatBones.handR,
+          ),
+          lessThan(155),
+        );
+      },
+    );
 
     test('Moving signature puts the rendered left paw above the head', () {
       final scene = CharacterScene(buildCatInSuitRig());

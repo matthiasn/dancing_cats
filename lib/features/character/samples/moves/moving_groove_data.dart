@@ -1692,8 +1692,15 @@ const _movingGrooveSideAnswerHandLTargetKeys = [
   DanceIkTargetKey(16, x: -108, y: -80, bendDirection: -1, tension: 0.2),
   DanceIkTargetKey(18, x: -100, y: -68, bendDirection: -1),
   DanceIkTargetKey(20, x: -104, y: -76, bendDirection: -1),
-  DanceIkTargetKey(24, x: -98, y: -54, bendDirection: -1),
-  DanceIkTargetKey(28, x: -86, y: -40, bendDirection: -1),
+  // Do not send both fists back to the same rib-height home pose after the
+  // crown. The left arm keeps pouring around the outside, then hangs low as
+  // the right side finishes its larger arc. This recovery is deliberately a
+  // different path from the rise, so it reads as released weight rather than
+  // a spring retracting the paw.
+  DanceIkTargetKey(24, x: -104, y: -58, bendDirection: -1),
+  DanceIkTargetKey(26, x: -100, y: -30, bendDirection: -1),
+  DanceIkTargetKey(28, x: -92, y: -12, bendDirection: -1),
+  DanceIkTargetKey(30, x: -84, y: -6, bendDirection: -1),
   DanceIkTargetKey(32, x: -78, y: -24, bendDirection: -1),
 ];
 
@@ -1712,8 +1719,14 @@ const _movingGrooveSideAnswerHandRTargetKeys = [
   DanceIkTargetKey(16, x: 52, y: -118, bendDirection: 1, tension: 0.2),
   DanceIkTargetKey(18, x: 78, y: -96, bendDirection: 1),
   DanceIkTargetKey(20, x: 108, y: -74, bendDirection: 1),
-  DanceIkTargetKey(24, x: 94, y: -48, bendDirection: 1),
-  DanceIkTargetKey(28, x: 82, y: -36, bendDirection: 1),
+  // The crown exits through a long outside waterfall into a loose low hand.
+  // Previously frames 24-32 drove straight back to the same shoulder-height
+  // guard as the left paw, producing the repeated aerobics-demo silhouette
+  // visible throughout the 90-123s full-song audit.
+  DanceIkTargetKey(24, x: 100, y: -42, bendDirection: 1),
+  DanceIkTargetKey(26, x: 98, y: -14, bendDirection: 1),
+  DanceIkTargetKey(28, x: 88, y: 4, bendDirection: 1),
+  DanceIkTargetKey(30, x: 80, y: -8, bendDirection: 1),
   DanceIkTargetKey(32, x: 78, y: -26, bendDirection: 1),
 ];
 
@@ -1903,9 +1916,16 @@ const _movingVerseWindowHandRTargetKeys = [
   DanceIkTargetKey(12, x: 112, y: -92, bendDirection: 1, tension: 0.2),
   DanceIkTargetKey(14, x: 96, y: -70, bendDirection: 1),
   DanceIkTargetKey(16, x: 76, y: -42, bendDirection: 1),
-  DanceIkTargetKey(20, x: 82, y: -52, bendDirection: 1),
-  DanceIkTargetKey(24, x: 96, y: -68, bendDirection: 1),
-  DanceIkTargetKey(28, x: 84, y: -44, bendDirection: 1),
+  // Bar 2 belongs to the left arm's face-window climb. Let the right paw
+  // counterbalance it below the belt in one pendular outside arc instead of
+  // continuing the same shoulder-height fist wave underneath.
+  DanceIkTargetKey(18, x: 76, y: -28, bendDirection: 1),
+  DanceIkTargetKey(20, x: 80, y: -16, bendDirection: 1),
+  DanceIkTargetKey(22, x: 82, y: -6, bendDirection: 1),
+  DanceIkTargetKey(24, x: 82, y: -2, bendDirection: 1, tension: 0.2),
+  DanceIkTargetKey(26, x: 80, y: -6, bendDirection: 1),
+  DanceIkTargetKey(28, x: 76, y: -14, bendDirection: 1),
+  DanceIkTargetKey(30, x: 72, y: -24, bendDirection: 1),
   DanceIkTargetKey(32, x: 68, y: -56, bendDirection: 1),
 ];
 

@@ -1373,6 +1373,11 @@ class CharacterScene {
     // — same fix as `_danceSupportFootStabilizedWorld`'s own doc comment.
     final contactSource = _contactSourceFor(clip, timeSeconds);
     final footAnchor = _supportFootWorldAnchorFor(clip, timeSeconds);
+    final transfersSupport = _transitionTransfersSupportFoot(
+      clip,
+      timeSeconds,
+    );
+    final plantedFoot = footAnchor?.bone;
 
     final clearedHands = _handClearanceAdjustedSamples(clip, phase);
 
@@ -1385,7 +1390,8 @@ class CharacterScene {
     // Same per-side clock fix as [footAnchor] above — the merged clip's
     // contactSpans evaluated at the wrong side's phase can name the wrong
     // bone as the "floor" reference for the free foot's clamp.
-    final contactForFloor = clip.enforceSoleFloor && _isDanceFamily(clip)
+    final contactForFloor =
+        clip.enforceSoleFloor && _isDanceFamily(clip) && !transfersSupport
         ? _activeContactAt(
             contactSource.clip,
             _clipPhase(contactSource.clip, contactSource.timeSeconds),
@@ -1417,7 +1423,7 @@ class CharacterScene {
       ..sort((a, b) {
         int rank(LimbIkTarget t) => !_isFootBone(t.endBoneId)
             ? 0
-            : (footAnchor != null && t.endBoneId == footAnchor.bone)
+            : (!transfersSupport && t.endBoneId == plantedFoot)
             ? 1
             : 2;
         return rank(a).compareTo(rank(b));
@@ -1462,7 +1468,7 @@ class CharacterScene {
       final weight = sample.weight.clamp(0.0, 1.0);
       if (weight <= 0) continue;
 
-      final planted = footAnchor != null && target.endBoneId == footAnchor.bone;
+      final planted = target.endBoneId == plantedFoot;
       // The floor for a free foot is the planted sole's position in the
       // CURRENT pre-correction solve — the same space the IK target lives
       // in. (Anchor-space floors mismatch during the seam dive, where the
@@ -1483,9 +1489,9 @@ class CharacterScene {
         sample,
         currentPose,
         weight,
-        worldAnchor: planted ? (x: footAnchor.x, y: footAnchor.y) : null,
-        anchorBlend: planted ? footAnchor.blend : 0,
-        anchorBlendY: planted ? footAnchor.blendY : 0,
+        worldAnchor: planted ? (x: footAnchor!.x, y: footAnchor.y) : null,
+        anchorBlend: planted ? footAnchor!.blend : 0,
+        anchorBlendY: planted ? footAnchor!.blendY : 0,
         soleFloorY: soleFloorStrength > 0 ? soleFloor : null,
         soleFloorStrength: soleFloorStrength,
       );
@@ -1518,9 +1524,9 @@ class CharacterScene {
           sample,
           currentPose,
           weight,
-          worldAnchor: planted ? (x: footAnchor.x, y: footAnchor.y) : null,
-          anchorBlend: planted ? footAnchor.blend : 0,
-          anchorBlendY: planted ? footAnchor.blendY : 0,
+          worldAnchor: planted ? (x: footAnchor!.x, y: footAnchor.y) : null,
+          anchorBlend: planted ? footAnchor!.blend : 0,
+          anchorBlendY: planted ? footAnchor!.blendY : 0,
           soleFloorY: soleFloorStrength > 0 ? soleFloor : null,
           soleFloorStrength: soleFloorStrength,
         );
@@ -2718,6 +2724,31 @@ class CharacterScene {
       );
     }
     return null;
+  }
+
+  /// Whether a runtime blend is transferring support between different feet.
+  ///
+  /// The world anchors themselves release and engage continuously in
+  /// [_supportFootWorldAnchorFor]. During that neutral interval, however,
+  /// choosing one foot as "planted" for IK ordering or as the other foot's
+  /// sole floor is still a discrete operation. Keep those two secondary
+  /// policies neutral for the whole cross-foot blend; the continuously
+  /// weighted world anchors and contact lock remain active.
+  bool _transitionTransfersSupportFoot(Clip clip, double timeSeconds) {
+    final plan = clip.transitionPlan;
+    if (plan == null) return false;
+    final from = _supportFootWorldAnchor(
+      plan.from,
+      _clipPhase(
+        plan.from,
+        timeSeconds + plan.fromTimeShiftSeconds,
+      ),
+    );
+    final to = _supportFootWorldAnchor(
+      plan.to,
+      _clipPhase(plan.to, timeSeconds),
+    );
+    return from?.bone != to?.bone;
   }
 
   /// The contact-lock pins the support point, but the shoe can still rotate

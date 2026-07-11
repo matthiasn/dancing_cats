@@ -14,6 +14,81 @@ import 'package:flutter_test/flutter_test.dart';
 typedef _Point = ({double x, double y});
 
 void main() {
+  test('Moving hook-to-answer support transfer stays velocity-continuous', () {
+    final beatJson =
+        jsonDecode(
+              File('assets/sample_track/moving.json').readAsStringSync(),
+            )
+            as Map<String, Object?>;
+    final wordsJson =
+        jsonDecode(
+              File('assets/sample_track/moving.words.json').readAsStringSync(),
+            )
+            as Map<String, Object?>;
+    final map = BeatMap.fromJson(beatJson);
+    final performance = DancePerformance.fromBeatMapJson(
+      json: beatJson,
+      map: map,
+      trackDurationSec: 144.066,
+      words: parseDanceWords(wordsJson),
+    );
+    final stepper = DancePlaybackStepper();
+    final scene = CharacterScene(buildCatInSuitRig());
+    final previous = <String, _Point>{};
+    final previousVelocity = <String, _Point>{};
+    const ids = [
+      CatBones.hips,
+      CatBones.handL,
+      CatBones.handR,
+      CatBones.armLowerR,
+      CatBones.footL,
+      CatBones.footR,
+    ];
+
+    const dt = 1 / 60;
+    for (var t = 109.5; t <= 112.75; t += dt) {
+      stepper.advance(performance, const [], t, dt);
+      final stage = stepper.stage!;
+      final clip = productionDanceClip(
+        stage.lead,
+        stage.dynamics.first,
+        0,
+        stage.energyLevel,
+      );
+      final world = scene.frameAt(clip: clip, timeSeconds: stage.seconds).world;
+      for (final id in ids) {
+        final origin = world[id]!.origin;
+        final point = (x: origin.x, y: origin.y);
+        final prior = previous[id];
+        previous[id] = point;
+        if (prior == null) continue;
+        final velocity = (x: point.x - prior.x, y: point.y - prior.y);
+        final priorVelocity = previousVelocity[id];
+        previousVelocity[id] = velocity;
+        if (t < 112.2 || priorVelocity == null) continue;
+
+        final travel = math.sqrt(
+          velocity.x * velocity.x + velocity.y * velocity.y,
+        );
+        final ax = velocity.x - priorVelocity.x;
+        final ay = velocity.y - priorVelocity.y;
+        final acceleration = math.sqrt(ax * ax + ay * ay);
+        expect(
+          travel,
+          lessThan(6.0),
+          reason: '$id moved $travel units at ${t.toStringAsFixed(3)}s',
+        );
+        expect(
+          acceleration,
+          lessThan(5.0),
+          reason:
+              '$id changed velocity by $acceleration units/frame at '
+              '${t.toStringAsFixed(3)}s',
+        );
+      }
+    }
+  });
+
   test('production phrase handoffs do not teleport limbs', () {
     final beatJson =
         jsonDecode(
