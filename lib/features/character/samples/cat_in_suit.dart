@@ -512,6 +512,21 @@ class CatClips {
     headKeys: _movingGrooveSideAnswerHeadKeys,
   );
 
+  /// Later-chorus travel phrase: the feet skate outside the stance while the
+  /// torso rises through a broad alternating overhead arc. This is a separate
+  /// whole-body sentence, not a hook arm swap over the original step-touch.
+  static Clip get movingChorusTravel => _movingGroove(
+    name: 'movingChorusTravel',
+    handLTargets: _movingChorusTravelHandLTargetKeys,
+    handRTargets: _movingChorusTravelHandRTargetKeys,
+    bodyKeys: _movingChorusTravelBodyKeys,
+    footLTargets: _movingChorusTravelFootLTargetKeys,
+    footRTargets: _movingChorusTravelFootRTargetKeys,
+    footLKeys: _movingChorusTravelFootLKeys,
+    footRKeys: _movingChorusTravelFootRKeys,
+    contactSpans: _movingChorusTravelContactSpans,
+  );
+
   /// Verse phrase: a visible heel-tap shuffle with the hips travelling over
   /// the planted shoe. It is deliberately a different lower-body sentence
   /// from the chorus hook, rather than the same step-touch with new arms.
@@ -555,6 +570,21 @@ class CatClips {
     footRTargets: _movingBreakdownFootRTargetKeys,
     footLKeys: _movingBreakdownFootLKeys,
     footRKeys: _movingBreakdownFootRKeys,
+  );
+
+  /// Bridge counterphrase: long diagonal plants overlap through double
+  /// support, giving the body time to pour across the stance instead of
+  /// pumping vertically on every half-beat.
+  static Clip get movingBridgeRock => _movingGroove(
+    name: 'movingBridgeRock',
+    handLTargets: _movingBridgeRockHandLTargetKeys,
+    handRTargets: _movingBridgeRockHandRTargetKeys,
+    bodyKeys: _movingBridgeRockBodyKeys,
+    footLTargets: _movingBridgeRockFootLTargetKeys,
+    footRTargets: _movingBridgeRockFootRTargetKeys,
+    footLKeys: _movingBridgeRockFootLKeys,
+    footRKeys: _movingBridgeRockFootRKeys,
+    contactSpans: _movingBridgeRockContactSpans,
   );
 
   static Clip _movingGroove({

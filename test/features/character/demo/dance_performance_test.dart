@@ -685,30 +685,30 @@ void main() {
         expect(score('chorus', 0), [
           'movingHookLead',
           'movingHookSideAnswer',
-          'movingVerseWindow',
+          'movingChorusTravel',
           'movingHookLead',
         ]);
         expect(score('chorus', 1), [
           'movingHookLead',
-          'movingVerseWindow',
+          'movingChorusTravel',
           'movingHookSideAnswer',
           'movingHookLead',
         ]);
         expect(score('verse', 0), [
           'movingVerseShuffle',
           'movingVerseWindow',
-          'movingBridgeBounce',
+          'movingBridgeRock',
           'movingHookSideAnswer',
         ]);
         expect(score('bridge', 0), [
           'movingBridgeBounce',
-          'movingHookLowCounter',
+          'movingBridgeRock',
           'movingVerseWindow',
           'movingHookSideAnswer',
         ]);
         expect(score('outro', 0), [
           'movingHookSideAnswer',
-          'movingVerseWindow',
+          'movingBridgeRock',
           'movingHookLowCounter',
           'movingVerseShuffle',
         ]);

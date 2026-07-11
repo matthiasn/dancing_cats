@@ -851,6 +851,8 @@ void main() {
         CatClips.movingVerseGroove,
         CatClips.movingVerseWindow,
         CatClips.movingBreakdownGroove,
+        CatClips.movingChorusTravel,
+        CatClips.movingBridgeRock,
       ]) {
         for (var i = 0; i < 96; i++) {
           final p = i / 96;
@@ -867,6 +869,26 @@ void main() {
           );
         }
       }
+    });
+
+    test('Moving travel and bridge are distinct whole-body sentences', () {
+      final travel = CatClips.movingChorusTravel;
+      final bridge = CatClips.movingBridgeRock;
+      final travelFootR = _targetFor(travel, CatBones.footR).channel;
+      final bridgeFootR = _targetFor(bridge, CatBones.footR).channel;
+      final travelHandL = _targetFor(travel, CatBones.handL).channel;
+      final bridgeHandL = _targetFor(bridge, CatBones.handL).channel;
+
+      // The chorus sends the free shoe beyond the stance; the bridge draws it
+      // inward. These are opposite weight pathways, not different arms over
+      // the same step-touch.
+      expect(travelFootR.sample(4 / 32).x, greaterThan(80));
+      expect(bridgeFootR.sample(8 / 32).x, lessThan(45));
+
+      // Both phrases release one paw to the real hip line between accents,
+      // preventing the repeated two-fists-at-shoulders guard silhouette.
+      expect(travelHandL.sample(0).y, greaterThan(-5));
+      expect(bridgeHandL.sample(0).y, greaterThan(-5));
     });
 
     test('Moving side-answer crown keeps a visibly bent elbow', () {

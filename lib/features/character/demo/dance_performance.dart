@@ -532,6 +532,8 @@ class DancePerformance {
   static final Clip _movingVerse = CatClips.movingVerseGroove;
   static final Clip _movingVerseWindow = CatClips.movingVerseWindow;
   static final Clip _movingBreakdown = CatClips.movingBreakdownGroove;
+  static final Clip _movingChorusTravel = CatClips.movingChorusTravel;
+  static final Clip _movingBridgeRock = CatClips.movingBridgeRock;
 
   /// How far open the lyric-synced mouth slack window is dilated so short gaps
   /// between a phrase's words don't make the mouth flicker shut.
@@ -709,13 +711,13 @@ class DancePerformance {
       lead: _movingSideAnswer,
       ensemble: [_movingSideAnswer, _moving, _movingLowCounter],
     );
-    final hookWindow = (
-      lead: _movingVerseWindow,
-      ensemble: [_movingVerseWindow, _movingVerse, _movingSideAnswer],
-    );
     final hookReturn = (
       lead: _moving,
       ensemble: [_moving, _movingSideAnswer, _movingVerse],
+    );
+    final hookTravel = (
+      lead: _movingChorusTravel,
+      ensemble: [_movingChorusTravel, _movingSideAnswer, _movingLowCounter],
     );
     final verseShuffle = (
       lead: _movingVerse,
@@ -728,6 +730,10 @@ class DancePerformance {
     final breakdown = (
       lead: _movingBreakdown,
       ensemble: [_movingBreakdown, _movingVerse, _movingLowCounter],
+    );
+    final bridgeRock = (
+      lead: _movingBridgeRock,
+      ensemble: [_movingBridgeRock, _movingBreakdown, _movingVerseWindow],
     );
     final lowCounter = (
       lead: _movingLowCounter,
@@ -745,41 +751,41 @@ class DancePerformance {
     switch (section) {
       case 'chorus':
         // Four explicitly scored statements per chorus occurrence. The hook
-        // returns, but its answer/window/ensemble ownership develops instead
+        // returns, but its answer/travel/ensemble ownership develops instead
         // of one selected loop replaying automatically for eight seconds.
         final score = switch (variant) {
-          0 => [hookCall, hookAnswer, hookWindow, hookReturn],
-          1 => [hookCall, hookWindow, hookAnswer, hookReturn],
-          _ => [hookAnswer, hookWindow, hookReturn, hookCall],
+          0 => [hookCall, hookAnswer, hookTravel, hookReturn],
+          1 => [hookCall, hookTravel, hookAnswer, hookReturn],
+          _ => [hookAnswer, hookTravel, hookReturn, hookCall],
         };
         return _rotateSetlist(score, phase, sectionSeconds);
       case 'post-chorus':
         return _rotateSetlist(
-          [hookReturn, hookWindow, sideVerse, windowBridge],
+          [hookReturn, hookTravel, sideVerse, windowBridge],
           phase,
           sectionSeconds,
         );
       case 'pre-chorus':
         return _rotateSetlist(
-          [verseShuffle, breakdown, sideVerse, hookWindow],
+          [verseShuffle, bridgeRock, sideVerse, hookTravel],
           phase,
           sectionSeconds,
         );
       case 'verse':
         return _rotateSetlist(
-          [verseShuffle, verseWindow, breakdown, sideVerse],
+          [verseShuffle, verseWindow, bridgeRock, sideVerse],
           phase,
           sectionSeconds,
         );
       case 'bridge':
         return _rotateSetlist(
-          [breakdown, lowCounter, windowBridge, sideVerse],
+          [breakdown, bridgeRock, windowBridge, sideVerse],
           phase,
           sectionSeconds,
         );
       case 'outro':
         return _rotateSetlist(
-          [sideVerse, windowBridge, lowCounter, verseShuffle],
+          [sideVerse, bridgeRock, lowCounter, verseShuffle],
           phase,
           sectionSeconds,
         );
