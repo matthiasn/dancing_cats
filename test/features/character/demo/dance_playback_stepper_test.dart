@@ -64,8 +64,8 @@ void main() {
     test('the stage tracks the performance derivation', () {
       final stepper = DancePlaybackStepper()
         ..advance(_perf(), const [], 2, 0.06);
-      // Energetic section at full level → the unison Buga hit.
-      expect(stepper.stage?.lead.name, 'buga');
+      // Energetic section at full level → the song-specific Moving hook.
+      expect(stepper.stage?.lead.name, 'movingHookLead');
     });
 
     test('smooths catalogue move changes instead of hard cutting', () {
@@ -73,23 +73,23 @@ void main() {
         sectionSpans: const [(start: 0, end: 6, section: 'chorus')],
       );
       final stepper = DancePlaybackStepper()
-        // Chorus phase 0.54 is before the Buga handoff, so variant 0 uses Zanku.
-        ..advance(perf, const [], 3.24, 0.016);
-      expect(stepper.stage?.lead.name, 'zanku');
+        // The first scored Moving statement is still active before 3.0s.
+        ..advance(perf, const [], 2.90, 0.016);
+      expect(stepper.stage?.lead.name, 'movingHookLead');
 
-      // Cross the choreography handoff at chorus phase 0.55. The raw derivation
-      // is now Buga, but the cut is BEAT-QUANTIZED: the outgoing Zanku keeps
+      // Cross the choreography handoff at 3.0s. The raw derivation is now the
+      // side answer, but the cut is BEAT-QUANTIZED: the outgoing hook keeps
       // dancing (held on the shared clock) until the next detected beat at
       // 3.5s, so ballistic outgoing limbs resolve onto a count instead of
       // being amputated mid-flight (transitions panel r1).
-      stepper.advance(perf, const [], 3.36, 0.016);
-      expect(stepper.stage?.lead.name, 'zanku');
+      stepper.advance(perf, const [], 3.10, 0.016);
+      expect(stepper.stage?.lead.name, 'movingHookLead');
 
       // The beat lands — now the stepper exposes the transient blended clip
       // so the renderer does not jump from one full-body pose to another.
       stepper.advance(perf, const [], 3.52, 0.016);
       final mixed = stepper.stage!;
-      expect(mixed.lead.name, 'zanku->buga');
+      expect(mixed.lead.name, 'movingHookLead->movingHookSideAnswer');
       expect(mixed.lead.root, isA<BlendedRootChannel>());
       expect(
         mixed.lead.channels.values,
@@ -106,25 +106,19 @@ void main() {
                   .channel
               as BlendedIkTargetChannel;
       final tail = mixed.lead.channels[CatBones.tail6]! as BlendedJointChannel;
-      expect(
-        root.weight,
-        greaterThan(rightHand.weight),
-        reason:
-            'dance move transitions should settle body/contact before hand IK '
-            'targets start chasing the incoming move',
-      );
+      expect(root.weight, rightHand.weight);
       expect(
         tail.weight,
-        0,
+        root.weight,
         reason:
-            'secondary tail/ear/tie motion should follow the transition last, '
-            'not reset on the same frame as the primary body',
+            'Moving phrases are connected whole-body sentences, so body, arm '
+            'targets, and secondary motion share one coherent blend clock',
       );
 
-      for (var i = 0; i < 20; i++) {
+      for (var i = 0; i < 40; i++) {
         stepper.advance(perf, const [], 3.54 + i * 0.016, 0.016);
       }
-      expect(stepper.stage?.lead.name, 'buga');
+      expect(stepper.stage?.lead.name, 'movingHookSideAnswer');
     });
 
     test('an incoming move enters on its own bar 1 (segment re-anchor)', () {
@@ -132,15 +126,15 @@ void main() {
         sectionSpans: const [(start: 0, end: 6, section: 'chorus')],
       );
       final stepper = DancePlaybackStepper();
-      // Walk across the 3.3s Zanku->Buga handoff. Buga's choreo statement
-      // starts at 3.3; the first downbeat at/after it is 4.0s (beat index
-      // 8), so Buga's phrase clock must re-anchor there: its bar 1 lands ON
+      // Walk across the 3.0s hook->answer handoff. The answer's choreo statement
+      // starts at 3.0; the first downbeat at/after it is 4.0s (beat index
+      // 8), so its phrase clock must re-anchor there: its bar 1 lands ON
       // that downbeat instead of whatever phase the global grid dictated.
       for (var t = 3.2; t < 4.0; t += 0.016) {
         stepper.advance(perf, const [], t, 0.016);
       }
       stepper.advance(perf, const [], 4.02, 0.016);
-      expect(stepper.stage?.lead.name, 'buga');
+      expect(stepper.stage?.lead.name, 'movingHookSideAnswer');
       final duration = stepper.stage!.lead.duration;
       expect(
         stepper.stage!.seconds,
@@ -173,15 +167,15 @@ void main() {
           sectionSpans: const [(start: 0, end: 6, section: 'chorus')],
         );
         final stepper = DancePlaybackStepper()
-          ..advance(perf, const [], 3.24, 0.016); // steady zanku
-        expect(stepper.stage?.lead.name, 'zanku');
+          ..advance(perf, const [], 2.90, 0.016); // steady Moving hook
+        expect(stepper.stage?.lead.name, 'movingHookLead');
         expect(stepper.stage?.dynamics.length, 3);
         final steadyDynamics = stepper.stage!.dynamics;
-        // zanku (Strong·Sudden·Bound) is nowhere near neutral once its lane
+        // The authored hook is nowhere near neutral once its lane
         // profile and this full-energy section's swing are composed in.
         expect(steadyDynamics.first, isNot(DanceDynamics.neutral));
 
-        stepper.advance(perf, const [], 3.36, 0.016); // held, waiting for beat
+        stepper.advance(perf, const [], 3.10, 0.016); // held, waiting for beat
         final held = stepper.stage!.dynamics;
         for (var i = 0; i < held.length; i++) {
           // The per-frame dynamics ease re-lerps toward its (unchanged)
@@ -203,14 +197,17 @@ void main() {
           const [],
           3.52,
           0.016,
-        ); // blend starts: zanku->buga
-        expect(stepper.stage?.lead.name, 'zanku->buga');
+        ); // blend starts: hook->answer
+        expect(
+          stepper.stage?.lead.name,
+          'movingHookLead->movingHookSideAnswer',
+        );
         expect(stepper.stage?.dynamics.length, 3);
-        // buga's weight/time dials sit below zanku's, so the very start of the
-        // blend should already read as less Strong/Sudden than steady zanku.
+        // The two song-specific statements intentionally share one Effort
+        // character; changing pose must not manufacture a dynamics step.
         expect(
           stepper.stage!.dynamics.first.weight,
-          lessThan(steadyDynamics.first.weight),
+          closeTo(steadyDynamics.first.weight, 1e-9),
         );
       },
     );

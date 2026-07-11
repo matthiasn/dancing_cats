@@ -2582,35 +2582,26 @@ const _movingBodyRollBodyKeys = [
 
 const _movingBodyRollHandLTargetKeys = [
   DanceIkTargetKey(0, x: -76, y: 8, bendDirection: -1),
-  DanceIkTargetKey(1, x: -76, y: 8, bendDirection: -1),
-  DanceIkTargetKey(2, x: -78, y: 8, bendDirection: -1),
-  DanceIkTargetKey(3, x: -82, y: 5, bendDirection: -1),
-  DanceIkTargetKey(4, x: -86, y: 2, bendDirection: -1),
-  DanceIkTargetKey(8, x: -94, y: -14, bendDirection: -1),
-  DanceIkTargetKey(12, x: -88, y: -28, bendDirection: -1),
-  DanceIkTargetKey(16, x: -76, y: 10, bendDirection: -1),
-  DanceIkTargetKey(20, x: -72, y: 18, bendDirection: -1),
-  DanceIkTargetKey(24, x: -82, y: 10, bendDirection: -1),
-  DanceIkTargetKey(28, x: -92, y: -8, bendDirection: -1),
-  DanceIkTargetKey(30, x: -82, y: 4, bendDirection: -1),
-  DanceIkTargetKey(31, x: -78, y: 8, bendDirection: -1),
+  DanceIkTargetKey(4, x: -70, y: -8, bendDirection: -1),
+  DanceIkTargetKey(8, x: -68, y: -32, bendDirection: -1),
+  DanceIkTargetKey(12, x: -72, y: -16, bendDirection: -1),
+  DanceIkTargetKey(16, x: -94, y: -16, bendDirection: -1),
+  DanceIkTargetKey(20, x: -108, y: -28, bendDirection: -1),
+  DanceIkTargetKey(24, x: -112, y: -16, bendDirection: -1),
+  DanceIkTargetKey(28, x: -100, y: -8, bendDirection: -1),
   DanceIkTargetKey(32, x: -76, y: 8, bendDirection: -1),
 ];
 
 const _movingBodyRollHandRTargetKeys = [
-  DanceIkTargetKey(0, x: 72, y: 18, bendDirection: 1),
-  DanceIkTargetKey(1, x: 74, y: 16, bendDirection: 1),
-  DanceIkTargetKey(2, x: 76, y: 14, bendDirection: 1),
-  DanceIkTargetKey(4, x: 78, y: 10, bendDirection: 1),
-  DanceIkTargetKey(8, x: 90, y: -8, bendDirection: 1),
-  DanceIkTargetKey(12, x: 84, y: 4, bendDirection: 1),
+  DanceIkTargetKey(0, x: 94, y: -16, bendDirection: 1),
+  DanceIkTargetKey(4, x: 108, y: -28, bendDirection: 1),
+  DanceIkTargetKey(8, x: 112, y: -16, bendDirection: 1),
+  DanceIkTargetKey(12, x: 100, y: -8, bendDirection: 1),
   DanceIkTargetKey(16, x: 76, y: 8, bendDirection: 1),
-  DanceIkTargetKey(20, x: 88, y: 0, bendDirection: 1),
-  DanceIkTargetKey(24, x: 98, y: -22, bendDirection: 1),
-  DanceIkTargetKey(28, x: 86, y: -30, bendDirection: 1),
-  DanceIkTargetKey(30, x: 78, y: 4, bendDirection: 1),
-  DanceIkTargetKey(31, x: 74, y: 15, bendDirection: 1),
-  DanceIkTargetKey(32, x: 72, y: 18, bendDirection: 1),
+  DanceIkTargetKey(20, x: 70, y: -8, bendDirection: 1),
+  DanceIkTargetKey(24, x: 68, y: -32, bendDirection: 1),
+  DanceIkTargetKey(28, x: 72, y: -16, bendDirection: 1),
+  DanceIkTargetKey(32, x: 94, y: -16, bendDirection: 1),
 ];
 
 const _movingBodyRollFootLTargetKeys = [
@@ -2654,35 +2645,35 @@ const _movingBodyRollFootRKeys = [
 ];
 
 const _movingBodyRollHandLKeys = [
-  DanceJointKey(0, rotation: 0.08),
-  DanceJointKey(8, rotation: -0.10),
-  DanceJointKey(16, rotation: 0.06),
-  DanceJointKey(24, rotation: -0.08),
-  DanceJointKey(32, rotation: 0.08),
+  DanceJointKey(0, rotation: 0.10),
+  DanceJointKey(8, rotation: -0.22),
+  DanceJointKey(16, rotation: 0.14),
+  DanceJointKey(24, rotation: -0.16),
+  DanceJointKey(32, rotation: 0.10),
 ];
 
 const _movingBodyRollHandRKeys = [
-  DanceJointKey(0, rotation: -0.08),
-  DanceJointKey(8, rotation: 0.08),
-  DanceJointKey(16, rotation: -0.06),
-  DanceJointKey(24, rotation: 0.11),
-  DanceJointKey(32, rotation: -0.08),
+  DanceJointKey(0, rotation: -0.14),
+  DanceJointKey(8, rotation: 0.16),
+  DanceJointKey(16, rotation: -0.10),
+  DanceJointKey(24, rotation: 0.22),
+  DanceJointKey(32, rotation: -0.14),
 ];
 
 const _movingBodyRollClavicleLKeys = [
-  DanceJointKey(0, rotation: 0.012),
-  DanceJointKey(8, rotation: -0.018),
-  DanceJointKey(16, rotation: 0.010),
-  DanceJointKey(24, rotation: -0.015),
-  DanceJointKey(32, rotation: 0.012),
+  DanceJointKey(0, rotation: 0.024),
+  DanceJointKey(8, rotation: -0.036),
+  DanceJointKey(16, rotation: 0.022),
+  DanceJointKey(24, rotation: -0.032),
+  DanceJointKey(32, rotation: 0.024),
 ];
 
 const _movingBodyRollClavicleRKeys = [
-  DanceJointKey(0, rotation: -0.012),
-  DanceJointKey(8, rotation: 0.018),
-  DanceJointKey(16, rotation: -0.010),
-  DanceJointKey(24, rotation: 0.015),
-  DanceJointKey(32, rotation: -0.012),
+  DanceJointKey(0, rotation: -0.028),
+  DanceJointKey(8, rotation: 0.032),
+  DanceJointKey(16, rotation: -0.024),
+  DanceJointKey(24, rotation: 0.038),
+  DanceJointKey(32, rotation: -0.028),
 ];
 
 // Backup 1: one low scoop per bar. It deliberately HOLDS its counter-pose
@@ -3098,31 +3089,32 @@ const _movingVerseHandRTargetKeys = [
   DanceIkTargetKey(32, x: 66, y: -48, bendDirection: 1),
 ];
 
-// Bridge arms: alternating shoulder-height calls over the low heel bounce.
-// The call sustains for a full count before pouring down the outside, giving
-// the bridge a recognisable sentence instead of sixteen identical waist-level
-// pumps.
+// Bridge arms: one side reaches beyond the ribcage while the other stays loose
+// and low, then the roles trade in bar two.  The broad endpoint follows the
+// weighted heel rather than arriving with it; the return passes through an
+// outside recovery instead of snapping both fists back beside the waist.
 const _movingBreakdownHandLTargetKeys = [
   DanceIkTargetKey(0, x: -72, y: -24, bendDirection: -1),
-  DanceIkTargetKey(4, x: -88, y: -68, bendDirection: -1),
-  DanceIkTargetKey(8, x: -102, y: -82, bendDirection: -1),
-  DanceIkTargetKey(12, x: -94, y: -62, bendDirection: -1),
-  DanceIkTargetKey(16, x: -72, y: -26, bendDirection: -1),
-  DanceIkTargetKey(20, x: -80, y: -42, bendDirection: -1),
-  DanceIkTargetKey(24, x: -88, y: -56, bendDirection: -1),
-  DanceIkTargetKey(28, x: -102, y: -72, bendDirection: -1),
+  DanceIkTargetKey(4, x: -90, y: -52, bendDirection: -1),
+  DanceIkTargetKey(8, x: -122, y: -72, bendDirection: -1, tension: 0.18),
+  DanceIkTargetKey(12, x: -112, y: -60, bendDirection: -1),
+  DanceIkTargetKey(16, x: -78, y: -30, bendDirection: -1),
+  DanceIkTargetKey(20, x: -82, y: -42, bendDirection: -1),
+  DanceIkTargetKey(24, x: -90, y: -54, bendDirection: -1),
+  DanceIkTargetKey(28, x: -116, y: -68, bendDirection: -1, tension: 0.15),
+  DanceIkTargetKey(30, x: -94, y: -48, bendDirection: -1),
   DanceIkTargetKey(32, x: -72, y: -24, bendDirection: -1),
 ];
 
 const _movingBreakdownHandRTargetKeys = [
   DanceIkTargetKey(0, x: 72, y: -24, bendDirection: 1),
-  DanceIkTargetKey(4, x: 78, y: -38, bendDirection: 1),
-  DanceIkTargetKey(8, x: 76, y: -28, bendDirection: 1),
-  DanceIkTargetKey(12, x: 88, y: -66, bendDirection: 1),
-  DanceIkTargetKey(16, x: 96, y: -78, bendDirection: 1),
-  DanceIkTargetKey(20, x: 94, y: -62, bendDirection: 1),
-  DanceIkTargetKey(24, x: 76, y: -28, bendDirection: 1),
-  DanceIkTargetKey(28, x: 102, y: -72, bendDirection: 1),
+  DanceIkTargetKey(4, x: 76, y: -32, bendDirection: 1),
+  DanceIkTargetKey(8, x: 80, y: -18, bendDirection: 1),
+  DanceIkTargetKey(12, x: 90, y: -52, bendDirection: 1),
+  DanceIkTargetKey(16, x: 120, y: -70, bendDirection: 1, tension: 0.18),
+  DanceIkTargetKey(20, x: 110, y: -58, bendDirection: 1),
+  DanceIkTargetKey(24, x: 74, y: -22, bendDirection: 1),
+  DanceIkTargetKey(28, x: 90, y: -40, bendDirection: 1),
   DanceIkTargetKey(32, x: 72, y: -24, bendDirection: 1),
 ];
 

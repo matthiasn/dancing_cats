@@ -411,7 +411,7 @@ void main() {
         final end = cameraShot(_ctx(sectionPhase: 1));
         // The launch clock starts kCameraLaunchLeadSeconds before the boundary,
         // so the section opens already a touch into its launch-push…
-        expect(start.zoom, inInclusiveRange(1.26, 1.33));
+        expect(start.zoom, inInclusiveRange(1.26, 1.38));
         // …and the camera has visibly moved a couple of bars in — toned down
         // from the old 0.09 launch coefficient (the panel read the original
         // push as a jump-cut against the section's otherwise calm hold), but
@@ -419,7 +419,7 @@ void main() {
         // glide (see the continuity regression test).
         expect(launched.zoom - start.zoom, greaterThan(0.02));
         // The slow drift-up carries the rest of the refrain.
-        expect(end.zoom, closeTo(1.355, 1e-9));
+        expect(end.zoom, closeTo(1.41, 1e-9));
         // The arc drifts out mid-section and returns, riding the launch's
         // (toned-down) rightward ease plus the hook's small phrase drift —
         // the depth keeps sliding through the held hook.
@@ -650,7 +650,7 @@ void main() {
                   secondsSinceMoveCut: 1000000000,
                 ),
               ).zoom +
-              0.01,
+              0.009,
         ),
       );
       final decayed = cameraShot(

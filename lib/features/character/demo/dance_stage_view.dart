@@ -546,6 +546,7 @@ Clip productionDanceClip(
   final cache = _warpCache[clip] ??= {};
   // energyLevel is per-section-constant, so this stays a small keyed cache.
   return cache[(dynamics, lane, energyLevel)] ??= () {
+    final transition = clip.transitionPlan;
     final songGroove = clip.belongsToFamily('moving');
     // 1. Effort TIME warp (unchanged): reshapes the beat timing by dynamics.
     // The Moving phrase already authors long multi-beat arm arcs. Re-syncing
@@ -595,7 +596,8 @@ Clip productionDanceClip(
     final microTimed = songGroove
         ? upperBodyPhaseOffsetClip(
             grooved,
-            kDanceLaneUpperBodyPhaseOffsets[lane],
+            kDanceLaneUpperBodyPhaseOffsets[lane] *
+                _movingTransitionOwnership(transition),
             upperBodyBoneIds: kDanceUpperBodyWarpBoneIds,
           )
         : grooved;
@@ -603,7 +605,6 @@ Clip productionDanceClip(
     // never a static posed post while the hips bounce (the pocket is upper-
     // body-led — coach).
     final wound = shoulderWoundClip(microTimed, lane);
-    final transition = clip.transitionPlan;
     if (transition == null) return wound;
 
     // Scene-level transition consumers (support balance, contact locking,
@@ -634,6 +635,22 @@ Clip productionDanceClip(
       ),
     );
   }();
+}
+
+/// Fraction of a transition pose semantically owned by Moving.
+///
+/// `Clip.belongsToFamily` deliberately returns true when either side belongs to
+/// the family, which is right for selecting the production treatment but too
+/// coarse for a phase offset: applying the full lane offset to a rest→Moving
+/// wrapper shifts the outgoing idle arms even at blend weight zero. Ramp that
+/// time offset with the same eased ownership as the pose.
+double _movingTransitionOwnership(ClipTransitionPlan? transition) {
+  if (transition == null) return 1;
+  final fromMoving = transition.from.belongsToFamily('moving');
+  final toMoving = transition.to.belongsToFamily('moving');
+  if (fromMoving == toMoving) return fromMoving ? 1 : 0;
+  final incoming = transition.weight;
+  return toMoving ? incoming : 1 - incoming;
 }
 
 Clip _clipWithTransitionPlan(Clip clip, ClipTransitionPlan transitionPlan) =>

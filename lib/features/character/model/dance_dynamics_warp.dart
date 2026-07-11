@@ -354,11 +354,49 @@ Clip shoulderWoundClip(Clip clip, int lane) {
     return clip;
   }
   final lanePhase = lane * 0.17;
+  JointChannel wound(
+    JointChannel base, {
+    required double amplitude,
+    required int harmonic,
+    required double phase,
+  }) {
+    final plan = clip.transitionPlan;
+    if (plan == null) {
+      return WoundJointChannel(
+        base,
+        amplitude: amplitude,
+        harmonic: harmonic,
+        phase: phase,
+      );
+    }
+    // The choreography channels inside a blended clip sample the outgoing
+    // phrase on its shifted clock. Layering a fresh sine around that blend used
+    // the incoming clock for the wind even at weight zero, phase-jumping the
+    // clavicles and therefore both hands at every score cut. Blend the additive
+    // wind itself across the same two clocks, then layer it onto the pose.
+    JointChannel windChannel() => SineChannel(
+      harmonicAmplitude: amplitude,
+      harmonicMultiplier: harmonic.toDouble(),
+      harmonicPhase: phase,
+    );
+    return LayeredJointChannel([
+      base,
+      BlendedJointChannel(
+        from: windChannel(),
+        to: windChannel(),
+        weight: plan.weight,
+        fromTimeShift: plan.fromTimeShiftSeconds,
+        fromDuration: plan.from.duration,
+        toDuration: plan.to.duration,
+      ),
+    ]);
+  }
+
   var changed = false;
   final channels = <String, JointChannel>{};
   clip.channels.forEach((id, ch) {
     if (id == 'clavicle.L') {
-      channels[id] = WoundJointChannel(
+      channels[id] = wound(
         ch,
         amplitude: kDanceShoulderWindAmplitude,
         harmonic: kDanceShoulderWindHarmonic,
@@ -366,7 +404,7 @@ Clip shoulderWoundClip(Clip clip, int lane) {
       );
       changed = true;
     } else if (id == 'clavicle.R') {
-      channels[id] = WoundJointChannel(
+      channels[id] = wound(
         ch,
         amplitude: -kDanceShoulderWindAmplitude,
         harmonic: kDanceShoulderWindHarmonic,
@@ -374,7 +412,7 @@ Clip shoulderWoundClip(Clip clip, int lane) {
       );
       changed = true;
     } else if (id == 'torso' || id == 'chest') {
-      channels[id] = WoundJointChannel(
+      channels[id] = wound(
         ch,
         amplitude: kDanceChestWindAmplitude,
         harmonic: 3,

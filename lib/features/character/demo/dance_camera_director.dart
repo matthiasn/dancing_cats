@@ -132,12 +132,16 @@ const double kTightShotDropRef = 26;
 /// The trim for a shot at [zoom] — applied uniformly after section blending in
 /// [cameraShot], so it is continuous wherever the zoom is.
 double tightShotDrop(double zoom) =>
-    kTightShotDropRef * smoothstep(((zoom - 1.38) / 0.08).clamp(0.0, 1.0));
+    kTightShotDropRef * smoothstep(((zoom - 1.38) / 0.12).clamp(0.0, 1.0));
 
 /// Additive zoom amplitude of the move-cut "hit" (see [DanceCameraContext.
 /// secondsSinceMoveCut]) — small enough to read as a camera acknowledging an
 /// edit, not a fresh accent competing with the section's own push.
-const double kMoveCutNudgeZoom = 0.022;
+// Phrase-to-phrase cuts get a restrained edit acknowledgement; section drops
+// own the larger camera impulse. At 0.022 the 0.18s attack reached 0.226
+// zoom/s and outran the second chorus launch by more than 4x, making routine
+// score changes feel more important than the song's actual downbeat.
+const double kMoveCutNudgeZoom = 0.010;
 
 /// Seconds the move-cut nudge takes to ramp up from zero to full amplitude.
 /// This director's whole design is "anticipated, never punched" — every
@@ -588,7 +592,7 @@ Shot _chorusShot(
     // rightward surge room while keeping the silver backup clear of the edge.
     // The launch itself was toned down from 0.09/18 — the panel read the
     // original push as a jump-cut against the section's otherwise calm hold.
-    final z = 1.26 + 0.075 * launch + 0.02 * smoothstep(sectionPhase);
+    final z = 1.26 + 0.13 * launch + 0.02 * smoothstep(sectionPhase);
     final arc = math.sin(math.pi * sectionPhase) * 20;
     return (zoom: z + breathe, dx: arc - 10 * launch + drift, dy: 0);
   }
@@ -603,11 +607,10 @@ Shot _chorusShot(
   // launch adds a small lateral drift INTO the lean, so the drop reads as a
   // diagonal (zoom + pan) even at this shot size.
   final left = occurrence.isOdd;
-  // Home 1.445 with a 0.06 launch (toned down from 0.07 — the panel read the
-  // original push as a jump-cut against the section's otherwise calm hold):
-  // the drop's push still crests above the approach glide's peak velocity, so
-  // the accent — not the runway — owns the phrase.
-  final z = 1.445 + 0.06 * launch + 0.015 * smoothstep(sectionPhase);
+  // A 1.38 home plus a stronger 0.15 launch separates runway from impact:
+  // the approach stays grounded, the drop owns the velocity crest, and the
+  // finished push remains below the global 1.55 framing ceiling.
+  final z = 1.37 + 0.15 * launch + 0.015 * smoothstep(sectionPhase);
   final launchDrift = (left ? 1 : -1) * 15 * launch;
   return (
     zoom: z + breathe,

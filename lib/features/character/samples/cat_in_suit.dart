@@ -1307,7 +1307,8 @@ class CatClips {
         // catalogue) — same fix as zanku/shaku, see
         // Clip.supportFootWorldAnchorVerticalBoost.
         supportFootWorldAnchorVerticalBoost: 0.13,
-        danceHeadBobScale: 0.7,
+        danceHeadBobScale: 0.64,
+        headLateralStabilize: 0.2,
         // Ornament-port round: azonto joins the sole-floor ratchet (its
         // step-touch redirects are floor-adjacent; the clamp guards the
         // deep-accent frames).
@@ -1519,7 +1520,7 @@ class CatClips {
           feel: DanceFeel.onBeat,
           featuredRegion: BodyRegion.arms,
           // ADR D4: Light bounces -> Strong·Direct·Sudden hit, holds.
-          dynamics: DanceDynamics(weight: 0.5, time: 0.55, flow: -0.15),
+          dynamics: DanceDynamics(weight: 0.5, time: 0.7, flow: -0.15),
         ),
         duration: base.duration,
         // Lateral neck-counter holds the skull firm over the collar so the

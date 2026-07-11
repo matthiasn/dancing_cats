@@ -339,7 +339,13 @@ class DancePlaybackStepper {
     DanceStage to,
     double pos,
   ) {
-    if (perf == null || !from.energetic) return to.seconds;
+    if (perf == null) return to.seconds;
+    // Idle still has a visible breathing/arm clock. Sampling it on the
+    // incoming dance's newly rebased phrase clock changes the outgoing pose on
+    // the first blend frame even at weight zero (the 10.15s entrance produced
+    // the full-song audit's largest hand velocity kink). Keep idle on the
+    // continuous playback clock until the incoming dance owns the pose.
+    if (!from.energetic) return pos;
     // A dance→rest transition must keep the OUTGOING dance on its own phrase
     // clock too. Reusing idle's raw seconds here jumped the outgoing clip to an
     // unrelated phase on the first blend frame (full-song probe: 138.03s,

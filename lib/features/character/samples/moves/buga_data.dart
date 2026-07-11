@@ -327,7 +327,10 @@ const _bugaClavicleRKeys = [
   DanceJointKey(22, rotation: 0.08),
   DanceJointKey(24, rotation: -0.3),
   DanceJointKey(26, rotation: -0.24),
-  DanceJointKey(28, rotation: -0.24), // bar 2 CHILL: no hit shrug, gentle see-saw only
+  DanceJointKey(
+    28,
+    rotation: -0.24,
+  ), // bar 2 CHILL: no hit shrug, gentle see-saw only
   DanceJointKey(30, rotation: -0.26),
   DanceJointKey(32, rotation: -0.06),
 ];
@@ -364,7 +367,11 @@ const _bugaClavicleLKeys = [
   DanceJointKey(22, rotation: 0.28, microFrames: 1.5),
   DanceJointKey(24, rotation: -0.44, microFrames: 1.5),
   DanceJointKey(26, rotation: 0.24, microFrames: 1.5),
-  DanceJointKey(28, rotation: 0.24, microFrames: 1.5), // bar 2 CHILL: no hit shrug
+  DanceJointKey(
+    28,
+    rotation: 0.24,
+    microFrames: 1.5,
+  ), // bar 2 CHILL: no hit shrug
   DanceJointKey(30, rotation: 0.26, microFrames: 1.5),
   DanceJointKey(32, rotation: -0.08, microFrames: 1.5),
 ];
@@ -413,42 +420,74 @@ const List<DanceIkTargetKey> _bugaHandRTargetKeys = [
   // low-reach counts opens the loose elbow without flipping the bend side.
   DanceIkTargetKey(
     0,
-    x: 40,
+    x: 44,
     y: 16,
-    elbowAbduction: 0.2,
+    weight: 0.95,
+    elbowAbduction: -0.05,
   ), // count pop off the hip
-  DanceIkTargetKey(4, x: 52, y: 8, elbowAbduction: 0.2), // count 2 pop
+  DanceIkTargetKey(
+    4,
+    x: 56,
+    y: 8,
+    weight: 0.95,
+    elbowAbduction: -0.05,
+  ), // count 2 pop
   DanceIkTargetKey(
     8,
-    x: 62,
+    x: 72,
     y: 6,
-    elbowAbduction: 0.2,
+    weight: 0.95,
+    elbowAbduction: -0.05,
   ), // count 3 pop (deepest)
-  DanceIkTargetKey(10, x: 78, y: -16), // opening transit into the present
-  DanceIkTargetKey(12, x: 106, y: -34), // BUGA — full peacock (reach-maxed)
-  DanceIkTargetKey(14, x: 106, y: -34), // held strut
+  DanceIkTargetKey(10, x: 88, y: -16), // opening transit into the present
+  DanceIkTargetKey(12, x: 100, y: -32), // BUGA — full peacock, elbow alive
+  DanceIkTargetKey(14, x: 100, y: -32), // held strut
   // bar 2 CHILL: hands settle into a low, relaxed sway — the second peacock
   // present is dropped, so bar 1's present stays the phrase's ONE highlight.
-  DanceIkTargetKey(16, x: 58, y: 22, elbowAbduction: 0.2), // settle low after the present
-  DanceIkTargetKey(20, x: 50, y: 14, elbowAbduction: 0.2), // relaxed sway
-  DanceIkTargetKey(24, x: 58, y: 18, elbowAbduction: 0.2),
-  DanceIkTargetKey(28, x: 48, y: 16, elbowAbduction: 0.2), // stays relaxed — no 2nd present
-  DanceIkTargetKey(32, x: 40, y: 16, elbowAbduction: 0.2), // == frame 0
+  DanceIkTargetKey(
+    16,
+    x: 46,
+    y: 22,
+    weight: 0.95,
+    elbowAbduction: -0.05,
+  ), // settle low after the present
+  DanceIkTargetKey(
+    20,
+    x: 50,
+    y: 14,
+    weight: 0.95,
+    elbowAbduction: -0.05,
+  ), // relaxed sway
+  DanceIkTargetKey(24, x: 58, y: 18, weight: 0.95, elbowAbduction: -0.05),
+  DanceIkTargetKey(
+    28,
+    x: 48,
+    y: 16,
+    weight: 0.95,
+    elbowAbduction: -0.05,
+  ), // stays relaxed — no 2nd present
+  DanceIkTargetKey(
+    32,
+    x: 44,
+    y: 16,
+    weight: 0.95,
+    elbowAbduction: -0.05,
+  ), // == frame 0
 ];
 const List<DanceIkTargetKey> _bugaHandLTargetKeys = [
   // Mirror of hand.R (see there).
-  DanceIkTargetKey(0, x: -40, y: 16, elbowAbduction: -0.2),
-  DanceIkTargetKey(4, x: -52, y: 8, elbowAbduction: -0.2),
-  DanceIkTargetKey(8, x: -62, y: 6, elbowAbduction: -0.2),
-  DanceIkTargetKey(10, x: -78, y: -16), // opening transit
-  DanceIkTargetKey(12, x: -106, y: -34), // BUGA
-  DanceIkTargetKey(14, x: -106, y: -34), // held strut
+  DanceIkTargetKey(0, x: -44, y: 16, weight: 0.95, elbowAbduction: 0.05),
+  DanceIkTargetKey(4, x: -56, y: 8, weight: 0.95, elbowAbduction: 0.05),
+  DanceIkTargetKey(8, x: -72, y: 6, weight: 0.95, elbowAbduction: 0.05),
+  DanceIkTargetKey(10, x: -88, y: -16), // opening transit
+  DanceIkTargetKey(12, x: -100, y: -32), // BUGA
+  DanceIkTargetKey(14, x: -100, y: -32), // held strut
   // bar 2 CHILL (mirror of hand.R): low relaxed sway, no second present.
-  DanceIkTargetKey(16, x: -58, y: 22, elbowAbduction: -0.2),
-  DanceIkTargetKey(20, x: -50, y: 14, elbowAbduction: -0.2),
-  DanceIkTargetKey(24, x: -58, y: 18, elbowAbduction: -0.2),
-  DanceIkTargetKey(28, x: -48, y: 16, elbowAbduction: -0.2),
-  DanceIkTargetKey(32, x: -40, y: 16, elbowAbduction: -0.2),
+  DanceIkTargetKey(16, x: -46, y: 22, weight: 0.95, elbowAbduction: 0.05),
+  DanceIkTargetKey(20, x: -50, y: 14, weight: 0.95, elbowAbduction: 0.05),
+  DanceIkTargetKey(24, x: -58, y: 18, weight: 0.95, elbowAbduction: 0.05),
+  DanceIkTargetKey(28, x: -48, y: 16, weight: 0.95, elbowAbduction: 0.05),
+  DanceIkTargetKey(32, x: -44, y: 16, weight: 0.95, elbowAbduction: 0.05),
 ];
 // The widening step-out lives in the TRANSIT (f10-f11 / f26-f27) so both
 // feet are planted wide with even weight for the whole held present — the

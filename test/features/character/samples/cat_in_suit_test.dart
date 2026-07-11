@@ -996,6 +996,25 @@ void main() {
         reason:
             'the free shoe should visibly drag inward during the long plant',
       );
+
+      final handL = _targetFor(roll, CatBones.handL).channel;
+      final handR = _targetFor(roll, CatBones.handR).channel;
+      final bar1L = handL.sample(8 / 32);
+      final bar1R = handR.sample(8 / 32);
+      final bar2L = handL.sample(24 / 32);
+      final bar2R = handR.sample(24 / 32);
+      expect(
+        bar1R.x.abs() - bar1L.x.abs(),
+        greaterThan(35),
+        reason: 'bar 1 should open right while the left paw scoops inward',
+      );
+      expect(
+        bar2L.x.abs() - bar2R.x.abs(),
+        greaterThan(35),
+        reason: 'bar 2 should trade roles instead of repeating the silhouette',
+      );
+      expect(bar1L.y, lessThan(bar1R.y));
+      expect(bar2R.y, lessThan(bar2L.y));
     });
 
     test('later Moving choruses open both arms over a wide grounded base', () {
