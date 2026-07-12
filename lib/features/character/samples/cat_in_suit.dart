@@ -16,6 +16,7 @@ import 'package:dancing_cats/features/character/model/dance_dynamics.dart';
 import 'package:dancing_cats/features/character/model/dance_move_compiler.dart';
 import 'package:dancing_cats/features/character/model/dance_move_descriptor.dart';
 import 'package:dancing_cats/features/character/model/dance_phrase.dart';
+import 'package:dancing_cats/features/character/model/dance_pose_cell.dart';
 import 'package:dancing_cats/features/character/model/easing.dart';
 import 'package:dancing_cats/features/character/model/face.dart';
 import 'package:dancing_cats/features/character/model/rig_spec.dart';
@@ -23,6 +24,7 @@ import 'package:dancing_cats/features/character/model/trunk_surface.dart';
 
 part 'cat_in_suit_rig.dart';
 part 'moves/buga_data.dart';
+part 'moves/moving_groove_data.dart';
 part 'moves/shaku_data.dart';
 part 'moves/zanku_data.dart';
 part 'moves/azonto_data.dart';
@@ -463,6 +465,326 @@ class CatClips {
     ),
     rigLimbTargets: _danceLimbTargets,
   );
+
+  /// Song-specific groove for Omah Lay's "Moving".
+  ///
+  /// The catalogue moves are useful quotations, but cutting between viral
+  /// signatures from other records made the routine read as a move sampler.
+  /// This is the phrase's connective tissue: a relaxed two-beat step-touch,
+  /// pelvis-first weight transfer, delayed rib response, and loose
+  /// contralateral arms.  It deliberately carries fewer, broader events than
+  /// Zanku/Buga so the singer can sit inside the pocket instead of demonstrating
+  /// a new pose on every count.
+  static Clip get movingGroove => _movingGroove(
+    name: 'movingHookLead',
+    handLTargets: _movingHookLeadHandLTargetKeys,
+    handRTargets: _movingHookLeadHandRTargetKeys,
+    bodyKeys: _movingHookLeadBodyKeys,
+    footLTargets: _movingHookLeadFootLTargetKeys,
+    footRTargets: _movingHookLeadFootRTargetKeys,
+    footLKeys: _movingHookLeadFootLKeys,
+    footRKeys: _movingHookLeadFootRKeys,
+    handLKeys: _movingHookLeadHandLKeys,
+    handRKeys: _movingHookLeadHandRKeys,
+    clavicleLKeys: _movingHookLeadClavicleLKeys,
+    clavicleRKeys: _movingHookLeadClavicleRKeys,
+    contactSpans: _movingHookLeadContactSpans,
+  );
+
+  /// Backup 1 keeps the same step-touch pocket as the lead, but supplies the
+  /// low, round counter-rhythm underneath the singer's diagonal call.
+  static Clip get movingGrooveLowCounter => _movingGroove(
+    name: 'movingHookLowCounter',
+    handLTargets: _movingGrooveLowCounterHandLTargetKeys,
+    handRTargets: _movingGrooveLowCounterHandRTargetKeys,
+    handLKeys: _movingGrooveLowCounterHandLKeys,
+    handRKeys: _movingGrooveLowCounterHandRKeys,
+  );
+
+  /// Backup 2 answers the lead on the off-beats.  This is intentionally a
+  /// separate phrase, not the lead shifted in time: the formation has three
+  /// roles while still agreeing on the song's downbeats.
+  static Clip get movingGrooveSideAnswer => _movingGroove(
+    name: 'movingHookSideAnswer',
+    handLTargets: _movingGrooveSideAnswerHandLTargetKeys,
+    handRTargets: _movingGrooveSideAnswerHandRTargetKeys,
+    bodyKeys: _movingGrooveSideAnswerBodyKeys,
+    clavicleLKeys: _movingGrooveSideAnswerClavicleLKeys,
+    clavicleRKeys: _movingGrooveSideAnswerClavicleRKeys,
+    headKeys: _movingGrooveSideAnswerHeadKeys,
+    handLKeys: _movingGrooveSideAnswerHandLKeys,
+    handRKeys: _movingGrooveSideAnswerHandRKeys,
+  );
+
+  /// Later-chorus travel phrase: the feet skate outside the stance while the
+  /// torso rises through a broad alternating overhead arc. This is a separate
+  /// whole-body sentence, not a hook arm swap over the original step-touch.
+  static Clip get movingChorusTravel => _movingGroove(
+    name: 'movingChorusTravel',
+    handLTargets: _movingChorusTravelHandLTargetKeys,
+    handRTargets: _movingChorusTravelHandRTargetKeys,
+    bodyKeys: _movingChorusTravelBodyKeys,
+    footLTargets: _movingChorusTravelFootLTargetKeys,
+    footRTargets: _movingChorusTravelFootRTargetKeys,
+    footLKeys: _movingChorusTravelFootLKeys,
+    footRKeys: _movingChorusTravelFootRKeys,
+    handLKeys: _movingChorusTravelHandLKeys,
+    handRKeys: _movingChorusTravelHandRKeys,
+    clavicleLKeys: _movingChorusTravelClavicleLKeys,
+    clavicleRKeys: _movingChorusTravelClavicleRKeys,
+  );
+
+  /// Later-chorus escalation: a wide grounded base and two-arm opposing
+  /// diagonals grow the hook without returning to the compact guard pose.
+  static Clip get movingChorusOpen => _movingGroove(
+    name: 'movingChorusOpen',
+    handLTargets: _movingChorusOpenHandLTargetKeys,
+    handRTargets: _movingChorusOpenHandRTargetKeys,
+    bodyKeys: _movingChorusOpenBodyKeys,
+    footLTargets: _movingChorusOpenFootLTargetKeys,
+    footRTargets: _movingChorusOpenFootRTargetKeys,
+    footLKeys: _movingChorusOpenFootLKeys,
+    footRKeys: _movingChorusOpenFootRKeys,
+    handLKeys: _movingChorusOpenHandLKeys,
+    handRKeys: _movingChorusOpenHandRKeys,
+    clavicleLKeys: _movingChorusOpenClavicleLKeys,
+    clavicleRKeys: _movingChorusOpenClavicleRKeys,
+  );
+
+  /// Verse phrase: a visible heel-tap shuffle with the hips travelling over
+  /// the planted shoe. It is deliberately a different lower-body sentence
+  /// from the chorus hook, rather than the same step-touch with new arms.
+  static Clip get movingVerseGroove => _movingGroove(
+    name: 'movingVerseShuffle',
+    handLTargets: _movingVerseHandLTargetKeys,
+    handRTargets: _movingVerseHandRTargetKeys,
+    bodyKeys: _movingVerseBodyKeys,
+    footLTargets: _movingVerseFootLTargetKeys,
+    footRTargets: _movingVerseFootRTargetKeys,
+    footLKeys: _movingVerseFootLKeys,
+    footRKeys: _movingVerseFootRKeys,
+    handLKeys: _movingVerseHandLKeys,
+    handRKeys: _movingVerseHandRKeys,
+  );
+
+  /// Verse variation: the heel shuffle remains independent underneath while
+  /// a shoulder-led side window climbs beside the face and pours outward.
+  /// This gives repeat verses a new sentence without changing the song's
+  /// relaxed weight-transfer vocabulary.
+  static Clip get movingVerseWindow => _movingGroove(
+    name: 'movingVerseWindow',
+    handLTargets: _movingVerseWindowHandLTargetKeys,
+    handRTargets: _movingVerseWindowHandRTargetKeys,
+    bodyKeys: _movingVerseWindowBodyKeys,
+    footLTargets: _movingVerseFootLTargetKeys,
+    footRTargets: _movingVerseFootRTargetKeys,
+    footLKeys: _movingVerseFootLKeys,
+    footRKeys: _movingVerseFootRKeys,
+    clavicleLKeys: _movingVerseWindowClavicleLKeys,
+    clavicleRKeys: _movingVerseWindowClavicleRKeys,
+    handLKeys: _movingVerseWindowHandLKeys,
+    handRKeys: _movingVerseWindowHandRKeys,
+    headKeys: _movingVerseWindowHeadKeys,
+  );
+
+  /// Breakdown phrase: compact double-time heel lifts under a low centre.
+  /// Its smaller travel leaves room for the bridge vocal and makes the next
+  /// chorus return feel earned.
+  static Clip get movingBreakdownGroove => _movingGroove(
+    name: 'movingBridgeBounce',
+    handLTargets: _movingBreakdownHandLTargetKeys,
+    handRTargets: _movingBreakdownHandRTargetKeys,
+    bodyKeys: _movingBreakdownBodyKeys,
+    footLTargets: _movingBreakdownFootLTargetKeys,
+    footRTargets: _movingBreakdownFootRTargetKeys,
+    footLKeys: _movingBreakdownFootLKeys,
+    footRKeys: _movingBreakdownFootRKeys,
+    handLKeys: _movingBreakdownHandLKeys,
+    handRKeys: _movingBreakdownHandRKeys,
+  );
+
+  /// Bridge counterphrase: long diagonal plants overlap through double
+  /// support, giving the body time to pour across the stance instead of
+  /// pumping vertically on every half-beat.
+  ///
+  /// KNOWN ISSUE (follow-up): the default quarter-note support rota
+  /// contradicts the authored feet — footR is still mid-gesture at frames
+  /// 8-10 when its span opens, footL at 16-18 — so the support anchor pins
+  /// airborne taps to the deck and flattens the tap gestures (same story for
+  /// movingBridgeBounce's double-time heel pops). Honest spans (support
+  /// trading at the replant frames) were authored and reverted: with the
+  /// gestures un-crushed, the tap paths measured 8.1 units/frame² of foot
+  /// acceleration and 12+ unit one-frame hand reversals against the
+  /// full-song 7/8.2-unit perceptual bands. The authored gesture data was
+  /// tuned while invisibly crushed; re-authoring the gestures and the spans
+  /// together is the follow-up, not a span-side change alone.
+  static Clip get movingBridgeRock => _movingGroove(
+    name: 'movingBridgeRock',
+    handLTargets: _movingBridgeRockHandLTargetKeys,
+    handRTargets: _movingBridgeRockHandRTargetKeys,
+    bodyKeys: _movingBridgeRockBodyKeys,
+    footLTargets: _movingBridgeRockFootLTargetKeys,
+    footRTargets: _movingBridgeRockFootRTargetKeys,
+    footLKeys: _movingBridgeRockFootLKeys,
+    footRKeys: _movingBridgeRockFootRKeys,
+    handLKeys: _movingBridgeRockHandLKeys,
+    handRKeys: _movingBridgeRockHandRKeys,
+    clavicleLKeys: _movingBridgeRockClavicleLKeys,
+    clavicleRKeys: _movingBridgeRockClavicleRKeys,
+    headKeys: _movingBridgeRockHeadKeys,
+  );
+
+  /// Body-led pocket phrase: long plants and toe drags carry a slow rib roll
+  /// while both paws spend most of the phrase below the ribs. This breaks the
+  /// score's recurring lifted-shoe / shoulder-fist silhouette.
+  static Clip get movingBodyRoll => _movingGroove(
+    name: 'movingBodyRoll',
+    handLTargets: _movingBodyRollHandLTargetKeys,
+    handRTargets: _movingBodyRollHandRTargetKeys,
+    bodyKeys: _movingBodyRollBodyKeys,
+    footLTargets: _movingBodyRollFootLTargetKeys,
+    footRTargets: _movingBodyRollFootRTargetKeys,
+    footLKeys: _movingBodyRollFootLKeys,
+    footRKeys: _movingBodyRollFootRKeys,
+    handLKeys: _movingBodyRollHandLKeys,
+    handRKeys: _movingBodyRollHandRKeys,
+    clavicleLKeys: _movingBodyRollClavicleLKeys,
+    clavicleRKeys: _movingBodyRollClavicleRKeys,
+    contactSpans: _movingBodyRollContactSpans,
+  );
+
+  static Clip _movingGroove({
+    required String name,
+    required List<DanceIkTargetKey> handLTargets,
+    required List<DanceIkTargetKey> handRTargets,
+    List<DanceBodyKey> bodyKeys = _movingGrooveBodyKeys,
+    List<DanceIkTargetKey> footLTargets = _movingGrooveFootLTargetKeys,
+    List<DanceIkTargetKey> footRTargets = _movingGrooveFootRTargetKeys,
+    List<DanceJointKey> footLKeys = _movingGrooveFootLKeys,
+    List<DanceJointKey> footRKeys = _movingGrooveFootRKeys,
+    List<DanceJointKey> handLKeys = _movingGrooveHandLKeys,
+    List<DanceJointKey> handRKeys = _movingGrooveHandRKeys,
+    List<DanceJointKey> clavicleLKeys = _movingGrooveClavicleLKeys,
+    List<DanceJointKey> clavicleRKeys = _movingGrooveClavicleRKeys,
+    List<DanceJointKey> headKeys = _movingGrooveHeadKeys,
+    List<GroundSpan> contactSpans = _movingGrooveContactSpans,
+  }) {
+    final base = _danceBase;
+    return assembleMoveClip(
+      _dancePhrase,
+      DanceMoveDescriptor(
+        family: 'moving',
+        move: AfrobeatsMove(
+          name: name,
+          feel: DanceFeel.offBeat,
+          featuredRegion: BodyRegion.full,
+          // Relaxed/light body with sustained, free transitions. Accents from
+          // the track still sharpen this through the live dynamics layer.
+          dynamics: const DanceDynamics(weight: -0.25, time: -0.3, flow: 0.35),
+        ),
+        duration: base.duration,
+        contactPinning: base.contactPinning,
+        supportFootWorldAnchor: true,
+        supportFootWorldAnchorStrength: 0.88,
+        supportFootWorldAnchorVerticalBoost: 0.08,
+        // Moving already authors a head track per phrase. Keep only a small
+        // runtime follow slice so the skull responds to the ribs without
+        // floating independently above the collar (owner review, 2026-07-12).
+        danceHeadBobScale: 0,
+        danceHeadLevelClampMin: -3.5,
+        enforceSoleFloor: true,
+        baseClip: base,
+        jointTracks: {
+          CatBones.head: DanceJointTrack(
+            headKeys,
+            smooth: true,
+          ),
+          CatBones.footL: DanceJointTrack(
+            footLKeys,
+            smooth: true,
+          ),
+          CatBones.footR: DanceJointTrack(
+            footRKeys,
+            smooth: true,
+          ),
+          CatBones.clavicleL: DanceJointTrack(
+            clavicleLKeys,
+            smooth: true,
+          ),
+          CatBones.clavicleR: DanceJointTrack(
+            clavicleRKeys,
+            smooth: true,
+          ),
+          CatBones.handL: DanceJointTrack(
+            handLKeys,
+            smooth: true,
+          ),
+          CatBones.handR: DanceJointTrack(
+            handRKeys,
+            smooth: true,
+          ),
+        },
+        bodyMotion: DanceBodyMotion(
+          pelvisBoneId: CatBones.hips,
+          chestBoneId: CatBones.torso,
+          tracks: [
+            DanceBodyMotionTrack(
+              keys: bodyKeys,
+              rootMicroFrames: -0.25,
+              chestMicroFrames: 0.85,
+              chestRotationGain: 0.82,
+              chestScaleGain: 0.86,
+            ),
+          ],
+        ),
+        limbTargetTracks: {
+          CatBones.handL: DanceIkTargetTrack(
+            handLTargets,
+            cyclic: true,
+            // The arm mass follows the pelvis/ribs, and the two sides never
+            // arrive as a mirrored mechanical pair.
+            microFrames: 0.55,
+          ),
+          CatBones.handR: DanceIkTargetTrack(
+            handRTargets,
+            cyclic: true,
+            microFrames: 0.2,
+          ),
+          CatBones.footL: DanceIkTargetTrack(
+            footLTargets,
+            cyclic: true,
+          ),
+          CatBones.footR: DanceIkTargetTrack(
+            footRTargets,
+            cyclic: true,
+          ),
+        },
+        rawContactSpans: contactSpans,
+      ),
+      // Both arms stay on their own side of the torso, so their elbows must
+      // take the OUTBOARD analytic branch. Reusing the shared lead's opposing
+      // bend pair turns the right forearm inside-out even for a safe endpoint.
+      rigLimbTargets: [
+        const LimbIkTarget(
+          upperBoneId: CatBones.armUpperL,
+          lowerBoneId: CatBones.armLowerL,
+          endBoneId: CatBones.handL,
+          anchorBoneId: CatBones.torso,
+          channel: KeyframeIkTargetChannel([]),
+        ),
+        const LimbIkTarget(
+          upperBoneId: CatBones.armUpperR,
+          lowerBoneId: CatBones.armLowerR,
+          endBoneId: CatBones.handR,
+          anchorBoneId: CatBones.torso,
+          channel: KeyframeIkTargetChannel([]),
+          bendDirection: -1,
+        ),
+        _danceLimbTargets[2],
+        _danceLimbTargets[3],
+      ],
+    );
+  }
 
   /// Standalone "Shaku Shaku" catalog move — separate from the shipped `dance`,
   /// reuses the dance channels and overrides the groove (on-beat dip), the
@@ -1001,7 +1323,8 @@ class CatClips {
         // catalogue) — same fix as zanku/shaku, see
         // Clip.supportFootWorldAnchorVerticalBoost.
         supportFootWorldAnchorVerticalBoost: 0.13,
-        danceHeadBobScale: 0.7,
+        danceHeadBobScale: 0.64,
+        headLateralStabilize: 0.2,
         // Ornament-port round: azonto joins the sole-floor ratchet (its
         // step-touch redirects are floor-adjacent; the clamp guards the
         // deep-accent frames).
@@ -1213,7 +1536,7 @@ class CatClips {
           feel: DanceFeel.onBeat,
           featuredRegion: BodyRegion.arms,
           // ADR D4: Light bounces -> Strong·Direct·Sudden hit, holds.
-          dynamics: DanceDynamics(weight: 0.5, time: 0.55, flow: -0.15),
+          dynamics: DanceDynamics(weight: 0.5, time: 0.7, flow: -0.15),
         ),
         duration: base.duration,
         // Lateral neck-counter holds the skull firm over the collar so the
@@ -1291,12 +1614,26 @@ class CatClips {
             // DOWN (-12 -> -8) and the per-beat vertical bounce UP (-9 -> -13)
             // so the pocket pops vertically on the beat instead of swaying side
             // to side.
+            // "Moving" pass: that -8 was tuned for a GENERIC hit move; this song
+            // sways (Omah Lay "Moving" — a swaying diminished bassline, pensive,
+            // not hectic), so the call reverses for this choreography. Raised to
+            // -14 — a SMOOTH, gentle sway (hips-lateral range 44, between the
+            // too-subtle -8/range-34 and the too-dramatic -12/-22) — plus a
+            // gentle torso body-roll (leanAmplitude, phased with the sway) so the
+            // weight-shift reads as a committed lean, not a lateral slide.
             SineRootChannel(
-              swayAmplitude: -8,
+              swayAmplitude: -14,
               swayPhase: 0.125,
               swayHarmonic: 4,
+              // Torso commits INTO the weighted side (a gentle body-roll phased
+              // with the sway) so the weight-shift reads as a lean, not a slide.
+              leanAmplitude: -0.06,
+              leanPhase: 0.125,
+              leanHarmonic: 4,
             ),
-            SineRootChannel(bobAmplitude: -13, bobPhase: 0.09, bobHarmonic: 8),
+            // Calmed for the chill groove: a lighter per-beat bounce (was -13)
+            // so the body vibes rather than pumps.
+            SineRootChannel(bobAmplitude: -7, bobPhase: 0.09, bobHarmonic: 8),
           ],
           extraPelvisLayers: [
             SineChannel(
@@ -1851,6 +2188,7 @@ class CatClips {
 
   static List<Clip> get all => [
     kick,
+    movingGroove,
     shaku,
     zanku,
     azonto,

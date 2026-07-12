@@ -161,6 +161,19 @@ String get kDanceRenderReadyFile =>
 String get kDanceRenderStartFile =>
     Platform.environment['DANCE_RENDER_START_FILE'] ?? '';
 
+/// Marker the app writes when its UNCLAMPED render clock first reaches
+/// [kDanceRenderCaptureAtSec] — the realtime exporter waits for this before
+/// launching its capture instead of sleeping a fixed preroll. Wall-clock
+/// sleeps assumed the app started advancing the instant the start file was
+/// touched; in reality the first full-stage frame can block the main thread
+/// for seconds (cold shader warm-up), and every second of that jank shipped
+/// as video content lagging the muxed audio.
+String get kDanceRenderCaptureFile =>
+    Platform.environment['DANCE_RENDER_CAPTURE_FILE'] ?? '';
+double get kDanceRenderCaptureAtSec =>
+    double.tryParse(Platform.environment['DANCE_RENDER_CAPTURE_AT'] ?? '') ??
+    double.negativeInfinity;
+
 /// Exact-frame export mode for the release desktop app. Unlike X11 capture, the
 /// app steps a fixed frame clock, captures the stage [RepaintBoundary], and
 /// pipes raw RGBA frames to one ffmpeg process. This keeps the live app's render
@@ -344,6 +357,9 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
   String? _error;
   bool _renderReadySignaled = false;
   bool _renderStarted = false;
+  bool _renderCaptureSignaled = false;
+  DateTime? _renderWallStart;
+  DateTime? _renderPrevTick;
   double _renderClockSeconds = 0;
   bool _appExportStarted = false;
   _DanceFrameTimingProbe? _perfProbe;
@@ -386,9 +402,55 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
         return false;
       }
       _renderStarted = true;
+      _renderWallStart = DateTime.now();
       return true;
     }
-    _renderClockSeconds += dt;
+    // WALL-CLOCK position, not integrated ticker deltas. The realtime
+    // exporter's whole A/V contract is that app position tracks wall time:
+    // x11grab captures wall-clock frames and the audio is muxed on the wall
+    // timeline. _onTick's 0.1s stall clamp — correct for the interactive app,
+    // where the audio player owns the position — silently stole
+    // (stall - 0.1s) from an integrated clock on every cold-cache warmup
+    // jank, which shipped a full-song export whose video lagged its own
+    // audio by ~3.5s (v73, measured via light-flash vs onset fiducials).
+    // Anchoring to wall time makes jank cost duplicated captured frames
+    // (the exporter's cadence check catches those) instead of A/V drift.
+    var wallStart = _renderWallStart;
+    if (wallStart != null) {
+      final now = DateTime.now();
+      final prev = _renderPrevTick ?? now;
+      _renderPrevTick = now;
+      final gap = now.difference(prev).inMicroseconds / 1e6;
+      // PREROLL stalls are ABSORBED: shift the anchor so the clock only
+      // advances by a nominal frame across the stall. The first full-stage
+      // paints can block for seconds on cold caches; letting the wall clock
+      // leap over that puts the capture point in the past and the exporter
+      // captures content ahead of (or behind) its audio. Once the capture
+      // marker is written the clock is hard wall-locked — from there jank
+      // must cost duplicated frames, never A/V drift.
+      if (!_renderCaptureSignaled && gap > 0.25) {
+        wallStart = wallStart.add(
+          Duration(microseconds: ((gap - 1 / 60) * 1e6).round()),
+        );
+        _renderWallStart = wallStart;
+      }
+      _renderClockSeconds = now.difference(wallStart).inMicroseconds / 1e6;
+    } else {
+      _renderClockSeconds += dt;
+    }
+    // Tell the exporter when the (unclamped) clock actually reaches the
+    // capture point, so x11grab starts against a live, warm pipeline. See
+    // [kDanceRenderCaptureFile] — a fixed sleep here cost ~3s of A/V drift
+    // whenever the first full-stage frame blocked on shader warm-up.
+    if (!_renderCaptureSignaled) {
+      final path = kDanceRenderCaptureFile;
+      if (path.isNotEmpty &&
+          kDanceRenderStartSec + _renderClockSeconds >=
+              kDanceRenderCaptureAtSec) {
+        File(path).writeAsStringSync('capture\n');
+        _renderCaptureSignaled = true;
+      }
+    }
     return true;
   }
 
@@ -656,8 +718,13 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
   }
 
   void _prerollExportClock({required double start, required double dt}) {
-    final prerollStart = start <= 2 ? 0.0 : start - 2.0;
-    for (var t = prerollStart; t < start; t += dt) {
+    // The playback stepper owns state across four-second phrase slots, held
+    // cuts, and eased camera changes. A two-second warm start produced excerpt
+    // frames that did NOT match full-song playback at the same timestamp
+    // (notably the reported 123s arm jump). Fast-forward the lightweight
+    // orchestration from song start; no images are rendered during this loop,
+    // so excerpt accuracy does not inherit full-song rendering cost.
+    for (var t = 0.0; t < start; t += dt) {
       _renderClockSeconds = t - kDanceRenderStartSec;
       _wallSeconds = t;
       _advancePerformance(pos: t, dt: dt);
@@ -906,8 +973,25 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
 
   Widget _buildDanceBody(BuildContext context) {
     final posSec = _positionSec;
-    final stage = _perf?.stageAt(posSec) ?? danceIdleStage(posSec);
+    // Render the SAME stateful stage that owns quantized cuts, outgoing/incoming
+    // clocks, and momentum-preserving blends. The old direct `stageAt` call
+    // bypassed DancePlaybackStepper after `_advancePerformance` had computed
+    // it, so tests audited smooth handoffs while the actual app/export hard-cut
+    // the raw score (the repeated arm teleports reported around 123s).
+    final stage = playbackStageForRender(_stepper, _perf, posSec);
     final beat = _perf?.beatPulse(posSec) ?? 0;
+    // Music-driven body accent — the onset-hit weight-drop, softened by the
+    // section energy (single-sourced with the offline render path).
+    final bodyAccent = danceBodyAccentEnvelope(
+      _perf?.accentAt(posSec) ?? 0,
+      stage.energyLevel,
+    );
+    // Look-ahead partner: the coil that gathers the ensemble just before the
+    // next hit, released by the accent above on the beat (same energy scaling).
+    final bodyAnticipation = danceBodyAccentEnvelope(
+      _perf?.anticipationAt(posSec) ?? 0,
+      stage.energyLevel,
+    );
     // The director owns the camera; the stepper holds the eased framing and the
     // singing mouths. The whole composite is the generalized DanceStageView,
     // rendered identically by the live app and every offline renderer — there is
@@ -939,6 +1023,8 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
       stage: stage,
       shot: _stepper.shot,
       beat: beat,
+      bodyAccent: bodyAccent,
+      bodyAnticipation: bodyAnticipation,
       backdropTimeSeconds: posSec,
       // Ambient stage lights run on a steady wall clock (decoupled from the
       // looping dance); offline renderers pass the audio position instead so a

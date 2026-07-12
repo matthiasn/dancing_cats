@@ -105,6 +105,67 @@ void main() {
     },
   );
 
+  group('upperBodyPhaseOffsetClip — crew microtiming', () {
+    test('lead is an identity no-op', () {
+      final clip = CatClips.movingChorusTravel;
+      expect(
+        identical(
+          upperBodyPhaseOffsetClip(
+            clip,
+            kDanceLaneUpperBodyPhaseOffsets[0],
+            upperBodyBoneIds: kDanceUpperBodyWarpBoneIds,
+          ),
+          clip,
+        ),
+        isTrue,
+      );
+    });
+
+    test('backup hands separate while every support bone stays exact', () {
+      final scene = CharacterScene(buildCatInSuitRig());
+      final clip = CatClips.movingChorusTravel;
+      final shifted = upperBodyPhaseOffsetClip(
+        clip,
+        kDanceLaneUpperBodyPhaseOffsets[2],
+        upperBodyBoneIds: kDanceUpperBodyWarpBoneIds,
+      );
+      final supportBoneIds = [
+        for (final bone in buildCatInSuitRig().bones)
+          if (!kDanceUpperBodyWarpBoneIds.contains(bone.id)) bone.id,
+      ];
+      var maxHandDelta = 0.0;
+
+      for (var i = 0; i < 64; i++) {
+        final t = clip.duration * i / 64;
+        final raw = scene.frameAt(clip: clip, timeSeconds: t).world;
+        final offset = scene.frameAt(clip: shifted, timeSeconds: t).world;
+        for (final boneId in supportBoneIds) {
+          expect(
+            offset[boneId],
+            raw[boneId],
+            reason: '$boneId at t=$t must remain on the shared beat clock',
+          );
+        }
+        for (final handId in [CatBones.handL, CatBones.handR]) {
+          final a = raw[handId]!.origin;
+          final b = offset[handId]!.origin;
+          maxHandDelta = math.max(
+            maxHandDelta,
+            math.sqrt(
+              math.pow(a.x - b.x, 2) + math.pow(a.y - b.y, 2),
+            ),
+          );
+        }
+      }
+
+      expect(
+        maxHandDelta,
+        greaterThan(1.0),
+        reason: 'the backup upper body should visibly anticipate/drag',
+      );
+    });
+  });
+
   group('upperBodyDynamicsWarpedClip — velocity ordering', () {
     // pouncingCat's move base (weight -0.55, time -0.65) has no positive
     // weight/flow at all, so it never enters dynamicsCurve's anticipation/

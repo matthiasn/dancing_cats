@@ -311,35 +311,112 @@ void main() {
     // assertions compare the stable `name` rather than instance identity.
     final perf = _perf();
 
-    test('the chorus back half lands the unison Buga hit', () {
+    test('the chorus gives the Moving hook three coordinated roles', () {
       final trio = perf.choreoTrioForSection('chorus', 0.6, 0.5, 0);
-      expect(trio.lead.name, 'buga');
-      expect(trio.ensemble.map((c) => c.name), everyElement('buga'));
+      expect(trio.lead.name, 'movingHookLead');
+      expect(trio.ensemble.map((c) => c.name).toList(), [
+        'movingHookLead',
+        'movingHookLowCounter',
+        'movingHookSideAnswer',
+      ]);
+      // All three share the song-specific movement family, but only the lead
+      // states the diagonal lyric call. The backups carry authored counter
+      // phrases rather than executing a duplicate in unison.
+      final leadRight = trio.ensemble[0].limbTargets
+          .singleWhere((t) => t.endBoneId == 'hand.R')
+          .channel;
+      final lowCounterRight = trio.ensemble[1].limbTargets
+          .singleWhere((t) => t.endBoneId == 'hand.R')
+          .channel;
+      final sideAnswerRight = trio.ensemble[2].limbTargets
+          .singleWhere((t) => t.endBoneId == 'hand.R')
+          .channel;
+      expect(
+        (lowCounterRight.sample(6 / 32).y - leadRight.sample(6 / 32).y).abs(),
+        greaterThan(5),
+      );
+      expect(
+        (sideAnswerRight.sample(14 / 32).y - leadRight.sample(14 / 32).y).abs(),
+        greaterThan(40),
+        reason:
+            'the side-answer roof lift must remain a distinct upper silhouette',
+      );
+      expect(
+        (sideAnswerRight.sample(9 / 32).y - leadRight.sample(9 / 32).y).abs(),
+        greaterThan(3),
+      );
     });
 
-    test('the chorus front half uses one readable unison phrase', () {
+    test('the first two choruses establish the same lead signature', () {
       final first = perf.choreoTrioForSection('chorus', 0.2, 0.5, 0);
       final second = perf.choreoTrioForSection('chorus', 0.2, 0.5, 1);
 
-      expect(first.lead.name, 'zanku');
-      expect(first.ensemble.map((c) => c.name), everyElement('zanku'));
-      expect(second.lead.name, 'shaku');
-      expect(second.ensemble.map((c) => c.name), everyElement('shaku'));
+      expect(first.lead.name, 'movingHookLead');
+      expect(first.ensemble.every((c) => c.belongsToFamily('moving')), isTrue);
+      expect(second.lead.name, 'movingHookLead');
+      expect(second.ensemble.every((c) => c.belongsToFamily('moving')), isTrue);
     });
 
-    test('verses swap the lead on even/odd occurrence', () {
-      expect(perf.choreoTrioForSection('verse', 0, 0.5, 0).lead.name, 'azonto');
-      expect(perf.choreoTrioForSection('verse', 0, 0.5, 1).lead.name, 'shaku');
+    test('verses rotate body-led song phrases rather than catalogue moves', () {
+      final shuffle = perf
+          .choreoTrioForSection(
+            'verse',
+            0,
+            0.5,
+            0,
+            sectionSeconds: 16,
+          )
+          .lead;
+      final window = perf
+          .choreoTrioForSection(
+            'verse',
+            0.3,
+            0.5,
+            0,
+            sectionSeconds: 16,
+          )
+          .lead;
+      final shuffleFoot = shuffle.limbTargets
+          .singleWhere((t) => t.endBoneId == 'foot.R')
+          .channel;
+      final windowFoot = window.limbTargets
+          .singleWhere((t) => t.endBoneId == 'foot.R')
+          .channel;
+      final shuffleLeft = shuffle.limbTargets
+          .singleWhere((t) => t.endBoneId == 'hand.L')
+          .channel;
+      final windowLeft = window.limbTargets
+          .singleWhere((t) => t.endBoneId == 'hand.L')
+          .channel;
+      expect(shuffle.name, 'movingVerseShuffle');
+      expect(window.name, 'movingVerseWindow');
+      expect(
+        windowFoot.sample(4 / 32).x,
+        closeTo(shuffleFoot.sample(4 / 32).x, 1e-9),
+        reason: 'the arms keep phrasing independently over the heel shuffle',
+      );
+      expect(
+        (windowLeft.sample(24 / 32).y - shuffleLeft.sample(24 / 32).y).abs(),
+        greaterThan(40),
+        reason: 'repeat verses need a genuinely different upper silhouette',
+      );
     });
 
-    test('the bridge drops the whole trio to the grounded Sekem pocket', () {
+    test('the bridge drops the trio into the original heel-bounce pocket', () {
       final trio = perf.choreoTrioForSection('bridge', 0.5, 0.5, 0);
-      expect(trio.lead.name, 'sekem');
-      expect(trio.ensemble.map((c) => c.name), everyElement('sekem'));
+      final rightFoot = trio.lead.limbTargets
+          .singleWhere((t) => t.endBoneId == 'foot.R')
+          .channel;
+      expect(trio.lead.name, 'movingBridgeBounce');
+      expect(trio.ensemble.every((c) => c.belongsToFamily('moving')), isTrue);
+      expect(rightFoot.sample(2 / 32).y, lessThan(85));
     });
 
     test('untagged sections fall back to the energy-level map', () {
-      expect(perf.choreoTrioForSection('', 0, 0.95, 0).lead.name, 'buga');
+      expect(
+        perf.choreoTrioForSection('', 0, 0.95, 0).lead.name,
+        'movingHookLead',
+      );
       expect(
         perf.choreoTrioForSection('', 0, 0.10, 0).lead.name,
         'sekem',
@@ -350,9 +427,9 @@ void main() {
   group('DancePerformance.choreoTrioByLevel', () {
     final perf = _perf();
     test(
-      'builds from the grounded pocket up to the unison Buga hit by energy',
+      'builds from the grounded pocket up to the Moving hook by energy',
       () {
-        expect(perf.choreoTrioByLevel(0.95).lead.name, 'buga');
+        expect(perf.choreoTrioByLevel(0.95).lead.name, 'movingHookLead');
         expect(perf.choreoTrioByLevel(0.80).lead.name, 'zanku');
         expect(perf.choreoTrioByLevel(0.50).lead.name, 'shaku');
         expect(perf.choreoTrioByLevel(0.30).lead.name, 'azonto');
@@ -380,7 +457,11 @@ void main() {
         ],
       );
       final stage = perf.stageAt(2);
-      expect(stage.lead.name, 'buga', reason: 'level 1 → Buga');
+      expect(
+        stage.lead.name,
+        'movingHookLead',
+        reason: 'level 1 → the song-specific hook',
+      );
       expect(stage.energetic, isTrue);
       expect(stage.synchronous, isTrue);
       expect(stage.seconds.isFinite, isTrue);
@@ -528,27 +609,46 @@ void main() {
 
   group('DancePerformance.choreoTrioForSection — remaining routines', () {
     final perf = _perf();
-    test('pre-chorus / outro / post-chorus pick their signature trios', () {
+    test('pre-chorus / outro / post-chorus keep the song-specific score', () {
       expect(
         perf.choreoTrioForSection('pre-chorus', 0, 0.5, 0).lead.name,
-        'shaku',
+        'movingVerseShuffle',
       );
       expect(
         perf
-            .choreoTrioForSection('outro', 0.5, 0.5, 0)
+            .choreoTrioForSection(
+              'outro',
+              0.5,
+              0.5,
+              0,
+              sectionSeconds: 16,
+            )
             .ensemble
             .map((c) => c.name)
             .toList(),
-        ['sekem', 'sekem', 'shaku'],
+        [
+          'movingBridgeRock',
+          'movingBridgeBounce',
+          'movingVerseWindow',
+        ],
       );
       expect(
-        perf.choreoTrioForSection('post-chorus', 0.6, 0.5, 0).lead.name,
-        'buga',
+        perf
+            .choreoTrioForSection(
+              'post-chorus',
+              0.6,
+              0.5,
+              0,
+              sectionSeconds: 16,
+            )
+            .lead
+            .name,
+        'movingBodyRoll',
       );
     });
 
     test(
-      'the chorus front repeats the unison Zanku variant on the third hook',
+      'the third hook advances to the side-answer variation',
       () {
         expect(
           perf
@@ -556,8 +656,114 @@ void main() {
               .ensemble
               .map((c) => c.name)
               .toList(),
-          ['zanku', 'zanku', 'zanku'],
+          [
+            'movingHookSideAnswer',
+            'movingHookLead',
+            'movingHookLowCounter',
+          ],
         );
+      },
+    );
+
+    test('the final chorus earns one collective hook payoff', () {
+      final trio = perf.choreoTrioForSection(
+        'chorus',
+        0.9,
+        0.5,
+        2,
+        sectionSeconds: 16,
+      );
+
+      expect(
+        trio.ensemble.map((clip) => clip.name).toSet(),
+        {'movingHookLead'},
+        reason: 'the preceding chorus slots already own the crew variations',
+      );
+    });
+
+    test(
+      'the 144s score assigns one deliberate statement per two-bar slot',
+      () {
+        List<String> score(String section, int occurrence) => [
+          for (final phase in [0.05, 0.3, 0.55, 0.8])
+            perf
+                .choreoTrioForSection(
+                  section,
+                  phase,
+                  0.5,
+                  occurrence,
+                  sectionSeconds: 16,
+                )
+                .lead
+                .name,
+        ];
+
+        expect(score('chorus', 0), [
+          'movingHookLead',
+          'movingHookSideAnswer',
+          'movingChorusTravel',
+          'movingHookLead',
+        ]);
+        expect(score('chorus', 1), [
+          'movingHookLead',
+          'movingChorusOpen',
+          'movingHookSideAnswer',
+          'movingHookLead',
+        ]);
+        expect(score('chorus', 2), [
+          'movingHookSideAnswer',
+          'movingChorusOpen',
+          'movingChorusTravel',
+          'movingHookLead',
+        ]);
+        expect(score('post-chorus', 0), [
+          'movingHookLowCounter',
+          'movingChorusTravel',
+          'movingBodyRoll',
+          'movingVerseWindow',
+        ]);
+        // All four verse statements stay in grounded verse vocabulary — the
+        // hook-family sideAnswer that used to close the verse put chorus
+        // amplitude into the song's breakdown stretch (panel: "the bridge is
+        // a third chorus") and erased the dynamic valley.
+        expect(score('verse', 0), [
+          'movingVerseShuffle',
+          'movingVerseWindow',
+          'movingBodyRoll',
+          'movingHookLowCounter',
+        ]);
+        expect(score('bridge', 0), [
+          'movingBridgeBounce',
+          'movingBridgeRock',
+          'movingBodyRoll',
+          'movingChorusTravel',
+        ]);
+        expect(score('outro', 0), [
+          'movingHookSideAnswer',
+          'movingBodyRoll',
+          'movingBridgeRock',
+          'movingHookLead',
+        ]);
+
+        final productionLeadScore = [
+          ...score('chorus', 0),
+          ...score('pre-chorus', 0),
+          ...score('chorus', 1),
+          ...score('verse', 0),
+          ...score('bridge', 0),
+          ...score('chorus', 2),
+          ...score('post-chorus', 0),
+          ...score('outro', 0),
+        ];
+        for (var i = 1; i < productionLeadScore.length; i++) {
+          expect(
+            productionLeadScore[i],
+            isNot(productionLeadScore[i - 1]),
+            reason:
+                'adjacent two-bar statements ${i - 1} and $i must not reuse '
+                'the same lead phrase',
+          );
+        }
       },
     );
   });
@@ -575,8 +781,64 @@ void main() {
 
     test('with no sections at all the trio dances at full energy', () {
       final stage = _perf().stageAt(2);
-      expect(stage.lead.name, 'buga');
+      expect(stage.lead.name, 'movingHookLead');
       expect(stage.energetic, isTrue);
+    });
+  });
+
+  group('DancePerformance onset phrasing', () {
+    final perf = DancePerformance.fromBeatMapJson(
+      json: const {
+        'onsets': [
+          {'time_sec': 1.0, 'strength': 1.0},
+        ],
+      },
+      map: _beatMap(),
+      trackDurationSec: 6,
+    );
+
+    test('anticipation and release meet continuously at the hit', () {
+      expect(perf.anticipationAt(0.9), closeTo(0, 1e-12));
+      expect(perf.anticipationAt(0.95), closeTo(0.5, 1e-9));
+      expect(perf.anticipationAt(1 - 1e-6), closeTo(1, 1e-8));
+      expect(perf.accentAt(1), 1);
+      // Drop: recovers to neutral over the first 55% of the 0.3s window...
+      expect(perf.accentAt(1 + 0.3 * 0.275), closeTo(0.5, 1e-9));
+      expect(perf.accentAt(1 + 0.3 * 0.55), closeTo(0, 1e-9));
+      // ...then BREATHES past neutral (the body lifts slightly above its
+      // groove line — hit-and-breathe, not sink-and-return) and settles.
+      expect(perf.accentAt(1 + 0.3 * 0.775), closeTo(-0.15, 1e-9));
+      expect(perf.accentAt(1.3), closeTo(0, 1e-9));
+      expect(perf.accentAt(1.31), 0);
+    });
+
+    test('peak picking spaces accents and rescues soft-mix sections', () {
+      final crowded = DancePerformance.fromBeatMapJson(
+        json: const {
+          'onsets': [
+            // A strong pair closer than the spacing floor: only the stronger
+            // fires...
+            {'time_sec': 1.0, 'strength': 0.8},
+            {'time_sec': 1.4, 'strength': 0.6},
+            // ...a soft-mix section transient below the old 0.5 floor still
+            // earns its hit when it owns its neighbourhood...
+            {'time_sec': 3.0, 'strength': 0.4},
+            // ...and a sub-candidate stays silent.
+            {'time_sec': 5.0, 'strength': 0.2},
+          ],
+        },
+        map: _beatMap(),
+        trackDurationSec: 6,
+      );
+      expect(crowded.accentAt(1), closeTo(0.8, 1e-9));
+      expect(
+        crowded.accentAt(1.4),
+        lessThan(0.1),
+        reason: 'the weaker neighbour within the spacing floor must not fire '
+            'its own full hit',
+      );
+      expect(crowded.accentAt(3), closeTo(0.4, 1e-9));
+      expect(crowded.accentAt(5), 0);
     });
   });
 

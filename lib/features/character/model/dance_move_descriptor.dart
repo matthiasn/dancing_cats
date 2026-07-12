@@ -167,6 +167,7 @@ class DanceMoveDescriptor {
   const DanceMoveDescriptor({
     required this.move,
     required this.duration,
+    this.family,
     this.loop = true,
     this.locomotionSpeed,
     this.contactPinning,
@@ -192,6 +193,9 @@ class DanceMoveDescriptor {
 
   /// Feel/dynamics/styling — unchanged, reused as-is.
   final AfrobeatsMove move;
+
+  /// Semantic family for related phrases with distinct move names.
+  final String? family;
 
   final double duration;
   final bool loop;

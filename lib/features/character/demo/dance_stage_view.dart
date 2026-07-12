@@ -12,6 +12,7 @@ import 'package:dancing_cats/features/character/runtime/character_painter.dart';
 import 'package:dancing_cats/features/character/runtime/character_renderer.dart';
 import 'package:dancing_cats/features/character/runtime/character_scene.dart';
 import 'package:dancing_cats/features/character/samples/cat_in_suit.dart';
+import 'package:dancing_cats/features/scenery/drop_bloom.dart';
 import 'package:dancing_cats/features/scenery/layered_backdrop.dart';
 import 'package:dancing_cats/features/scenery/model/backdrop_grade.dart';
 import 'package:dancing_cats/features/scenery/model/backdrop_scene.dart';
@@ -53,6 +54,8 @@ class DanceStageView extends StatelessWidget {
     required this.leadShape,
     required this.bgShape,
     required this.dancerAnchors,
+    this.bodyAccent = 0,
+    this.bodyAnticipation = 0,
     this.onDancerAnchors,
     this.useNewBackdrop = true,
     this.showCaptions = false,
@@ -82,6 +85,14 @@ class DanceStageView extends StatelessWidget {
 
   /// 0..1 beat pulse (lights/foam brightness; never the cat bodies).
   final double beat;
+
+  /// Music-driven body accent (0..1) — the onset-hit weight-drop applied to the
+  /// cat bodies (see `DancePerformance.accentAt`). 0 = no accent.
+  final double bodyAccent;
+
+  /// Music-driven anticipation (0..1) — the look-ahead coil before the next hit
+  /// (see `DancePerformance.anticipationAt`). 0 = no imminent hit.
+  final double bodyAnticipation;
 
   /// Audio position seconds — drives the scenery (it pauses/seeks with the
   /// track).
@@ -149,7 +160,7 @@ class DanceStageView extends StatelessWidget {
     // pools, gel-cycling on the tempo, so a cat's glow always matches its pool.
     final rig = danceStageRig(bpm);
     final samples = useNewBackdrop
-        ? rig.sample(time: lightsTimeSeconds, beat: beat)
+        ? rig.sample(time: lightsTimeSeconds, beat: beat, bloom: bodyAccent)
         : const <StageLightSample>[];
     final backlights = danceMemberBacklights(samples);
 
@@ -233,6 +244,8 @@ class DanceStageView extends StatelessWidget {
                           renderer: renderer,
                           stage: stage,
                           shot: shot,
+                          bodyAccent: bodyAccent,
+                          bodyAnticipation: bodyAnticipation,
                           leadMouth: leadMouth,
                           bgMouth: bgMouth,
                           leadShape: leadShape,
@@ -248,6 +261,15 @@ class DanceStageView extends StatelessWidget {
                         child: const SizedBox.expand(),
                       ),
                     ),
+                    // The drop flash: a warm additive flare centred on the
+                    // dancers that spikes on the music accent (biggest on the
+                    // drops). Single-sourced with the offline composer via
+                    // [paintDropBloom] so the two paint paths can't drift.
+                    if (useNewBackdrop && bodyAccent > 0.01)
+                      CustomPaint(
+                        painter: DropBloomPainter(bodyAccent),
+                        child: const SizedBox.expand(),
+                      ),
                   ],
                 ),
               );
@@ -407,47 +429,154 @@ CharacterPainter danceCharacterPainter({
   ui.Image? backdropImage,
   ui.Image? cloudsImage,
   ui.Image? wavesImage,
-}) => CharacterPainter(
-  scene: cast.lead,
-  partnerScene: cast.left,
-  ensembleScenes: [cast.left, cast.right],
-  ensembleExpressions: [
-    danceSingExpression(leadMouth, Expression.neutral, leadShape),
-    danceSingExpression(bgMouth, Expression.content, bgShape),
-    danceSingExpression(bgMouth, Expression.happy, bgShape),
-  ],
-  ensembleClips: [
-    for (var i = 0; i < stage.ensemble.length; i++)
-      _upperBodyWarped(stage.ensemble[i], stage.dynamics[i], i, stage.energyLevel),
-  ],
-  synchronousEnsemble: stage.synchronous,
-  singingHeadMotion: true,
-  walkingPair: true,
-  clip: _upperBodyWarped(stage.lead, stage.dynamics.first, 0, stage.energyLevel),
-  timeSeconds: stage.seconds,
-  cameraOverride: shot,
-  onDancerAnchors: useNewBackdrop ? onDancerAnchors : null,
-  scale: scale,
-  groundColor: useNewBackdrop ? null : const Color(0xFF374551),
-  backdrop: useNewBackdrop
-      ? CharacterBackdrop.none
-      : CharacterBackdrop.waterfront,
-  backdropImage: useNewBackdrop ? null : backdropImage,
-  backdropCloudsImage: useNewBackdrop ? null : cloudsImage,
-  backdropWavesImage: useNewBackdrop ? null : wavesImage,
-  memberBacklights: backlights,
-  // Surface grade removed (owner: the cats' surfaces read too washed out from
-  // the sky/deck wrap tint — "get rid of the grading of the cats' surfaces...
-  // I can live with more separation with the background"). bodyGrade defaults
-  // to null (no wrap); the rim halo (memberBacklights, above) is separate and
-  // stays.
-  heroStaging: useNewBackdrop,
-  // danceViewProjection intentionally stays at the painter default (false):
-  // front-lock the shipped trio while the arm/shoulder mesh is being rebuilt.
-  // The projection review path still exists for explicit strips, but the app
-  // should not add quarter-turn distortion during limb-attachment review.
-  renderer: renderer,
-);
+  double bodyAccent = 0,
+  double bodyAnticipation = 0,
+}) {
+  final moving = stage.lead.belongsToFamily('moving');
+  final load = _bodyLoadEnvelope(bodyAccent, bodyAnticipation);
+  // Moving gets its own phrase-aware accent response instead of the catalogue
+  // treatment: the generic 16-unit drop was tuned against the punchy hit moves
+  // and, together with the unison pop, read as the formation tugging the
+  // authored phrase around on every onset. A shallower plié — deepest on the
+  // lead, slightly softer on the flankers so the hit has a visible owner —
+  // keeps the authored arm/foot phrase untouched (the support anchor turns the
+  // root drop into knee flexion over planted feet) while the BODY finally
+  // lands WITH the track's transients rather than leaving every hit to the
+  // lights.
+  double dropUnits(int lane) => moving
+      ? movingAccentDropUnits(load, lane)
+      : load * kDanceAccentDropUnits;
+  // The authored groove yields to the hit while it lands (see
+  // [accentDroppedClip]'s bobDuck): only the POSITIVE load ducks the bob —
+  // the release tail's slight rebound must not amplify it back.
+  final bobDuck = moving && load > 0 ? kMovingAccentBobDuck * load : 0.0;
+  return CharacterPainter(
+    scene: cast.lead,
+    partnerScene: cast.left,
+    ensembleScenes: [cast.left, cast.right],
+    ensembleExpressions: [
+      danceSingExpression(leadMouth, Expression.neutral, leadShape),
+      danceSingExpression(bgMouth, Expression.content, bgShape),
+      danceSingExpression(bgMouth, Expression.happy, bgShape),
+    ],
+    ensembleClips: [
+      for (var i = 0; i < stage.ensemble.length; i++)
+        accentDroppedClip(
+          productionDanceClip(
+            stage.ensemble[i],
+            stage.dynamics[i],
+            i,
+            stage.energyLevel,
+          ),
+          dropUnits(i),
+          bobDuck: bobDuck,
+        ),
+    ],
+    synchronousEnsemble: stage.synchronous,
+    singingHeadMotion: true,
+    walkingPair: true,
+    clip: accentDroppedClip(
+      productionDanceClip(
+        stage.lead,
+        stage.dynamics.first,
+        0,
+        stage.energyLevel,
+      ),
+      dropUnits(0),
+      bobDuck: bobDuck,
+    ),
+    timeSeconds: stage.seconds,
+    cameraOverride: shot,
+    onDancerAnchors: useNewBackdrop ? onDancerAnchors : null,
+    scale: scale,
+    // The music accent also reaches the painter itself (not just the plié-drop
+    // clip above): it drives the UNISON formation pop — the whole ensemble
+    // surging bigger together on the track's strong transients (see
+    // `CharacterPainter._kUnisonFormationPop`). Single-sourced here so the live
+    // player and every offline renderer pop identically. Its look-ahead partner
+    // [bodyAnticipation] drives the coil that precedes the pop.
+    // Moving keeps the SCALE pop/coil suppressed — a whole-row size pulse read
+    // as the formation tugging the authored phrase around on every onset — but
+    // its bodies still hit the music through the per-lane plié drop above.
+    bodyAccent: moving ? 0 : bodyAccent,
+    bodyAnticipation: moving ? 0 : bodyAnticipation,
+    groundColor: useNewBackdrop ? null : const Color(0xFF374551),
+    backdrop: useNewBackdrop
+        ? CharacterBackdrop.none
+        : CharacterBackdrop.waterfront,
+    backdropImage: useNewBackdrop ? null : backdropImage,
+    backdropCloudsImage: useNewBackdrop ? null : cloudsImage,
+    backdropWavesImage: useNewBackdrop ? null : wavesImage,
+    memberBacklights: backlights,
+    // Surface grade removed (owner: the cats' surfaces read too washed out from
+    // the sky/deck wrap tint — "get rid of the grading of the cats' surfaces...
+    // I can live with more separation with the background"). bodyGrade defaults
+    // to null (no wrap); the rim halo (memberBacklights, above) is separate and
+    // stays.
+    heroStaging: useNewBackdrop,
+    // danceViewProjection intentionally stays at the painter default (false):
+    // front-lock the shipped trio while the arm/shoulder mesh is being rebuilt.
+    // The projection review path still exists for explicit strips, but the app
+    // should not add quarter-turn distortion during limb-attachment review.
+    renderer: renderer,
+  );
+}
+
+/// Softens a raw onset envelope ([DancePerformance.accentAt] /
+/// [DancePerformance.anticipationAt]) by the section energy, so the hit is
+/// gentler through low-energy passages and full in the chorus. The single
+/// source for the live player and the offline composer — these two paths
+/// previously each hand-copied the same scaling and could drift.
+double danceBodyAccentEnvelope(double rawEnvelope, double energyLevel) =>
+    rawEnvelope * (0.45 + 0.55 * energyLevel);
+
+/// How many root-units a full-strength onset drops a Moving dancer's body.
+/// Deliberately shallower than the catalogue's [kDanceAccentDropUnits]: the
+/// Moving phrases already author 17-46 unit root dips, so the accent reads as
+/// the knees giving INTO the hit on top of the authored groove, not a second
+/// competing bounce.
+const double kMovingAccentDropUnits = 9;
+
+/// The flankers' share of the Moving accent plié. Slightly shallower than the
+/// lead so the hit has a visible owner — the trio lands together, but not as
+/// three copies of the same impact.
+const double kMovingAccentFlankerScale = 0.75;
+
+/// How much of the authored root groove yields to a full-strength hit (the
+/// [accentDroppedClip] bobDuck factor, scaled by the positive body load). At
+/// 0.35 a strong onset takes clear ownership of the vertical — the measured
+/// counter-phase case (the finale's biggest bloom riding a RISING authored
+/// bob) inverts into a visible give — while between hits the authored groove
+/// is untouched.
+const double kMovingAccentBobDuck = 0.35;
+
+/// Extra plié depth for TOP-TIER hits, as a fraction on top of the linear
+/// load scaling (smoothstepped in over load 0.5..0.85). Depth already scales
+/// with onset strength and section energy, but at mid-section energy that
+/// left the song's flagship transients (the strength-1.0 hook downbeat — the
+/// first thing anyone scrubs to) carrying the same knee give as a routine
+/// hit. Strong hits now read unmistakably deeper; weak hits are untouched.
+const double kMovingAccentStrongBoost = 0.45;
+
+/// The Moving accent plié depth for one lane at body [load] — the single
+/// source for the production painter wiring and the tests that gate it.
+double movingAccentDropUnits(double load, int lane) {
+  final t = ((load - 0.5) / 0.35).clamp(0.0, 1.0);
+  final emphasis = 1 + kMovingAccentStrongBoost * t * t * (3 - 2 * t);
+  return load *
+      kMovingAccentDropUnits *
+      emphasis *
+      (lane == 0 ? 1.0 : kMovingAccentFlankerScale);
+}
+
+/// Joins the look-ahead coil to the post-onset release for the BODY'S vertical
+/// load. Both envelopes are smooth at their endpoints and trade ownership at
+/// the onset, so the knees compress into the beat continuously. The lights and
+/// formation pop still receive [bodyAccent] and [bodyAnticipation] separately:
+/// they retain their crisp gather->release contrast while the skeleton carries
+/// believable mass instead of teleporting down on the hit frame.
+double _bodyLoadEnvelope(double bodyAccent, double bodyAnticipation) =>
+    bodyAccent >= bodyAnticipation ? bodyAccent : bodyAnticipation;
 
 /// Per-clip-instance cache of [upperBodyDynamicsWarpedClip] results, keyed by
 /// the effective dynamics that produced them. This is the single call site
@@ -462,7 +591,23 @@ CharacterPainter danceCharacterPainter({
 /// pay the wrapper allocation, on top of the `blendedClip` work they already do.
 final Expando<Map<(DanceDynamics, int, double), Clip>> _warpCache = Expando();
 
-Clip _upperBodyWarped(
+/// Moving phrases whose authored loop restart was visually observed as an arm
+/// teleport in the production performance. Their position seams are closed,
+/// but their opposing end/start tangents need the localized recovery below.
+/// Other Moving phrases retain their authored clock: broad application pushed
+/// BridgeRock/ChorusTravel catch-up into intentional accents.
+const Set<String> _movingUpperBodySeamEasedClips = {
+  'movingVerseWindow',
+};
+
+/// The exact per-lane clip transformation used by both the live stage and the
+/// offline exporter.
+///
+/// Kept public so production-level motion audits can measure the same clip the
+/// painter consumes after effort, energy, and shoulder-wind modulation. Tests
+/// that inspect an unwarped catalogue clip are useful rig checks, but cannot
+/// prove that the scheduled/exported performance itself stays continuous.
+Clip productionDanceClip(
   Clip clip,
   DanceDynamics dynamics,
   int lane,
@@ -471,8 +616,15 @@ Clip _upperBodyWarped(
   final cache = _warpCache[clip] ??= {};
   // energyLevel is per-section-constant, so this stays a small keyed cache.
   return cache[(dynamics, lane, energyLevel)] ??= () {
+    final transition = clip.transitionPlan;
+    final songGroove = clip.belongsToFamily('moving');
     // 1. Effort TIME warp (unchanged): reshapes the beat timing by dynamics.
-    final warped = (dynamics.isNeutral || kDanceDynamicsTimeWarpGain == 0)
+    // The Moving phrase already authors long multi-beat arm arcs. Re-syncing
+    // their clock independently inside every beat puts tiny hinges into those
+    // arcs, so this move keeps its authored clock; its body still reacts to
+    // song energy and its shoulders still carry per-lane wind below.
+    final warped =
+        (songGroove || dynamics.isNeutral || kDanceDynamicsTimeWarpGain == 0)
         ? clip
         : upperBodyDynamicsWarpedClip(
             clip,
@@ -482,14 +634,138 @@ Clip _upperBodyWarped(
     // 2. FAST-BASE orbit: a small continuous per-lane hand roll layered on the
     // authored motion, so every move's hands always carry fast sub-beat motion
     // (not just posed hits), the two hands counter-rotating around each other.
-    final orbited = fastBaseOrbitedClip(warped, lane);
+    // "Moving" owns broad sustained arm events. The catalogue-wide fast orbit
+    // makes its wrists buzz independently of those events (and swings its
+    // hand-parented cuffs), so disable the generic garnish for this move.
+    final seamEased =
+        songGroove && _movingUpperBodySeamEasedClips.contains(warped.name)
+        ? upperBodyLoopSeamEasedClip(
+            warped,
+            upperBodyBoneIds: kDanceUpperBodyWarpBoneIds,
+          )
+        : warped;
+    final orbited = fastBaseOrbitedClip(
+      seamEased,
+      lane,
+      radius: songGroove ? 0 : kDanceFastBaseOrbitRadius,
+    );
     // 3. Effort AMPLITUDE modulation: scales how BIG the hand moves get (base +
     // orbit) by the raw SONG ENERGY arc + a deterministic beat-to-beat breath,
     // leaving the fast timing intact — so a low-energy pass is fast-but-small
     // and never 100%-extreme every beat.
-    return effortModulatedClip(orbited, danceEffortScaleOf(energyLevel, lane));
+    // Moving skips the beat-breathing effort modulation (it hinged the long
+    // authored arcs) but takes a CONSTANT per-lane amplitude: in unison
+    // statements the trio otherwise runs pixel-identical arm paths — the
+    // sub-frame microtiming offsets alone measured as 0.98+ inter-cat motion
+    // correlation, the "boy-band clone" tell. A static ±8-10% spread keeps
+    // every lane on the authored path shape while no two cats hit the same
+    // extent.
+    final effort = songGroove
+        ? effortModulatedClip(
+            orbited,
+            (_) => kMovingLaneAmplitudeScale[lane],
+          )
+        : effortModulatedClip(
+            orbited,
+            danceEffortScaleOf(energyLevel, lane),
+          );
+    // 4. WHOLE-BODY groove amplitude: scale the root sway/bob/dips by the song
+    // energy too (not just the hands), so the whole body eases through the
+    // breakdown and fills into the chorus — mean-preserving so the stance stays.
+    final grooved = bodyGrooveScaledClip(
+      effort,
+      danceBodyGrooveScaleOf(energyLevel),
+    );
+    // 5. CREW MICROTIMING: the backups anticipate/drag by a few tens of
+    // milliseconds in their upper bodies only. Feet, root, and support changes
+    // stay on the shared clock, so the formation lands together without the
+    // machine-perfect simultaneous arm reversals of a cloned timeline.
+    final microTimed = songGroove
+        ? upperBodyPhaseOffsetClip(
+            grooved,
+            kDanceLaneUpperBodyPhaseOffsets[lane] *
+                _movingTransitionOwnership(transition),
+            upperBodyBoneIds: kDanceUpperBodyWarpBoneIds,
+          )
+        : grooved;
+    // 6. Continuous shoulder/chest WIND: the upper body keeps rolling so it is
+    // never a static posed post while the hips bounce (the pocket is upper-
+    // body-led — coach).
+    final wound = shoulderWoundClip(microTimed, lane);
+    if (transition == null) return wound;
+
+    // Scene-level transition consumers (support balance, contact locking,
+    // world anchors, z-order) evaluate `transitionPlan.from/to` directly.
+    // Decorating only the temporary blended clip left those metadata sources
+    // raw, so the last blended frame converged on an undecorated foot/root
+    // while the next frame sampled the decorated destination. Full-song
+    // production probes measured the resulting wrapper-boundary jumps at
+    // 85.47s and 137.87s. Carry the exact same production decoration into the
+    // plan's two semantic sources while preserving the already-mixed channels.
+    return _clipWithTransitionPlan(
+      wound,
+      ClipTransitionPlan(
+        from: productionDanceClip(
+          transition.from,
+          dynamics,
+          lane,
+          energyLevel,
+        ),
+        to: productionDanceClip(
+          transition.to,
+          dynamics,
+          lane,
+          energyLevel,
+        ),
+        weight: transition.weight,
+        fromTimeShiftSeconds: transition.fromTimeShiftSeconds,
+      ),
+    );
   }();
 }
+
+/// Fraction of a transition pose semantically owned by Moving.
+///
+/// `Clip.belongsToFamily` deliberately returns true when either side belongs to
+/// the family, which is right for selecting the production treatment but too
+/// coarse for a phase offset: applying the full lane offset to a rest→Moving
+/// wrapper shifts the outgoing idle arms even at blend weight zero. Ramp that
+/// time offset with the same eased ownership as the pose.
+double _movingTransitionOwnership(ClipTransitionPlan? transition) {
+  if (transition == null) return 1;
+  final fromMoving = transition.from.belongsToFamily('moving');
+  final toMoving = transition.to.belongsToFamily('moving');
+  if (fromMoving == toMoving) return fromMoving ? 1 : 0;
+  final incoming = transition.weight;
+  return toMoving ? incoming : 1 - incoming;
+}
+
+Clip _clipWithTransitionPlan(Clip clip, ClipTransitionPlan transitionPlan) =>
+    Clip(
+      name: clip.name,
+      family: clip.family,
+      duration: clip.duration,
+      channels: clip.channels,
+      loop: clip.loop,
+      root: clip.root,
+      locomotionSpeed: clip.locomotionSpeed,
+      groundSpans: clip.groundSpans,
+      contactSpans: clip.contactSpans,
+      contactPinning: clip.contactPinning,
+      limbTargets: clip.limbTargets,
+      supportFootWorldAnchor: clip.supportFootWorldAnchor,
+      supportFootWorldAnchorStrength: clip.supportFootWorldAnchorStrength,
+      supportFootWorldAnchorVerticalBoost:
+          clip.supportFootWorldAnchorVerticalBoost,
+      danceHeadBobScale: clip.danceHeadBobScale,
+      danceHeadLevelClampMin: clip.danceHeadLevelClampMin,
+      armReachScale: clip.armReachScale,
+      headLateralStabilize: clip.headLateralStabilize,
+      enforceSoleFloor: clip.enforceSoleFloor,
+      transitionPlan: transitionPlan,
+      zOrderSwaps: clip.zOrderSwaps,
+      dynamics: clip.dynamics,
+    );
 
 /// The karaoke caption: a short window of lyric words centred on the current
 /// one (highlighted). Empty when no word is active. Shared by the live player

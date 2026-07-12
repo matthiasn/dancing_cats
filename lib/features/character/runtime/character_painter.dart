@@ -159,14 +159,16 @@ const List<Offset> _kRimDirections = [
 /// a "crash-wide camera cut" at the boundary and a "pop back in" ~4 frames
 /// later, with flank pose/brightness snaps bracketing every handoff — the
 /// real camera was gliding smoothly the whole time.
-bool _isTrioDanceClip(Clip clip) => clip.transitionPlan != null
-    ? _isTrioDanceClip(clip.transitionPlan!.from) ||
-          _isTrioDanceClip(clip.transitionPlan!.to)
-    : clip.name == 'shaku' ||
-          clip.name == 'zanku' ||
-          clip.name == 'azonto' ||
-          clip.name == 'buga' ||
-          clip.name == 'sekem';
+bool _isTrioDanceClip(Clip clip) =>
+    clip.belongsToFamily('moving') ||
+    (clip.transitionPlan != null &&
+        (_isTrioDanceClip(clip.transitionPlan!.from) ||
+            _isTrioDanceClip(clip.transitionPlan!.to))) ||
+    clip.name == 'shaku' ||
+    clip.name == 'zanku' ||
+    clip.name == 'azonto' ||
+    clip.name == 'buga' ||
+    clip.name == 'sekem';
 
 /// Continuous 0..1 "how much dance staging should show" — [_isTrioDanceClip]
 /// as a weight instead of a boolean, so idle<->dance handoffs fade the
@@ -334,6 +336,8 @@ class CharacterPainter extends CustomPainter {
     this.bodyGrade,
     this.heroStaging = false,
     this.danceViewProjection = false,
+    this.bodyAccent = 0.0,
+    this.bodyAnticipation = 0.0,
     CharacterRenderer? renderer,
   }) : _renderer = renderer ?? CharacterRenderer();
 
@@ -412,6 +416,19 @@ class CharacterPainter extends CustomPainter {
   /// player); every other surface keeps its even trio.
   final bool heroStaging;
 
+  /// Music-driven body ACCENT (0..1), a per-frame pop on the track's onset hits
+  /// (see `DancePerformance.accentAt`). Drops each dancer's body a touch into
+  /// the beat so the trio lands WITH the music. 0 = no accent (the default for
+  /// every non-dance surface). Concert dance only.
+  final double bodyAccent;
+
+  /// Music-driven ANTICIPATION (0..1), the look-ahead "coil" that rises as the
+  /// next strong onset nears (see `DancePerformance.anticipationAt`). Gathers
+  /// the ensemble smaller together just before the hit so [bodyAccent]'s pop
+  /// reads as a release, not a bump from nowhere. 0 = no imminent hit (the
+  /// default everywhere but concert dance).
+  final double bodyAnticipation;
+
   /// When true (concert dance only), applies a subtle per-lane quarter turn to
   /// the trio: flankers turn inward and the lead keeps a near-front angle. This
   /// is weaker than the frame-grid side/profile review views; it exists so the
@@ -475,6 +492,68 @@ class CharacterPainter extends CustomPainter {
   static const double _trioScaleFactor = 0.48;
   static const double _pairSpacing = 215;
   static const double _trioSpacing = 238;
+
+  /// Peak UNISON "pop" the whole ensemble surges on a music accent — a fraction
+  /// of member scale added at `bodyAccent == 1`. On the track's strong
+  /// transients all three cats grow toward camera IN UNISON, then settle over
+  /// the accent's ~0.2 s decay: the ensemble HIT the chorus launch already
+  /// frames for (see `dance_camera_director`'s chorus launch, which eases the
+  /// frame to give "the drop staging's surge room" rather than punching the
+  /// camera — a bigger camera push was panel-rejected as a jump-cut, so the
+  /// surge belongs on the BODIES). Layered on top of the pure dance-clock
+  /// [_danceFormation] (which stays scale-locked so its tests hold), driven by
+  /// the same `bodyAccent` as the plié drop and the stage-light bloom so the
+  /// surge, the dip and the flare all land on the same transient. Grows about
+  /// each cat's foot anchor (feet stay planted, the body swells up), so with
+  /// the plié drop the ensemble reads as planting HARD into the hit.
+  ///
+  /// Value set by the drop-staging panel (music-video director + Afrobeats
+  /// coach): 0.05 read "too polite — it whispers instead of hitting", so the
+  /// strongest transient (peak `bodyAccent` ≈ 0.82 on this track) now surges
+  /// ~5.7 %, weaker hits proportionally less. Attack stays INSTANT (a
+  /// percussive hit, not a ramp — the animator lens was explicit) and the
+  /// accent's own ~0.2 s decay gives the eased settle.
+  static const double _kUnisonFormationPop = 0.07;
+
+  /// The flankers pop HARDER than the lead by this factor. Same panel: at a
+  /// uniform percentage the upstage backups (drawn smaller by perspective —
+  /// see [_heroStaging]) surged too few pixels to read, so the "unison" hit
+  /// landed as a hero-only pop. Boosting their scale fraction lifts their
+  /// ABSOLUTE pixel-surge toward the lead's so all three read as one hit —
+  /// kept under the point where a backup would out-punch the lead and steal
+  /// the frame (the lead still owns the biggest absolute swell).
+  static const double _kUnisonFormationPopFlankerBoost = 1.2;
+
+  /// Peak UNISON "coil" the ensemble gathers just BEFORE a hit — a fraction of
+  /// member scale SUBTRACTED as `bodyAnticipation` rises toward the onset
+  /// (`DancePerformance.anticipationAt`). The whole row dips smaller together
+  /// through the ~0.1 s wind-up, then releases into [_kUnisonFormationPop]'s
+  /// surge on the beat: gather → snap, the "load and release" the drop-staging
+  /// panel asked for so the hit reads as weighted rather than a size bump that
+  /// appears from nowhere. Kept smaller than the pop (a wind-up is subtler than
+  /// the hit it launches); shares the flanker boost so the coil stays unison.
+  /// Zero unless a strong onset is imminent while dancing.
+  static const double _kUnisonFormationCoil = 0.04;
+
+  /// The pop/coil is ANISOTROPIC — a squash-and-stretch, not a uniform scale.
+  /// A uniform scale read as "closer to camera" for the pop and a flat shrink
+  /// for the coil (the drop-staging panel wanted a REACH on the hit and a
+  /// weighted drop-into-the-knees before it). The vertical scale is EMPHASISED
+  /// ([_kUnisonSquashYGain]) and the horizontal COUNTERS it (the pop/coil
+  /// X-counter constants below), roughly volume-preserving: the pop reaches UP
+  /// (taller, a touch narrower), the coil SQUASHES DOWN (shorter, a touch
+  /// wider). Applied as a canvas scale about the foot anchor so the body, its
+  /// rim halo and its contact shadow all stay consistent and the feet stay
+  /// planted.
+  static const double _kUnisonSquashYGain = 1.3;
+
+  /// Horizontal counter to the vertical squash-stretch, applied ASYMMETRICALLY:
+  /// the COIL widens more than the POP narrows. The panel read the pop's slim
+  /// reach as right, but the coil's "touch wider" barely registered — so the
+  /// gather gets extra lateral spread to sell the drop-into-the-knees weight
+  /// (the floor pushing back) while the pop keeps its clean vertical reach.
+  static const double _kUnisonSquashXCounterPop = 0.45;
+  static const double _kUnisonSquashXCounterCoil = 0.9;
 
   // The dance camera's horizontal truck keyframes (danceCameraShot's dx) are authored
   // in pixels of this reference stage (the 2560-wide art space), where the truck
@@ -672,6 +751,25 @@ class CharacterPainter extends CustomPainter {
       // first frame — see [_trioDanceWeight]'s doc comment.
       final danceWeight = trioCentre ? _trioDanceWeight(clip) : 0.0;
       final leadCentreOrder = danceWeight > 0;
+      // UNISON accent surge: the whole ensemble pops bigger together on the
+      // track's strong transients, then settles over the accent decay,
+      // reinforcing the plié drop and the stage-light bloom that ride the same
+      // [bodyAccent]. Gated by danceWeight so it eases in/out with the dance
+      // and is a hard no-op while idle. The per-member scale factor (the lead
+      // vs the perspective-compensated flankers) is applied inside the loop.
+      final unisonPopBase =
+          _kUnisonFormationPop * bodyAccent.clamp(0.0, 1.0) * danceWeight;
+      // ...and the UNISON coil that precedes it: the row gathers smaller in the
+      // ~0.1 s wind-up before the hit ([bodyAnticipation] rising toward the
+      // onset), then releases into the surge above on the beat — gather → snap.
+      final unisonCoilBase =
+          _kUnisonFormationCoil *
+          bodyAnticipation.clamp(0.0, 1.0) *
+          danceWeight;
+      // Net scale delta before the per-role factor: coil (smaller) before the
+      // hit, pop (bigger) on/after it. The two signals barely overlap — the
+      // coil window is half-open up to the onset, where the pop takes over.
+      final unisonScaleDelta = unisonPopBase - unisonCoilBase;
       final order = trioCentre ? const [1, 0, 2] : null;
       final members = order == null
           ? baseMembers
@@ -745,6 +843,15 @@ class CharacterPainter extends CustomPainter {
             : (depthBonus: 0.0, dy: 0.0, dx: 0.0);
         final memberDepth =
             _roleStageDepth(i, members.length) + heroStage.depthBonus;
+        // The unison pop/coil is applied ANISOTROPICALLY as a squash-stretch
+        // about the foot (see the squash-gain constants and the wrapper below),
+        // NOT baked into memberScale — so memberScale stays the neutral size and
+        // the shadow, rim halo and body all squash together. Lead lane is index
+        // 1 in the [1,0,2] reorder; the flankers pop (and coil) harder to offset
+        // their smaller perspective size so the accent reads as a UNISON hit.
+        final popDelta =
+            unisonScaleDelta *
+            (i == 1 ? 1.0 : _kUnisonFormationPopFlankerBoost);
         final memberScale =
             drawScale * _perspectiveScale(memberDepth) * formation.scale;
         final memberView = leadCentreOrder && danceViewProjection
@@ -776,6 +883,26 @@ class CharacterPainter extends CustomPainter {
               cameraMatrix[5] * memberFloorY +
               cameraMatrix[13];
           anchors[i] = Offset(sx / size.width, sy / size.height);
+        }
+        // ANISOTROPIC unison squash-stretch about the foot anchor: reach UP on
+        // the hit (taller, a touch narrower), gather DOWN into it on the coil
+        // (shorter, a touch wider). Wraps the shadow + rim halo + body so they
+        // squash together; the foot pivot keeps the feet planted. A hard no-op
+        // whenever there is no accent/coil (popDelta == 0), which is most frames.
+        final squashing = popDelta != 0;
+        if (squashing) {
+          canvas
+            ..save()
+            ..translate(memberCentreX, memberFloorY)
+            ..scale(
+              1 -
+                  popDelta *
+                      (popDelta < 0
+                          ? _kUnisonSquashXCounterCoil
+                          : _kUnisonSquashXCounterPop),
+              1 + popDelta * _kUnisonSquashYGain,
+            )
+            ..translate(-memberCentreX, -memberFloorY);
         }
         // GROUNDED contact shadow: a soft, dark elliptical occlusion pressed into
         // the deck right under this member's feet, drawn FIRST so the figure (and
@@ -979,6 +1106,7 @@ class CharacterPainter extends CustomPainter {
           );
           canvas.restore(); // pop the isolation layer
         }
+        if (squashing) canvas.restore(); // pop the unison squash-stretch
       }
       if (anchors != null) onDancerAnchors!(anchors);
       canvas.restore();
@@ -1946,13 +2074,11 @@ class CharacterPainter extends CustomPainter {
   ) {
     if (duration <= 0) return 0;
     if (memberCount >= 3) {
-      // Dance crews should breathe during transitions but land their accents
-      // together. Keep trio variance in pose, arms, faces, and formation; do
-      // not offset the actual sampled time, because even sub-frame lead/trail
-      // offsets cross support-foot handoffs at different moments and make side
-      // dancers pop while the centre lead stays smooth.
-      // A trio crew breathes in pose/arms/faces/formation but lands its accents
-      // together, so it takes no per-member sampled-time offset.
+      // Never offset the WHOLE member clock: even sub-frame lead/trail offsets
+      // cross support-foot handoffs at different moments and make side dancers
+      // pop while the centre lead stays smooth. The production clip may still
+      // offset upper-body channels only (see upperBodyPhaseOffsetClip), which
+      // loosens arm arrivals while feet and accents keep this shared clock.
       return 0;
     }
     if (index == 0) return 0;
@@ -2204,7 +2330,13 @@ class CharacterPainter extends CustomPainter {
       base,
       floorY,
     );
-    final groundedFrame = singingHeadMotion && _isTrioDanceClip(clip)
+    // Moving clips already carry authored head phrasing plus the scene's
+    // restrained rib-follow. A second painter-level vocal bob made the skull
+    // look loose and occasionally lifted the chin edge clear of the collar.
+    final groundedFrame =
+        singingHeadMotion &&
+            _isTrioDanceClip(clip) &&
+            !clip.belongsToFamily('moving')
         ? _danceHeadMotion(
             pinnedFrame,
             drawScene.rig,
@@ -2624,6 +2756,8 @@ class CharacterPainter extends CustomPainter {
       !listEquals(old.memberBacklights, memberBacklights) ||
       old.bodyGrade != bodyGrade ||
       old.heroStaging != heroStaging ||
+      old.bodyAccent != bodyAccent ||
+      old.bodyAnticipation != bodyAnticipation ||
       old.danceViewProjection != danceViewProjection ||
       old._renderer != _renderer;
 }

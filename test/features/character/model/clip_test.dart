@@ -115,6 +115,44 @@ void main() {
       expect(pose.scaleX, closeTo(1.1, 1e-9));
       expect(pose.scaleY, closeTo(0.9, 1e-9));
     });
+
+    test('converts outgoing transition seconds into normalized phase', () {
+      const from = KeyframeChannel([
+        Keyframe(p: 0, ease: Ease.linear),
+        Keyframe(p: 1, rotation: 1, ease: Ease.linear),
+      ]);
+
+      const blend = BlendedJointChannel(
+        from: from,
+        weight: 0,
+        fromTimeShift: -1.2,
+        fromDuration: 6,
+        toDuration: 6,
+      );
+
+      // 0.8 phase - (1.2s / 6s) = 0.6 phase.
+      expect(blend.sample(0.8).rotation, closeTo(0.6, 1e-9));
+      // 0.1 - 0.2 wraps to phase 0.9, not to a seconds-domain remainder.
+      expect(blend.sample(0.1).rotation, closeTo(0.9, 1e-9));
+    });
+
+    test('maps incoming phase through seconds when durations differ', () {
+      const from = KeyframeChannel([
+        Keyframe(p: 0, ease: Ease.linear),
+        Keyframe(p: 1, rotation: 1, ease: Ease.linear),
+      ]);
+
+      const blend = BlendedJointChannel(
+        from: from,
+        weight: 0,
+        fromDuration: 6,
+        toDuration: 12,
+      );
+
+      // Incoming phase 0.25 is 3 seconds into its 12-second clip, which is
+      // outgoing phase 0.5 in the six-second source clip.
+      expect(blend.sample(0.25).rotation, closeTo(0.5, 1e-9));
+    });
   });
 
   group('KeyframeChannel', () {

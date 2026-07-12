@@ -734,7 +734,7 @@ void main() {
             reason:
                 '${clip.name} should not solve a limb onto the opposite bend '
                 'side from its authored IK target; first violations: '
-                '${directionViolations.take(3).map((v) => v.message).join(' | ')}',
+                '${directionViolations.take(3).map((v) => 'p=${v.phase.toStringAsFixed(4)} ${v.message}').join(' | ')}',
           );
           expect(
             highWeightHandBends,
@@ -930,67 +930,75 @@ void main() {
             isFalse,
             reason:
                 'frame $frame $side: a raised elbow with the paw folded back '
-                'inboard is the elbow-led fin silhouette',
+                'inboard is the elbow-led fin silhouette; '
+                'shoulder=(${shoulder.x.toStringAsFixed(1)},${shoulder.y.toStringAsFixed(1)}) '
+                'elbow=(${elbow.x.toStringAsFixed(1)},${elbow.y.toStringAsFixed(1)}) '
+                'wrist=(${wrist.x.toStringAsFixed(1)},${wrist.y.toStringAsFixed(1)})',
           );
         }
       }
     });
 
-    test('arm ribbon shoulder joint stays welded to the clavicle', () {
-      // The old sleeve MESH could open a gap between its shoulder cap and the
-      // jacket armhole in raised poses (the "shoulderMeshBridge" checks). The
-      // ribbon sleeve removes that failure mode structurally: its root joint
-      // IS the clavicle and its second joint (the socket) is rigidly
-      // clavicle-parented, so the deltoid dome and the chest-anchored jacket
-      // armhole travel together in EVERY pose. This test pins that structure
-      // (and that no mesh bridges are left to sample).
-      final rig = buildCatInSuitRig();
-      final scene = CharacterScene(rig);
-      final report = MotionConstraintValidator(scene).analyze(
-        clip: CatClips.buga,
-        ikSamples: 64,
-      );
-      expect(report.shoulderMeshBridges, isEmpty);
-      expect(
-        report.violations.map((violation) => violation.category),
-        isNot(contains(MotionConstraintCategory.shoulderMeshBridge)),
-      );
-
-      for (final side in ['L', 'R']) {
-        final ribbon = rig.ribbons.singleWhere(
-          (ribbon) => ribbon.id == 'arm.$side.ribbon',
+    test(
+      'arm ribbon shoulder joint stays welded to the articulated socket',
+      () {
+        // The old sleeve MESH could open a gap between its shoulder cap and the
+        // jacket armhole in raised poses (the "shoulderMeshBridge" checks). The
+        // ribbon sleeve removes that failure mode structurally: its root joint
+        // IS the articulated shoulder socket, itself clavicle-parented, so the
+        // deltoid dome and the chest-anchored jacket armhole travel together in
+        // EVERY pose. This test pins that structure
+        // (and that no mesh bridges are left to sample).
+        final rig = buildCatInSuitRig();
+        final scene = CharacterScene(rig);
+        final report = MotionConstraintValidator(scene).analyze(
+          clip: CatClips.buga,
+          ikSamples: 64,
         );
-        final rootId = ribbon.jointBoneIds.first;
-        final socketId = ribbon.jointBoneIds[1];
+        expect(report.shoulderMeshBridges, isEmpty);
         expect(
-          rootId.toLowerCase(),
-          contains('clavicle'),
-          reason: 'the ribbon must be rooted on the shoulder girdle itself',
+          report.violations.map((violation) => violation.category),
+          isNot(contains(MotionConstraintCategory.shoulderMeshBridge)),
         );
-        expect(rig.bone(socketId)!.parent, rootId);
-        // The anti-hinge contract: the root section (clavicle→socket) is a
-        // fixed strut riding the girdle. It must not stretch or collapse in
-        // solved poses — the arm's bend belongs BELOW it, over socket→bicep.
-        for (final phase in [0.0, 0.25, 0.375, 0.5, 0.75, 0.875]) {
-          final frame = scene.frameAt(
-            clip: CatClips.buga,
-            timeSeconds: CatClips.buga.duration * phase,
+
+        for (final side in ['L', 'R']) {
+          final ribbon = rig.ribbons.singleWhere(
+            (ribbon) => ribbon.id == 'arm.$side.ribbon',
           );
-          final root = frame.world[rootId]!.origin;
-          final socket = frame.world[socketId]!.origin;
-          final dx = socket.x - root.x;
-          final dy = socket.y - root.y;
+          final rootId = ribbon.jointBoneIds.first;
+          final socketId = ribbon.jointBoneIds[1];
           expect(
-            math.sqrt(dx * dx + dy * dy),
-            inInclusiveRange(7, 13),
-            reason:
-                'the deltoid root section must stay a near-rest-length strut '
-                'on the girdle (rest offset 10) instead of deforming with '
-                'the arm swing',
+            rootId.toLowerCase(),
+            contains('shoulder_socket'),
+            reason: 'the ribbon must be rooted on the articulated shoulder',
           );
+          expect(rig.bone(rootId)!.parent?.toLowerCase(), contains('clavicle'));
+          expect(rig.bone(socketId)!.parent, rootId);
+          // The anti-hinge contract: the ribbon root now spans the articulated
+          // socket→upper-arm offset (rest length 6), not the old
+          // clavicle→socket offset (rest length 10). It must remain a short,
+          // non-collapsing deltoid strut; the arm's real bend belongs below it.
+          for (final phase in [0.0, 0.25, 0.375, 0.5, 0.75, 0.875]) {
+            final frame = scene.frameAt(
+              clip: CatClips.buga,
+              timeSeconds: CatClips.buga.duration * phase,
+            );
+            final root = frame.world[rootId]!.origin;
+            final socket = frame.world[socketId]!.origin;
+            final dx = socket.x - root.x;
+            final dy = socket.y - root.y;
+            expect(
+              math.sqrt(dx * dx + dy * dy),
+              inInclusiveRange(4.5, 8.5),
+              reason:
+                  'the deltoid root section must stay near its 6-unit rest '
+                  'offset on the girdle instead of deforming with '
+                  'the arm swing',
+            );
+          }
         }
-      }
-    });
+      },
+    );
 
     test('sekem same-side hand targets keep a solved anatomical lane', () {
       final validator = MotionConstraintValidator(

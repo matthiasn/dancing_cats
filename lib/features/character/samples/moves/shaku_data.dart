@@ -874,37 +874,37 @@ const _shakuClavicleRKeys = [
   DanceJointKey(30, rotation: -0.03),
   DanceJointKey(32, rotation: -0.15),
 ];
-// Deltoid/socket mass response so the dig reads as flesh, not a hinge: the
-// working socket bunches (wide + short) on its dig and stretches on release,
-// mirroring the clavicle schedule (same as sekem's).
+// Structural socket rotation follows the clavicle dig. The socket now parents
+// the humerus, so non-uniform squash is intentionally absent: it would shear
+// and lengthen the whole arm; the sleeve ribbon supplies the volume response.
 const _shakuShoulderSocketLKeys = [
-  DanceJointKey(0, rotation: -0.08, scaleX: 1.12, scaleY: 0.92),
-  DanceJointKey(2, rotation: 0.03, scaleX: 0.98, scaleY: 1.05),
+  DanceJointKey(0, rotation: -0.08),
+  DanceJointKey(2, rotation: 0.03),
   DanceJointKey(4),
-  DanceJointKey(8, rotation: -0.08, scaleX: 1.12, scaleY: 0.92),
-  DanceJointKey(10, rotation: 0.03, scaleX: 0.98, scaleY: 1.05),
+  DanceJointKey(8, rotation: -0.08),
+  DanceJointKey(10, rotation: 0.03),
   DanceJointKey(12),
-  DanceJointKey(16, rotation: -0.08, scaleX: 1.12, scaleY: 0.92),
-  DanceJointKey(18, rotation: 0.03, scaleX: 0.98, scaleY: 1.05),
+  DanceJointKey(16, rotation: -0.08),
+  DanceJointKey(18, rotation: 0.03),
   DanceJointKey(20),
-  DanceJointKey(24, rotation: -0.08, scaleX: 1.12, scaleY: 0.92),
-  DanceJointKey(26, rotation: 0.03, scaleX: 0.98, scaleY: 1.05),
+  DanceJointKey(24, rotation: -0.08),
+  DanceJointKey(26, rotation: 0.03),
   DanceJointKey(28),
-  DanceJointKey(32, rotation: -0.08, scaleX: 1.12, scaleY: 0.92),
+  DanceJointKey(32, rotation: -0.08),
 ];
 const _shakuShoulderSocketRKeys = [
   DanceJointKey(0),
-  DanceJointKey(4, rotation: 0.08, scaleX: 1.12, scaleY: 0.92),
-  DanceJointKey(6, rotation: -0.03, scaleX: 0.98, scaleY: 1.05),
+  DanceJointKey(4, rotation: 0.08),
+  DanceJointKey(6, rotation: -0.03),
   DanceJointKey(8),
-  DanceJointKey(12, rotation: 0.08, scaleX: 1.12, scaleY: 0.92),
-  DanceJointKey(14, rotation: -0.03, scaleX: 0.98, scaleY: 1.05),
+  DanceJointKey(12, rotation: 0.08),
+  DanceJointKey(14, rotation: -0.03),
   DanceJointKey(16),
-  DanceJointKey(20, rotation: 0.08, scaleX: 1.12, scaleY: 0.92),
-  DanceJointKey(22, rotation: -0.03, scaleX: 0.98, scaleY: 1.05),
+  DanceJointKey(20, rotation: 0.08),
+  DanceJointKey(22, rotation: -0.03),
   DanceJointKey(24),
-  DanceJointKey(28, rotation: 0.08, scaleX: 1.12, scaleY: 0.92),
-  DanceJointKey(30, rotation: -0.03, scaleX: 0.98, scaleY: 1.05),
+  DanceJointKey(28, rotation: 0.08),
+  DanceJointKey(30, rotation: -0.03),
   DanceJointKey(32),
 ];
 

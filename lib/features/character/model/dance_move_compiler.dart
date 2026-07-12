@@ -86,6 +86,7 @@ Clip assembleMoveClip(
 
   return Clip(
     name: descriptor.move.name,
+    family: descriptor.family ?? base?.family,
     duration: descriptor.duration,
     channels: channels,
     loop: descriptor.loop,

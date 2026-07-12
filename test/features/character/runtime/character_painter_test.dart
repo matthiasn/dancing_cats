@@ -544,6 +544,133 @@ void main() {
     });
   });
 
+  testWidgets('a music accent pops the trio bigger (and coils it smaller '
+      'first) IN UNISON', (tester) async {
+    await tester.runAsync(() async {
+      // Opaque-pixel area per screen lane (the trio stages left / centre /
+      // right), for a given accent. The unison pop scales every member about
+      // its own foot anchor, so a stronger accent = strictly more silhouette
+      // area in EVERY lane.
+      Future<({int left, int centre, int right})> laneAreas(
+        double bodyAccent, {
+        double bodyAnticipation = 0,
+      }) async {
+        const w = 760;
+        const h = 420;
+        final recorder = ui.PictureRecorder();
+        final canvas = Canvas(recorder);
+        CharacterPainter(
+          scene: scene,
+          partnerScene: CharacterScene(
+            buildCatInSuitRig(palette: CatInSuitPalette.silverTabby),
+          ),
+          ensembleScenes: [
+            CharacterScene(
+              buildCatInSuitRig(palette: CatInSuitPalette.silverTabby),
+            ),
+            CharacterScene(
+              buildCatInSuitRig(palette: CatInSuitPalette.darkBrown),
+            ),
+          ],
+          ensembleClips: [
+            CatClips.shaku,
+            CatClips.danceBackupLeft,
+            CatClips.danceBackupRight,
+          ],
+          ensembleExpressions: const [
+            Expression.neutral,
+            Expression.content,
+            Expression.happy,
+          ],
+          synchronousEnsemble: true,
+          clip: CatClips.shaku,
+          timeSeconds: 0.25,
+          walkingPair: true,
+          shadowColor: const Color(0x00000000),
+          bodyAccent: bodyAccent,
+          bodyAnticipation: bodyAnticipation,
+          renderer: renderer,
+        ).paint(canvas, Size(w.toDouble(), h.toDouble()));
+        final picture = recorder.endRecording();
+        try {
+          final image = await picture.toImage(w, h);
+          try {
+            final data = await image.toByteData();
+            final pixels = data!.buffer.asUint8List();
+            var left = 0;
+            var centre = 0;
+            var right = 0;
+            for (var y = 0; y < h; y++) {
+              for (var x = 0; x < w; x++) {
+                if (pixels[(y * w + x) * 4 + 3] == 0) continue;
+                if (x < 260) {
+                  left++;
+                } else if (x > 500) {
+                  right++;
+                } else {
+                  centre++;
+                }
+              }
+            }
+            return (left: left, centre: centre, right: right);
+          } finally {
+            image.dispose();
+          }
+        } finally {
+          picture.dispose();
+        }
+      }
+
+      final rest = await laneAreas(0);
+      final hit = await laneAreas(1);
+      // Every lane grows — the surge is UNISON, not just the lead.
+      expect(
+        hit.left,
+        greaterThan(rest.left),
+        reason: 'left backup should surge on the accent',
+      );
+      expect(
+        hit.centre,
+        greaterThan(rest.centre),
+        reason: 'centre lead should surge on the accent',
+      );
+      expect(
+        hit.right,
+        greaterThan(rest.right),
+        reason: 'right backup should surge on the accent',
+      );
+      // And the total surge is real (a ~5% scale is ~10% more area), not a
+      // one-pixel rounding wobble.
+      final restTotal = rest.left + rest.centre + rest.right;
+      final hitTotal = hit.left + hit.centre + hit.right;
+      expect(
+        hitTotal,
+        greaterThan((restTotal * 1.04).round()),
+        reason: 'the accent should visibly enlarge the ensemble silhouette',
+      );
+
+      // The COIL is the inverse: just before the hit (bodyAnticipation, no
+      // accent yet) the ensemble gathers strictly SMALLER in every lane, so it
+      // reads as a load that releases into the pop above.
+      final coil = await laneAreas(0, bodyAnticipation: 1);
+      expect(
+        coil.left,
+        lessThan(rest.left),
+        reason: 'left backup should gather smaller in the coil',
+      );
+      expect(
+        coil.centre,
+        lessThan(rest.centre),
+        reason: 'centre lead should gather smaller in the coil',
+      );
+      expect(
+        coil.right,
+        lessThan(rest.right),
+        reason: 'right backup should gather smaller in the coil',
+      );
+    });
+  });
+
   group('CharacterPainter.memberBacklights / bodyGrade', () {
     // Distinct pure-colour gels per lane so rim pixels are unambiguous.
     const gels = [Color(0xFFFF0000), Color(0xFF00FF00), Color(0xFF0000FF)];
@@ -2271,6 +2398,43 @@ void main() {
         nodding,
         isNot(equals(still)),
         reason: 'singingHeadMotion bobs and dips the head subtree',
+      );
+    });
+  });
+
+  testWidgets('Moving uses one authored head clock, not a second vocal bob', (
+    tester,
+  ) async {
+    await tester.runAsync(() async {
+      const singing = Expression(
+        'sing',
+        FaceState(mouthShape: MouthShape.singAh, mouthOpen: 0.7),
+      );
+      Future<Uint8List> render({required bool singHead}) async {
+        final recorder = ui.PictureRecorder();
+        CharacterPainter(
+          scene: scene,
+          clip: CatClips.movingGrooveLowCounter,
+          timeSeconds: CatClips.movingGrooveLowCounter.duration * 0.45,
+          expression: singing,
+          singingHeadMotion: singHead,
+          shadowColor: const Color(0x00000000),
+          renderer: renderer,
+        ).paint(Canvas(recorder), const Size(220, 300));
+        final picture = recorder.endRecording();
+        final image = await picture.toImage(220, 300);
+        final data = (await image.toByteData())!.buffer.asUint8List();
+        image.dispose();
+        picture.dispose();
+        return data;
+      }
+
+      expect(
+        await render(singHead: true),
+        equals(await render(singHead: false)),
+        reason:
+            'Moving already authors head rotation and must stay seated on the '
+            'neck instead of receiving another painter-level nod',
       );
     });
   });

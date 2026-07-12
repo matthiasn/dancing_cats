@@ -128,7 +128,7 @@ typedef DanceStage = ({
 /// review-vs-ship gap drops from 1.5x to 0.75x. (The still-earlier 3-bar
 /// binding gave 2 2/3 frames per beat — accents BETWEEN beats — and stays
 /// wrong for a different reason.)
-const int kDancePhraseBars = 2;
+const int kDancePhraseBars = 4;
 
 /// How much faster the shipped app's beat-warped pose clock runs than the
 /// raw, authored clip clock (`_danceBase.duration`) motion-quality tests
@@ -140,11 +140,12 @@ const int kDancePhraseBars = 2;
 /// track's 4/4 time signature. At the sample track's detected
 /// `tempo.global_bpm` (`assets/sample_track/moving.json`, 120.0), 16 beats
 /// take `16 * 60 / 120 = 8` real seconds, versus the `_danceBase` clip's
-/// authored `duration: 6` seconds — so the live/exported app now plays every
-/// routine at `6 / 8 = 0.75x` of the raw clip clock the film-strip tests and
+/// authored `duration: 6` seconds — so the live/exported app plays CATALOGUE
+/// routines at `6 / 8 = 0.75x` of the raw clip clock the film-strip tests and
 /// `TemporalMotionAnalyzer` sample by default (slightly SLOWER than
 /// authored, the sustainable half-time read — down from the previous
-/// two-bar binding's 1.5x, which shipped frantic).
+/// two-bar binding's 1.5x, which shipped frantic). The Moving family does NOT
+/// use this factor — see [danceRealTempoSpeedupFor].
 ///
 /// This is *this project's current default track's* factor, not a universal
 /// constant — it would need recomputing (from the same formula) if the
@@ -152,7 +153,20 @@ const int kDancePhraseBars = 2;
 /// `k` scales the n-th time-derivative by `k^n`, so callers multiply speed by
 /// `k`, acceleration by `k^2`, and jerk by `k^3` rather than resampling at a
 /// different clock.
-const double kDanceRealTempoSpeedup = 6 / 4;
+const double kDanceRealTempoSpeedup = 6 / 8;
+
+/// Real-tempo factor for [clip], honoring per-family bindings.
+///
+/// [kDanceRealTempoSpeedup] describes only the catalogue's four-bar binding.
+/// The Moving family runs on its natural two-bar clock (see
+/// `kMovingPhraseLoopBeats` in `dance_playback_stepper.dart`): 8 beats take
+/// `8 * 60 / 120 = 4` real seconds against the 6-second authored loop, so its
+/// shipped clock is `6 / 4 = 1.5x` — TWICE the catalogue constant. Real-tempo
+/// motion gates and inspection panels must use this per-clip factor: scaling
+/// Moving by the catalogue constant certifies/displays it at half its shipped
+/// speed (velocity 2x off, acceleration 4x, jerk 8x).
+double danceRealTempoSpeedupFor(Clip clip) =>
+    clip.belongsToFamily('moving') ? 6 / 4 : kDanceRealTempoSpeedup;
 
 /// Fraction of the track's energy range below which a section counts as "calm"
 /// (and, if also long enough, eases the trio into idle). See [kMinCalmSeconds].
@@ -322,6 +336,8 @@ class DancePerformance {
     required this.sectionSpans,
     required this.trackDurationSec,
     this.words = const [],
+    this.waveform = const [],
+    this.onsets = const [],
   });
 
   /// Builds a performance from a parsed beat-map [json] document (the embedded
@@ -359,6 +375,16 @@ class DancePerformance {
       sectionSpans: buildDanceSectionSpans(words, trackDurationSec),
       trackDurationSec: trackDurationSec,
       words: words,
+      waveform: amplitudes,
+      onsets: ((json['onsets'] as List?) ?? const [])
+          .cast<Map<String, Object?>>()
+          .map(
+            (o) => (
+              time: (o['time_sec']! as num).toDouble(),
+              strength: (o['strength'] as num?)?.toDouble() ?? 1.0,
+            ),
+          )
+          .toList(),
     );
   }
 
@@ -380,11 +406,204 @@ class DancePerformance {
   /// Whole-track duration in seconds (normalizes the director's build progress).
   final double trackDurationSec;
 
+  /// The embedded 0..1 loudness envelope over the whole track (the beat map's
+  /// `waveform`), stored so motion can react to the CONTINUOUS song energy
+  /// (music-reactive amplitude) instead of the coarse per-section step. Empty
+  /// for synthetic/test performances built without a waveform.
+  final List<double> waveform;
+
+  late final ({double min, double max}) _waveformRange = (() {
+    if (waveform.isEmpty) return (min: 0.0, max: 1.0);
+    var lo = waveform.first;
+    var hi = waveform.first;
+    for (final v in waveform) {
+      if (v < lo) lo = v;
+      if (v > hi) hi = v;
+    }
+    return (min: lo, max: hi);
+  })();
+
+  /// Smoothed, normalized continuous loudness at [posSec] (0..1) — "how loud is
+  /// the track right now." Drives the dance amplitude so movement swells into
+  /// the drops and eases through the breakdown, instead of stepping once per
+  /// section. Smoothed over ~0.3 s so per-hit spikes don't jitter the size.
+  /// Falls back to 0.5 when no waveform is embedded (synthetic performances).
+  double intensityAt(double posSec) {
+    final n = waveform.length;
+    if (n == 0 || trackDurationSec <= 0) return 0.5;
+    final binsPerSec = n / trackDurationSec;
+    final center = posSec / trackDurationSec * n;
+    final half = (0.15 * binsPerSec).clamp(1.0, n.toDouble());
+    var i0 = (center - half).floor();
+    var i1 = (center + half).ceil();
+    if (i0 < 0) i0 = 0;
+    if (i1 > n) i1 = n;
+    if (i1 <= i0) i1 = (i0 + 1).clamp(1, n);
+    var sum = 0.0;
+    for (var i = i0; i < i1; i++) {
+      sum += waveform[i];
+    }
+    final mean = sum / (i1 - i0);
+    final span = _waveformRange.max - _waveformRange.min;
+    return span > 0
+        ? ((mean - _waveformRange.min) / span).clamp(0.0, 1.0)
+        : 0.5;
+  }
+
+  /// Per-transient ACCENT onsets from the beat map's `onsets`
+  /// (`{time_sec, strength}`), so the body can HIT on the track's actual
+  /// transients. Empty for synthetic/test performances.
+  final List<({double time, double strength})> onsets;
+
+  // Accent selection is PEAK-PICKED, not flat-floored. The old 0.5 strength
+  // floor kept the chorus honest (~0.5 hits/s) but starved softer-mixed
+  // sections: the late chorus (98-118s) has only 4 onsets above 0.5 in 20
+  // seconds while 18 sit between 0.35 and 0.5 — the song's peak section
+  // danced with almost no hits. Candidates down to 0.35 are admitted, but
+  // greedily by strength with a minimum spacing, so the strongest transient
+  // in each neighbourhood wins and the accent rate stays at most roughly
+  // every other beat — never a bob on every 16th, which reads hectic.
+  static const double _kAccentCandidateFloor = 0.35;
+  static const double _kAccentMinSpacingSec = 1;
+  static const double _kAccentDecaySec = 0.3;
+
+  /// How far past neutral the accent's release BREATHES back up, as a
+  /// fraction of the drop (see [accentAt]'s breathe lobe). A plié that only
+  /// sinks and returns reads as a lean; real weight rebounds slightly above
+  /// neutral before settling (coach: "hit and breathe").
+  static const double _kAccentReboundDepth = 0.15;
+
+  /// Fraction of [_kAccentDecaySec] spent recovering from the drop; the rest
+  /// carries the breathe lobe past neutral and settles.
+  static const double _kAccentRecoverShare = 0.55;
+
+  /// Window (seconds) BEFORE a strong onset over which the body "coils" in
+  /// anticipation of the hit — a short gather that releases into [accentAt]'s
+  /// pop on the beat. ~0.1 s is a couple of frames of wind-up at any real fps:
+  /// visible as a load, still fast enough to read as one gesture with the hit.
+  static const double _kAnticipationWindowSec = 0.1;
+
+  /// Fixed candidate strength for the SECONDARY accent tier: the lead
+  /// vocal's word starts. Some stretches carry no strong instrumental
+  /// transient at all (the late chorus opens with a 2.2s hole in the onset
+  /// data) yet the vocal clearly phrases there — and hitting on the vocal
+  /// entry is exactly what a dancer does. Kept below the instrumental
+  /// candidates' typical strengths so a real transient always outranks a
+  /// word start in the peak picking.
+  static const double _kVocalAccentStrength = 0.42;
+
+  /// The onsets that fire a visible body accent: strength-greedy peak picking
+  /// with [_kAccentMinSpacingSec] between hits (see the constants above for
+  /// why this replaced a flat strength floor). Instrumental onsets are joined
+  /// by a secondary tier of lead-vocal word starts (see
+  /// [_kVocalAccentStrength]). Pre-computed once, sorted by time.
+  late final List<({double time, double strength})> _accentOnsets = () {
+    final candidates = [
+      for (final o in onsets)
+        if (o.strength >= _kAccentCandidateFloor) o,
+      for (final w in words)
+        if (w.voice == 'lead')
+          (time: w.start, strength: _kVocalAccentStrength),
+    ]..sort((a, b) => b.strength.compareTo(a.strength));
+    final picked = <({double time, double strength})>[];
+    for (final o in candidates) {
+      final tooClose = picked.any(
+        (p) => (p.time - o.time).abs() < _kAccentMinSpacingSec,
+      );
+      if (!tooClose) picked.add(o);
+    }
+    picked.sort((a, b) => a.time.compareTo(b.time));
+    return picked;
+  }();
+
+  /// Music-driven accent envelope at [posSec] (0..1): a quick decay pop on the
+  /// most recent STRONG onset, so the body lands WITH the track's hits. 0
+  /// between hits; 0 with no onsets (synthetic performances).
+  double accentAt(double posSec) {
+    final o = _accentOnsets;
+    if (o.isEmpty) return 0;
+    var lo = 0;
+    var hi = o.length - 1;
+    var idx = -1;
+    while (lo <= hi) {
+      final mid = (lo + hi) >> 1;
+      if (o[mid].time <= posSec) {
+        idx = mid;
+        lo = mid + 1;
+      } else {
+        hi = mid - 1;
+      }
+    }
+    if (idx < 0) return 0;
+    final dt = posSec - o[idx].time;
+    if (dt < 0 || dt > _kAccentDecaySec) return 0;
+    final u = (dt / _kAccentDecaySec).clamp(0.0, 1.0);
+    // Drop, then BREATHE. The drop eases out with zero velocity at the onset
+    // and reaches neutral at [_kAccentRecoverShare] of the window; the
+    // remainder is a C1 negative lobe (zero-derivative at both ends) dipping
+    // [_kAccentReboundDepth] past neutral — the body rebounds slightly above
+    // its groove line before settling, hit-and-breathe instead of
+    // sink-and-return. Consumers that must stay non-negative (lights,
+    // formation pop) clamp on their side; the body load deliberately
+    // receives the negative tail as a lift.
+    final double shape;
+    if (u < _kAccentRecoverShare) {
+      final r = u / _kAccentRecoverShare;
+      shape = 1 - r * r * (3 - 2 * r);
+    } else {
+      final v = (u - _kAccentRecoverShare) / (1 - _kAccentRecoverShare);
+      shape = -_kAccentReboundDepth * 16 * v * v * (1 - v) * (1 - v);
+    }
+    return (shape * o[idx].strength).clamp(-1.0, 1.0);
+  }
+
+  /// Look-ahead "coil" envelope at [posSec] (0..1): rises as the NEXT strong
+  /// onset approaches (within [_kAnticipationWindowSec]) and returns to 0 AT
+  /// the onset, where [accentAt]'s instant attack takes over — so the body
+  /// gathers into the hit, then releases on the beat. Scaled by the imminent
+  /// onset's strength (a bigger hit earns a bigger wind-up). 0 when no strong
+  /// onset is near, and 0 for synthetic performances with no onsets.
+  double anticipationAt(double posSec) {
+    final o = _accentOnsets;
+    if (o.isEmpty) return 0;
+    // First strong onset STRICTLY after posSec.
+    var lo = 0;
+    var hi = o.length;
+    while (lo < hi) {
+      final mid = (lo + hi) >> 1;
+      if (o[mid].time <= posSec) {
+        lo = mid + 1;
+      } else {
+        hi = mid;
+      }
+    }
+    if (lo >= o.length) return 0;
+    final dt = o[lo].time - posSec; // > 0
+    if (dt >= _kAnticipationWindowSec) return 0;
+    // Rise 0 -> 1 as the onset nears with zero endpoint velocity. The half-open
+    // window leaves the onset itself to [accentAt]; combining the two envelopes
+    // for the body load therefore produces a continuous planted compression,
+    // not a one-frame downward teleport on every detected hit.
+    final u = (1 - dt / _kAnticipationWindowSec).clamp(0.0, 1.0);
+    final ramp = u * u * (3 - 2 * u);
+    return (o[lo].strength * ramp).clamp(0.0, 1.0);
+  }
+
   static final Clip _shaku = CatClips.shaku;
   static final Clip _zanku = CatClips.zanku;
   static final Clip _azonto = CatClips.azonto;
   static final Clip _buga = CatClips.buga;
   static final Clip _sekem = CatClips.sekem;
+  static final Clip _moving = CatClips.movingGroove;
+  static final Clip _movingLowCounter = CatClips.movingGrooveLowCounter;
+  static final Clip _movingSideAnswer = CatClips.movingGrooveSideAnswer;
+  static final Clip _movingVerse = CatClips.movingVerseGroove;
+  static final Clip _movingVerseWindow = CatClips.movingVerseWindow;
+  static final Clip _movingBreakdown = CatClips.movingBreakdownGroove;
+  static final Clip _movingChorusTravel = CatClips.movingChorusTravel;
+  static final Clip _movingChorusOpen = CatClips.movingChorusOpen;
+  static final Clip _movingBridgeRock = CatClips.movingBridgeRock;
+  static final Clip _movingBodyRoll = CatClips.movingBodyRoll;
 
   /// How far open the lyric-synced mouth slack window is dilated so short gaps
   /// between a phrase's words don't make the mouth flicker shut.
@@ -410,6 +629,13 @@ class DancePerformance {
         sectionSeconds: lyric.seconds,
       );
       final sectionDynamics = sectionEnergyDynamics(level);
+      // Music-reactive amplitude: the dance size follows the CONTINUOUS track
+      // loudness (swells into drops, eases through the breakdown) instead of the
+      // coarse per-section step. Quantized to 0.05 to bound the effort-clip
+      // cache; falls back to the section level for synthetic (no-waveform) perfs.
+      final danceEnergy = waveform.isEmpty
+          ? level
+          : (intensityAt(pos) * 20).round() / 20;
       return (
         lead: trio.lead,
         ensemble: trio.ensemble,
@@ -430,7 +656,7 @@ class DancePerformance {
               sectionEnergy: sectionDynamics,
             ),
         ],
-        energyLevel: level,
+        energyLevel: danceEnergy,
       );
     }
     return danceIdleStage(pos, section: section);
@@ -475,9 +701,7 @@ class DancePerformance {
     switch (lyric.section) {
       case 'chorus':
       case 'post-chorus':
-        return lyric.phase >= 0.55
-            ? lyric.start + 0.55 * lyric.seconds
-            : lyric.start;
+      case 'pre-chorus':
       case 'verse':
       case 'bridge':
       case 'outro':
@@ -485,7 +709,7 @@ class DancePerformance {
         // [k/slots, (k+1)/slots).
         final slots = lyric.seconds <= 0
             ? 1
-            : (lyric.seconds / kChoreoSlotSeconds).floor().clamp(1, 64);
+            : (lyric.seconds / kChoreoSlotSeconds).round().clamp(1, 64);
         final slot = (lyric.phase * slots).floor().clamp(0, slots - 1);
         return lyric.start + slot * lyric.seconds / slots;
       default:
@@ -505,16 +729,21 @@ class DancePerformance {
     return occ;
   }
 
-  /// How long one choreography SLOT lasts inside a long section: after this
-  /// many seconds the trio rotates to the next entry of the section's
-  /// mini-setlist. Two loops of the 2-bar phrase at 120 BPM — long enough for
-  /// a move to read, short enough that a bridge never parks on one move.
-  static const double kChoreoSlotSeconds = 8;
+  /// How long one authored statement lasts inside the song score.
+  ///
+  /// Moving's 32-frame vocabulary is an eight-beat/two-bar phrase: four real
+  /// seconds at this track's 120 BPM. The old eight-second slot replayed every
+  /// selected phrase twice before advancing, so a nominally complete 144s
+  /// schedule still read as six loops on rotation. One slot now owns one full
+  /// phrase; recurring motifs must be selected deliberately in the section
+  /// score below rather than appearing through automatic repetition.
+  static const double kChoreoSlotSeconds = 4;
 
-  /// One entry of [setlist], time-sliced across a section of
-  /// [sectionSeconds] at [kChoreoSlotSeconds] per slot. Short sections stay
-  /// on their opening statement; long ones walk the list (wrapping), so no
-  /// stretch of the song holds one trio for more than ~two phrase loops.
+  /// One entry of [setlist], time-sliced across a semantic song section at one
+  /// complete two-bar phrase per slot. Section duration is rounded to the
+  /// nearest phrase count so pickups/tails do not manufacture a fifth tiny
+  /// statement. Production section scores provide an entry for every slot;
+  /// wrapping remains only as a defensive fallback for synthetic tests.
   DanceTrio _rotateSetlist(
     List<DanceTrio> setlist,
     double phase,
@@ -523,7 +752,7 @@ class DancePerformance {
   }) {
     final slots = sectionSeconds <= 0
         ? 1
-        : (sectionSeconds / kChoreoSlotSeconds).floor().clamp(1, 64);
+        : (sectionSeconds / kChoreoSlotSeconds).round().clamp(1, 64);
     final slot = (phase * slots).floor().clamp(0, slots - 1);
     return setlist[(slot + offset) % setlist.length];
   }
@@ -544,53 +773,128 @@ class DancePerformance {
     int variant, {
     double sectionSeconds = 0,
   }) {
+    final hookCall = (
+      lead: _moving,
+      ensemble: [_moving, _movingLowCounter, _movingSideAnswer],
+    );
+    final hookAnswer = (
+      lead: _movingSideAnswer,
+      ensemble: [_movingSideAnswer, _moving, _movingLowCounter],
+    );
+    final hookReturn = (
+      lead: _moving,
+      ensemble: [_moving, _movingSideAnswer, _movingVerse],
+    );
+    final hookUnison = (
+      lead: _moving,
+      ensemble: [_moving, _moving, _moving],
+    );
+    final hookTravel = (
+      lead: _movingChorusTravel,
+      ensemble: [_movingChorusTravel, _movingSideAnswer, _movingLowCounter],
+    );
+    final hookOpen = (
+      lead: _movingChorusOpen,
+      ensemble: [_movingChorusOpen, _movingChorusTravel, _movingSideAnswer],
+    );
+    final verseShuffle = (
+      lead: _movingVerse,
+      ensemble: [_movingVerse, _movingVerseWindow, _movingLowCounter],
+    );
+    final verseWindow = (
+      lead: _movingVerseWindow,
+      ensemble: [_movingVerseWindow, _movingVerse, _movingSideAnswer],
+    );
+    final breakdown = (
+      lead: _movingBreakdown,
+      ensemble: [_movingBreakdown, _movingVerse, _movingLowCounter],
+    );
+    final bridgeRock = (
+      lead: _movingBridgeRock,
+      ensemble: [_movingBridgeRock, _movingBreakdown, _movingVerseWindow],
+    );
+    final bodyRoll = (
+      lead: _movingBodyRoll,
+      ensemble: [_movingBodyRoll, _movingVerse, _movingBridgeRock],
+    );
+    final lowCounter = (
+      lead: _movingLowCounter,
+      ensemble: [_movingLowCounter, _movingBreakdown, _movingSideAnswer],
+    );
+    final sideVerse = (
+      lead: _movingSideAnswer,
+      ensemble: [_movingSideAnswer, _movingVerse, _movingBreakdown],
+    );
+    final windowBridge = (
+      lead: _movingVerseWindow,
+      ensemble: [_movingVerseWindow, _movingBreakdown, _movingLowCounter],
+    );
+
     switch (section) {
       case 'chorus':
+        // Four explicitly scored statements per chorus occurrence. The hook
+        // returns, but its answer/travel/ensemble ownership develops instead
+        // of one selected loop replaying automatically for eight seconds.
+        final score = switch (variant) {
+          0 => [hookCall, hookAnswer, hookTravel, hookReturn],
+          1 => [hookCall, hookOpen, hookAnswer, hookReturn],
+          // The last refrain develops through travel before landing the hook.
+          // `hookReturn` and `hookCall` share the same lead clip; putting them
+          // back-to-back here made the centre cat repeat one raised-fist
+          // sentence for roughly eight seconds, then post-chorus repeated it
+          // again. Keep the recognisable hook as the final statement, but earn
+          // it through a genuinely different whole-body phrase.
+          // After three complementary crew statements, let the recognisable
+          // hook land once in real unison. Constantly assigning three distinct
+          // clips made the cast look like independent loop players and denied
+          // the final chorus a collective payoff.
+          _ => [hookAnswer, hookOpen, hookTravel, hookUnison],
+        };
+        return _rotateSetlist(score, phase, sectionSeconds);
       case 'post-chorus':
-        if (phase >= 0.55) {
-          return (lead: _buga, ensemble: [_buga, _buga, _buga]);
-        }
-        // The first half of the hook needs one unmistakable legwork statement.
-        // Mixing Zanku/Sekem/Buga here made each dancer tell a different arm
-        // story on the same beat, which read as generic stage posing. Variation
-        // happens across repeated hook occurrences, not inside the same beat.
-        final front = variant.isEven ? _zanku : _shaku;
-        return (lead: front, ensemble: [front, front, front]);
-      case 'pre-chorus':
-        return (lead: _shaku, ensemble: [_shaku, _zanku, _sekem]);
-      case 'verse':
         return _rotateSetlist(
-          [
-            (lead: _azonto, ensemble: [_azonto, _shaku, _zanku]),
-            (lead: _shaku, ensemble: [_shaku, _azonto, _zanku]),
-            (lead: _zanku, ensemble: [_zanku, _sekem, _shaku]),
-          ],
+          // Release the late hook downward before travelling again. Starting
+          // with hookReturn reused movingHookLead across the section boundary,
+          // producing a 12-second block of near-identical lead silhouettes.
+          [lowCounter, hookTravel, bodyRoll, windowBridge],
           phase,
           sectionSeconds,
-          offset: variant,
+        );
+      case 'pre-chorus':
+        return _rotateSetlist(
+          [verseShuffle, bridgeRock, bodyRoll, hookTravel],
+          phase,
+          sectionSeconds,
+        );
+      case 'verse':
+        // All four verse statements stay in grounded verse vocabulary. The
+        // fourth slot used to be sideVerse (a hook-family lead), which put
+        // chorus-amplitude fist work into the song's breakdown stretch — the
+        // panel read the middle of the song as "a third chorus" with no
+        // dynamic valley left to make the real chorus land.
+        return _rotateSetlist(
+          [verseShuffle, verseWindow, bodyRoll, lowCounter],
+          phase,
+          sectionSeconds,
         );
       case 'bridge':
-        // Grounded pocket, but a WALKED one: unison sekem states the drop,
-        // then the flanks split, then a shaku X-hold before the section turns.
         return _rotateSetlist(
-          [
-            (lead: _sekem, ensemble: [_sekem, _sekem, _sekem]),
-            (lead: _sekem, ensemble: [_sekem, _azonto, _shaku]),
-            (lead: _shaku, ensemble: [_shaku, _sekem, _sekem]),
-          ],
+          // Keep the first three statements grounded, then travel into the
+          // late chorus. The former low-counter ending extended the bridge's
+          // low fist vocabulary for eight seconds; sideVerse was rejected too
+          // because it repeated the incoming chorus lead across the boundary.
+          [breakdown, bridgeRock, bodyRoll, hookTravel],
           phase,
           sectionSeconds,
-          offset: variant,
         );
       case 'outro':
         return _rotateSetlist(
-          [
-            (lead: _sekem, ensemble: [_sekem, _sekem, _shaku]),
-            (lead: _azonto, ensemble: [_azonto, _sekem, _sekem]),
-          ],
+          // Resolve the last sung "moving" with the song's signature rather
+          // than repeating bodyRoll and quietly running out of choreography.
+          // The following resting gate owns the instrumental release.
+          [sideVerse, bodyRoll, bridgeRock, hookCall],
           phase,
           sectionSeconds,
-          offset: variant,
         );
       default:
         return choreoTrioByLevel(level);
@@ -600,7 +904,9 @@ class DancePerformance {
   /// Energy-only fallback (no lyrics): map the section's normalized [level] to a
   /// trio, building from the grounded Sekem pocket up to the unison Buga hit.
   DanceTrio choreoTrioByLevel(double level) {
-    if (level >= 0.90) return (lead: _buga, ensemble: [_buga, _buga, _buga]);
+    if (level >= 0.90) {
+      return (lead: _moving, ensemble: [_moving, _moving, _moving]);
+    }
     if (level >= 0.78) {
       return (lead: _zanku, ensemble: [_zanku, _sekem, _buga]);
     }

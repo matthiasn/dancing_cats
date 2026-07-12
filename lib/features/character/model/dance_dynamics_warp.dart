@@ -9,6 +9,32 @@ import 'package:dancing_cats/features/character/model/dance_dynamics.dart';
 /// boundaries regardless of dynamics.
 const int kDanceBeatsPerPhraseLoop = 8;
 
+/// Per-lane upper-body microtiming in normalized clip phase. The lead owns the
+/// beat; backup-left anticipates by roughly 24ms and backup-right drags by
+/// roughly 32ms at Moving's production clock (one 6s authored loop played over
+/// four real seconds). Only upper-body channels and hand IK receive this shift;
+/// the support chain stays on the shared beat clock.
+const List<double> kDanceLaneUpperBodyPhaseOffsets = [0, 0.006, -0.008];
+
+/// Per-lane hand-path amplitude for the Moving family (lead, backup-left,
+/// backup-right): a STATIC spread applied through `effortModulatedClip`'s
+/// mean-preserving amplitude dial. Moving opts out of the beat-breathing
+/// effort modulation, which left unison statements running pixel-identical
+/// arm paths (the ±24-32ms lane offsets are sub-frame — invisible); a
+/// 5-12% inter-cat spread is enough that no two cats hit the same reach
+/// while the authored path shape survives on every lane. The spread is
+/// deliberately ONE-SIDED (nobody exceeds the authored 1.0): the lead owns
+/// the fullest reach — backups layering beneath the hero is the natural
+/// staging — and scaling any lane above 1.0 pushed the hottest phrases'
+/// arm velocities past the full-song continuity bands.
+const List<double> kMovingLaneAmplitudeScale = [1.0, 0.88, 0.95];
+
+/// Width of the Moving upper-body loop recovery at either side of the phrase
+/// seam, in normalized six-second clip phase. At production's 1.5x clock this
+/// is about 180ms: enough to carry arm momentum through the wrap without
+/// softening the phrase's interior accents or changing any support timing.
+const double kMovingUpperBodySeamEaseWidth = 0.045;
+
 /// Global strength of the upper-body Effort time warp. A perceptual dial
 /// (ADR CHAR-0001 D6) tuned by eye on rendered 60fps motion per ADR
 /// CHAR-0003's rollout: `0` was the plumbing PR's provable-no-op value.
@@ -79,6 +105,7 @@ Clip upperBodyDynamicsWarpedClip(
 
   return Clip(
     name: clip.name,
+    family: clip.family,
     duration: clip.duration,
     channels: channels,
     loop: clip.loop,
@@ -94,6 +121,139 @@ Clip upperBodyDynamicsWarpedClip(
         clip.supportFootWorldAnchorVerticalBoost,
     danceHeadBobScale: clip.danceHeadBobScale,
     danceHeadLevelClampMin: clip.danceHeadLevelClampMin,
+    armReachScale: clip.armReachScale,
+    headLateralStabilize: clip.headLateralStabilize,
+    enforceSoleFloor: clip.enforceSoleFloor,
+    transitionPlan: clip.transitionPlan,
+    zOrderSwaps: clip.zOrderSwaps,
+    dynamics: clip.dynamics,
+  );
+}
+
+/// Returns [clip] with a constant cyclic phase offset applied only to
+/// [upperBodyBoneIds] and matching hand IK targets.
+///
+/// This creates crew microtiming without the foot pops caused by shifting a
+/// whole dancer's sampled time. Every support/contact-critical channel remains
+/// the original object and therefore samples bit-identically.
+///
+/// The offset is deliberately CONSTANT in clip phase. A phase-varying offset
+/// ("breathing" microtiming) was tried and reverted: any offset that is a
+/// function of the sampled phase changes value discontinuously at a blend
+/// boundary, where the wrapper's clock switches from the outgoing to the
+/// incoming clip — the full-song production probe measured the resulting
+/// upper-body jump at 5.1 units/frame² against the 3.1 transition band. If
+/// per-event microtiming returns, it must blend across both transition clocks
+/// the way `shoulderWoundClip` blends its additive wind.
+Clip upperBodyPhaseOffsetClip(
+  Clip clip,
+  double phaseOffset, {
+  required Set<String> upperBodyBoneIds,
+}) {
+  if (phaseOffset == 0 || !clip.loop || clip.duration <= 0) return clip;
+
+  double shiftedPhase(double p) {
+    var shifted = p + phaseOffset;
+    shifted -= shifted.floorToDouble();
+    return shifted < 0 ? shifted + 1 : shifted;
+  }
+
+  final channels = {
+    for (final entry in clip.channels.entries)
+      entry.key: upperBodyBoneIds.contains(entry.key)
+          ? PhaseWarpedJointChannel(entry.value, shiftedPhase)
+          : entry.value,
+  };
+  final limbTargets = [
+    for (final target in clip.limbTargets)
+      upperBodyBoneIds.contains(target.endBoneId)
+          ? target.withChannel(
+              PhaseWarpedIkTargetChannel(target.channel, shiftedPhase),
+            )
+          : target,
+  ];
+
+  return Clip(
+    name: clip.name,
+    family: clip.family,
+    duration: clip.duration,
+    channels: channels,
+    loop: clip.loop,
+    root: clip.root,
+    locomotionSpeed: clip.locomotionSpeed,
+    groundSpans: clip.groundSpans,
+    contactSpans: clip.contactSpans,
+    contactPinning: clip.contactPinning,
+    limbTargets: limbTargets,
+    supportFootWorldAnchor: clip.supportFootWorldAnchor,
+    supportFootWorldAnchorStrength: clip.supportFootWorldAnchorStrength,
+    supportFootWorldAnchorVerticalBoost:
+        clip.supportFootWorldAnchorVerticalBoost,
+    danceHeadBobScale: clip.danceHeadBobScale,
+    danceHeadLevelClampMin: clip.danceHeadLevelClampMin,
+    armReachScale: clip.armReachScale,
+    headLateralStabilize: clip.headLateralStabilize,
+    enforceSoleFloor: clip.enforceSoleFloor,
+    transitionPlan: clip.transitionPlan,
+    zOrderSwaps: clip.zOrderSwaps,
+    dynamics: clip.dynamics,
+  );
+}
+
+/// Settles a cyclic upper body into its shared phase-0/1 pose near the seam.
+///
+/// Authored Moving clips already return to the same pose at phase 0/1, but
+/// several arrive with an outgoing tangent opposite their opening tangent.
+/// Played at 1.5x, that position-continuous reversal can still read as a
+/// one-frame arm teleport. Pose-space settling reaches zero velocity at the
+/// seam and rejoins the original pose with zero velocity/acceleration error at
+/// [width], without ever speeding the sampling clock to catch up. Root, legs,
+/// feet, contacts, and support anchors are deliberately untouched.
+Clip upperBodyLoopSeamEasedClip(
+  Clip clip, {
+  required Set<String> upperBodyBoneIds,
+  double width = kMovingUpperBodySeamEaseWidth,
+}) {
+  if (!clip.loop || clip.duration <= 0 || width <= 0) {
+    return clip;
+  }
+  assert(width < 0.5, 'loop-seam settle width must be below half a loop');
+
+  final channels = {
+    for (final entry in clip.channels.entries)
+      entry.key: upperBodyBoneIds.contains(entry.key)
+          ? LoopSeamSettledJointChannel(entry.value, width: width)
+          : entry.value,
+  };
+  final limbTargets = [
+    for (final target in clip.limbTargets)
+      upperBodyBoneIds.contains(target.endBoneId)
+          ? target.withChannel(
+              LoopSeamSettledIkTargetChannel(target.channel, width: width),
+            )
+          : target,
+  ];
+
+  return Clip(
+    name: clip.name,
+    family: clip.family,
+    duration: clip.duration,
+    channels: channels,
+    loop: clip.loop,
+    root: clip.root,
+    locomotionSpeed: clip.locomotionSpeed,
+    groundSpans: clip.groundSpans,
+    contactSpans: clip.contactSpans,
+    contactPinning: clip.contactPinning,
+    limbTargets: limbTargets,
+    supportFootWorldAnchor: clip.supportFootWorldAnchor,
+    supportFootWorldAnchorStrength: clip.supportFootWorldAnchorStrength,
+    supportFootWorldAnchorVerticalBoost:
+        clip.supportFootWorldAnchorVerticalBoost,
+    danceHeadBobScale: clip.danceHeadBobScale,
+    danceHeadLevelClampMin: clip.danceHeadLevelClampMin,
+    armReachScale: clip.armReachScale,
+    headLateralStabilize: clip.headLateralStabilize,
     enforceSoleFloor: clip.enforceSoleFloor,
     transitionPlan: clip.transitionPlan,
     zOrderSwaps: clip.zOrderSwaps,
@@ -128,7 +288,7 @@ double danceEffortVariance(double p, double lanePhase) {
 /// move's Effort weight — the moves' own base weights (zanku 0.7, buga 0.5…)
 /// dominate that, and the ±0.35 modulation budget clamps the energy out, so the
 /// weight path only gave ~±13%. This is the isolated, amplifiable arc.
-const double kDanceEffortEnergyArc = 0.42;
+const double kDanceEffortEnergyArc = 0.48;
 
 /// Effort amplitude scale as a function of loop phase for one dancer: a
 /// song-energy base times the deterministic beat-to-beat [danceEffortVariance]
@@ -146,7 +306,7 @@ double Function(double) danceEffortScaleOf(double energyLevel, int lane) {
   final lanePhase = lane * 2.1; // distinct, deterministic per dancer
   const varGain = 0.22;
   return (p) => (base * (1 + varGain * danceEffortVariance(p, lanePhase)))
-      .clamp(0.4, 1.02);
+      .clamp(0.3, 1.02);
 }
 
 /// Returns [clip] with its [boneIds] hand IK targets amplitude-modulated by the
@@ -176,6 +336,7 @@ Clip effortModulatedClip(
   if (!changed) return clip;
   return Clip(
     name: clip.name,
+    family: clip.family,
     duration: clip.duration,
     channels: clip.channels,
     loop: clip.loop,
@@ -187,9 +348,213 @@ Clip effortModulatedClip(
     limbTargets: limbTargets,
     supportFootWorldAnchor: clip.supportFootWorldAnchor,
     supportFootWorldAnchorStrength: clip.supportFootWorldAnchorStrength,
-    supportFootWorldAnchorVerticalBoost: clip.supportFootWorldAnchorVerticalBoost,
+    supportFootWorldAnchorVerticalBoost:
+        clip.supportFootWorldAnchorVerticalBoost,
     danceHeadBobScale: clip.danceHeadBobScale,
     danceHeadLevelClampMin: clip.danceHeadLevelClampMin,
+    armReachScale: clip.armReachScale,
+    headLateralStabilize: clip.headLateralStabilize,
+    enforceSoleFloor: clip.enforceSoleFloor,
+    transitionPlan: clip.transitionPlan,
+    zOrderSwaps: clip.zOrderSwaps,
+    dynamics: clip.dynamics,
+  );
+}
+
+/// How the song energy scales the WHOLE-BODY groove (sway, bob, dips) — the
+/// owner's "whole-body amplitude". Low energy shrinks the groove (eased through
+/// the breakdown), high energy fills it out. Clamped so a hot section can't
+/// throw the dips past a plausible depth. Neutral-ish (~1) at chorus energy.
+double danceBodyGrooveScaleOf(double energyLevel) =>
+    (0.6 + 0.4 * energyLevel.clamp(0, 1)).clamp(0.6, 1.05);
+
+/// Returns [clip] with its root MOTION (sway/bob/dips) scaled by [scale],
+/// mean-preserving (see [ScaledRootChannel]) — whole-body amplitude reacting to
+/// the song energy. Same clip back at scale 1 or for a one-shot/empty clip.
+Clip bodyGrooveScaledClip(Clip clip, double scale) {
+  if (scale == 1.0 || !clip.loop || clip.duration <= 0) return clip;
+  return Clip(
+    name: clip.name,
+    family: clip.family,
+    duration: clip.duration,
+    channels: clip.channels,
+    loop: clip.loop,
+    root: ScaledRootChannel(clip.root, scale),
+    locomotionSpeed: clip.locomotionSpeed,
+    groundSpans: clip.groundSpans,
+    contactSpans: clip.contactSpans,
+    contactPinning: clip.contactPinning,
+    limbTargets: clip.limbTargets,
+    supportFootWorldAnchor: clip.supportFootWorldAnchor,
+    supportFootWorldAnchorStrength: clip.supportFootWorldAnchorStrength,
+    supportFootWorldAnchorVerticalBoost:
+        clip.supportFootWorldAnchorVerticalBoost,
+    danceHeadBobScale: clip.danceHeadBobScale,
+    danceHeadLevelClampMin: clip.danceHeadLevelClampMin,
+    armReachScale: clip.armReachScale,
+    headLateralStabilize: clip.headLateralStabilize,
+    enforceSoleFloor: clip.enforceSoleFloor,
+    transitionPlan: clip.transitionPlan,
+    zOrderSwaps: clip.zOrderSwaps,
+    dynamics: clip.dynamics,
+  );
+}
+
+/// How many root-units the strongest accent drops the body — turned into a
+/// knee-bending plié by the support-foot anchor (see [RootDyOffsetChannel]).
+const double kDanceAccentDropUnits = 16;
+
+/// Returns [clip] with a constant [dropDy] added to its root — the music accent
+/// as a grounded body dip (the support-foot anchor bends the knee into a plié,
+/// feet stay planted). Same clip back at 0.
+///
+/// [bobDuck] > 0 additionally scales the authored root MOTION (its deviation
+/// from the loop mean, see [ScaledRootChannel]) down by that fraction for the
+/// frame — the authored groove momentarily YIELDS to the hit. Without it, a
+/// strong onset landing where the authored bob is rising reads counter-phase:
+/// the lights flare while the body travels up through them (the full-song
+/// audit measured the export's biggest bloom riding a rising lead in the
+/// finale). Ducking the bob hands the vertical to the accent envelope exactly
+/// while the hit owns the moment, then returns it as the envelope decays.
+Clip accentDroppedClip(Clip clip, double dropDy, {double bobDuck = 0}) {
+  if ((dropDy == 0 && bobDuck == 0) || clip.duration <= 0) return clip;
+  final ducked = bobDuck > 0
+      ? ScaledRootChannel(clip.root, (1 - bobDuck).clamp(0.0, 1.0))
+      : clip.root;
+  return Clip(
+    name: clip.name,
+    family: clip.family,
+    duration: clip.duration,
+    channels: clip.channels,
+    loop: clip.loop,
+    root: RootDyOffsetChannel(ducked, dropDy),
+    locomotionSpeed: clip.locomotionSpeed,
+    groundSpans: clip.groundSpans,
+    contactSpans: clip.contactSpans,
+    contactPinning: clip.contactPinning,
+    limbTargets: clip.limbTargets,
+    supportFootWorldAnchor: clip.supportFootWorldAnchor,
+    supportFootWorldAnchorStrength: clip.supportFootWorldAnchorStrength,
+    supportFootWorldAnchorVerticalBoost:
+        clip.supportFootWorldAnchorVerticalBoost,
+    danceHeadBobScale: clip.danceHeadBobScale,
+    danceHeadLevelClampMin: clip.danceHeadLevelClampMin,
+    armReachScale: clip.armReachScale,
+    headLateralStabilize: clip.headLateralStabilize,
+    enforceSoleFloor: clip.enforceSoleFloor,
+    transitionPlan: clip.transitionPlan,
+    zOrderSwaps: clip.zOrderSwaps,
+    dynamics: clip.dynamics,
+  );
+}
+
+/// Always-on shoulder + chest WIND (coach: the Afrobeats pocket is upper-body-
+/// led — the shoulders/chest roll continuously so the torso is never a static
+/// posed post while the hips bounce underneath). Small, loop-seamless (integer
+/// harmonics), per-lane phase so the trio isn't in lockstep.
+const double kDanceShoulderWindAmplitude = 0.026;
+const double kDanceChestWindAmplitude = 0.03;
+const int kDanceShoulderWindHarmonic = 2;
+
+/// Returns [clip] with a small continuous sine roll added to the clavicles
+/// (opposite phase L/R = a shoulder roll) and the chest, so the upper body keeps
+/// winding even between authored poses. Live-path; same clip back if disabled or
+/// no shoulder/chest channel is present.
+Clip shoulderWoundClip(Clip clip, int lane) {
+  if (!clip.loop || clip.duration <= 0 || kDanceShoulderWindAmplitude == 0) {
+    return clip;
+  }
+  final lanePhase = lane * 0.17;
+  JointChannel wound(
+    JointChannel base, {
+    required double amplitude,
+    required int harmonic,
+    required double phase,
+  }) {
+    final plan = clip.transitionPlan;
+    if (plan == null) {
+      return WoundJointChannel(
+        base,
+        amplitude: amplitude,
+        harmonic: harmonic,
+        phase: phase,
+      );
+    }
+    // The choreography channels inside a blended clip sample the outgoing
+    // phrase on its shifted clock. Layering a fresh sine around that blend used
+    // the incoming clock for the wind even at weight zero, phase-jumping the
+    // clavicles and therefore both hands at every score cut. Blend the additive
+    // wind itself across the same two clocks, then layer it onto the pose.
+    JointChannel windChannel() => SineChannel(
+      harmonicAmplitude: amplitude,
+      harmonicMultiplier: harmonic.toDouble(),
+      harmonicPhase: phase,
+    );
+    return LayeredJointChannel([
+      base,
+      BlendedJointChannel(
+        from: windChannel(),
+        to: windChannel(),
+        weight: plan.weight,
+        fromTimeShift: plan.fromTimeShiftSeconds,
+        fromDuration: plan.from.duration,
+        toDuration: plan.to.duration,
+      ),
+    ]);
+  }
+
+  var changed = false;
+  final channels = <String, JointChannel>{};
+  clip.channels.forEach((id, ch) {
+    if (id == 'clavicle.L') {
+      channels[id] = wound(
+        ch,
+        amplitude: kDanceShoulderWindAmplitude,
+        harmonic: kDanceShoulderWindHarmonic,
+        phase: lanePhase,
+      );
+      changed = true;
+    } else if (id == 'clavicle.R') {
+      channels[id] = wound(
+        ch,
+        amplitude: -kDanceShoulderWindAmplitude,
+        harmonic: kDanceShoulderWindHarmonic,
+        phase: lanePhase,
+      );
+      changed = true;
+    } else if (id == 'torso' || id == 'chest') {
+      channels[id] = wound(
+        ch,
+        amplitude: kDanceChestWindAmplitude,
+        harmonic: 3,
+        phase: lanePhase + 0.12,
+      );
+      changed = true;
+    } else {
+      channels[id] = ch;
+    }
+  });
+  if (!changed) return clip;
+  return Clip(
+    name: clip.name,
+    family: clip.family,
+    duration: clip.duration,
+    channels: channels,
+    loop: clip.loop,
+    root: clip.root,
+    locomotionSpeed: clip.locomotionSpeed,
+    groundSpans: clip.groundSpans,
+    contactSpans: clip.contactSpans,
+    contactPinning: clip.contactPinning,
+    limbTargets: clip.limbTargets,
+    supportFootWorldAnchor: clip.supportFootWorldAnchor,
+    supportFootWorldAnchorStrength: clip.supportFootWorldAnchorStrength,
+    supportFootWorldAnchorVerticalBoost:
+        clip.supportFootWorldAnchorVerticalBoost,
+    danceHeadBobScale: clip.danceHeadBobScale,
+    danceHeadLevelClampMin: clip.danceHeadLevelClampMin,
+    armReachScale: clip.armReachScale,
+    headLateralStabilize: clip.headLateralStabilize,
     enforceSoleFloor: clip.enforceSoleFloor,
     transitionPlan: clip.transitionPlan,
     zOrderSwaps: clip.zOrderSwaps,
@@ -214,10 +579,12 @@ Clip fastBaseOrbitedClip(
   Clip clip,
   int lane, {
   Set<String> boneIds = kDanceEffortHandBoneIds,
+  double radius = kDanceFastBaseOrbitRadius,
+  int revs = kDanceFastBaseOrbitRevs,
 }) {
   if (!clip.loop ||
       clip.duration <= 0 ||
-      kDanceFastBaseOrbitRadius == 0 ||
+      radius == 0 ||
       clip.limbTargets.isEmpty) {
     return clip;
   }
@@ -233,8 +600,8 @@ Clip fastBaseOrbitedClip(
         target.withChannel(
           OrbitedIkTargetChannel(
             target.channel,
-            radius: kDanceFastBaseOrbitRadius,
-            revs: kDanceFastBaseOrbitRevs,
+            radius: radius,
+            revs: revs,
             phase: lanePhase,
           ),
         ),
@@ -247,6 +614,7 @@ Clip fastBaseOrbitedClip(
   if (!changed) return clip;
   return Clip(
     name: clip.name,
+    family: clip.family,
     duration: clip.duration,
     channels: clip.channels,
     loop: clip.loop,
@@ -258,9 +626,12 @@ Clip fastBaseOrbitedClip(
     limbTargets: limbTargets,
     supportFootWorldAnchor: clip.supportFootWorldAnchor,
     supportFootWorldAnchorStrength: clip.supportFootWorldAnchorStrength,
-    supportFootWorldAnchorVerticalBoost: clip.supportFootWorldAnchorVerticalBoost,
+    supportFootWorldAnchorVerticalBoost:
+        clip.supportFootWorldAnchorVerticalBoost,
     danceHeadBobScale: clip.danceHeadBobScale,
     danceHeadLevelClampMin: clip.danceHeadLevelClampMin,
+    armReachScale: clip.armReachScale,
+    headLateralStabilize: clip.headLateralStabilize,
     enforceSoleFloor: clip.enforceSoleFloor,
     transitionPlan: clip.transitionPlan,
     zOrderSwaps: clip.zOrderSwaps,

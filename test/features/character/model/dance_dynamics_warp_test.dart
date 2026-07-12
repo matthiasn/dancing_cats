@@ -1,6 +1,7 @@
 import 'package:dancing_cats/features/character/model/clip.dart';
 import 'package:dancing_cats/features/character/model/dance_dynamics.dart';
 import 'package:dancing_cats/features/character/model/dance_dynamics_warp.dart';
+import 'package:dancing_cats/features/character/model/easing.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 const _strong = DanceDynamics(weight: 0.7, time: 0.6, flow: -0.4);
@@ -16,6 +17,99 @@ Clip _loopingClip({
 );
 
 void main() {
+  group('upperBodyLoopSeamEasedClip', () {
+    test('retains position while reducing velocity at the cyclic seam', () {
+      const hand = SineChannel(
+        harmonicAmplitude: 1,
+        harmonicMultiplier: 1,
+      );
+      const foot = KeyframeChannel([
+        Keyframe(p: 0),
+        Keyframe(p: 1, rotation: 1),
+      ]);
+      final clip = _loopingClip(channels: {'hand.R': hand, 'foot.R': foot});
+      final eased = upperBodyLoopSeamEasedClip(
+        clip,
+        upperBodyBoneIds: {'hand.R'},
+      );
+
+      expect(eased.channels['hand.R'], isA<LoopSeamSettledJointChannel>());
+      expect(identical(eased.channels['foot.R'], foot), isTrue);
+      expect(eased.channels['hand.R']!.sample(0).rotation, closeTo(0, 1e-12));
+      expect(
+        eased.channels['hand.R']!
+            .sample(kMovingUpperBodySeamEaseWidth)
+            .rotation,
+        closeTo(hand.sample(kMovingUpperBodySeamEaseWidth).rotation, 1e-12),
+      );
+
+      const epsilon = 1e-5;
+      final baseDelta = hand.sample(epsilon).rotation - hand.sample(0).rotation;
+      final easedDelta =
+          eased.channels['hand.R']!.sample(epsilon).rotation -
+          eased.channels['hand.R']!.sample(0).rotation;
+      expect(easedDelta.abs(), lessThan(baseDelta.abs() * 0.001));
+    });
+
+    test('wraps hand targets but never support-foot targets', () {
+      const handTarget = LimbIkTarget(
+        upperBoneId: 'arm_upper.R',
+        lowerBoneId: 'arm_lower.R',
+        endBoneId: 'hand.R',
+        anchorBoneId: 'chest',
+        channel: FixedIkTargetChannel(x: 5, y: 0),
+      );
+      const footTarget = LimbIkTarget(
+        upperBoneId: 'leg_upper.R',
+        lowerBoneId: 'leg_lower.R',
+        endBoneId: 'foot.R',
+        anchorBoneId: 'hips',
+        channel: FixedIkTargetChannel(x: 0, y: 10),
+      );
+      final clip = _loopingClip(limbTargets: [handTarget, footTarget]);
+      final eased = upperBodyLoopSeamEasedClip(
+        clip,
+        upperBodyBoneIds: {'hand.R'},
+      );
+      final byId = {for (final t in eased.limbTargets) t.endBoneId: t};
+
+      expect(byId['hand.R']!.channel, isA<LoopSeamSettledIkTargetChannel>());
+      expect(identical(byId['foot.R']!.channel, footTarget.channel), isTrue);
+    });
+  });
+
+  group('upperBodyPhaseOffsetClip', () {
+    // A linear ramp makes the sampled phase directly readable as rotation.
+    const ramp = KeyframeChannel([
+      Keyframe(p: 0, ease: Ease.linear),
+      Keyframe(p: 1, rotation: 1, ease: Ease.linear),
+    ]);
+
+    test('shifts only upper-body channels by the constant offset', () {
+      final clip = _loopingClip(channels: {'hand.R': ramp, 'foot.R': ramp});
+      final shifted = upperBodyPhaseOffsetClip(
+        clip,
+        0.01,
+        upperBodyBoneIds: {'hand.R'},
+      );
+      expect(
+        shifted.channels['hand.R']!.sample(0.5).rotation,
+        closeTo(0.51, 1e-9),
+      );
+      expect(identical(shifted.channels['foot.R'], ramp), isTrue);
+    });
+
+    test('a zero-offset lane (the lead) passes through untouched', () {
+      final clip = _loopingClip(channels: {'hand.R': ramp});
+      final same = upperBodyPhaseOffsetClip(
+        clip,
+        0,
+        upperBodyBoneIds: {'hand.R'},
+      );
+      expect(identical(same, clip), isTrue);
+    });
+  });
+
   group('upperBodyDynamicsWarpedClip — identity no-op cases', () {
     test('neutral dynamics returns the SAME clip instance', () {
       final clip = _loopingClip();
@@ -154,6 +248,8 @@ void main() {
         supportFootWorldAnchorStrength: 0.8,
         danceHeadBobScale: 0.3,
         danceHeadLevelClampMin: -1,
+        armReachScale: 0.55,
+        headLateralStabilize: 0.2,
         enforceSoleFloor: true,
         zOrderSwaps: [
           ZOrderSwapWindow(
@@ -185,6 +281,10 @@ void main() {
         clip.supportFootWorldAnchorStrength,
       );
       expect(warped.danceHeadBobScale, clip.danceHeadBobScale);
+      // buga (0.55) and azonto (0.2) set these; the wrappers silently dropped
+      // them until the field-copy fix.
+      expect(warped.armReachScale, clip.armReachScale);
+      expect(warped.headLateralStabilize, clip.headLateralStabilize);
       expect(warped.danceHeadLevelClampMin, clip.danceHeadLevelClampMin);
       expect(warped.enforceSoleFloor, clip.enforceSoleFloor);
       expect(warped.zOrderSwaps, clip.zOrderSwaps);

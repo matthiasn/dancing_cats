@@ -288,7 +288,11 @@ const _pounceFootRTargetKeys = [
 const _pounceHandLTargetKeys = [
   DanceIkTargetKey(0, x: -42, y: -8),
   DanceIkTargetKey(4, x: -52, y: -24),
-  DanceIkTargetKey(6, x: -50, y: -60, tension: 1),
+  // Meet the shoulder-led rise before the cross-body guide. With the socket
+  // now structurally beneath the clavicle, stopping at -60 made the elbow and
+  // translating shoulder reverse together at this key; carrying the paw a
+  // little higher lets the girdle finish its rise continuously.
+  DanceIkTargetKey(6, x: -50, y: -70, tension: 1),
   // Mirrored cross-body guide — see the right hand's frame-23 key.
   DanceIkTargetKey(7, x: -12, y: -86),
   DanceIkTargetKey(

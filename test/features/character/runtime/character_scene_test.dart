@@ -88,6 +88,7 @@ void main() {
           'limb-ik',
           'shoulder-line',
           'overshoot-settle',
+          'wrist-follow',
           'joint-limits',
           'contact-lock',
           'sole-flex',

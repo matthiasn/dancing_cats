@@ -149,111 +149,41 @@ const _bugaBodyKeys = [
   // hit's own rootDy briefly went negative (above the planted feet),
   // failing the "second hit stays similarly planted" test. This is the
   // practical ceiling for this specific escalation lever.
+  // bar 2 = CHILL groove (strip): after the single bar-1 present, buga just
+  // VIBES — a spacious, held, gently-swaying settle with NO second deep squat
+  // and NO second present/hit. Fewer keys = more stillness. This is the space
+  // that lets the one highlight land and keeps the loop from reading hectic.
   DanceBodyKey(
     16,
     rootDx: 5,
-    rootDy: 33,
-    pelvisRotation: 0.06,
-    chestRotation: 0.12,
-    chestScaleY: 0.96,
-  ), // bar 2 lo1 — arrives noticeably deeper than bar 1
-  DanceBodyKey(
-    18,
-    rootDx: 6,
-    rootDy: 33,
-    chestRotation: 0.12,
-    chestScaleY: 0.96,
-  ), // lo1 HOLDS
-  DanceBodyKey(
-    19,
-    rootDx: 5,
-    rootDy: 25,
-    chestRotation: 0.1,
+    rootDy: 40,
+    pelvisRotation: 0.05,
+    chestRotation: 0.09,
     chestScaleY: 0.98,
-  ), // rebound
+  ), // settle out of the bar-1 present
   DanceBodyKey(
     20,
-    rootDx: -5,
-    rootDy: 64,
-    pelvisRotation: -0.07,
-    chestRotation: 0.18,
-    chestScaleY: 0.9,
-  ), // lo2
-  DanceBodyKey(
-    22,
-    rootDx: -6,
-    rootDy: 64,
-    chestRotation: 0.18,
-    chestScaleY: 0.9,
-  ), // lo2 HOLDS
-  DanceBodyKey(
-    23,
-    rootDx: -5,
-    rootDy: 55,
-    chestRotation: 0.16,
-    chestScaleY: 0.92,
-  ), // rebound
+    rootDx: -4,
+    rootDy: 28,
+    pelvisRotation: -0.04,
+    chestRotation: 0.05,
+    chestScaleY: 1,
+  ), // gentle breathe/crest riding the sway — held, spacious
   DanceBodyKey(
     24,
-    rootDx: 6,
-    rootDy: 97,
-    pelvisRotation: 0.11,
-    chestRotation: 0.26,
-    chestScaleY: 0.83,
-  ), // lo3 — the escalated deepest floor of the phrase
-  DanceBodyKey(
-    26,
-    rootDx: 7,
-    rootDy: 50,
-    chestRotation: 0.2,
-    chestScaleY: 0.95,
-  ), // rise begins — evenly-paced ramp, mirrors frame 10's fix above
-  DanceBodyKey(
-    27,
-    rootDx: 7,
-    rootDy: 26,
-    pelvisRotation: 0.08,
-    chestRotation: 0.13,
-    chestScaleY: 1.06,
-  ), // rise continues at the same per-frame rate — mirrors frame 11
+    rootDx: 5,
+    rootDy: 42,
+    pelvisRotation: 0.05,
+    chestRotation: 0.09,
+    chestScaleY: 0.98,
+  ), // gentle settle (no deep squat)
   DanceBodyKey(
     28,
-    rootDx: 6,
-    rootDy: 2,
-    rootRotation: -0.003,
-    pelvisRotation: -0.06,
-    chestRotation: 0.1,
-    chestScaleY: 1.16,
-    chestScaleX: 0.97,
-  ), // HIT
-  // r13/r14: the bar-4 crest breathes the same double undulation as f13-15.
-  DanceBodyKey(
-    29,
-    rootDx: 5,
-    rootDy: 5,
-    rootRotation: -0.002,
-    pelvisRotation: -0.05,
-    chestRotation: 0.09,
-    chestScaleY: 1.1,
-  ), // settle notch off the hit
-  DanceBodyKey(
-    30,
-    rootDx: 5,
-    rootDy: 16,
-    rootRotation: -0.002,
-    pelvisRotation: -0.05,
-    chestRotation: 0.08,
-    chestScaleY: 1.08,
-  ),
-  DanceBodyKey(
-    31,
     rootDx: 4,
-    rootDy: 6,
-    rootRotation: -0.002,
-    pelvisRotation: -0.03,
-    chestRotation: 0.05,
-    chestScaleY: 0.98,
-  ),
+    rootDy: 30,
+    chestRotation: 0.04,
+    chestScaleY: 1,
+  ), // stays in the relaxed groove — NO hit
   DanceBodyKey(
     32,
     rootDx: -5,
@@ -281,18 +211,12 @@ const _bugaLegLowerKeys = [
   DanceJointKey(12, rotation: -0.62), // EXTEND — leg drive, not a locked knee
   DanceJointKey(14, rotation: -0.66),
   DanceJointKey(15, rotation: -0.6),
+  // bar 2 CHILL: knees hold a comfortable relaxed bend — no deep squat, no
+  // explosive extend — matching the vibing body groove above.
   DanceJointKey(16, rotation: -1.05),
-  DanceJointKey(18, rotation: -1.05),
-  DanceJointKey(19, rotation: -0.97),
-  DanceJointKey(20, rotation: -1.48),
-  DanceJointKey(22, rotation: -1.48),
-  DanceJointKey(23, rotation: -1.4),
-  DanceJointKey(24, rotation: -1.95), // escalated bar-2 floor
-  DanceJointKey(26, rotation: -1.95),
-  DanceJointKey(27, rotation: -2),
-  DanceJointKey(28, rotation: -0.62), // EXTEND
-  DanceJointKey(30, rotation: -0.66),
-  DanceJointKey(31, rotation: -0.6),
+  DanceJointKey(20, rotation: -0.95),
+  DanceJointKey(24, rotation: -1.08),
+  DanceJointKey(28, rotation: -0.98),
   DanceJointKey(32, rotation: -1.02),
 ];
 // The peacock hit lands with a DOUBLE shoulder shrug — both clavicles rise
@@ -361,10 +285,7 @@ const _bugaHandRKeys = [
   DanceJointKey(14, rotation: 0.4),
   DanceJointKey(16, rotation: 0.06),
   DanceJointKey(24, rotation: -0.04),
-  DanceJointKey(27, rotation: 0.12),
-  DanceJointKey(28, rotation: 0.44),
-  DanceJointKey(29, rotation: 0.54),
-  DanceJointKey(30, rotation: 0.4),
+  DanceJointKey(28), // bar 2 CHILL: paw stays relaxed — no present flick
   DanceJointKey(32),
 ];
 const _bugaHandLKeys = [
@@ -376,10 +297,7 @@ const _bugaHandLKeys = [
   DanceJointKey(14, rotation: -0.4),
   DanceJointKey(16, rotation: -0.06),
   DanceJointKey(24, rotation: 0.04),
-  DanceJointKey(27, rotation: -0.12),
-  DanceJointKey(28, rotation: -0.44),
-  DanceJointKey(29, rotation: -0.54),
-  DanceJointKey(30, rotation: -0.4),
+  DanceJointKey(28), // bar 2 CHILL: relaxed paw
   DanceJointKey(32),
 ];
 const _bugaClavicleRKeys = [
@@ -409,10 +327,11 @@ const _bugaClavicleRKeys = [
   DanceJointKey(22, rotation: 0.08),
   DanceJointKey(24, rotation: -0.3),
   DanceJointKey(26, rotation: -0.24),
-  DanceJointKey(27, rotation: -0.3),
-  DanceJointKey(28, rotation: -0.46),
-  DanceJointKey(29, rotation: -0.36),
-  DanceJointKey(30, rotation: -0.3),
+  DanceJointKey(
+    28,
+    rotation: -0.24,
+  ), // bar 2 CHILL: no hit shrug, gentle see-saw only
+  DanceJointKey(30, rotation: -0.26),
   DanceJointKey(32, rotation: -0.06),
 ];
 // 9-path r3 (every rater: "L and R crowns track each other almost
@@ -448,10 +367,12 @@ const _bugaClavicleLKeys = [
   DanceJointKey(22, rotation: 0.28, microFrames: 1.5),
   DanceJointKey(24, rotation: -0.44, microFrames: 1.5),
   DanceJointKey(26, rotation: 0.24, microFrames: 1.5),
-  DanceJointKey(27, rotation: 0.28, microFrames: 1.5),
-  DanceJointKey(28, rotation: 0.488, microFrames: 1.1),
-  DanceJointKey(29, rotation: 0.382, microFrames: 1.1),
-  DanceJointKey(30, rotation: 0.3, microFrames: 1.5),
+  DanceJointKey(
+    28,
+    rotation: 0.24,
+    microFrames: 1.5,
+  ), // bar 2 CHILL: no hit shrug
+  DanceJointKey(30, rotation: 0.26, microFrames: 1.5),
   DanceJointKey(32, rotation: -0.08, microFrames: 1.5),
 ];
 const _bugaShoulderSocketRKeys = [
@@ -464,11 +385,8 @@ const _bugaShoulderSocketRKeys = [
   DanceJointKey(15, rotation: -0.12, scaleX: 1.1, scaleY: 0.955),
   DanceJointKey(16),
   DanceJointKey(24, rotation: -0.11, scaleX: 1.1, scaleY: 0.955),
-  DanceJointKey(26, rotation: -0.13, scaleX: 1.11, scaleY: 0.95),
-  DanceJointKey(28, rotation: -0.25, scaleX: 1.22, scaleY: 0.9),
-  DanceJointKey(29, rotation: -0.21, scaleX: 1.18, scaleY: 0.92),
-  DanceJointKey(30, rotation: -0.13, scaleX: 1.1, scaleY: 0.95),
-  DanceJointKey(31, rotation: -0.12, scaleX: 1.1, scaleY: 0.955),
+  // bar 2 CHILL: shoulder holds its baseline — no present shrug/bulge.
+  DanceJointKey(28, rotation: -0.11, scaleX: 1.1, scaleY: 0.955),
   DanceJointKey(32, rotation: -0.11, scaleX: 1.1, scaleY: 0.955),
 ];
 const _bugaShoulderSocketLKeys = [
@@ -481,11 +399,8 @@ const _bugaShoulderSocketLKeys = [
   DanceJointKey(15, rotation: 0.12, scaleX: 1.1, scaleY: 0.955),
   DanceJointKey(16),
   DanceJointKey(24, rotation: 0.11, scaleX: 1.1, scaleY: 0.955),
-  DanceJointKey(26, rotation: 0.13, scaleX: 1.11, scaleY: 0.95),
-  DanceJointKey(28, rotation: 0.25, scaleX: 1.22, scaleY: 0.9),
-  DanceJointKey(29, rotation: 0.21, scaleX: 1.18, scaleY: 0.92),
-  DanceJointKey(30, rotation: 0.13, scaleX: 1.1, scaleY: 0.95),
-  DanceJointKey(31, rotation: 0.12, scaleX: 1.1, scaleY: 0.955),
+  // bar 2 CHILL: shoulder holds its baseline — no present shrug/bulge.
+  DanceJointKey(28, rotation: 0.11, scaleX: 1.1, scaleY: 0.955),
   DanceJointKey(32, rotation: 0.11, scaleX: 1.1, scaleY: 0.955),
 ];
 // The Buga show-off is the PEACOCK BOW (the research audit's top finding —
@@ -505,41 +420,74 @@ const List<DanceIkTargetKey> _bugaHandRTargetKeys = [
   // low-reach counts opens the loose elbow without flipping the bend side.
   DanceIkTargetKey(
     0,
-    x: 40,
+    x: 44,
     y: 16,
-    elbowAbduction: 0.2,
+    weight: 0.95,
+    elbowAbduction: -0.05,
   ), // count pop off the hip
-  DanceIkTargetKey(4, x: 52, y: 8, elbowAbduction: 0.2), // count 2 pop
+  DanceIkTargetKey(
+    4,
+    x: 56,
+    y: 8,
+    weight: 0.95,
+    elbowAbduction: -0.05,
+  ), // count 2 pop
   DanceIkTargetKey(
     8,
-    x: 62,
+    x: 72,
     y: 6,
-    elbowAbduction: 0.2,
+    weight: 0.95,
+    elbowAbduction: -0.05,
   ), // count 3 pop (deepest)
-  DanceIkTargetKey(10, x: 78, y: -16), // opening transit into the present
-  DanceIkTargetKey(12, x: 106, y: -34), // BUGA — full peacock (reach-maxed)
-  DanceIkTargetKey(14, x: 106, y: -34), // held strut
-  DanceIkTargetKey(16, x: 58, y: 24, elbowAbduction: 0.2), // return overshoot
-  DanceIkTargetKey(20, x: 46, y: 8, elbowAbduction: 0.2), // bar-2 count pop
-  DanceIkTargetKey(24, x: 62, y: 6, elbowAbduction: 0.2), // count deepen
-  DanceIkTargetKey(26, x: 78, y: -16), // opening transit
-  DanceIkTargetKey(28, x: 106, y: -34), // BUGA
-  DanceIkTargetKey(32, x: 40, y: 16, elbowAbduction: 0.2), // == frame 0
+  DanceIkTargetKey(10, x: 88, y: -16), // opening transit into the present
+  DanceIkTargetKey(12, x: 100, y: -32), // BUGA — full peacock, elbow alive
+  DanceIkTargetKey(14, x: 100, y: -32), // held strut
+  // bar 2 CHILL: hands settle into a low, relaxed sway — the second peacock
+  // present is dropped, so bar 1's present stays the phrase's ONE highlight.
+  DanceIkTargetKey(
+    16,
+    x: 46,
+    y: 22,
+    weight: 0.95,
+    elbowAbduction: -0.05,
+  ), // settle low after the present
+  DanceIkTargetKey(
+    20,
+    x: 50,
+    y: 14,
+    weight: 0.95,
+    elbowAbduction: -0.05,
+  ), // relaxed sway
+  DanceIkTargetKey(24, x: 58, y: 18, weight: 0.95, elbowAbduction: -0.05),
+  DanceIkTargetKey(
+    28,
+    x: 48,
+    y: 16,
+    weight: 0.95,
+    elbowAbduction: -0.05,
+  ), // stays relaxed — no 2nd present
+  DanceIkTargetKey(
+    32,
+    x: 44,
+    y: 16,
+    weight: 0.95,
+    elbowAbduction: -0.05,
+  ), // == frame 0
 ];
 const List<DanceIkTargetKey> _bugaHandLTargetKeys = [
   // Mirror of hand.R (see there).
-  DanceIkTargetKey(0, x: -40, y: 16, elbowAbduction: -0.2),
-  DanceIkTargetKey(4, x: -52, y: 8, elbowAbduction: -0.2),
-  DanceIkTargetKey(8, x: -62, y: 6, elbowAbduction: -0.2),
-  DanceIkTargetKey(10, x: -78, y: -16), // opening transit
-  DanceIkTargetKey(12, x: -106, y: -34), // BUGA
-  DanceIkTargetKey(14, x: -106, y: -34), // held strut
-  DanceIkTargetKey(16, x: -58, y: 24, elbowAbduction: -0.2),
-  DanceIkTargetKey(20, x: -46, y: 8, elbowAbduction: -0.2),
-  DanceIkTargetKey(24, x: -62, y: 6, elbowAbduction: -0.2),
-  DanceIkTargetKey(26, x: -78, y: -16), // opening transit
-  DanceIkTargetKey(28, x: -106, y: -34), // BUGA
-  DanceIkTargetKey(32, x: -40, y: 16, elbowAbduction: -0.2),
+  DanceIkTargetKey(0, x: -44, y: 16, weight: 0.95, elbowAbduction: 0.05),
+  DanceIkTargetKey(4, x: -56, y: 8, weight: 0.95, elbowAbduction: 0.05),
+  DanceIkTargetKey(8, x: -72, y: 6, weight: 0.95, elbowAbduction: 0.05),
+  DanceIkTargetKey(10, x: -88, y: -16), // opening transit
+  DanceIkTargetKey(12, x: -100, y: -32), // BUGA
+  DanceIkTargetKey(14, x: -100, y: -32), // held strut
+  // bar 2 CHILL (mirror of hand.R): low relaxed sway, no second present.
+  DanceIkTargetKey(16, x: -46, y: 22, weight: 0.95, elbowAbduction: 0.05),
+  DanceIkTargetKey(20, x: -50, y: 14, weight: 0.95, elbowAbduction: 0.05),
+  DanceIkTargetKey(24, x: -58, y: 18, weight: 0.95, elbowAbduction: 0.05),
+  DanceIkTargetKey(28, x: -48, y: 16, weight: 0.95, elbowAbduction: 0.05),
+  DanceIkTargetKey(32, x: -44, y: 16, weight: 0.95, elbowAbduction: 0.05),
 ];
 // The widening step-out lives in the TRANSIT (f10-f11 / f26-f27) so both
 // feet are planted wide with even weight for the whole held present — the

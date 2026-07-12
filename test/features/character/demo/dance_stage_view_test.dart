@@ -1,6 +1,7 @@
 import 'package:dancing_cats/features/character/demo/dance_performance.dart';
 import 'package:dancing_cats/features/character/demo/dance_stage_view.dart';
 import 'package:dancing_cats/features/character/model/beat_map.dart';
+import 'package:dancing_cats/features/character/model/clip.dart';
 import 'package:dancing_cats/features/character/model/dance_dynamics.dart';
 import 'package:dancing_cats/features/character/model/face.dart';
 import 'package:dancing_cats/features/character/model/rig_spec.dart';
@@ -39,6 +40,47 @@ DancePerformance _perf({List<DanceWord> words = const []}) {
 
 Widget _hostStage(DanceStageView view) =>
     MaterialApp(home: Scaffold(body: view));
+
+/// A Moving-family production stage (the trio the full-song score assigns in
+/// its first hook statement), for exercising the family's accent treatment.
+DanceStage _movingStage() => (
+  lead: CatClips.movingGroove,
+  ensemble: [
+    CatClips.movingGroove,
+    CatClips.movingGrooveLowCounter,
+    CatClips.movingGrooveSideAnswer,
+  ],
+  seconds: 1.2,
+  section: null,
+  energetic: true,
+  synchronous: true,
+  segmentStartSec: 0,
+  dynamics: const [
+    DanceDynamics.neutral,
+    DanceDynamics.neutral,
+    DanceDynamics.neutral,
+  ],
+  energyLevel: 0.8,
+);
+
+/// A catalogue (non-Moving) stage, for asserting the generic accent treatment
+/// is untouched. Note `_perf().stageAt` cannot supply this: its full-energy
+/// section resolves to the Moving trio via `choreoTrioByLevel(1.0)`.
+DanceStage _catalogueStage() => (
+  lead: CatClips.shaku,
+  ensemble: [CatClips.shaku, CatClips.zanku, CatClips.sekem],
+  seconds: 1.2,
+  section: null,
+  energetic: true,
+  synchronous: true,
+  segmentStartSec: 0,
+  dynamics: const [
+    DanceDynamics.neutral,
+    DanceDynamics.neutral,
+    DanceDynamics.neutral,
+  ],
+  energyLevel: 0.8,
+);
 
 DanceStageView _stageView({
   bool useNewBackdrop = true,
@@ -292,6 +334,94 @@ void main() {
         }
       },
     );
+
+    test('Moving bodies hit the music with a per-lane plié, not the pop', () {
+      final stage = _movingStage();
+      CharacterPainter build(double accent) => danceCharacterPainter(
+        cast: DanceCast.build(),
+        renderer: CharacterRenderer(antiAlias: false),
+        stage: stage,
+        shot: (zoom: 1.0, dx: 0.0, dy: 0.0),
+        leadMouth: 0,
+        bgMouth: 0,
+        leadShape: MouthShape.neutral,
+        bgShape: MouthShape.neutral,
+        scale: 1,
+        backlights: const [],
+        bodyAccent: accent,
+      );
+
+      final still = build(0);
+      final hit = build(0.8);
+
+      // The whole-row SCALE pop/coil stays suppressed for Moving (it read as
+      // the formation tugging the authored phrase around on every onset)...
+      expect(hit.bodyAccent, 0);
+      expect(hit.bodyAnticipation, 0);
+
+      // ...but the BODIES land the hit: the root drops into a plié (deepest
+      // on the lead, visibly shallower on the flankers so the hit has an
+      // owner) while the authored groove YIELDS — the root's deviation from
+      // its loop mean scales down by the bob duck so the accent owns the
+      // vertical. The support anchor turns the drop into knee flexion over
+      // planted feet.
+      const load = 0.8;
+      const duck = kMovingAccentBobDuck * load;
+      double meanDy(RootChannel root) {
+        var sum = 0.0;
+        const n = 64;
+        for (var i = 0; i < n; i++) {
+          sum += root.sample(i / n).dy;
+        }
+        return sum / n;
+      }
+
+      double drop(int lane) {
+        final hitClip = lane == 0 ? hit.clip : hit.ensembleClips[lane];
+        final stillClip = lane == 0 ? still.clip : still.ensembleClips[lane];
+        final stillDy = stillClip.root.sample(0.3).dy;
+        final mean = meanDy(stillClip.root);
+        // Remove the duck's contribution so what remains is the pure plié.
+        final expectedDucked = mean + (stillDy - mean) * (1 - duck);
+        return hitClip.root.sample(0.3).dy - expectedDucked;
+      }
+
+      final leadDrop = drop(0);
+      expect(leadDrop, closeTo(movingAccentDropUnits(load, 0), 1e-6));
+      // A 0.8 load is a top-tier hit: the strong-hit emphasis must be live.
+      expect(
+        movingAccentDropUnits(load, 0),
+        greaterThan(load * kMovingAccentDropUnits),
+      );
+      // Weak hits keep the plain linear depth.
+      expect(
+        movingAccentDropUnits(0.4, 0),
+        closeTo(0.4 * kMovingAccentDropUnits, 1e-9),
+      );
+      for (final lane in [1, 2]) {
+        final flankDrop = drop(lane);
+        expect(flankDrop, closeTo(movingAccentDropUnits(load, lane), 1e-6));
+        expect(flankDrop, lessThan(leadDrop));
+      }
+
+      // The catalogue keeps its original treatment: the accent passes through
+      // to the painter's unison pop and the full-depth drop.
+      final catalogue = _catalogueStage();
+      final cataloguePainter = danceCharacterPainter(
+        cast: DanceCast.build(),
+        renderer: CharacterRenderer(antiAlias: false),
+        stage: catalogue,
+        shot: (zoom: 1.0, dx: 0.0, dy: 0.0),
+        leadMouth: 0,
+        bgMouth: 0,
+        leadShape: MouthShape.neutral,
+        bgShape: MouthShape.neutral,
+        scale: 1,
+        backlights: const [],
+        bodyAccent: 0.8,
+      );
+      expect(cataloguePainter.bodyAccent, 0.8);
+    });
   });
 
   group('DanceStageView widget', () {

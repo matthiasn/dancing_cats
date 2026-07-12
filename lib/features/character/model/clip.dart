@@ -51,6 +51,7 @@ class BlendedJointChannel extends JointChannel {
     this.to,
     this.fromTimeShift = 0,
     this.fromDuration = 0,
+    this.toDuration = 0,
   }) : assert(weight >= 0 && weight <= 1, 'weight must be in 0..1');
 
   final JointChannel? from;
@@ -67,10 +68,17 @@ class BlendedJointChannel extends JointChannel {
   /// The outgoing clip's duration, for wrapping [fromTimeShift]; 0 = no wrap.
   final double fromDuration;
 
+  /// The incoming clip's duration. Together with [fromDuration] this converts
+  /// the shared normalized phase back through seconds when source durations
+  /// differ (notably dance→idle transitions).
+  final double toDuration;
+
   @override
   JointPose sample(double p) {
     final a =
-        from?.sample(_shifted(p, fromTimeShift, fromDuration)) ??
+        from?.sample(
+          _shifted(p, fromTimeShift, fromDuration, toDuration),
+        ) ??
         JointPose.identity;
     final b = to?.sample(p) ?? JointPose.identity;
     return JointPose(
@@ -82,11 +90,28 @@ class BlendedJointChannel extends JointChannel {
 }
 
 /// The outgoing side's shifted-and-wrapped sample time for a blended channel.
-double _shifted(double p, double shift, double duration) {
-  if (shift == 0) return p;
-  if (duration <= 0) return p + shift;
-  final t = (p + shift) % duration;
-  return t < 0 ? t + duration : t;
+double _shifted(
+  double p,
+  double shift,
+  double fromDuration,
+  double toDuration,
+) {
+  if (fromDuration <= 0 || toDuration <= 0) return p + shift;
+  // `p` is a NORMALIZED clip phase while `shift` is explicitly measured in
+  // SECONDS (see [BlendedJointChannel.fromTimeShift]). Adding them directly
+  // sampled an unrelated part of the outgoing loop at the first transition
+  // frame — e.g. `0.62 + (-1.51 seconds)` on a six-second clip became phase
+  // `5.11`, which the cyclic channel then wrapped to `0.11` instead of the
+  // intended `0.37`. That produced the production arm teleports measured at
+  // 63.13s, 112.05s, and other setlist cuts. Convert seconds to phase first,
+  // then wrap in the phase domain.
+  // Convert the incoming normalized phase to incoming SECONDS first, apply
+  // the seconds offset, then normalize by the outgoing duration. Merely adding
+  // `shift / fromDuration` to `p` is only valid when both clips have the same
+  // duration; dance→idle exposed the mismatch as a second first-frame snap.
+  final shiftedPhase = (p * toDuration + shift) / fromDuration;
+  final wrapped = shiftedPhase - shiftedPhase.floorToDouble();
+  return wrapped < 0 ? wrapped + 1 : wrapped;
 }
 
 /// Wraps [inner] so it samples a warped phase instead of the raw one.
@@ -107,6 +132,35 @@ class PhaseWarpedJointChannel extends JointChannel {
   JointPose sample(double p) => inner.sample(warpPhase(p));
 }
 
+/// Adds a small continuous sine to an inner joint channel's ROTATION — the
+/// always-on shoulder/chest WIND that keeps the upper body from freezing into
+/// posed shapes between authored keys (the Afrobeats pocket is upper-body-led).
+/// A live-path layer (see `shoulderWoundClip`); authored channels are untouched.
+class WoundJointChannel extends JointChannel {
+  const WoundJointChannel(
+    this.inner, {
+    required this.amplitude,
+    required this.harmonic,
+    this.phase = 0,
+  });
+
+  final JointChannel inner;
+  final double amplitude;
+  final int harmonic;
+  final double phase;
+
+  @override
+  JointPose sample(double p) {
+    final s = inner.sample(p);
+    final wind = amplitude * math.sin(harmonic * 2 * math.pi * (p + phase));
+    return JointPose(
+      rotation: s.rotation + wind,
+      scaleX: s.scaleX,
+      scaleY: s.scaleY,
+    );
+  }
+}
+
 /// The [IkTargetChannel] counterpart of [PhaseWarpedJointChannel], used to warp
 /// hand IK targets (never foot targets — those must stay on the shared clock).
 class PhaseWarpedIkTargetChannel extends IkTargetChannel {
@@ -117,6 +171,66 @@ class PhaseWarpedIkTargetChannel extends IkTargetChannel {
 
   @override
   IkTargetPose sample(double p) => inner.sample(warpPhase(p));
+}
+
+/// Settles a cyclic joint channel into its shared phase-0/1 pose near the loop
+/// seam without changing the sampling clock.
+class LoopSeamSettledJointChannel extends JointChannel {
+  const LoopSeamSettledJointChannel(this.inner, {required this.width});
+
+  final JointChannel inner;
+  final double width;
+
+  @override
+  JointPose sample(double p) {
+    final progress = _loopSeamSettleProgress(p, width);
+    if (progress >= 1) return inner.sample(p);
+    final seam = inner.sample(0);
+    final pose = inner.sample(p);
+    return JointPose(
+      rotation: _lerp(seam.rotation, pose.rotation, progress),
+      scaleX: _lerp(seam.scaleX, pose.scaleX, progress),
+      scaleY: _lerp(seam.scaleY, pose.scaleY, progress),
+    );
+  }
+}
+
+/// IK-target counterpart of [LoopSeamSettledJointChannel].
+class LoopSeamSettledIkTargetChannel extends IkTargetChannel {
+  const LoopSeamSettledIkTargetChannel(this.inner, {required this.width});
+
+  final IkTargetChannel inner;
+  final double width;
+
+  @override
+  IkTargetPose sample(double p) {
+    final progress = _loopSeamSettleProgress(p, width);
+    if (progress >= 1) return inner.sample(p);
+    final seam = inner.sample(0);
+    final pose = inner.sample(p);
+    return IkTargetPose(
+      x: _lerp(seam.x, pose.x, progress),
+      y: _lerp(seam.y, pose.y, progress),
+      weight: _lerp(seam.weight, pose.weight, progress),
+      bendDirection: pose.bendDirection ?? seam.bendDirection,
+      elbowAbduction: _lerp(
+        seam.elbowAbduction,
+        pose.elbowAbduction,
+        progress,
+      ),
+    );
+  }
+}
+
+double _loopSeamSettleProgress(double p, double width) {
+  var wrapped = p - p.floorToDouble();
+  if (wrapped < 0) wrapped += 1;
+  final distance = math.min(wrapped, 1 - wrapped);
+  if (distance >= width) return 1;
+  final x = (distance / width).clamp(0.0, 1.0);
+  // Quintic smootherstep: value, velocity, and acceleration meet cleanly at
+  // both the settled seam and the unmodified-channel edge.
+  return x * x * x * (x * (x * 6 - 15) + 10);
 }
 
 /// Scales an IK target channel's motion AMPLITUDE around its loop-mean centre by
@@ -595,6 +709,7 @@ class BlendedIkTargetChannel extends IkTargetChannel {
     this.to,
     this.fromTimeShift = 0,
     this.fromDuration = 0,
+    this.toDuration = 0,
   }) : assert(weight >= 0 && weight <= 1, 'weight must be in 0..1');
 
   final IkTargetChannel? from;
@@ -604,10 +719,13 @@ class BlendedIkTargetChannel extends IkTargetChannel {
   /// See [BlendedJointChannel.fromTimeShift].
   final double fromTimeShift;
   final double fromDuration;
+  final double toDuration;
 
   @override
   IkTargetPose sample(double p) {
-    final a = from?.sample(_shifted(p, fromTimeShift, fromDuration));
+    final a = from?.sample(
+      _shifted(p, fromTimeShift, fromDuration, toDuration),
+    );
     final b = to?.sample(p);
     if (a == null && b == null) {
       return const IkTargetPose(x: 0, y: 0, weight: 0);
@@ -1180,6 +1298,7 @@ class BlendedRootChannel extends RootChannel {
     this.to,
     this.fromTimeShift = 0,
     this.fromDuration = 0,
+    this.toDuration = 0,
   }) : assert(weight >= 0 && weight <= 1, 'weight must be in 0..1');
 
   final RootChannel? from;
@@ -1189,11 +1308,14 @@ class BlendedRootChannel extends RootChannel {
   /// See [BlendedJointChannel.fromTimeShift].
   final double fromTimeShift;
   final double fromDuration;
+  final double toDuration;
 
   @override
   ({double dx, double dy, double rotation}) sample(double p) {
     final a =
-        from?.sample(_shifted(p, fromTimeShift, fromDuration)) ??
+        from?.sample(
+          _shifted(p, fromTimeShift, fromDuration, toDuration),
+        ) ??
         (dx: 0.0, dy: 0.0, rotation: 0.0);
     final b = to?.sample(p) ?? (dx: 0.0, dy: 0.0, rotation: 0.0);
     return (
@@ -1246,6 +1368,62 @@ class SineRootChannel extends RootChannel {
             leanHarmonic * twoPi * (p + leanPhase),
           ),
     );
+  }
+}
+
+/// Scales an inner root channel's MOTION (its deviation from the loop mean) by
+/// [scale] while preserving the rest pose (the mean) — the whole-body groove
+/// amplitude dial, so the song energy can grow/shrink the sway, bob and dips
+/// without drifting where the body stands (a naive scale of the raw channel
+/// would move the standing height). The loop mean is sampled once at build.
+class ScaledRootChannel extends RootChannel {
+  ScaledRootChannel(this.inner, this.scale) {
+    var mdx = 0.0;
+    var mdy = 0.0;
+    var mr = 0.0;
+    const n = 64;
+    for (var i = 0; i < n; i++) {
+      final s = inner.sample(i / n);
+      mdx += s.dx;
+      mdy += s.dy;
+      mr += s.rotation;
+    }
+    _meanDx = mdx / n;
+    _meanDy = mdy / n;
+    _meanRot = mr / n;
+  }
+
+  final RootChannel inner;
+  final double scale;
+  late final double _meanDx;
+  late final double _meanDy;
+  late final double _meanRot;
+
+  @override
+  ({double dx, double dy, double rotation}) sample(double p) {
+    final s = inner.sample(p);
+    return (
+      dx: _meanDx + (s.dx - _meanDx) * scale,
+      dy: _meanDy + (s.dy - _meanDy) * scale,
+      rotation: _meanRot + (s.rotation - _meanRot) * scale,
+    );
+  }
+}
+
+/// Adds a constant [dy] (down) to an inner root channel — the music ACCENT as a
+/// grounded body DROP. Because the support foot is world-anchored, dropping the
+/// root makes the knee flex and the pelvis descend over a planted foot (a plié)
+/// instead of translating the whole figure down (a pogo that skates the feet).
+class RootDyOffsetChannel extends RootChannel {
+  const RootDyOffsetChannel(this.inner, this.dy);
+
+  final RootChannel inner;
+  final double dy;
+
+  @override
+  ({double dx, double dy, double rotation}) sample(double p) {
+    final s = inner.sample(p);
+    return (dx: s.dx, dy: s.dy + dy, rotation: s.rotation);
   }
 }
 
@@ -1623,6 +1801,7 @@ class Clip {
     required this.name,
     required this.duration,
     required this.channels,
+    this.family,
     this.loop = true,
     this.root = const SineRootChannel(),
     this.locomotionSpeed = 0,
@@ -1654,6 +1833,20 @@ class Clip {
 
   /// Display/lookup name.
   final String name;
+
+  /// Semantic movement family shared by distinct choreographic phrases.
+  ///
+  /// Runtime behavior should key off this value instead of overloading [name]:
+  /// `movingHookLead`, `movingVerseShuffle`, and a transition between them are
+  /// different clips, but all belong to the `moving` family.
+  final String? family;
+
+  bool belongsToFamily(String value) {
+    if (family == value) return true;
+    final plan = transitionPlan;
+    return plan != null &&
+        (plan.from.belongsToFamily(value) || plan.to.belongsToFamily(value));
+  }
 
   /// Scales the shared dance head treatment for this clip in [0, 1], applied in
   /// `CharacterScene`'s rigid-head pass. At `1.0` (the original behavior, shipped
@@ -1837,6 +2030,7 @@ Clip blendedClip({
   String? name,
   ClipBlendMask blendMask = ClipBlendMask.full,
   double fromTimeShiftSeconds = 0,
+  double? fromPlaybackTimeShiftSeconds,
 }) {
   assert(weight >= 0 && weight <= 1, 'weight must be in 0..1');
   final channelIds = {...from.channels.keys, ...to.channels.keys};
@@ -1848,15 +2042,16 @@ Clip blendedClip({
   };
   final targetIds = {...fromTargets.keys, ...toTargets.keys};
   final transitionWeight = _smoothUnit(weight);
+  final rootWeight = blendMask.rootWeight(weight);
   final supportFootAnchorStrength = _transitionSupportAnchorStrength(
     from,
     to,
     transitionWeight,
   );
-  final rootWeight = blendMask.rootWeight(weight);
 
   return Clip(
     name: name ?? '${from.name}->${to.name}',
+    family: from.family == to.family ? from.family : null,
     duration: to.duration,
     loop: from.loop && to.loop,
     channels: {
@@ -1867,6 +2062,7 @@ Clip blendedClip({
           weight: blendMask.jointWeight(id, weight),
           fromTimeShift: fromTimeShiftSeconds,
           fromDuration: from.duration,
+          toDuration: to.duration,
         ),
     },
     root: BlendedRootChannel(
@@ -1875,6 +2071,7 @@ Clip blendedClip({
       weight: rootWeight,
       fromTimeShift: fromTimeShiftSeconds,
       fromDuration: from.duration,
+      toDuration: to.duration,
     ),
     locomotionSpeed: _lerp(
       from.locomotionSpeed,
@@ -1892,6 +2089,7 @@ Clip blendedClip({
           blendMask.limbTargetWeight(id, weight),
           fromTimeShift: fromTimeShiftSeconds,
           fromDuration: from.duration,
+          toDuration: to.duration,
         ),
     ],
     supportFootWorldAnchor: supportFootAnchorStrength > 0,
@@ -1938,7 +2136,12 @@ Clip blendedClip({
       from: from,
       to: to,
       weight: weight,
-      fromTimeShiftSeconds: fromTimeShiftSeconds,
+      // Channel sampling receives normalized local phase and therefore uses a
+      // local-time offset. Scene/painter transition logic still owns absolute
+      // playback seconds (for contacts, feet and ensemble lanes), so it needs
+      // the separate absolute-clock offset when the caller has one.
+      fromTimeShiftSeconds:
+          fromPlaybackTimeShiftSeconds ?? fromTimeShiftSeconds,
     ),
     dynamics: DanceDynamics.lerp(from.dynamics, to.dynamics, rootWeight),
   );
@@ -2013,6 +2216,7 @@ LimbIkTarget _blendLimbTarget(
   double weight, {
   double fromTimeShift = 0,
   double fromDuration = 0,
+  double toDuration = 0,
 }) {
   final template = weight < 0.5 ? from ?? to! : to ?? from!;
   return LimbIkTarget(
@@ -2026,6 +2230,7 @@ LimbIkTarget _blendLimbTarget(
       weight: weight,
       fromTimeShift: fromTimeShift,
       fromDuration: fromDuration,
+      toDuration: toDuration,
     ),
     bendDirection: template.bendDirection,
   );

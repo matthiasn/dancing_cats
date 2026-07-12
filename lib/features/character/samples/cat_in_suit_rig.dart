@@ -501,15 +501,16 @@ RigSpec buildCatInSuitRig({
         kind: BoneShapeKind.roundedRect,
         // The vamp. Toe points -x (local), which — through the locomotion
         // mirror — makes the shoe LEAD the direction of travel instead of
-        // trailing it. The sole plane stays at local y=10: the contact
-        // solvers key off this drawable's bottom. FLAT white, no interior
-        // ink: the boot is ONE union silhouette, and cel gradients made the
-        // white leather look dingy.
-        width: 33,
+        // trailing it. This rigid rear vamp ends at the ball joint; the
+        // flex-joint toe box owns everything forward of x=-16. Extending the
+        // parent through the toe left a second rounded white end visible under
+        // the sole whenever the real toe bent. The sole plane stays at local
+        // y=10 so contact solving is unchanged.
+        width: 26,
         height: 12,
-        dx: -7,
+        dx: -3.5,
         dy: 4,
-        cornerRadius: 5,
+        cornerRadius: 3,
         color: _shoe,
         outlineColor: _outline,
         outlineWidth: 2,
@@ -693,15 +694,16 @@ RigSpec buildCatInSuitRig({
         kind: BoneShapeKind.roundedRect,
         // The vamp. Toe points -x (local), which — through the locomotion
         // mirror — makes the shoe LEAD the direction of travel instead of
-        // trailing it. The sole plane stays at local y=10: the contact
-        // solvers key off this drawable's bottom. FLAT white, no interior
-        // ink: the boot is ONE union silhouette, and cel gradients made the
-        // white leather look dingy.
-        width: 33,
+        // trailing it. This rigid rear vamp ends at the ball joint; the
+        // flex-joint toe box owns everything forward of x=-16. Extending the
+        // parent through the toe left a second rounded white end visible under
+        // the sole whenever the real toe bent. The sole plane stays at local
+        // y=10 so contact solving is unchanged.
+        width: 26,
         height: 12,
-        dx: -7,
+        dx: -3.5,
         dy: 4,
-        cornerRadius: 5,
+        cornerRadius: 3,
         color: _shoe,
         outlineColor: _outline,
         outlineWidth: 2,
@@ -852,10 +854,12 @@ RigSpec buildCatInSuitRig({
     Bone(
       id: CatBones.shoulderSocketR,
       parent: CatBones.clavicleR,
-      pivotX: 0,
-      pivotY: 10,
+      // The clavicle now pivots at the sternum. This child is the acromion /
+      // shoulder socket at the far end of that lever, so clavicle elevation
+      // translates the whole arm instead of spinning at a fixed armhole pin.
+      pivotX: 31,
+      pivotY: 0,
       z: 14,
-      restRotation: -0.14,
       drawable: _tapered(
         26,
         19,
@@ -869,7 +873,7 @@ RigSpec buildCatInSuitRig({
     ),
     Bone(
       id: CatBones.armUpperR,
-      parent: CatBones.clavicleR,
+      parent: CatBones.shoulderSocketR,
       pivotX: 0,
       pivotY: 6,
       // Starts under the clavicle shoulder plane instead of on top of it, so the
@@ -938,15 +942,15 @@ RigSpec buildCatInSuitRig({
         celShade: false,
       ),
     ),
-    // Hand-parented cuff: it rotates with the paw, so it stays on the wrist
-    // side instead of sliding out from the forearm as a white blob in the palm.
+    // Forearm-parented cuff: the shirt closure belongs to the sleeve, not the
+    // paw. Keeping it on the armLower axis prevents wrist follow-through from
+    // spinning the cuff around inside the hand.
     Bone(
       id: CatBones.wristCuffR,
-      parent: CatBones.handR,
+      parent: CatBones.armLowerR,
       pivotX: 0,
-      pivotY: -12 * armWidthScale,
+      pivotY: 41 - 12 * armWidthScale,
       z: 16,
-      restRotation: -0.08,
       drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
         width: 18 * armWidthScale,
@@ -1058,29 +1062,24 @@ RigSpec buildCatInSuitRig({
     const Bone(
       id: CatBones.clavicleR,
       parent: CatBones.chest,
-      pivotX: 35,
+      // Sternoclavicular pivot. The shoulder socket child supplies the
+      // remaining 31-unit lever to the armhole at rest (4 + 31 = 35).
+      pivotX: 4,
       pivotY: -6,
       z: 14,
     ),
     const Bone(
       id: CatBones.clavicleL,
       parent: CatBones.chest,
-      pivotX: -35,
+      pivotX: -4,
       pivotY: -6,
       z: 14,
     ),
-    // Sternum-pivot shoulder-line levers. The clavicle's own pivot sits AT
-    // the shoulder corner (x = ±35), so its rotation cannot displace the
-    // jacket contour there — a point at the pivot doesn't move when the
-    // pivot rotates. That geometry is why an authored clavicle see-saw
-    // solves (~±0.42) yet the rendered yoke stays a "level, locked
-    // shoulder line" (the R13 finding). A real clavicle rotates about the
-    // STERNOCLAVICULAR joint at the centreline, putting ~30 units of lever
-    // between pivot and acromion. These transform-only handles restore
-    // that lever: the scene's shoulder-line pass mirrors each clavicle's
-    // resolved rotation onto its handle, and the jacket's armhole/yoke
-    // vertices ride the handle — so a clavicle drop finally translates the
-    // rendered shoulder corner down instead of rotating in place.
+    // Jacket shoulder-line levers share the same sternum pivot as the real
+    // clavicles. They remain separate transform-only handles because the
+    // tailored jacket surface needs subtler, lagged follow-through than the
+    // anatomical socket/arm chain; both now translate from the same centreline
+    // origin instead of disagreeing about where the shoulder begins.
     const Bone(
       id: CatBones.shoulderLineR,
       parent: CatBones.chest,
@@ -1252,10 +1251,9 @@ RigSpec buildCatInSuitRig({
     Bone(
       id: CatBones.shoulderSocketL,
       parent: CatBones.clavicleL,
-      pivotX: 0,
-      pivotY: 10,
+      pivotX: -31,
+      pivotY: 0,
       z: 15,
-      restRotation: 0.14,
       drawable: _tapered(
         26,
         19,
@@ -1269,7 +1267,7 @@ RigSpec buildCatInSuitRig({
     ),
     Bone(
       id: CatBones.armUpperL,
-      parent: CatBones.clavicleL,
+      parent: CatBones.shoulderSocketL,
       pivotX: 0,
       pivotY: 6,
       z: 16,
@@ -1334,11 +1332,10 @@ RigSpec buildCatInSuitRig({
     ),
     Bone(
       id: CatBones.wristCuffL,
-      parent: CatBones.handL,
+      parent: CatBones.armLowerL,
       pivotX: 0,
-      pivotY: -12 * armWidthScale,
+      pivotY: 41 - 12 * armWidthScale,
       z: 17,
-      restRotation: 0.08,
       drawable: BoneDrawable(
         kind: BoneShapeKind.roundedRect,
         width: 18 * armWidthScale,
@@ -1695,16 +1692,17 @@ RigSpec buildCatInSuitRig({
     // and elbow to a slim wrist with a slight forearm swell. This inverts the
     // old "sausage" tell (thinnest at the attachment point).
     //
-    // ANTI-HINGE: the first TWO joints (clavicle, socket) are both rigidly
-    // clavicle-anchored, so the ribbon's root section cannot rotate with the
-    // arm. When the arm swings, the curve bends over the socket→bicep span —
-    // a fabric crease BELOW the anchored deltoid dome — instead of the whole
-    // shoulder cap sweeping around a pin like a paper-doll rivet.
+    // The ribbon begins at the anatomical shoulder socket, then takes a short
+    // six-unit deltoid root through armUpper before the bicep. The socket is the
+    // end of the sternum-pivot clavicle lever, so shoulder elevation translates
+    // this whole root mass while humeral rotation bends below it. This replaces
+    // the old sibling-chain construction where the rendered socket and the IK
+    // humerus could disagree even though each was individually legal.
     LimbRibbonSpec(
       id: 'arm.R.ribbon',
       jointBoneIds: const [
-        CatBones.clavicleR,
         CatBones.shoulderSocketR,
+        CatBones.armUpperR,
         CatBones.armBicepR,
         CatBones.armLowerR,
         CatBones.armForearmR,
@@ -1762,8 +1760,8 @@ RigSpec buildCatInSuitRig({
     LimbRibbonSpec(
       id: 'arm.L.ribbon',
       jointBoneIds: const [
-        CatBones.clavicleL,
         CatBones.shoulderSocketL,
+        CatBones.armUpperL,
         CatBones.armBicepL,
         CatBones.armLowerL,
         CatBones.armForearmL,
