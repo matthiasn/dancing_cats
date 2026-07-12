@@ -30,16 +30,144 @@ const List<double> kDanceLaneUpperBodyPhaseOffsets = [0, 0.006, -0.008];
 const List<double> kMovingLaneAmplitudeScale = [1.0, 0.88, 0.95];
 
 /// CALL-AND-RESPONSE echo, in normalized clip phase: the side-answer phrase,
-/// when scored on the RIGHT FLANK, answers half a beat behind the lead's
-/// call instead of moving simultaneously (round-2 cartoon/coach finding).
-/// Negative = the lane samples earlier content, i.e. arrives late. Half a
-/// beat on Moving's eight-beat loop = 0.5/8. Applied by baking a shifted
+/// when scored on the RIGHT FLANK, answers ONE BEAT behind the lead's call
+/// instead of moving simultaneously (round-2/3 cartoon/coach finding).
+/// Negative = the lane samples earlier content, i.e. arrives late. One beat
+/// on Moving's eight-beat loop = 1/8. Applied by baking a shifted
 /// SCORE-LEVEL clip variant (see `DancePerformance`'s echo side-answer):
 /// applying it as a production-stage wrapper popped a 0.125s upper-body
 /// teleport at the dance→idle exit, because a phase offset wrapped around a
 /// BLENDED clip shifts the outgoing side by the two clips' duration ratio
 /// rather than by its own phase.
-const double kMovingEchoPhase = -0.5 / 8;
+///
+/// The displacement is a FULL beat (not the half-beat first tried): the
+/// shifted contact spans put the variant's first support handoff at
+/// `shift × loop` seconds after a statement entry, and a half-beat put that
+/// handoff INSIDE the entry blend window — the to-side anchor changed feet
+/// mid-blend and the flank's foot measured 7.4-11.2 units/frame² against
+/// the 7-unit band at every chorus entry. At one beat the handoff lands
+/// ~0.52s in, clear of every blend window — and a beat-late answer reads
+/// more clearly as an answer anyway.
+const double kMovingEchoPhase = -1 / 8;
+
+/// The GREY (left-flank) canon delay: TWO beats behind the lead's call in
+/// the hook statement — a featured, unmistakable answer voice (round-3
+/// coach: "the trio reads lead + echo + filler"), distinct from the right
+/// flank's one-beat echo so the three voices never collapse into two. Two
+/// beats is span-grid-aligned (the quarter-note support rota maps onto
+/// itself), so the canon variant has no seam stubs at all.
+const double kMovingCanonPhase = -2 / 8;
+
+/// Returns [clip] with EVERYTHING shifted by [phaseShift] — every joint
+/// channel, hand and foot IK target, the root, and the phase-ranged data
+/// (contact spans, ground spans, z-order windows) — so the whole dancer,
+/// steps and weight changes included, performs the same phrase displaced in
+/// time. This is the full-body call-and-response variant: shifting only the
+/// upper body reads as a timing offset (round-3 measured whole-body
+/// correlation still peaking at lag 0 because the shared feet dominate);
+/// shifting the whole clip makes the answer a separate visible event.
+///
+/// Spans/windows that cross the loop seam are split in two; the runtime's
+/// same-bone first/last wrap-join re-fuses the contact pair. Because the
+/// motion AND its contact metadata shift together, the span-vs-authored-feet
+/// consistency that protects the support anchor is preserved by
+/// construction (gated by test).
+Clip wholeClipPhaseShiftedClip(Clip clip, double phaseShift) {
+  if (phaseShift == 0 || !clip.loop || clip.duration <= 0) return clip;
+
+  double shifted(double p) {
+    var s = p + phaseShift;
+    s -= s.floorToDouble();
+    return s < 0 ? s + 1 : s;
+  }
+
+  // Content authored at phase q appears at playback phase q + delay.
+  final delay = -phaseShift;
+  double moved(double edge) {
+    var e = edge + delay;
+    e -= e.floorToDouble();
+    return e < 0 ? e + 1 : e;
+  }
+
+  List<GroundSpan> shiftSpans(List<GroundSpan> spans) {
+    final out = <GroundSpan>[];
+    for (final s in spans) {
+      final a = moved(s.start);
+      // A span ending exactly at 1 must keep ending at the seam, not at 0.
+      final rawB = moved(s.end);
+      final b = s.end > s.start && rawB <= a ? rawB + 1 : rawB;
+      if (b <= 1) {
+        out.add(GroundSpan(s.bone, a, b));
+      } else {
+        out
+          ..add(GroundSpan(s.bone, a, 1))
+          ..add(GroundSpan(s.bone, 0, b - 1));
+      }
+    }
+    out.sort((x, y) => x.start.compareTo(y.start));
+    return out;
+  }
+
+  List<ZOrderSwapWindow> shiftWindows(List<ZOrderSwapWindow> windows) {
+    final out = <ZOrderSwapWindow>[];
+    for (final w in windows) {
+      final a = moved(w.start);
+      final rawB = moved(w.end);
+      final b = w.end > w.start && rawB <= a ? rawB + 1 : rawB;
+      ZOrderSwapWindow part(double s, double e) => ZOrderSwapWindow(
+        boneA: w.boneA,
+        boneB: w.boneB,
+        start: s,
+        end: e,
+        swap: w.swap,
+        shadeBehind: w.shadeBehind,
+      );
+      if (b <= 1) {
+        out.add(part(a, b));
+      } else {
+        out
+          ..add(part(a, 1))
+          ..add(part(0, b - 1));
+      }
+    }
+    out.sort((x, y) => x.start.compareTo(y.start));
+    return out;
+  }
+
+  return Clip(
+    name: clip.name,
+    family: clip.family,
+    duration: clip.duration,
+    channels: {
+      for (final entry in clip.channels.entries)
+        entry.key: PhaseWarpedJointChannel(entry.value, shifted),
+    },
+    loop: clip.loop,
+    root: PhaseShiftedRootChannel(clip.root, phaseShift),
+    locomotionSpeed: clip.locomotionSpeed,
+    groundSpans: shiftSpans(clip.groundSpans),
+    contactSpans: shiftSpans(clip.contactSpans),
+    contactPinning: clip.contactPinning,
+    limbTargets: [
+      for (final target in clip.limbTargets)
+        target.withChannel(
+          PhaseWarpedIkTargetChannel(target.channel, shifted),
+        ),
+    ],
+    supportFootWorldAnchor: clip.supportFootWorldAnchor,
+    supportFootWorldAnchorStrength: clip.supportFootWorldAnchorStrength,
+    supportFootWorldAnchorVerticalBoost:
+        clip.supportFootWorldAnchorVerticalBoost,
+    danceHeadBobScale: clip.danceHeadBobScale,
+    danceHeadLevelClampMin: clip.danceHeadLevelClampMin,
+    armReachScale: clip.armReachScale,
+    headLateralStabilize: clip.headLateralStabilize,
+    enforceSoleFloor: clip.enforceSoleFloor,
+    transitionPlan: clip.transitionPlan,
+    zOrderSwaps: shiftWindows(clip.zOrderSwaps),
+    dynamics: clip.dynamics,
+  );
+}
 
 /// Width of the Moving upper-body loop recovery at either side of the phrase
 /// seam, in normalized six-second clip phase. At production's 1.5x clock this

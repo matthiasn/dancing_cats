@@ -1410,6 +1410,22 @@ class ScaledRootChannel extends RootChannel {
   }
 }
 
+/// Samples an inner root channel at a constant cyclic phase offset — the
+/// root half of a whole-clip phase shift (see `wholeClipPhaseShiftedClip`).
+class PhaseShiftedRootChannel extends RootChannel {
+  const PhaseShiftedRootChannel(this.inner, this.shift);
+
+  final RootChannel inner;
+  final double shift;
+
+  @override
+  ({double dx, double dy, double rotation}) sample(double p) {
+    var s = p + shift;
+    s -= s.floorToDouble();
+    return inner.sample(s < 0 ? s + 1 : s);
+  }
+}
+
 /// Multiplies an inner joint channel's scaleY — the accent's mass travelling
 /// through the TORSO: a small chest compression riding the same envelope as
 /// the plié, so strong hits read muscled through the trunk instead of

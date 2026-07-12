@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:dancing_cats/features/character/demo/dance_camera_director.dart';
@@ -160,7 +161,11 @@ class DanceStageView extends StatelessWidget {
     // pools, gel-cycling on the tempo, so a cat's glow always matches its pool.
     final rig = danceStageRig(bpm);
     final samples = useNewBackdrop
-        ? rig.sample(time: lightsTimeSeconds, beat: beat, bloom: bodyAccent)
+        ? rig.sample(
+            time: lightsTimeSeconds,
+            beat: beat,
+            bloom: danceLightAccentOf(bodyAccent),
+          )
         : const <StageLightSample>[];
     final backlights = danceMemberBacklights(samples);
 
@@ -267,7 +272,9 @@ class DanceStageView extends StatelessWidget {
                     // [paintDropBloom] so the two paint paths can't drift.
                     if (useNewBackdrop && bodyAccent > 0.01)
                       CustomPaint(
-                        painter: DropBloomPainter(bodyAccent),
+                        painter: DropBloomPainter(
+                          danceLightAccentOf(bodyAccent),
+                        ),
                         child: const SizedBox.expand(),
                       ),
                   ],
@@ -535,6 +542,15 @@ CharacterPainter danceCharacterPainter({
 /// previously each hand-copied the same scaling and could drift.
 double danceBodyAccentEnvelope(double rawEnvelope, double energyLevel) =>
     rawEnvelope * (0.45 + 0.55 * energyLevel);
+
+/// The LIGHTS' view of the accent envelope: a sqrt curve that lifts the
+/// mid-strength hits toward full brightness. The body deliberately scales
+/// its response linearly with strength (a soft hit earns a soft plié), but
+/// a bloom at 35% intensity barely reads on camera — round-3 MV: the
+/// vocal-tier hits were "danced but never lit". The curve keeps zero at
+/// zero and full at full; only the middle lifts.
+double danceLightAccentOf(double bodyAccent) =>
+    bodyAccent <= 0 ? 0 : math.sqrt(bodyAccent.clamp(0.0, 1.0));
 
 /// How many root-units a full-strength onset drops a Moving dancer's body.
 /// Deliberately shallower than the catalogue's [kDanceAccentDropUnits]: the

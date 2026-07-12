@@ -840,8 +840,12 @@ class CharacterScene {
       // "Moving" uses long shoulder-led arm arcs; a full 0.45-radian paw whip
       // reads like a loose prop at this calmer tempo. Retain a visible delayed
       // wrist response, but keep it subordinate to the forearm gesture.
-      final gain = clip.belongsToFamily('moving') ? 0.65 : _kWristFollowGain;
-      final cap = clip.belongsToFamily('moving') ? 0.14 : _kWristFollowCap;
+      // Raised 0.65/0.14 -> 0.85/0.20 with the pocket-swing/accent build:
+      // round-3 animator measured the trailing mitt parking frozen at the hip
+      // for 4+ frames on the lead crops — the paw needs enough follow-through
+      // to visibly drag into and out of swings at review magnification.
+      final gain = clip.belongsToFamily('moving') ? 0.85 : _kWristFollowGain;
+      final cap = clip.belongsToFamily('moving') ? 0.20 : _kWristFollowCap;
       final delta = _clampMagnitude(v * gain, cap);
       if (delta.abs() < 0.001) continue;
       joints ??= Map<String, JointPose>.of(pose.joints);

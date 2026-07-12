@@ -164,6 +164,82 @@ void main() {
     });
   });
 
+  group('wholeClipPhaseShiftedClip', () {
+    test('shifts channels, root, targets, and phase-ranged data together', () {
+      const joint = KeyframeChannel([
+        Keyframe(p: 0, ease: Ease.linear),
+        Keyframe(p: 1, rotation: 1, ease: Ease.linear),
+      ]);
+      const foot = KeyframeIkTargetChannel([
+        IkTargetKeyframe(p: 0, x: 0, y: 110),
+        IkTargetKeyframe(p: 0.5, x: 10, y: 110),
+        IkTargetKeyframe(p: 1, x: 0, y: 110),
+      ]);
+      const clip = Clip(
+        name: 'shiftme',
+        duration: 6,
+        channels: {'torso': joint},
+        limbTargets: [
+          LimbIkTarget(
+            upperBoneId: 'leg_upper.R',
+            lowerBoneId: 'leg_lower.R',
+            endBoneId: 'foot.R',
+            anchorBoneId: 'hips',
+            channel: foot,
+          ),
+        ],
+        contactSpans: [GroundSpan('foot.R', 0.5, 0.9)],
+        zOrderSwaps: [
+          ZOrderSwapWindow(
+            boneA: 'hand.L',
+            boneB: 'hand.R',
+            start: 0.85,
+            end: 0.95,
+          ),
+        ],
+      );
+      const shift = -0.25; // content arrives a quarter-loop LATE
+      final late = wholeClipPhaseShiftedClip(clip, shift);
+
+      // Channels and targets sample earlier content.
+      expect(
+        late.channels['torso']!.sample(0.5).rotation,
+        closeTo(joint.sample(0.25).rotation, 1e-9),
+      );
+      expect(
+        late.limbTargets.single.channel.sample(0.5).x,
+        closeTo(foot.sample(0.25).x, 1e-9),
+      );
+      // Spans move WITH the content: [0.5, 0.9] + 0.25 delay = [0.75, 1.15]
+      // → split at the seam into [0.75, 1] and [0, 0.15], sorted.
+      expect(late.contactSpans, hasLength(2));
+      expect(late.contactSpans[0].start, closeTo(0, 1e-9));
+      expect(late.contactSpans[0].end, closeTo(0.15, 1e-9));
+      expect(late.contactSpans[1].start, closeTo(0.75, 1e-9));
+      expect(late.contactSpans[1].end, closeTo(1, 1e-9));
+      expect(late.contactSpans.map((s) => s.bone).toSet(), {'foot.R'});
+      // Z-order windows shift the same way (no split needed here):
+      // [0.85, 0.95] + 0.25 → [0.10, 0.20].
+      expect(late.zOrderSwaps.single.start, closeTo(0.10, 1e-9));
+      expect(late.zOrderSwaps.single.end, closeTo(0.20, 1e-9));
+    });
+
+    test('zero shift and one-shot clips pass through untouched', () {
+      final clip = _loopingClip();
+      expect(identical(wholeClipPhaseShiftedClip(clip, 0), clip), isTrue);
+      const oneShot = Clip(
+        name: 'kick',
+        duration: 1,
+        loop: false,
+        channels: {},
+      );
+      expect(
+        identical(wholeClipPhaseShiftedClip(oneShot, -0.25), oneShot),
+        isTrue,
+      );
+    });
+  });
+
   group('accentDroppedClip chest compression', () {
     test('compresses only the chest/torso scaleY on the hit', () {
       const chest = KeyframeChannel([Keyframe(p: 0)]);

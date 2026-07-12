@@ -824,7 +824,7 @@ void main() {
   });
 
   group('call-and-response echo', () {
-    test('the right-flank side-answer answers half a beat late', () {
+    test('the flanks answer with their WHOLE bodies, spans included', () {
       final perf = _perf(
         sections: const [
           (start: 0, end: 6, label: 'A', energetic: true, level: 1),
@@ -837,30 +837,61 @@ void main() {
         0,
         sectionSeconds: 16,
       );
-      // Lane 2 carries the echoed side-answer: same name/paths, upper body
-      // sampled half a beat behind the plain clip. Feet stay on the shared
-      // clock (support handoffs must land together).
+      // Right flank: the side-answer half a beat late — hands AND feet (an
+      // upper-body-only echo measured as lag-0 whole-body correlation).
       final echo = call.ensemble[2];
       final plain = CatClips.movingGrooveSideAnswer;
       expect(echo.name, plain.name);
-      final echoHand = echo.limbTargets
+      for (final bone in [CatBones.handR, CatBones.footL]) {
+        final e = echo.limbTargets
+            .singleWhere((t) => t.endBoneId == bone)
+            .channel;
+        final pl = plain.limbTargets
+            .singleWhere((t) => t.endBoneId == bone)
+            .channel;
+        expect(
+          e.sample(0.4).y,
+          closeTo(pl.sample(0.4 + kMovingEchoPhase).y, 1e-9),
+          reason: '$bone must answer late with the rest of the body',
+        );
+      }
+      // The contact spans shifted WITH the feet: the declared support foot
+      // must still be authored on the deck through every span (the crush
+      // invariant that protects the world anchor).
+      for (final span in echo.contactSpans) {
+        final channel = echo.limbTargets
+            .singleWhere((t) => t.endBoneId == span.bone)
+            .channel;
+        for (var i = 0; i <= 32; i++) {
+          final p = span.start + (span.end - span.start) * i / 32;
+          expect(
+            channel.sample(p).y,
+            greaterThan(104),
+            reason:
+                'shifted span ${span.bone} '
+                '${span.start.toStringAsFixed(3)}..'
+                '${span.end.toStringAsFixed(3)} must keep its foot planted '
+                'at phase ${p.toStringAsFixed(3)}',
+          );
+        }
+      }
+      // Grey flank: the low counter a FULL beat late — a featured canon
+      // voice distinct from the right flank's half-beat echo.
+      final canon = call.ensemble[1];
+      final plainLow = CatClips.movingGrooveLowCounter;
+      expect(canon.name, plainLow.name);
+      final canonHand = canon.limbTargets
           .singleWhere((t) => t.endBoneId == CatBones.handR)
           .channel;
-      final plainHand = plain.limbTargets
+      final plainHand = plainLow.limbTargets
           .singleWhere((t) => t.endBoneId == CatBones.handR)
           .channel;
-      const p = 0.4;
       expect(
-        echoHand.sample(p).y,
-        closeTo(plainHand.sample(p + kMovingEchoPhase).y, 1e-9),
+        canonHand.sample(0.4).y,
+        closeTo(plainHand.sample(0.4 + kMovingCanonPhase).y, 1e-9),
       );
-      final echoFoot = echo.limbTargets
-          .singleWhere((t) => t.endBoneId == CatBones.footL)
-          .channel;
-      final plainFoot = plain.limbTargets
-          .singleWhere((t) => t.endBoneId == CatBones.footL)
-          .channel;
-      expect(echoFoot.sample(p).y, closeTo(plainFoot.sample(p).y, 1e-9));
+      expect(canon.root.sample(0.4).dy,
+          closeTo(plainLow.root.sample(0.4 + kMovingCanonPhase).dy, 1e-9));
     });
   });
 
@@ -880,14 +911,14 @@ void main() {
       expect(perf.anticipationAt(0.95), closeTo(0.5, 1e-9));
       expect(perf.anticipationAt(1 - 1e-6), closeTo(1, 1e-8));
       expect(perf.accentAt(1), 1);
-      // Drop: recovers to neutral over the first 55% of the 0.3s window...
-      expect(perf.accentAt(1 + 0.3 * 0.275), closeTo(0.5, 1e-9));
-      expect(perf.accentAt(1 + 0.3 * 0.55), closeTo(0, 1e-9));
+      // Drop: recovers to neutral over the first 40% of the 0.42s window...
+      expect(perf.accentAt(1 + 0.42 * 0.2), closeTo(0.5, 1e-9));
+      expect(perf.accentAt(1 + 0.42 * 0.4), closeTo(0, 1e-9));
       // ...then BREATHES past neutral (the body lifts slightly above its
       // groove line — hit-and-breathe, not sink-and-return) and settles.
-      expect(perf.accentAt(1 + 0.3 * 0.775), closeTo(-0.15, 1e-9));
-      expect(perf.accentAt(1.3), closeTo(0, 1e-9));
-      expect(perf.accentAt(1.31), 0);
+      expect(perf.accentAt(1 + 0.42 * 0.7), closeTo(-0.22, 1e-9));
+      expect(perf.accentAt(1.42), closeTo(0, 1e-9));
+      expect(perf.accentAt(1.43), 0);
     });
 
     test('peak picking spaces accents and rescues soft-mix sections', () {

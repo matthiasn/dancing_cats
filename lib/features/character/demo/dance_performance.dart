@@ -496,17 +496,21 @@ class DancePerformance {
   // every other beat — never a bob on every 16th, which reads hectic.
   static const double _kAccentCandidateFloor = 0.35;
   static const double _kAccentMinSpacingSec = 1;
-  static const double _kAccentDecaySec = 0.3;
+  static const double _kAccentDecaySec = 0.42;
 
   /// How far past neutral the accent's release BREATHES back up, as a
   /// fraction of the drop (see [accentAt]'s breathe lobe). A plié that only
   /// sinks and returns reads as a lean; real weight rebounds slightly above
-  /// neutral before settling (coach: "hit and breathe").
-  static const double _kAccentReboundDepth = 0.15;
+  /// neutral before settling (coach: "hit and breathe"). Deepened 0.15→0.22
+  /// and the window extended 0.3→0.42s with a faster recovery share, per the
+  /// round-3 MV read: the first chorus "nods where the finale punches" — the
+  /// pop after the dip needs to read at roughly a third of the dip over
+  /// ~250ms, not vanish inside 130ms.
+  static const double _kAccentReboundDepth = 0.22;
 
   /// Fraction of [_kAccentDecaySec] spent recovering from the drop; the rest
   /// carries the breathe lobe past neutral and settles.
-  static const double _kAccentRecoverShare = 0.55;
+  static const double _kAccentRecoverShare = 0.4;
 
   /// Window (seconds) BEFORE a strong onset over which the body "coils" in
   /// anticipation of the hit — a short gather that releases into [accentAt]'s
@@ -629,15 +633,23 @@ class DancePerformance {
   static final Clip _movingLowCounter = CatClips.movingGrooveLowCounter;
   static final Clip _movingSideAnswer = CatClips.movingGrooveSideAnswer;
 
-  /// The side-answer with the half-beat CALL-AND-RESPONSE echo baked into its
-  /// upper body (see [kMovingEchoPhase]) — scored on the RIGHT FLANK so the
-  /// lead's call lands first and the flank answers, instead of the whole trio
-  /// hitting simultaneously. A score-level variant (not a production-stage
-  /// wrapper) so transitions blend it as an ordinary clip on its own clock.
-  static final Clip _movingSideAnswerEcho = upperBodyPhaseOffsetClip(
+  /// The side-answer answering ONE BEAT behind the lead's call — the
+  /// WHOLE dancer (steps, weight changes, contacts included, see
+  /// [wholeClipPhaseShiftedClip]): an upper-body-only echo measured as lag-0
+  /// whole-body correlation because the shared feet dominated. A score-level
+  /// variant (not a production-stage wrapper) so transitions blend it as an
+  /// ordinary clip on its own clock.
+  static final Clip _movingSideAnswerEcho = wholeClipPhaseShiftedClip(
     CatClips.movingGrooveSideAnswer,
     kMovingEchoPhase,
-    upperBodyBoneIds: kDanceUpperBodyWarpBoneIds,
+  );
+
+  /// The grey flank's FEATURED canon voice: the low counter two beats
+  /// behind the lead in the hook call, so the trio reads as three voices —
+  /// call, late answer, later ground echo — instead of lead + echo + filler.
+  static final Clip _movingLowCounterCanon = wholeClipPhaseShiftedClip(
+    CatClips.movingGrooveLowCounter,
+    kMovingCanonPhase,
   );
   static final Clip _movingVerse = CatClips.movingVerseGroove;
   static final Clip _movingVerseWindow = CatClips.movingVerseWindow;
@@ -824,7 +836,7 @@ class DancePerformance {
   }) {
     final hookCall = (
       lead: _moving,
-      ensemble: [_moving, _movingLowCounter, _movingSideAnswerEcho],
+      ensemble: [_moving, _movingLowCounterCanon, _movingSideAnswerEcho],
     );
     final hookAnswer = (
       lead: _movingSideAnswer,

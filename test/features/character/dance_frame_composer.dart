@@ -245,7 +245,11 @@ class DanceFrameComposer {
       perf.anticipationAt(pos),
       stage.energyLevel,
     );
-    final samples = _stageRig.sample(time: pos, beat: beat, bloom: bodyAccent);
+    final samples = _stageRig.sample(
+      time: pos,
+      beat: beat,
+      bloom: danceLightAccentOf(bodyAccent),
+    );
 
     // Same trio compositor the live DanceStageView builds — one source of truth.
     danceCharacterPainter(
@@ -264,7 +268,7 @@ class DanceFrameComposer {
       onDancerAnchors: (anchors) => _dancerAnchors = anchors,
     ).paint(canvas, size);
 
-    _paintDropBloom(canvas, bodyAccent);
+    _paintDropBloom(canvas, danceLightAccentOf(bodyAccent));
 
     if (captions && perf.words.isNotEmpty) _paintCaption(canvas, pos);
   }
