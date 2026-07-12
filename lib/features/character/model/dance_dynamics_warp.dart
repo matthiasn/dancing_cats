@@ -29,6 +29,18 @@ const List<double> kDanceLaneUpperBodyPhaseOffsets = [0, 0.006, -0.008];
 /// arm velocities past the full-song continuity bands.
 const List<double> kMovingLaneAmplitudeScale = [1.0, 0.88, 0.95];
 
+/// CALL-AND-RESPONSE echo, in normalized clip phase: the side-answer phrase,
+/// when scored on the RIGHT FLANK, answers half a beat behind the lead's
+/// call instead of moving simultaneously (round-2 cartoon/coach finding).
+/// Negative = the lane samples earlier content, i.e. arrives late. Half a
+/// beat on Moving's eight-beat loop = 0.5/8. Applied by baking a shifted
+/// SCORE-LEVEL clip variant (see `DancePerformance`'s echo side-answer):
+/// applying it as a production-stage wrapper popped a 0.125s upper-body
+/// teleport at the dance→idle exit, because a phase offset wrapped around a
+/// BLENDED clip shifts the outgoing side by the two clips' duration ratio
+/// rather than by its own phase.
+const double kMovingEchoPhase = -0.5 / 8;
+
 /// Width of the Moving upper-body loop recovery at either side of the phrase
 /// seam, in normalized six-second clip phase. At production's 1.5x clock this
 /// is about 180ms: enough to carry arm momentum through the wrap without
@@ -416,18 +428,127 @@ const double kDanceAccentDropUnits = 16;
 /// audit measured the export's biggest bloom riding a rising lead in the
 /// finale). Ducking the bob hands the vertical to the accent envelope exactly
 /// while the hit owns the moment, then returns it as the envelope decays.
-Clip accentDroppedClip(Clip clip, double dropDy, {double bobDuck = 0}) {
-  if ((dropDy == 0 && bobDuck == 0) || clip.duration <= 0) return clip;
+Clip accentDroppedClip(
+  Clip clip,
+  double dropDy, {
+  double bobDuck = 0,
+  double chestCompress = 0,
+}) {
+  if ((dropDy == 0 && bobDuck == 0 && chestCompress == 0) ||
+      clip.duration <= 0) {
+    return clip;
+  }
   final ducked = bobDuck > 0
       ? ScaledRootChannel(clip.root, (1 - bobDuck).clamp(0.0, 1.0))
       : clip.root;
+  // The hit's mass travels THROUGH the trunk: a small chest compression on
+  // the same envelope as the plié (round-2 biomech: "torso pitch and hip
+  // angle stay rigid through the hit — spring-loaded rather than
+  // muscle-damped"; animator: accents carried "by limbs and head only").
+  final channels = chestCompress > 0
+      ? {
+          for (final entry in clip.channels.entries)
+            entry.key: (entry.key == 'chest' || entry.key == 'torso')
+                ? CompressedJointChannel(
+                    entry.value,
+                    (1 - chestCompress).clamp(0.0, 1.0),
+                  )
+                : entry.value,
+        }
+      : clip.channels;
+  return Clip(
+    name: clip.name,
+    family: clip.family,
+    duration: clip.duration,
+    channels: channels,
+    loop: clip.loop,
+    root: RootDyOffsetChannel(ducked, dropDy),
+    locomotionSpeed: clip.locomotionSpeed,
+    groundSpans: clip.groundSpans,
+    contactSpans: clip.contactSpans,
+    contactPinning: clip.contactPinning,
+    limbTargets: clip.limbTargets,
+    supportFootWorldAnchor: clip.supportFootWorldAnchor,
+    supportFootWorldAnchorStrength: clip.supportFootWorldAnchorStrength,
+    supportFootWorldAnchorVerticalBoost:
+        clip.supportFootWorldAnchorVerticalBoost,
+    danceHeadBobScale: clip.danceHeadBobScale,
+    danceHeadLevelClampMin: clip.danceHeadLevelClampMin,
+    armReachScale: clip.armReachScale,
+    headLateralStabilize: clip.headLateralStabilize,
+    enforceSoleFloor: clip.enforceSoleFloor,
+    transitionPlan: clip.transitionPlan,
+    zOrderSwaps: clip.zOrderSwaps,
+    dynamics: clip.dynamics,
+  );
+}
+
+/// Peak quiet-step body load, in root units: how far the pelvis dips when a
+/// foot is authored fully airborne (scaled by lift height up to
+/// [kDanceSingleSupportLiftRef]). Independent of the accent envelope — real
+/// weight transfers load the stance even where the music is quiet (round-2
+/// biomech: "a weight transfer with zero pelvic dip still reads faintly
+/// weightless where the groove is quiet").
+const double kDanceSingleSupportDipUnits = 3.2;
+
+/// Foot lift (rig units above its planted level) that earns the full
+/// single-support dip.
+const double kDanceSingleSupportLiftRef = 20;
+
+/// Returns [clip] with a small phase-driven root dip while either foot is
+/// authored off the deck — the body LOADS its quiet steps. The envelope is
+/// precomputed from the authored foot IK targets at 64 samples (each foot's
+/// planted level is its own loop maximum y) and interpolated linearly, so
+/// the dip follows exactly the footwork that is already there. Applied
+/// inside the production-clip cache; same clip back when the clip has no
+/// foot targets or never lifts.
+Clip singleSupportLoadedClip(
+  Clip clip, {
+  double dipUnits = kDanceSingleSupportDipUnits,
+}) {
+  if (!clip.loop || clip.duration <= 0 || dipUnits == 0) return clip;
+  final feet = [
+    for (final t in clip.limbTargets)
+      if (t.endBoneId.startsWith('foot')) t.channel,
+  ];
+  if (feet.isEmpty) return clip;
+
+  const n = 64;
+  final lift = List<double>.filled(n, 0);
+  for (final foot in feet) {
+    var planted = double.negativeInfinity;
+    final ys = List<double>.generate(n, (i) => foot.sample(i / n).y);
+    for (final y in ys) {
+      if (y > planted) planted = y;
+    }
+    for (var i = 0; i < n; i++) {
+      final raised = planted - ys[i];
+      if (raised > lift[i]) lift[i] = raised;
+    }
+  }
+  var any = false;
+  final dip = List<double>.generate(n, (i) {
+    final u = (lift[i] / kDanceSingleSupportLiftRef).clamp(0.0, 1.0);
+    final d = dipUnits * u * u * (3 - 2 * u);
+    if (d > 0.01) any = true;
+    return d;
+  });
+  if (!any) return clip;
+
+  double dipOf(double p) {
+    final x = (p - p.floorToDouble()) * n;
+    final i = x.floor() % n;
+    final f = x - x.floorToDouble();
+    return dip[i] * (1 - f) + dip[(i + 1) % n] * f;
+  }
+
   return Clip(
     name: clip.name,
     family: clip.family,
     duration: clip.duration,
     channels: clip.channels,
     loop: clip.loop,
-    root: RootDyOffsetChannel(ducked, dropDy),
+    root: EnvelopeRootDyChannel(clip.root, dipOf),
     locomotionSpeed: clip.locomotionSpeed,
     groundSpans: clip.groundSpans,
     contactSpans: clip.contactSpans,

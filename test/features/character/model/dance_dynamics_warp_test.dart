@@ -110,6 +110,76 @@ void main() {
     });
   });
 
+  group('singleSupportLoadedClip', () {
+    const ground = 110.0;
+    const lifted = 90.0;
+    LimbIkTarget foot(String side, IkTargetChannel channel) => LimbIkTarget(
+      upperBoneId: 'leg_upper.$side',
+      lowerBoneId: 'leg_lower.$side',
+      endBoneId: 'foot.$side',
+      anchorBoneId: 'hips',
+      channel: channel,
+    );
+
+    test('dips the root while a foot is authored airborne', () {
+      // footR lifts 20 units around phase 0.5; footL stays planted.
+      const liftKeys = KeyframeIkTargetChannel([
+        IkTargetKeyframe(p: 0, x: 58, y: ground),
+        IkTargetKeyframe(p: 0.4, x: 58, y: ground),
+        IkTargetKeyframe(p: 0.5, x: 58, y: lifted),
+        IkTargetKeyframe(p: 0.6, x: 58, y: ground),
+        IkTargetKeyframe(p: 1, x: 58, y: ground),
+      ]);
+      const plantedKeys = FixedIkTargetChannel(x: -58, y: ground);
+      final clip = _loopingClip(
+        limbTargets: [foot('R', liftKeys), foot('L', plantedKeys)],
+      );
+      final loadedClip = singleSupportLoadedClip(clip);
+
+      expect(identical(loadedClip, clip), isFalse);
+      final restingDy = clip.root.sample(0.2).dy;
+      expect(
+        loadedClip.root.sample(0.2).dy,
+        closeTo(restingDy, 0.15),
+        reason: 'both feet planted → no added load',
+      );
+      final liftDip =
+          loadedClip.root.sample(0.5).dy - clip.root.sample(0.5).dy;
+      expect(
+        liftDip,
+        closeTo(kDanceSingleSupportDipUnits, 0.2),
+        reason: 'a full 20-unit lift earns the full single-support dip',
+      );
+    });
+
+    test('a clip whose feet never leave the deck is untouched', () {
+      const planted = FixedIkTargetChannel(x: 58, y: ground);
+      final clip = _loopingClip(limbTargets: [foot('R', planted)]);
+      expect(identical(singleSupportLoadedClip(clip), clip), isTrue);
+    });
+
+    test('a clip with no foot targets is untouched', () {
+      final clip = _loopingClip();
+      expect(identical(singleSupportLoadedClip(clip), clip), isTrue);
+    });
+  });
+
+  group('accentDroppedClip chest compression', () {
+    test('compresses only the chest/torso scaleY on the hit', () {
+      const chest = KeyframeChannel([Keyframe(p: 0)]);
+      const hand = KeyframeChannel([Keyframe(p: 0)]);
+      final clip = _loopingClip(channels: {'chest': chest, 'hand.R': hand});
+      final hit = accentDroppedClip(clip, 5, chestCompress: 0.04);
+
+      expect(
+        hit.channels['chest']!.sample(0.3).scaleY,
+        closeTo(0.96, 1e-9),
+      );
+      expect(identical(hit.channels['hand.R'], hand), isTrue);
+      expect(hit.root.sample(0.3).dy - clip.root.sample(0.3).dy, closeTo(5, 1e-9));
+    });
+  });
+
   group('upperBodyDynamicsWarpedClip — identity no-op cases', () {
     test('neutral dynamics returns the SAME clip instance', () {
       final clip = _loopingClip();

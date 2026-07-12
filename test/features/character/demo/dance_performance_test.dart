@@ -1,6 +1,8 @@
 import 'package:dancing_cats/features/character/demo/dance_performance.dart';
 import 'package:dancing_cats/features/character/model/beat_map.dart';
 import 'package:dancing_cats/features/character/model/dance_dynamics.dart';
+import 'package:dancing_cats/features/character/model/dance_dynamics_warp.dart';
+import 'package:dancing_cats/features/character/samples/cat_in_suit.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:glados/glados.dart' as glados;
 
@@ -783,6 +785,73 @@ void main() {
       final stage = _perf().stageAt(2);
       expect(stage.lead.name, 'movingHookLead');
       expect(stage.energetic, isTrue);
+    });
+  });
+
+  group('danceSectionArcTier', () {
+    test('the performance builds: early choruses are capped, the last one '
+        'owns the ceiling, and the valley sits below the verses', () {
+      expect(danceSectionArcTier('chorus', 0), lessThan(1));
+      expect(
+        danceSectionArcTier('chorus', 1),
+        greaterThan(danceSectionArcTier('chorus', 0)),
+      );
+      expect(
+        danceSectionArcTier('chorus', 2),
+        greaterThan(danceSectionArcTier('chorus', 1)),
+      );
+      expect(
+        danceSectionArcTier('bridge', 0),
+        lessThan(danceSectionArcTier('verse', 0)),
+      );
+      expect(
+        danceSectionArcTier('verse', 0),
+        lessThan(danceSectionArcTier('chorus', 0)),
+      );
+      // The arc rides ON the waveform energy — it must never push the
+      // quantized energy outside the effort-cache's 0..1 domain.
+      expect(danceSectionArcTier('chorus', 3), lessThan(1.25));
+    });
+  });
+
+  group('call-and-response echo', () {
+    test('the right-flank side-answer answers half a beat late', () {
+      final perf = _perf(
+        sections: const [
+          (start: 0, end: 6, label: 'A', energetic: true, level: 1),
+        ],
+      );
+      final call = perf.choreoTrioForSection(
+        'chorus',
+        0.05,
+        0.5,
+        0,
+        sectionSeconds: 16,
+      );
+      // Lane 2 carries the echoed side-answer: same name/paths, upper body
+      // sampled half a beat behind the plain clip. Feet stay on the shared
+      // clock (support handoffs must land together).
+      final echo = call.ensemble[2];
+      final plain = CatClips.movingGrooveSideAnswer;
+      expect(echo.name, plain.name);
+      final echoHand = echo.limbTargets
+          .singleWhere((t) => t.endBoneId == CatBones.handR)
+          .channel;
+      final plainHand = plain.limbTargets
+          .singleWhere((t) => t.endBoneId == CatBones.handR)
+          .channel;
+      const p = 0.4;
+      expect(
+        echoHand.sample(p).y,
+        closeTo(plainHand.sample(p + kMovingEchoPhase).y, 1e-9),
+      );
+      final echoFoot = echo.limbTargets
+          .singleWhere((t) => t.endBoneId == CatBones.footL)
+          .channel;
+      final plainFoot = plain.limbTargets
+          .singleWhere((t) => t.endBoneId == CatBones.footL)
+          .channel;
+      expect(echoFoot.sample(p).y, closeTo(plainFoot.sample(p).y, 1e-9));
     });
   });
 

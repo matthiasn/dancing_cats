@@ -21,6 +21,7 @@ import 'package:dancing_cats/features/character/demo/dance_lip_sync.dart';
 import 'package:dancing_cats/features/character/model/beat_map.dart';
 import 'package:dancing_cats/features/character/model/clip.dart';
 import 'package:dancing_cats/features/character/model/dance_dynamics.dart';
+import 'package:dancing_cats/features/character/model/dance_dynamics_warp.dart';
 import 'package:dancing_cats/features/character/samples/cat_in_suit.dart';
 
 /// A structural energy section of the track, tagged energetic/calm with a
@@ -85,6 +86,36 @@ const DanceDynamics kDanceSectionEnergyGain = DanceDynamics(
 /// move-selection boundaries `choreoTrioByLevel` already has.
 DanceDynamics sectionEnergyDynamics(double level) =>
     kDanceSectionEnergyGain.scale((level.clamp(0, 1) - 0.5) * 2);
+
+/// Multiplier on the waveform-driven dance energy per section occurrence —
+/// the PERFORMANCE arc, layered over the track's raw loudness.
+///
+/// The raw waveform peaks early (first chorus ~0.74, late chorus ~0.78), so
+/// an untiered performance visually peaks at chorus one and coasts downhill —
+/// the round-2 panel measured window motion energy of chorus 5.28 vs late
+/// chorus 4.79 vs finale 4.03 and read the back half as deflating. Real
+/// staging holds the first chorus in reserve and spends everything on the
+/// last one; this tier caps the early statements and releases the ceiling as
+/// occurrences accumulate. Verses/bridge sit low so the valley is an energy
+/// valley, not just a vocabulary change.
+double danceSectionArcTier(String section, int occurrence) {
+  switch (section) {
+    case 'chorus':
+      return occurrence <= 0 ? 0.90 : (occurrence == 1 ? 0.96 : 1.08);
+    case 'post-chorus':
+      return 0.97;
+    case 'pre-chorus':
+      return 0.92;
+    case 'verse':
+      return 0.85;
+    case 'bridge':
+      return 0.82;
+    case 'outro':
+      return 1;
+    default:
+      return 1;
+  }
+}
 
 /// Everything the painter needs for one frame: the lead clip, the ensemble
 /// clips, the warped pose clock `seconds`, the active `section`, whether the
@@ -597,6 +628,17 @@ class DancePerformance {
   static final Clip _moving = CatClips.movingGroove;
   static final Clip _movingLowCounter = CatClips.movingGrooveLowCounter;
   static final Clip _movingSideAnswer = CatClips.movingGrooveSideAnswer;
+
+  /// The side-answer with the half-beat CALL-AND-RESPONSE echo baked into its
+  /// upper body (see [kMovingEchoPhase]) — scored on the RIGHT FLANK so the
+  /// lead's call lands first and the flank answers, instead of the whole trio
+  /// hitting simultaneously. A score-level variant (not a production-stage
+  /// wrapper) so transitions blend it as an ordinary clip on its own clock.
+  static final Clip _movingSideAnswerEcho = upperBodyPhaseOffsetClip(
+    CatClips.movingGrooveSideAnswer,
+    kMovingEchoPhase,
+    upperBodyBoneIds: kDanceUpperBodyWarpBoneIds,
+  );
   static final Clip _movingVerse = CatClips.movingVerseGroove;
   static final Clip _movingVerseWindow = CatClips.movingVerseWindow;
   static final Clip _movingBreakdown = CatClips.movingBreakdownGroove;
@@ -631,11 +673,18 @@ class DancePerformance {
       final sectionDynamics = sectionEnergyDynamics(level);
       // Music-reactive amplitude: the dance size follows the CONTINUOUS track
       // loudness (swells into drops, eases through the breakdown) instead of the
-      // coarse per-section step. Quantized to 0.05 to bound the effort-clip
-      // cache; falls back to the section level for synthetic (no-waveform) perfs.
+      // coarse per-section step, TIERED by the section arc (see
+      // [danceSectionArcTier]) so the performance builds across the song
+      // instead of peaking at the first chorus. Quantized to 0.05 to bound the
+      // effort-clip cache; falls back to the section level for synthetic
+      // (no-waveform) perfs.
       final danceEnergy = waveform.isEmpty
           ? level
-          : (intensityAt(pos) * 20).round() / 20;
+          : ((intensityAt(pos) * danceSectionArcTier(lyric.section, occ))
+                        .clamp(0.0, 1.0) *
+                    20)
+                .round() /
+            20;
       return (
         lead: trio.lead,
         ensemble: trio.ensemble,
@@ -775,7 +824,7 @@ class DancePerformance {
   }) {
     final hookCall = (
       lead: _moving,
-      ensemble: [_moving, _movingLowCounter, _movingSideAnswer],
+      ensemble: [_moving, _movingLowCounter, _movingSideAnswerEcho],
     );
     final hookAnswer = (
       lead: _movingSideAnswer,
@@ -795,7 +844,7 @@ class DancePerformance {
     );
     final hookOpen = (
       lead: _movingChorusOpen,
-      ensemble: [_movingChorusOpen, _movingChorusTravel, _movingSideAnswer],
+      ensemble: [_movingChorusOpen, _movingChorusTravel, _movingSideAnswerEcho],
     );
     final verseShuffle = (
       lead: _movingVerse,
