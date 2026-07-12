@@ -248,6 +248,8 @@ void main() {
         supportFootWorldAnchorStrength: 0.8,
         danceHeadBobScale: 0.3,
         danceHeadLevelClampMin: -1,
+        armReachScale: 0.55,
+        headLateralStabilize: 0.2,
         enforceSoleFloor: true,
         zOrderSwaps: [
           ZOrderSwapWindow(
@@ -279,6 +281,10 @@ void main() {
         clip.supportFootWorldAnchorStrength,
       );
       expect(warped.danceHeadBobScale, clip.danceHeadBobScale);
+      // buga (0.55) and azonto (0.2) set these; the wrappers silently dropped
+      // them until the field-copy fix.
+      expect(warped.armReachScale, clip.armReachScale);
+      expect(warped.headLateralStabilize, clip.headLateralStabilize);
       expect(warped.danceHeadLevelClampMin, clip.danceHeadLevelClampMin);
       expect(warped.enforceSoleFloor, clip.enforceSoleFloor);
       expect(warped.zOrderSwaps, clip.zOrderSwaps);

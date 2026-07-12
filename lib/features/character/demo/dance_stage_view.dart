@@ -448,6 +448,10 @@ CharacterPainter danceCharacterPainter({
             kMovingAccentDropUnits *
             (lane == 0 ? 1.0 : kMovingAccentFlankerScale)
       : load * kDanceAccentDropUnits;
+  // The authored groove yields to the hit while it lands (see
+  // [accentDroppedClip]'s bobDuck): only the POSITIVE load ducks the bob —
+  // the release tail's slight rebound must not amplify it back.
+  final bobDuck = moving && load > 0 ? kMovingAccentBobDuck * load : 0.0;
   return CharacterPainter(
     scene: cast.lead,
     partnerScene: cast.left,
@@ -467,6 +471,7 @@ CharacterPainter danceCharacterPainter({
             stage.energyLevel,
           ),
           dropUnits(i),
+          bobDuck: bobDuck,
         ),
     ],
     synchronousEnsemble: stage.synchronous,
@@ -480,6 +485,7 @@ CharacterPainter danceCharacterPainter({
         stage.energyLevel,
       ),
       dropUnits(0),
+      bobDuck: bobDuck,
     ),
     timeSeconds: stage.seconds,
     cameraOverride: shot,
@@ -537,6 +543,14 @@ const double kMovingAccentDropUnits = 9;
 /// lead so the hit has a visible owner — the trio lands together, but not as
 /// three copies of the same impact.
 const double kMovingAccentFlankerScale = 0.75;
+
+/// How much of the authored root groove yields to a full-strength hit (the
+/// [accentDroppedClip] bobDuck factor, scaled by the positive body load). At
+/// 0.35 a strong onset takes clear ownership of the vertical — the measured
+/// counter-phase case (the finale's biggest bloom riding a RISING authored
+/// bob) inverts into a visible give — while between hits the authored groove
+/// is untouched.
+const double kMovingAccentBobDuck = 0.35;
 
 /// Joins the look-ahead coil to the post-onset release for the BODY'S vertical
 /// load. Both envelopes are smooth at their endpoints and trade ownership at
@@ -622,8 +636,18 @@ Clip productionDanceClip(
     // orbit) by the raw SONG ENERGY arc + a deterministic beat-to-beat breath,
     // leaving the fast timing intact — so a low-energy pass is fast-but-small
     // and never 100%-extreme every beat.
+    // Moving skips the beat-breathing effort modulation (it hinged the long
+    // authored arcs) but takes a CONSTANT per-lane amplitude: in unison
+    // statements the trio otherwise runs pixel-identical arm paths — the
+    // sub-frame microtiming offsets alone measured as 0.98+ inter-cat motion
+    // correlation, the "boy-band clone" tell. A static ±8-10% spread keeps
+    // every lane on the authored path shape while no two cats hit the same
+    // extent.
     final effort = songGroove
-        ? orbited
+        ? effortModulatedClip(
+            orbited,
+            (_) => kMovingLaneAmplitudeScale[lane],
+          )
         : effortModulatedClip(
             orbited,
             danceEffortScaleOf(energyLevel, lane),

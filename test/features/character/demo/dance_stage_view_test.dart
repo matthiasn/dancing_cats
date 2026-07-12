@@ -1,6 +1,7 @@
 import 'package:dancing_cats/features/character/demo/dance_performance.dart';
 import 'package:dancing_cats/features/character/demo/dance_stage_view.dart';
 import 'package:dancing_cats/features/character/model/beat_map.dart';
+import 'package:dancing_cats/features/character/model/clip.dart';
 import 'package:dancing_cats/features/character/model/dance_dynamics.dart';
 import 'package:dancing_cats/features/character/model/face.dart';
 import 'package:dancing_cats/features/character/model/rig_spec.dart';
@@ -358,25 +359,42 @@ void main() {
       expect(hit.bodyAccent, 0);
       expect(hit.bodyAnticipation, 0);
 
-      // ...but the BODIES land the hit: the root drops into a plié, deepest
+      // ...but the BODIES land the hit: the root drops into a plié (deepest
       // on the lead, visibly shallower on the flankers so the hit has an
-      // owner. The support anchor turns this root offset into knee flexion
-      // over planted feet.
+      // owner) while the authored groove YIELDS — the root's deviation from
+      // its loop mean scales down by the bob duck so the accent owns the
+      // vertical. The support anchor turns the drop into knee flexion over
+      // planted feet.
+      const load = 0.8;
+      const duck = kMovingAccentBobDuck * load;
+      double meanDy(RootChannel root) {
+        var sum = 0.0;
+        const n = 64;
+        for (var i = 0; i < n; i++) {
+          sum += root.sample(i / n).dy;
+        }
+        return sum / n;
+      }
+
       double drop(int lane) {
         final hitClip = lane == 0 ? hit.clip : hit.ensembleClips[lane];
         final stillClip = lane == 0 ? still.clip : still.ensembleClips[lane];
-        return hitClip.root.sample(0.3).dy - stillClip.root.sample(0.3).dy;
+        final stillDy = stillClip.root.sample(0.3).dy;
+        final mean = meanDy(stillClip.root);
+        // Remove the duck's contribution so what remains is the pure plié.
+        final expectedDucked = mean + (stillDy - mean) * (1 - duck);
+        return hitClip.root.sample(0.3).dy - expectedDucked;
       }
 
       final leadDrop = drop(0);
-      expect(leadDrop, closeTo(0.8 * kMovingAccentDropUnits, 1e-9));
+      expect(leadDrop, closeTo(load * kMovingAccentDropUnits, 1e-6));
       for (final lane in [1, 2]) {
         final flankDrop = drop(lane);
         expect(
           flankDrop,
           closeTo(
-            0.8 * kMovingAccentDropUnits * kMovingAccentFlankerScale,
-            1e-9,
+            load * kMovingAccentDropUnits * kMovingAccentFlankerScale,
+            1e-6,
           ),
         );
         expect(flankDrop, lessThan(leadDrop));

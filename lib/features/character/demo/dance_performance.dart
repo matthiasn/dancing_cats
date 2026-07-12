@@ -455,11 +455,27 @@ class DancePerformance {
   /// transients. Empty for synthetic/test performances.
   final List<({double time, double strength})> onsets;
 
-  // Only the top-tier transients fire a visible accent (~0.66/s in the chorus,
-  // roughly one per bar) so the body lands on the strong hits with space
-  // between — NOT a bob on every 16th, which reads hectic.
-  static const double _kAccentStrengthFloor = 0.5;
-  static const double _kAccentDecaySec = 0.2;
+  // Accent selection is PEAK-PICKED, not flat-floored. The old 0.5 strength
+  // floor kept the chorus honest (~0.5 hits/s) but starved softer-mixed
+  // sections: the late chorus (98-118s) has only 4 onsets above 0.5 in 20
+  // seconds while 18 sit between 0.35 and 0.5 — the song's peak section
+  // danced with almost no hits. Candidates down to 0.35 are admitted, but
+  // greedily by strength with a minimum spacing, so the strongest transient
+  // in each neighbourhood wins and the accent rate stays at most roughly
+  // every other beat — never a bob on every 16th, which reads hectic.
+  static const double _kAccentCandidateFloor = 0.35;
+  static const double _kAccentMinSpacingSec = 1;
+  static const double _kAccentDecaySec = 0.3;
+
+  /// How far past neutral the accent's release BREATHES back up, as a
+  /// fraction of the drop (see [accentAt]'s breathe lobe). A plié that only
+  /// sinks and returns reads as a lean; real weight rebounds slightly above
+  /// neutral before settling (coach: "hit and breathe").
+  static const double _kAccentReboundDepth = 0.15;
+
+  /// Fraction of [_kAccentDecaySec] spent recovering from the drop; the rest
+  /// carries the breathe lobe past neutral and settles.
+  static const double _kAccentRecoverShare = 0.55;
 
   /// Window (seconds) BEFORE a strong onset over which the body "coils" in
   /// anticipation of the hit — a short gather that releases into [accentAt]'s
@@ -467,12 +483,25 @@ class DancePerformance {
   /// visible as a load, still fast enough to read as one gesture with the hit.
   static const double _kAnticipationWindowSec = 0.1;
 
-  /// Only the STRONG onsets fire a visible body accent — the real hits, not
-  /// every 16th (which reads hectic). Pre-filtered once.
-  late final List<({double time, double strength})> _accentOnsets = [
-    for (final o in onsets)
-      if (o.strength >= _kAccentStrengthFloor) o,
-  ];
+  /// The onsets that fire a visible body accent: strength-greedy peak picking
+  /// with [_kAccentMinSpacingSec] between hits (see the constants above for
+  /// why this replaced a flat strength floor). Pre-computed once, sorted by
+  /// time.
+  late final List<({double time, double strength})> _accentOnsets = () {
+    final candidates = [
+      for (final o in onsets)
+        if (o.strength >= _kAccentCandidateFloor) o,
+    ]..sort((a, b) => b.strength.compareTo(a.strength));
+    final picked = <({double time, double strength})>[];
+    for (final o in candidates) {
+      final tooClose = picked.any(
+        (p) => (p.time - o.time).abs() < _kAccentMinSpacingSec,
+      );
+      if (!tooClose) picked.add(o);
+    }
+    picked.sort((a, b) => a.time.compareTo(b.time));
+    return picked;
+  }();
 
   /// Music-driven accent envelope at [posSec] (0..1): a quick decay pop on the
   /// most recent STRONG onset, so the body lands WITH the track's hits. 0
@@ -496,11 +525,23 @@ class DancePerformance {
     final dt = posSec - o[idx].time;
     if (dt < 0 || dt > _kAccentDecaySec) return 0;
     final u = (dt / _kAccentDecaySec).clamp(0.0, 1.0);
-    // Ease out with zero velocity at the onset and at release. The visual hit
-    // still attacks instantly for lights/formation, but its body-load partner
-    // can join the eased anticipation below into a C1 rise->fall envelope.
-    final release = 1 - u * u * (3 - 2 * u);
-    return (o[idx].strength * release).clamp(0.0, 1.0);
+    // Drop, then BREATHE. The drop eases out with zero velocity at the onset
+    // and reaches neutral at [_kAccentRecoverShare] of the window; the
+    // remainder is a C1 negative lobe (zero-derivative at both ends) dipping
+    // [_kAccentReboundDepth] past neutral — the body rebounds slightly above
+    // its groove line before settling, hit-and-breathe instead of
+    // sink-and-return. Consumers that must stay non-negative (lights,
+    // formation pop) clamp on their side; the body load deliberately
+    // receives the negative tail as a lift.
+    final double shape;
+    if (u < _kAccentRecoverShare) {
+      final r = u / _kAccentRecoverShare;
+      shape = 1 - r * r * (3 - 2 * r);
+    } else {
+      final v = (u - _kAccentRecoverShare) / (1 - _kAccentRecoverShare);
+      shape = -_kAccentReboundDepth * 16 * v * v * (1 - v) * (1 - v);
+    }
+    return (shape * o[idx].strength).clamp(-1.0, 1.0);
   }
 
   /// Look-ahead "coil" envelope at [posSec] (0..1): rises as the NEXT strong
@@ -813,8 +854,13 @@ class DancePerformance {
           sectionSeconds,
         );
       case 'verse':
+        // All four verse statements stay in grounded verse vocabulary. The
+        // fourth slot used to be sideVerse (a hook-family lead), which put
+        // chorus-amplitude fist work into the song's breakdown stretch — the
+        // panel read the middle of the song as "a third chorus" with no
+        // dynamic valley left to make the real chorus land.
         return _rotateSetlist(
-          [verseShuffle, verseWindow, bodyRoll, sideVerse],
+          [verseShuffle, verseWindow, bodyRoll, lowCounter],
           phase,
           sectionSeconds,
         );

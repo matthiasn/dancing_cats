@@ -16,6 +16,19 @@ const int kDanceBeatsPerPhraseLoop = 8;
 /// the support chain stays on the shared beat clock.
 const List<double> kDanceLaneUpperBodyPhaseOffsets = [0, 0.006, -0.008];
 
+/// Per-lane hand-path amplitude for the Moving family (lead, backup-left,
+/// backup-right): a STATIC spread applied through `effortModulatedClip`'s
+/// mean-preserving amplitude dial. Moving opts out of the beat-breathing
+/// effort modulation, which left unison statements running pixel-identical
+/// arm paths (the ±24-32ms lane offsets are sub-frame — invisible); a
+/// 5-12% inter-cat spread is enough that no two cats hit the same reach
+/// while the authored path shape survives on every lane. The spread is
+/// deliberately ONE-SIDED (nobody exceeds the authored 1.0): the lead owns
+/// the fullest reach — backups layering beneath the hero is the natural
+/// staging — and scaling any lane above 1.0 pushed the hottest phrases'
+/// arm velocities past the full-song continuity bands.
+const List<double> kMovingLaneAmplitudeScale = [1.0, 0.88, 0.95];
+
 /// Width of the Moving upper-body loop recovery at either side of the phrase
 /// seam, in normalized six-second clip phase. At production's 1.5x clock this
 /// is about 180ms: enough to carry arm momentum through the wrap without
@@ -108,6 +121,8 @@ Clip upperBodyDynamicsWarpedClip(
         clip.supportFootWorldAnchorVerticalBoost,
     danceHeadBobScale: clip.danceHeadBobScale,
     danceHeadLevelClampMin: clip.danceHeadLevelClampMin,
+    armReachScale: clip.armReachScale,
+    headLateralStabilize: clip.headLateralStabilize,
     enforceSoleFloor: clip.enforceSoleFloor,
     transitionPlan: clip.transitionPlan,
     zOrderSwaps: clip.zOrderSwaps,
@@ -176,6 +191,8 @@ Clip upperBodyPhaseOffsetClip(
         clip.supportFootWorldAnchorVerticalBoost,
     danceHeadBobScale: clip.danceHeadBobScale,
     danceHeadLevelClampMin: clip.danceHeadLevelClampMin,
+    armReachScale: clip.armReachScale,
+    headLateralStabilize: clip.headLateralStabilize,
     enforceSoleFloor: clip.enforceSoleFloor,
     transitionPlan: clip.transitionPlan,
     zOrderSwaps: clip.zOrderSwaps,
@@ -235,6 +252,8 @@ Clip upperBodyLoopSeamEasedClip(
         clip.supportFootWorldAnchorVerticalBoost,
     danceHeadBobScale: clip.danceHeadBobScale,
     danceHeadLevelClampMin: clip.danceHeadLevelClampMin,
+    armReachScale: clip.armReachScale,
+    headLateralStabilize: clip.headLateralStabilize,
     enforceSoleFloor: clip.enforceSoleFloor,
     transitionPlan: clip.transitionPlan,
     zOrderSwaps: clip.zOrderSwaps,
@@ -333,6 +352,8 @@ Clip effortModulatedClip(
         clip.supportFootWorldAnchorVerticalBoost,
     danceHeadBobScale: clip.danceHeadBobScale,
     danceHeadLevelClampMin: clip.danceHeadLevelClampMin,
+    armReachScale: clip.armReachScale,
+    headLateralStabilize: clip.headLateralStabilize,
     enforceSoleFloor: clip.enforceSoleFloor,
     transitionPlan: clip.transitionPlan,
     zOrderSwaps: clip.zOrderSwaps,
@@ -370,6 +391,8 @@ Clip bodyGrooveScaledClip(Clip clip, double scale) {
         clip.supportFootWorldAnchorVerticalBoost,
     danceHeadBobScale: clip.danceHeadBobScale,
     danceHeadLevelClampMin: clip.danceHeadLevelClampMin,
+    armReachScale: clip.armReachScale,
+    headLateralStabilize: clip.headLateralStabilize,
     enforceSoleFloor: clip.enforceSoleFloor,
     transitionPlan: clip.transitionPlan,
     zOrderSwaps: clip.zOrderSwaps,
@@ -384,15 +407,27 @@ const double kDanceAccentDropUnits = 16;
 /// Returns [clip] with a constant [dropDy] added to its root — the music accent
 /// as a grounded body dip (the support-foot anchor bends the knee into a plié,
 /// feet stay planted). Same clip back at 0.
-Clip accentDroppedClip(Clip clip, double dropDy) {
-  if (dropDy == 0 || clip.duration <= 0) return clip;
+///
+/// [bobDuck] > 0 additionally scales the authored root MOTION (its deviation
+/// from the loop mean, see [ScaledRootChannel]) down by that fraction for the
+/// frame — the authored groove momentarily YIELDS to the hit. Without it, a
+/// strong onset landing where the authored bob is rising reads counter-phase:
+/// the lights flare while the body travels up through them (the full-song
+/// audit measured the export's biggest bloom riding a rising lead in the
+/// finale). Ducking the bob hands the vertical to the accent envelope exactly
+/// while the hit owns the moment, then returns it as the envelope decays.
+Clip accentDroppedClip(Clip clip, double dropDy, {double bobDuck = 0}) {
+  if ((dropDy == 0 && bobDuck == 0) || clip.duration <= 0) return clip;
+  final ducked = bobDuck > 0
+      ? ScaledRootChannel(clip.root, (1 - bobDuck).clamp(0.0, 1.0))
+      : clip.root;
   return Clip(
     name: clip.name,
     family: clip.family,
     duration: clip.duration,
     channels: clip.channels,
     loop: clip.loop,
-    root: RootDyOffsetChannel(clip.root, dropDy),
+    root: RootDyOffsetChannel(ducked, dropDy),
     locomotionSpeed: clip.locomotionSpeed,
     groundSpans: clip.groundSpans,
     contactSpans: clip.contactSpans,
@@ -404,6 +439,8 @@ Clip accentDroppedClip(Clip clip, double dropDy) {
         clip.supportFootWorldAnchorVerticalBoost,
     danceHeadBobScale: clip.danceHeadBobScale,
     danceHeadLevelClampMin: clip.danceHeadLevelClampMin,
+    armReachScale: clip.armReachScale,
+    headLateralStabilize: clip.headLateralStabilize,
     enforceSoleFloor: clip.enforceSoleFloor,
     transitionPlan: clip.transitionPlan,
     zOrderSwaps: clip.zOrderSwaps,
@@ -516,6 +553,8 @@ Clip shoulderWoundClip(Clip clip, int lane) {
         clip.supportFootWorldAnchorVerticalBoost,
     danceHeadBobScale: clip.danceHeadBobScale,
     danceHeadLevelClampMin: clip.danceHeadLevelClampMin,
+    armReachScale: clip.armReachScale,
+    headLateralStabilize: clip.headLateralStabilize,
     enforceSoleFloor: clip.enforceSoleFloor,
     transitionPlan: clip.transitionPlan,
     zOrderSwaps: clip.zOrderSwaps,
@@ -591,6 +630,8 @@ Clip fastBaseOrbitedClip(
         clip.supportFootWorldAnchorVerticalBoost,
     danceHeadBobScale: clip.danceHeadBobScale,
     danceHeadLevelClampMin: clip.danceHeadLevelClampMin,
+    armReachScale: clip.armReachScale,
+    headLateralStabilize: clip.headLateralStabilize,
     enforceSoleFloor: clip.enforceSoleFloor,
     transitionPlan: clip.transitionPlan,
     zOrderSwaps: clip.zOrderSwaps,

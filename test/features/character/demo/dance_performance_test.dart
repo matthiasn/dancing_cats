@@ -722,11 +722,15 @@ void main() {
           'movingBodyRoll',
           'movingVerseWindow',
         ]);
+        // All four verse statements stay in grounded verse vocabulary — the
+        // hook-family sideAnswer that used to close the verse put chorus
+        // amplitude into the song's breakdown stretch (panel: "the bridge is
+        // a third chorus") and erased the dynamic valley.
         expect(score('verse', 0), [
           'movingVerseShuffle',
           'movingVerseWindow',
           'movingBodyRoll',
-          'movingHookSideAnswer',
+          'movingHookLowCounter',
         ]);
         expect(score('bridge', 0), [
           'movingBridgeBounce',
@@ -798,8 +802,43 @@ void main() {
       expect(perf.anticipationAt(0.95), closeTo(0.5, 1e-9));
       expect(perf.anticipationAt(1 - 1e-6), closeTo(1, 1e-8));
       expect(perf.accentAt(1), 1);
-      expect(perf.accentAt(1.1), closeTo(0.5, 1e-9));
-      expect(perf.accentAt(1.2), closeTo(0, 1e-9));
+      // Drop: recovers to neutral over the first 55% of the 0.3s window...
+      expect(perf.accentAt(1 + 0.3 * 0.275), closeTo(0.5, 1e-9));
+      expect(perf.accentAt(1 + 0.3 * 0.55), closeTo(0, 1e-9));
+      // ...then BREATHES past neutral (the body lifts slightly above its
+      // groove line — hit-and-breathe, not sink-and-return) and settles.
+      expect(perf.accentAt(1 + 0.3 * 0.775), closeTo(-0.15, 1e-9));
+      expect(perf.accentAt(1.3), closeTo(0, 1e-9));
+      expect(perf.accentAt(1.31), 0);
+    });
+
+    test('peak picking spaces accents and rescues soft-mix sections', () {
+      final crowded = DancePerformance.fromBeatMapJson(
+        json: const {
+          'onsets': [
+            // A strong pair closer than the spacing floor: only the stronger
+            // fires...
+            {'time_sec': 1.0, 'strength': 0.8},
+            {'time_sec': 1.4, 'strength': 0.6},
+            // ...a soft-mix section transient below the old 0.5 floor still
+            // earns its hit when it owns its neighbourhood...
+            {'time_sec': 3.0, 'strength': 0.4},
+            // ...and a sub-candidate stays silent.
+            {'time_sec': 5.0, 'strength': 0.2},
+          ],
+        },
+        map: _beatMap(),
+        trackDurationSec: 6,
+      );
+      expect(crowded.accentAt(1), closeTo(0.8, 1e-9));
+      expect(
+        crowded.accentAt(1.4),
+        lessThan(0.1),
+        reason: 'the weaker neighbour within the spacing floor must not fire '
+            'its own full hit',
+      );
+      expect(crowded.accentAt(3), closeTo(0.4, 1e-9));
+      expect(crowded.accentAt(5), 0);
     });
   });
 
