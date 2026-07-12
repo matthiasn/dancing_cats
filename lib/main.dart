@@ -656,8 +656,13 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
   }
 
   void _prerollExportClock({required double start, required double dt}) {
-    final prerollStart = start <= 2 ? 0.0 : start - 2.0;
-    for (var t = prerollStart; t < start; t += dt) {
+    // The playback stepper owns state across four-second phrase slots, held
+    // cuts, and eased camera changes. A two-second warm start produced excerpt
+    // frames that did NOT match full-song playback at the same timestamp
+    // (notably the reported 123s arm jump). Fast-forward the lightweight
+    // orchestration from song start; no images are rendered during this loop,
+    // so excerpt accuracy does not inherit full-song rendering cost.
+    for (var t = 0.0; t < start; t += dt) {
       _renderClockSeconds = t - kDanceRenderStartSec;
       _wallSeconds = t;
       _advancePerformance(pos: t, dt: dt);
@@ -906,7 +911,12 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
 
   Widget _buildDanceBody(BuildContext context) {
     final posSec = _positionSec;
-    final stage = _perf?.stageAt(posSec) ?? danceIdleStage(posSec);
+    // Render the SAME stateful stage that owns quantized cuts, outgoing/incoming
+    // clocks, and momentum-preserving blends. The old direct `stageAt` call
+    // bypassed DancePlaybackStepper after `_advancePerformance` had computed
+    // it, so tests audited smooth handoffs while the actual app/export hard-cut
+    // the raw score (the repeated arm teleports reported around 123s).
+    final stage = playbackStageForRender(_stepper, _perf, posSec);
     final beat = _perf?.beatPulse(posSec) ?? 0;
     // Music-driven body accent — the onset-hit weight-drop, softened by the
     // section energy (matches the offline render path).
@@ -915,7 +925,8 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
     // Look-ahead partner: the coil that gathers the ensemble just before the
     // next hit, released by the accent above on the beat (same energy scaling).
     final bodyAnticipation =
-        (_perf?.anticipationAt(posSec) ?? 0) * (0.45 + 0.55 * stage.energyLevel);
+        (_perf?.anticipationAt(posSec) ?? 0) *
+        (0.45 + 0.55 * stage.energyLevel);
     // The director owns the camera; the stepper holds the eased framing and the
     // singing mouths. The whole composite is the generalized DanceStageView,
     // rendered identically by the live app and every offline renderer — there is

@@ -2399,6 +2399,43 @@ void main() {
     });
   });
 
+  testWidgets('Moving uses one authored head clock, not a second vocal bob', (
+    tester,
+  ) async {
+    await tester.runAsync(() async {
+      const singing = Expression(
+        'sing',
+        FaceState(mouthShape: MouthShape.singAh, mouthOpen: 0.7),
+      );
+      Future<Uint8List> render({required bool singHead}) async {
+        final recorder = ui.PictureRecorder();
+        CharacterPainter(
+          scene: scene,
+          clip: CatClips.movingGrooveLowCounter,
+          timeSeconds: CatClips.movingGrooveLowCounter.duration * 0.45,
+          expression: singing,
+          singingHeadMotion: singHead,
+          shadowColor: const Color(0x00000000),
+          renderer: renderer,
+        ).paint(Canvas(recorder), const Size(220, 300));
+        final picture = recorder.endRecording();
+        final image = await picture.toImage(220, 300);
+        final data = (await image.toByteData())!.buffer.asUint8List();
+        image.dispose();
+        picture.dispose();
+        return data;
+      }
+
+      expect(
+        await render(singHead: true),
+        equals(await render(singHead: false)),
+        reason:
+            'Moving already authors head rotation and must stay seated on the '
+            'neck instead of receiving another painter-level nod',
+      );
+    });
+  });
+
   testWidgets(
     'a looping activeSpan contact clip floor-pins via the loop span',
     (

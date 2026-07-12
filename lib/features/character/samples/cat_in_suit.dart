@@ -586,6 +586,7 @@ class CatClips {
     clavicleRKeys: _movingVerseWindowClavicleRKeys,
     handLKeys: _movingVerseWindowHandLKeys,
     handRKeys: _movingVerseWindowHandRKeys,
+    headKeys: _movingVerseWindowHeadKeys,
   );
 
   /// Breakdown phrase: compact double-time heel lifts under a low centre.
@@ -618,6 +619,9 @@ class CatClips {
     footRKeys: _movingBridgeRockFootRKeys,
     handLKeys: _movingBridgeRockHandLKeys,
     handRKeys: _movingBridgeRockHandRKeys,
+    clavicleLKeys: _movingBridgeRockClavicleLKeys,
+    clavicleRKeys: _movingBridgeRockClavicleRKeys,
+    headKeys: _movingBridgeRockHeadKeys,
     contactSpans: _movingBridgeRockContactSpans,
   );
 
@@ -674,8 +678,11 @@ class CatClips {
         supportFootWorldAnchor: true,
         supportFootWorldAnchorStrength: 0.88,
         supportFootWorldAnchorVerticalBoost: 0.08,
-        danceHeadBobScale: 0.78,
-        danceHeadLevelClampMin: -6,
+        // Moving already authors a head track per phrase. Keep only a small
+        // runtime follow slice so the skull responds to the ribs without
+        // floating independently above the collar (owner review, 2026-07-12).
+        danceHeadBobScale: 0,
+        danceHeadLevelClampMin: -3.5,
         enforceSoleFloor: true,
         baseClip: base,
         jointTracks: {

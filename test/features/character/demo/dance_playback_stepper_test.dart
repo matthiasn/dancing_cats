@@ -90,6 +90,14 @@ void main() {
       stepper.advance(perf, const [], 3.52, 0.016);
       final mixed = stepper.stage!;
       expect(mixed.lead.name, 'movingHookLead->movingHookSideAnswer');
+      final rendered = playbackStageForRender(stepper, perf, 3.52);
+      expect(
+        identical(rendered.lead, mixed.lead),
+        isTrue,
+        reason:
+            'the app must paint the stepper blend, not raw stageAt hard-cut',
+      );
+      expect(perf.stageAt(3.52).lead.name, 'movingHookSideAnswer');
       expect(mixed.lead.root, isA<BlendedRootChannel>());
       expect(
         mixed.lead.channels.values,

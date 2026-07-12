@@ -665,6 +665,22 @@ void main() {
       },
     );
 
+    test('the final chorus earns one collective hook payoff', () {
+      final trio = perf.choreoTrioForSection(
+        'chorus',
+        0.9,
+        0.5,
+        2,
+        sectionSeconds: 16,
+      );
+
+      expect(
+        trio.ensemble.map((clip) => clip.name).toSet(),
+        {'movingHookLead'},
+        reason: 'the preceding chorus slots already own the crew variations',
+      );
+    });
+
     test(
       'the 144s score assigns one deliberate statement per two-bar slot',
       () {
@@ -694,6 +710,18 @@ void main() {
           'movingHookSideAnswer',
           'movingHookLead',
         ]);
+        expect(score('chorus', 2), [
+          'movingHookSideAnswer',
+          'movingChorusOpen',
+          'movingChorusTravel',
+          'movingHookLead',
+        ]);
+        expect(score('post-chorus', 0), [
+          'movingHookLowCounter',
+          'movingChorusTravel',
+          'movingBodyRoll',
+          'movingVerseWindow',
+        ]);
         expect(score('verse', 0), [
           'movingVerseShuffle',
           'movingVerseWindow',
@@ -704,14 +732,34 @@ void main() {
           'movingBridgeBounce',
           'movingBridgeRock',
           'movingBodyRoll',
-          'movingHookSideAnswer',
+          'movingChorusTravel',
         ]);
         expect(score('outro', 0), [
           'movingHookSideAnswer',
           'movingBodyRoll',
           'movingBridgeRock',
-          'movingBodyRoll',
+          'movingHookLead',
         ]);
+
+        final productionLeadScore = [
+          ...score('chorus', 0),
+          ...score('pre-chorus', 0),
+          ...score('chorus', 1),
+          ...score('verse', 0),
+          ...score('bridge', 0),
+          ...score('chorus', 2),
+          ...score('post-chorus', 0),
+          ...score('outro', 0),
+        ];
+        for (var i = 1; i < productionLeadScore.length; i++) {
+          expect(
+            productionLeadScore[i],
+            isNot(productionLeadScore[i - 1]),
+            reason:
+                'adjacent two-bar statements ${i - 1} and $i must not reuse '
+                'the same lead phrase',
+          );
+        }
       },
     );
   });

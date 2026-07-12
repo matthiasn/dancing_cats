@@ -16,6 +16,68 @@ Clip _loopingClip({
 );
 
 void main() {
+  group('upperBodyLoopSeamEasedClip', () {
+    test('retains position while reducing velocity at the cyclic seam', () {
+      const hand = SineChannel(
+        harmonicAmplitude: 1,
+        harmonicMultiplier: 1,
+        harmonicPhase: 0,
+      );
+      const foot = KeyframeChannel([
+        Keyframe(p: 0),
+        Keyframe(p: 1, rotation: 1),
+      ]);
+      final clip = _loopingClip(channels: {'hand.R': hand, 'foot.R': foot});
+      final eased = upperBodyLoopSeamEasedClip(
+        clip,
+        upperBodyBoneIds: {'hand.R'},
+      );
+
+      expect(eased.channels['hand.R'], isA<LoopSeamSettledJointChannel>());
+      expect(identical(eased.channels['foot.R'], foot), isTrue);
+      expect(eased.channels['hand.R']!.sample(0).rotation, closeTo(0, 1e-12));
+      expect(
+        eased.channels['hand.R']!
+            .sample(kMovingUpperBodySeamEaseWidth)
+            .rotation,
+        closeTo(hand.sample(kMovingUpperBodySeamEaseWidth).rotation, 1e-12),
+      );
+
+      const epsilon = 1e-5;
+      final baseDelta = hand.sample(epsilon).rotation - hand.sample(0).rotation;
+      final easedDelta =
+          eased.channels['hand.R']!.sample(epsilon).rotation -
+          eased.channels['hand.R']!.sample(0).rotation;
+      expect(easedDelta.abs(), lessThan(baseDelta.abs() * 0.001));
+    });
+
+    test('wraps hand targets but never support-foot targets', () {
+      const handTarget = LimbIkTarget(
+        upperBoneId: 'arm_upper.R',
+        lowerBoneId: 'arm_lower.R',
+        endBoneId: 'hand.R',
+        anchorBoneId: 'chest',
+        channel: FixedIkTargetChannel(x: 5, y: 0),
+      );
+      const footTarget = LimbIkTarget(
+        upperBoneId: 'leg_upper.R',
+        lowerBoneId: 'leg_lower.R',
+        endBoneId: 'foot.R',
+        anchorBoneId: 'hips',
+        channel: FixedIkTargetChannel(x: 0, y: 10),
+      );
+      final clip = _loopingClip(limbTargets: [handTarget, footTarget]);
+      final eased = upperBodyLoopSeamEasedClip(
+        clip,
+        upperBodyBoneIds: {'hand.R'},
+      );
+      final byId = {for (final t in eased.limbTargets) t.endBoneId: t};
+
+      expect(byId['hand.R']!.channel, isA<LoopSeamSettledIkTargetChannel>());
+      expect(identical(byId['foot.R']!.channel, footTarget.channel), isTrue);
+    });
+  });
+
   group('upperBodyDynamicsWarpedClip — identity no-op cases', () {
     test('neutral dynamics returns the SAME clip instance', () {
       final clip = _loopingClip();

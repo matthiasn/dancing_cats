@@ -530,6 +530,15 @@ double _bodyLoadEnvelope(double bodyAccent, double bodyAnticipation) =>
 /// pay the wrapper allocation, on top of the `blendedClip` work they already do.
 final Expando<Map<(DanceDynamics, int, double), Clip>> _warpCache = Expando();
 
+/// Moving phrases whose authored loop restart was visually observed as an arm
+/// teleport in the production performance. Their position seams are closed,
+/// but their opposing end/start tangents need the localized recovery below.
+/// Other Moving phrases retain their authored clock: broad application pushed
+/// BridgeRock/ChorusTravel catch-up into intentional accents.
+const Set<String> _movingUpperBodySeamEasedClips = {
+  'movingVerseWindow',
+};
+
 /// The exact per-lane clip transformation used by both the live stage and the
 /// offline exporter.
 ///
@@ -567,8 +576,15 @@ Clip productionDanceClip(
     // "Moving" owns broad sustained arm events. The catalogue-wide fast orbit
     // makes its wrists buzz independently of those events (and swings its
     // hand-parented cuffs), so disable the generic garnish for this move.
+    final seamEased =
+        songGroove && _movingUpperBodySeamEasedClips.contains(warped.name)
+        ? upperBodyLoopSeamEasedClip(
+            warped,
+            upperBodyBoneIds: kDanceUpperBodyWarpBoneIds,
+          )
+        : warped;
     final orbited = fastBaseOrbitedClip(
-      warped,
+      seamEased,
       lane,
       radius: songGroove ? 0 : kDanceFastBaseOrbitRadius,
     );

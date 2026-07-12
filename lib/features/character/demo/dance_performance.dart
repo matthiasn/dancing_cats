@@ -717,6 +717,10 @@ class DancePerformance {
       lead: _moving,
       ensemble: [_moving, _movingSideAnswer, _movingVerse],
     );
+    final hookUnison = (
+      lead: _moving,
+      ensemble: [_moving, _moving, _moving],
+    );
     final hookTravel = (
       lead: _movingChorusTravel,
       ensemble: [_movingChorusTravel, _movingSideAnswer, _movingLowCounter],
@@ -766,12 +770,25 @@ class DancePerformance {
         final score = switch (variant) {
           0 => [hookCall, hookAnswer, hookTravel, hookReturn],
           1 => [hookCall, hookOpen, hookAnswer, hookReturn],
-          _ => [hookAnswer, hookOpen, hookReturn, hookCall],
+          // The last refrain develops through travel before landing the hook.
+          // `hookReturn` and `hookCall` share the same lead clip; putting them
+          // back-to-back here made the centre cat repeat one raised-fist
+          // sentence for roughly eight seconds, then post-chorus repeated it
+          // again. Keep the recognisable hook as the final statement, but earn
+          // it through a genuinely different whole-body phrase.
+          // After three complementary crew statements, let the recognisable
+          // hook land once in real unison. Constantly assigning three distinct
+          // clips made the cast look like independent loop players and denied
+          // the final chorus a collective payoff.
+          _ => [hookAnswer, hookOpen, hookTravel, hookUnison],
         };
         return _rotateSetlist(score, phase, sectionSeconds);
       case 'post-chorus':
         return _rotateSetlist(
-          [hookReturn, hookTravel, bodyRoll, windowBridge],
+          // Release the late hook downward before travelling again. Starting
+          // with hookReturn reused movingHookLead across the section boundary,
+          // producing a 12-second block of near-identical lead silhouettes.
+          [lowCounter, hookTravel, bodyRoll, windowBridge],
           phase,
           sectionSeconds,
         );
@@ -789,13 +806,20 @@ class DancePerformance {
         );
       case 'bridge':
         return _rotateSetlist(
-          [breakdown, bridgeRock, bodyRoll, sideVerse],
+          // Keep the first three statements grounded, then travel into the
+          // late chorus. The former low-counter ending extended the bridge's
+          // low fist vocabulary for eight seconds; sideVerse was rejected too
+          // because it repeated the incoming chorus lead across the boundary.
+          [breakdown, bridgeRock, bodyRoll, hookTravel],
           phase,
           sectionSeconds,
         );
       case 'outro':
         return _rotateSetlist(
-          [sideVerse, bodyRoll, bridgeRock, bodyRoll],
+          // Resolve the last sung "moving" with the song's signature rather
+          // than repeating bodyRoll and quietly running out of choreography.
+          // The following resting gate owns the instrumental release.
+          [sideVerse, bodyRoll, bridgeRock, hookCall],
           phase,
           sectionSeconds,
         );

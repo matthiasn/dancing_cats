@@ -16,6 +16,12 @@ const int kDanceBeatsPerPhraseLoop = 8;
 /// the support chain stays on the shared beat clock.
 const List<double> kDanceLaneUpperBodyPhaseOffsets = [0, 0.006, -0.008];
 
+/// Width of the Moving upper-body loop recovery at either side of the phrase
+/// seam, in normalized six-second clip phase. At production's 1.5x clock this
+/// is about 180ms: enough to carry arm momentum through the wrap without
+/// softening the phrase's interior accents or changing any support timing.
+const double kMovingUpperBodySeamEaseWidth = 0.045;
+
 /// Global strength of the upper-body Effort time warp. A perceptual dial
 /// (ADR CHAR-0001 D6) tuned by eye on rendered 60fps motion per ADR
 /// CHAR-0003's rollout: `0` was the plumbing PR's provable-no-op value.
@@ -139,6 +145,65 @@ Clip upperBodyPhaseOffsetClip(
       upperBodyBoneIds.contains(target.endBoneId)
           ? target.withChannel(
               PhaseWarpedIkTargetChannel(target.channel, shiftedPhase),
+            )
+          : target,
+  ];
+
+  return Clip(
+    name: clip.name,
+    family: clip.family,
+    duration: clip.duration,
+    channels: channels,
+    loop: clip.loop,
+    root: clip.root,
+    locomotionSpeed: clip.locomotionSpeed,
+    groundSpans: clip.groundSpans,
+    contactSpans: clip.contactSpans,
+    contactPinning: clip.contactPinning,
+    limbTargets: limbTargets,
+    supportFootWorldAnchor: clip.supportFootWorldAnchor,
+    supportFootWorldAnchorStrength: clip.supportFootWorldAnchorStrength,
+    supportFootWorldAnchorVerticalBoost:
+        clip.supportFootWorldAnchorVerticalBoost,
+    danceHeadBobScale: clip.danceHeadBobScale,
+    danceHeadLevelClampMin: clip.danceHeadLevelClampMin,
+    enforceSoleFloor: clip.enforceSoleFloor,
+    transitionPlan: clip.transitionPlan,
+    zOrderSwaps: clip.zOrderSwaps,
+    dynamics: clip.dynamics,
+  );
+}
+
+/// Settles a cyclic upper body into its shared phase-0/1 pose near the seam.
+///
+/// Authored Moving clips already return to the same pose at phase 0/1, but
+/// several arrive with an outgoing tangent opposite their opening tangent.
+/// Played at 1.5x, that position-continuous reversal can still read as a
+/// one-frame arm teleport. Pose-space settling reaches zero velocity at the
+/// seam and rejoins the original pose with zero velocity/acceleration error at
+/// [width], without ever speeding the sampling clock to catch up. Root, legs,
+/// feet, contacts, and support anchors are deliberately untouched.
+Clip upperBodyLoopSeamEasedClip(
+  Clip clip, {
+  required Set<String> upperBodyBoneIds,
+  double width = kMovingUpperBodySeamEaseWidth,
+}) {
+  if (!clip.loop || clip.duration <= 0 || width <= 0) {
+    return clip;
+  }
+  assert(width < 0.5, 'loop-seam settle width must be below half a loop');
+
+  final channels = {
+    for (final entry in clip.channels.entries)
+      entry.key: upperBodyBoneIds.contains(entry.key)
+          ? LoopSeamSettledJointChannel(entry.value, width: width)
+          : entry.value,
+  };
+  final limbTargets = [
+    for (final target in clip.limbTargets)
+      upperBodyBoneIds.contains(target.endBoneId)
+          ? target.withChannel(
+              LoopSeamSettledIkTargetChannel(target.channel, width: width),
             )
           : target,
   ];

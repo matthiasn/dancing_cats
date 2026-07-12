@@ -1017,18 +1017,77 @@ void main() {
       expect(bar2R.y, lessThan(bar2L.y));
     });
 
-    test('later Moving choruses open both arms over a wide grounded base', () {
+    test('Moving bridge bounce trades a broad reach between bars', () {
+      final bridge = CatClips.movingBreakdownGroove;
+      final handL = _targetFor(bridge, CatBones.handL).channel;
+      final handR = _targetFor(bridge, CatBones.handR).channel;
+      final leftReach = handL.sample(8 / 32);
+      final leftCounter = handR.sample(8 / 32);
+      final rightCounter = handL.sample(16 / 32);
+      final rightReach = handR.sample(16 / 32);
+
+      expect(leftReach.x, lessThan(-115));
+      expect(
+        leftCounter.x,
+        lessThan(90),
+        reason: 'bar 1 keeps the right paw loose while the left arm reaches',
+      );
+      expect(rightReach.x, greaterThan(115));
+      expect(
+        rightCounter.x.abs(),
+        lessThan(90),
+        reason: 'bar 2 must trade roles instead of mirroring two wide arms',
+      );
+    });
+
+    test('Moving bridge rock lets the ribs lead a delayed head counter-focus', () {
+      final head = CatClips.movingBridgeRock.channels[CatBones.head]!;
+
+      expect(head.sample(0).rotation, lessThan(-0.05));
+      expect(head.sample(12 / 32).rotation, greaterThan(0.05));
+      expect(head.sample(20 / 32).rotation, lessThan(-0.06));
+      expect(head.sample(28 / 32).rotation, greaterThan(0.06));
+      expect(
+        head.sample(1).rotation,
+        closeTo(head.sample(0).rotation, 1e-9),
+        reason: 'the loop seam must return without a head snap',
+      );
+    });
+
+    test('Moving verse window focus follows the active shoulder', () {
+      final head = CatClips.movingVerseWindow.channels[CatBones.head]!;
+
+      expect(head.sample(14 / 32).rotation, lessThan(-0.05));
+      expect(head.sample(26 / 32).rotation, greaterThan(0.05));
+      expect(
+        head.sample(1).rotation,
+        closeTo(head.sample(0).rotation, 1e-9),
+        reason: 'the focus change must preserve the cyclic head seam',
+      );
+    });
+
+    test('later Moving choruses open with a planted-side lead and catch', () {
       final open = CatClips.movingChorusOpen;
-      final handL = _targetFor(open, CatBones.handL).channel.sample(8 / 32);
-      final handR = _targetFor(open, CatBones.handR).channel.sample(8 / 32);
+      final handLLead = _targetFor(
+        open,
+        CatBones.handL,
+      ).channel.sample(8 / 32);
+      final handRDelay = _targetFor(
+        open,
+        CatBones.handR,
+      ).channel.sample(8 / 32);
+      final handRCatch = _targetFor(
+        open,
+        CatBones.handR,
+      ).channel.sample(12 / 32);
       final footR = _targetFor(open, CatBones.footR).channel.sample(4 / 32);
 
-      expect(handL.x, lessThan(-105));
-      expect(handR.x, greaterThan(105));
+      expect(handLLead.x, lessThan(-105));
+      expect(handLLead.y, lessThan(handRDelay.y - 30));
       expect(
-        handR.x - handL.x,
-        greaterThan(210),
-        reason: 'the payoff should read as a two-arm open, not a guard pose',
+        handRCatch.y,
+        lessThan(handRDelay.y - 30),
+        reason: 'the opposite arm must arrive after the planted-side lead',
       );
       expect(footR.x, greaterThan(88));
       expect(
@@ -1187,6 +1246,22 @@ void main() {
           ),
           lessThan(155),
         );
+
+        final leftTarget = _targetFor(window, CatBones.handL).channel;
+        for (var frame = 27; frame <= 32; frame++) {
+          final from = leftTarget.sample((frame - 1) / 32);
+          final to = leftTarget.sample(frame / 32);
+          final travel = math.sqrt(
+            math.pow(to.x - from.x, 2) + math.pow(to.y - from.y, 2),
+          );
+          expect(
+            travel,
+            lessThan(23),
+            reason:
+                'VerseWindow recovery frame $frame travels $travel target '
+                'units; the raised paw must pour down, not displace',
+          );
+        }
       },
     );
 

@@ -640,6 +640,18 @@ String _stageSignature(DanceStage stage) => [
   for (final clip in stage.ensemble) clip.name,
 ].join('|');
 
+/// The stage the live app/export must paint for [pos].
+///
+/// Once [stepper] has advanced, its stage owns held cuts, independent source
+/// clocks, and transient blended clips. Falling back to the raw performance is
+/// only valid before the first step; bypassing the stepper here reintroduces
+/// the hard-cut arm teleports its continuity machinery exists to remove.
+DanceStage playbackStageForRender(
+  DancePlaybackStepper stepper,
+  DancePerformance? performance,
+  double pos,
+) => stepper.stage ?? performance?.stageAt(pos) ?? danceIdleStage(pos);
+
 DanceStage _stageWithSegmentStart(DanceStage stage, double segmentStartSec) => (
   lead: stage.lead,
   ensemble: stage.ensemble,

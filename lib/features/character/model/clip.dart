@@ -173,6 +173,66 @@ class PhaseWarpedIkTargetChannel extends IkTargetChannel {
   IkTargetPose sample(double p) => inner.sample(warpPhase(p));
 }
 
+/// Settles a cyclic joint channel into its shared phase-0/1 pose near the loop
+/// seam without changing the sampling clock.
+class LoopSeamSettledJointChannel extends JointChannel {
+  const LoopSeamSettledJointChannel(this.inner, {required this.width});
+
+  final JointChannel inner;
+  final double width;
+
+  @override
+  JointPose sample(double p) {
+    final progress = _loopSeamSettleProgress(p, width);
+    if (progress >= 1) return inner.sample(p);
+    final seam = inner.sample(0);
+    final pose = inner.sample(p);
+    return JointPose(
+      rotation: _lerp(seam.rotation, pose.rotation, progress),
+      scaleX: _lerp(seam.scaleX, pose.scaleX, progress),
+      scaleY: _lerp(seam.scaleY, pose.scaleY, progress),
+    );
+  }
+}
+
+/// IK-target counterpart of [LoopSeamSettledJointChannel].
+class LoopSeamSettledIkTargetChannel extends IkTargetChannel {
+  const LoopSeamSettledIkTargetChannel(this.inner, {required this.width});
+
+  final IkTargetChannel inner;
+  final double width;
+
+  @override
+  IkTargetPose sample(double p) {
+    final progress = _loopSeamSettleProgress(p, width);
+    if (progress >= 1) return inner.sample(p);
+    final seam = inner.sample(0);
+    final pose = inner.sample(p);
+    return IkTargetPose(
+      x: _lerp(seam.x, pose.x, progress),
+      y: _lerp(seam.y, pose.y, progress),
+      weight: _lerp(seam.weight, pose.weight, progress),
+      bendDirection: pose.bendDirection ?? seam.bendDirection,
+      elbowAbduction: _lerp(
+        seam.elbowAbduction,
+        pose.elbowAbduction,
+        progress,
+      ),
+    );
+  }
+}
+
+double _loopSeamSettleProgress(double p, double width) {
+  var wrapped = p - p.floorToDouble();
+  if (wrapped < 0) wrapped += 1;
+  final distance = math.min(wrapped, 1 - wrapped);
+  if (distance >= width) return 1;
+  final x = (distance / width).clamp(0.0, 1.0);
+  // Quintic smootherstep: value, velocity, and acceleration meet cleanly at
+  // both the settled seam and the unmodified-channel edge.
+  return x * x * x * (x * (x * 6 - 15) + 10);
+}
+
 /// Scales an IK target channel's motion AMPLITUDE around its loop-mean centre by
 /// a PHASE-DEPENDENT [scaleOf], leaving timing/frequency untouched — the
 /// "effort" dial. A scale `< 1` shrinks the movement (fast but small — a

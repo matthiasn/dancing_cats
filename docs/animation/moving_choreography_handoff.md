@@ -26,12 +26,27 @@ height or making the limbs look heavy.
 
 - Repository: `dancing_cats`
 - Branch: `feat/moving-musicality-tie`
-- Checkpoint commit: `ac6d540 feat: make Moving choreography organic and continuous`
-- The worktree was clean immediately after that commit. This handoff document
-  is the only expected post-commit change.
-- The checkpoint contains 25 changed files, 4,512 insertions, and 238
-  deletions. It intentionally includes the complete current choreography,
-  rig, transition, and regression-test work.
+- Current HEAD: `46db185 feat: smooth Moving phrase handoffs and counteraction`
+- The current choreography/playback batch is intentionally uncommitted pending
+  owner playback review. It spans 13 source/test files plus this handoff and
+  includes the real app-stage ownership fix, full-history excerpt preroll,
+  loop-seam pose settling, score development, phrase re-authoring, and bridge
+  head follow.
+- Superseded full-song baseline:
+  `build/character_video_exports/moving_full_current_v64_144s_60fps.mp4`
+  (640x360, 60fps, 144.066s). Owner playback exposed loose/detaching heads;
+  do not use it to approve the current head behavior.
+- Exact-current head-fix reviews:
+  `build/character_video_exports/moving_attached_heads_v65_104-112_60fps.mp4`
+  and
+  `build/character_video_exports/moving_attached_heads_broad_v66_68-90_60fps.mp4`.
+  Moving now uses its authored head rotation while remaining on the articulated
+  neck; independent horizontal/vertical follows and the second vocal bob are
+  disabled, and the skull is seated slightly into the collar.
+- Final attached-head combined validation: 1,243 passed, 3 expected render
+  skips. This includes Moving neck attachment and single-head-clock coverage,
+  anatomy, angular motion, adjacent production score ownership, and full 144s
+  production continuity.
 
 Before doing anything else in the VM:
 
@@ -41,7 +56,8 @@ git status --short
 git log -3 --oneline
 ```
 
-Expected HEAD before this document is committed/copied: `ac6d540`.
+Expected HEAD while this batch remains under review: `46db185` with the
+documented modified worktree.
 
 ## Non-negotiable render rule
 
@@ -308,6 +324,72 @@ handoff.
 These are useful historical comparisons on the source machine but are build
 artifacts, not source of truth in a fresh clone:
 
+- `build/character_video_exports/moving_full_organic_v72_144s_60fps.mp4`
+  - exact-current full-song review master after v68-v71 were combined;
+  - 640x360, 60fps, 144.066s, 8,643 encoded frames, with audio and continuous
+    playback history from time zero;
+  - contains attached heads, the travelling bridge build, staggered chorus
+    lead/catch, shoulder-delayed verse focus, and the single final-chorus
+    unison payoff;
+  - validated immediately before export by the complete suite: 1,245 passed,
+    3 expected skips.
+  - encoded-master QA found zero exact consecutive duplicate video frames;
+    adjacent-frame difference outliers were inspected at the strongest peaks
+    (12.217s, 17.517s, 44.500s) and are continuous character/camera motion under
+    deliberately changing stage illumination, not teleports or dropped frames.
+  - a four-second-offset SSIM audit of the lead crop found its strongest
+    non-outro windows near 24-28s, 42-48s, and 72-76s. Dense frame inspection
+    shows distinct dancer silhouettes throughout; the elevated similarity is
+    caused by stable framing/background around semantic section boundaries,
+    not an accidentally repeated four-second character loop.
+- `build/character_video_exports/moving_full_current_v64_144s_60fps.mp4`
+  - superseded full-song production export;
+  - 640x360, 60fps, 144.066s, with audio and continuous playback history;
+  - includes the motion and score refinements but predates the attached-head
+    runtime fix.
+- `build/character_video_exports/moving_attached_heads_v65_104-112_60fps.mp4`
+  - exact-current 60fps reproduction of the owner's 1:48 detachment report.
+- `build/character_video_exports/moving_attached_heads_broad_v66_68-90_60fps.mp4`
+  - exact-current 60fps multi-phrase audit of head attachment across all lanes.
+- `build/character_video_exports/moving_full_attached_heads_v67_144s_60fps.mp4`
+  - full-song 60fps attached-head baseline approved as "better" and later
+    assessed as fairly decent but still somewhat boring;
+  - predates only the subsequent bridge-finale score change.
+- `build/character_video_exports/moving_bridge_build_v68_82-94_60fps.mp4`
+  - exact-current focused review of the bridge into the late chorus;
+  - replaces the bridge's final low-counter phrase with chorus travel, giving
+    the section a grounded-roll -> travelling-build -> chorus-lift progression.
+- `build/character_video_exports/moving_chorus_lead_catch_v69_44-54_60fps.mp4`
+  - exact-current focused second-chorus review after the full-song silhouette
+    audit found that `movingChorusOpen` still behaved like mirrored exercise;
+  - the planted-side arm now leads, the other shoulder and paw arrive later,
+    and the leadership reverses in the second half while foot contacts and loop
+    endpoints remain unchanged.
+- `build/character_video_exports/moving_verse_focus_v70_57-74_60fps.mp4`
+  - exact-current full-verse review after the phrase audit found the window
+    arms were organic but the face still followed the generic groove clock;
+  - `movingVerseWindow` now uses a small shoulder-delayed rotational focus
+    track. Moving head translations remain disabled, and the catalogue-wide
+    chin/collar attachment suite stays green.
+- `build/character_video_exports/moving_final_chorus_unison_v71_98-108_60fps.mp4`
+  - exact-current final-chorus review spanning its varied lead-in, collective
+    hook landing, and release into post-chorus;
+  - only the final chorus statement assigns `movingHookLead` to all three cats.
+    Earlier statements retain complementary roles, so unison reads as an earned
+    ensemble event instead of three independent loops or constant mirroring.
+- `build/character_video_exports/moving_full_current_v62_144s_60fps.mp4`
+  - superseded full-song production baseline;
+  - 640x360, 60fps, 144.066s, with audio and continuous playback history;
+  - includes the final bridge head-follow refinement;
+  - predates only the score-only bridge→chorus repeat removal shown in v63.
+- `build/character_video_exports/moving_bridge_to_chorus_v63_84-94_60fps.mp4`
+  - exact-current 60fps production excerpt for the corrected section boundary;
+  - bridge low-counter now sets up the late-chorus side-answer instead of
+    replaying that same lead clip for eight seconds.
+- `build/character_video_exports/moving_full_current_v60_144s_60fps.mp4`
+  - previous full-song checkpoint; identical choreography except it predates
+    the restrained `movingBridgeRock` head counter-focus.
+
 - `build/character_video_exports/moving_full_song_v34_actual.mp4`
   - full 144s production export;
   - predates the latest head-bank, bent-arm, and 1.0s transition work.
@@ -317,33 +399,29 @@ artifacts, not source of truth in a fresh clone:
   - still predates the final measured 123-degree arm change and the committed
     1.0s special-case handoff.
 
-There is **no production render of the exact committed state yet**. Do not show
-v37 as though it verifies `ac6d540`.
-
-After fixing the transition, render a new 109.5-118.5s excerpt first. If it is
-clean, render the full song through the same exporter.
+Do not use v34-v64 to judge current head behavior. Use v65 for the reported
+1:48 window, v66 for the broader attachment audit, and v67 for the most recent
+full-song head baseline. Use v68 to judge the sole choreography change after
+v67. Use v72 for all current full-song judgment; v68-v71 remain useful focused
+references for the individual post-v67 changes.
 
 ## Suggested immediate sequence in the VM
 
-1. Confirm the branch and HEAD.
-2. Run the focused suite above.
-3. Recreate/promote the full-song motion probe.
-4. Instrument 112.45-112.60s across the temporary-blend/raw-clip boundary.
-5. Fix the semantic transition-end mismatch.
-6. Add a regression that fails on the current common-mode velocity/acceleration
-   spike.
-7. Render 109.5-118.5s through the actual exporter at 60fps with audio.
-8. Review both normal playback and an `ffmpeg` 15fps contact sheet around
-   112.3-112.8s.
-9. Only after that passes visually, export all 144.066s and review these broad
-   ranges with music:
+1. Watch v72 end-to-end at normal speed with audio and note any remaining
+   robotic path, weak phrase, or discontinuity; contact sheets and green tests
+   are not substitutes for this review.
+2. Note timestamps for any remaining teleport, implausible arm chain, dead
+   hold, or low-energy phrase.
+3. Reproduce each timestamp through the production exporter with full-history
+   preroll, then fix the authored path or score rather than relaxing a gate.
+4. Recheck these broad ranges with music:
    - 10-25s: first hook and side answer;
    - 42-68s: repeated hook into verse variations;
    - 68-90s: bridge/low-counter/window variety;
    - 90-123s: late chorus and the known transition;
    - 130-144s: final hook and exit to idle.
-10. Re-author any remaining repetitive or beige section based on the full-song
-    video. Do not declare completion from motion metrics alone.
+5. If owner review is positive, run the full suite once more, commit the batch,
+   and push. Do not declare completion from motion metrics alone.
 
 ## Perceptual standard for the next session
 

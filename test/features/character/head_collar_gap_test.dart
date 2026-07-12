@@ -30,6 +30,16 @@ void main() {
       'sekem': CatClips.sekem,
       'buga': CatClips.buga,
       'pouncingCat': CatClips.pouncingCat,
+      'movingHookLead': CatClips.movingGroove,
+      'movingHookLowCounter': CatClips.movingGrooveLowCounter,
+      'movingHookSideAnswer': CatClips.movingGrooveSideAnswer,
+      'movingChorusTravel': CatClips.movingChorusTravel,
+      'movingChorusOpen': CatClips.movingChorusOpen,
+      'movingVerseShuffle': CatClips.movingVerseGroove,
+      'movingVerseWindow': CatClips.movingVerseWindow,
+      'movingBridgeBounce': CatClips.movingBreakdownGroove,
+      'movingBridgeRock': CatClips.movingBridgeRock,
+      'movingBodyRoll': CatClips.movingBodyRoll,
     };
     const samples = 192;
     for (final entry in clips.entries) {
@@ -52,16 +62,17 @@ void main() {
         xLo = offX < xLo ? offX : xLo;
         xHi = offX > xHi ? offX : xHi;
       }
+      final moving = clip.belongsToFamily('moving');
       expect(
         hi,
-        lessThan(24.5),
+        lessThan(moving ? 14.5 : 24.5),
         reason:
             '${entry.key}: the chin sits ${hi.toStringAsFixed(1)} above the '
             'collar at its widest — the skull is visibly off the body',
       );
       expect(
         hi - lo,
-        lessThan(13),
+        lessThan(moving ? 4.5 : 13),
         reason:
             '${entry.key}: the chin-to-collar gap swings '
             '${(hi - lo).toStringAsFixed(1)} units over the loop — the neck '
@@ -72,7 +83,7 @@ void main() {
       // by the same per-clip budget as its lift.
       expect(
         lo,
-        greaterThan(12.5),
+        greaterThan(moving ? 10.5 : 12.5),
         reason:
             '${entry.key}: the chin dips to ${lo.toStringAsFixed(1)} above '
             'the collar line — the neck visibly disappears (owner, GIF review: '
@@ -84,14 +95,14 @@ void main() {
       // lateral-counter parking (up to ~13 off-center, 23-unit swings).
       expect(
         xHi - xLo,
-        lessThan(20),
+        lessThan(moving ? 16 : 20),
         reason:
             '${entry.key}: the skull wanders ${(xHi - xLo).toStringAsFixed(1)} '
             'units laterally against the collar — a loose head, not a lean',
       );
       expect(
         xHi.abs() > xLo.abs() ? xHi.abs() : xLo.abs(),
-        lessThan(13),
+        lessThan(moving ? 10 : 13),
         reason:
             '${entry.key}: the skull parks '
             '${(xHi.abs() > xLo.abs() ? xHi : xLo).toStringAsFixed(1)} '

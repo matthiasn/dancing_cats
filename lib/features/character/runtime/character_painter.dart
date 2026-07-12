@@ -2330,7 +2330,13 @@ class CharacterPainter extends CustomPainter {
       base,
       floorY,
     );
-    final groundedFrame = singingHeadMotion && _isTrioDanceClip(clip)
+    // Moving clips already carry authored head phrasing plus the scene's
+    // restrained rib-follow. A second painter-level vocal bob made the skull
+    // look loose and occasionally lifted the chin edge clear of the collar.
+    final groundedFrame =
+        singingHeadMotion &&
+            _isTrioDanceClip(clip) &&
+            !clip.belongsToFamily('moving')
         ? _danceHeadMotion(
             pinnedFrame,
             drawScene.rig,

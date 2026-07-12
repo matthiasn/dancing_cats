@@ -2105,6 +2105,7 @@ class CharacterScene {
     if (!world.containsKey(headId)) return world;
 
     final headWorld = world[headId]!;
+    final keepMovingHeadOnNeck = clip.belongsToFamily('moving');
     final headRotation = _worldRotation(headWorld);
     final danceAttitude = _isDanceFamily(clip)
         ? _danceHeadAttitude(_clipPhase(clip, timeSeconds)) *
@@ -2250,7 +2251,8 @@ class CharacterScene {
         ? -(headWorld.origin.x - headWanderAnchor.origin.x) *
               clip.headLateralStabilize
         : 0.0;
-    final headHorizontalCounter = _isDanceFamily(clip)
+    final headHorizontalCounter =
+        _isDanceFamily(clip) && !keepMovingHeadOnNeck
         ? (_danceHeadHorizontalCounter(rootDx, clip.danceHeadBobScale) +
                       headDxFollow) *
                   baseScale +
@@ -2260,7 +2262,7 @@ class CharacterScene {
     // over-travels chiefly through the neck (the torso's crouch arcs it out —
     // neck ~113px vs hips ~74 on pouncingCat), so a head-only counter is glued
     // to that over-travelling neck. Level the neck first, then the head on top.
-    final level = _isDanceFamily(clip)
+    final level = _isDanceFamily(clip) && !keepMovingHeadOnNeck
         ? _spineLevelShifts(
             clip,
             headId: headId,
@@ -2280,11 +2282,17 @@ class CharacterScene {
       (headHorizontalCounter + headDxFollow) * 0.65,
       level.neckShiftY + neckDyFollow,
     );
+    // Moving's large, rigid skull is visually less forgiving than the older
+    // catalogue heads: the rig's nominal 14-unit throat reads as a detached
+    // head when a backup is enlarged by the camera. Seat only the skull a few
+    // local units into the fur column. Rotation and delayed rib follow remain;
+    // this removes the floating joint, not the dancer's head articulation.
+    final headSeatY = clip.belongsToFamily('moving') ? 2.5 * baseScale : 0.0;
     final headTransform = neckTranslate
         .multiply(
           Affine2D.translation(
             headHorizontalCounter,
-            level.headExtraShiftY + headDyFollow,
+            level.headExtraShiftY + headDyFollow + headSeatY,
           ),
         )
         .multiply(stabilizeHead);

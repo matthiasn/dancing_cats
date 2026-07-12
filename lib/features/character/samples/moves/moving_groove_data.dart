@@ -2078,14 +2078,14 @@ const _movingChorusOpenBodyKeys = [
 const _movingChorusOpenHandLTargetKeys = [
   DanceIkTargetKey(0, x: -74, y: 4, bendDirection: -1),
   DanceIkTargetKey(1, x: -74, y: 4, bendDirection: -1),
-  DanceIkTargetKey(2, x: -82, y: -10, bendDirection: -1),
-  DanceIkTargetKey(3, x: -94, y: -30, bendDirection: -1),
-  DanceIkTargetKey(4, x: -104, y: -46, bendDirection: -1),
-  DanceIkTargetKey(8, x: -112, y: -78, bendDirection: -1),
-  DanceIkTargetKey(12, x: -98, y: -34, bendDirection: -1),
+  DanceIkTargetKey(2, x: -86, y: -18, bendDirection: -1),
+  DanceIkTargetKey(3, x: -98, y: -42, bendDirection: -1),
+  DanceIkTargetKey(4, x: -108, y: -64, bendDirection: -1),
+  DanceIkTargetKey(8, x: -112, y: -94, bendDirection: -1),
+  DanceIkTargetKey(12, x: -96, y: -68, bendDirection: -1),
   DanceIkTargetKey(16, x: -72, y: 6, bendDirection: -1),
-  DanceIkTargetKey(20, x: -98, y: -38, bendDirection: -1),
-  DanceIkTargetKey(24, x: -112, y: -54, bendDirection: -1),
+  DanceIkTargetKey(20, x: -88, y: -38, bendDirection: -1),
+  DanceIkTargetKey(24, x: -108, y: -78, bendDirection: -1),
   DanceIkTargetKey(28, x: -92, y: -22, bendDirection: -1),
   DanceIkTargetKey(30, x: -82, y: -4, bendDirection: -1),
   DanceIkTargetKey(31, x: -76, y: 2, bendDirection: -1),
@@ -2095,13 +2095,13 @@ const _movingChorusOpenHandLTargetKeys = [
 const _movingChorusOpenHandRTargetKeys = [
   DanceIkTargetKey(0, x: 74, y: 6, bendDirection: 1),
   DanceIkTargetKey(1, x: 74, y: 6, bendDirection: 1),
-  DanceIkTargetKey(2, x: 84, y: -8, bendDirection: 1),
-  DanceIkTargetKey(4, x: 96, y: -28, bendDirection: 1),
-  DanceIkTargetKey(8, x: 112, y: -46, bendDirection: 1),
-  DanceIkTargetKey(12, x: 106, y: -76, bendDirection: 1),
+  DanceIkTargetKey(2, x: 78, y: 0, bendDirection: 1),
+  DanceIkTargetKey(4, x: 88, y: -18, bendDirection: 1),
+  DanceIkTargetKey(8, x: 98, y: -54, bendDirection: 1),
+  DanceIkTargetKey(12, x: 108, y: -94, bendDirection: 1),
   DanceIkTargetKey(16, x: 72, y: 4, bendDirection: 1),
-  DanceIkTargetKey(20, x: 106, y: -56, bendDirection: 1),
-  DanceIkTargetKey(24, x: 112, y: -82, bendDirection: 1),
+  DanceIkTargetKey(20, x: 108, y: -76, bendDirection: 1),
+  DanceIkTargetKey(24, x: 112, y: -94, bendDirection: 1),
   DanceIkTargetKey(28, x: 94, y: -26, bendDirection: 1),
   DanceIkTargetKey(30, x: 82, y: -4, bendDirection: 1),
   DanceIkTargetKey(31, x: 76, y: 4, bendDirection: 1),
@@ -2202,25 +2202,25 @@ const _movingChorusOpenHandRKeys = [
 
 const _movingChorusOpenClavicleLKeys = [
   DanceJointKey(0),
-  DanceJointKey(3, rotation: 0.012),
-  DanceJointKey(7, rotation: 0.035),
-  DanceJointKey(11, rotation: 0.012),
+  DanceJointKey(3, rotation: 0.06),
+  DanceJointKey(7, rotation: 0.125),
+  DanceJointKey(11, rotation: 0.065),
   DanceJointKey(16),
-  DanceJointKey(19, rotation: 0.012),
-  DanceJointKey(23, rotation: 0.032),
-  DanceJointKey(28, rotation: 0.008),
+  DanceJointKey(19, rotation: 0.025),
+  DanceJointKey(23, rotation: 0.095),
+  DanceJointKey(28, rotation: 0.025),
   DanceJointKey(32),
 ];
 
 const _movingChorusOpenClavicleRKeys = [
   DanceJointKey(0),
-  DanceJointKey(3, rotation: -0.010),
-  DanceJointKey(7, rotation: -0.026),
-  DanceJointKey(11, rotation: -0.036),
+  DanceJointKey(3, rotation: -0.015),
+  DanceJointKey(7, rotation: -0.075),
+  DanceJointKey(11, rotation: -0.125),
   DanceJointKey(16),
-  DanceJointKey(19, rotation: -0.012),
-  DanceJointKey(23, rotation: -0.038),
-  DanceJointKey(28, rotation: -0.008),
+  DanceJointKey(19, rotation: -0.07),
+  DanceJointKey(23, rotation: -0.13),
+  DanceJointKey(28, rotation: -0.025),
   DanceJointKey(32),
 ];
 
@@ -2345,32 +2345,93 @@ const _movingBridgeRockHandLTargetKeys = [
   DanceIkTargetKey(0, x: -90, y: 10, bendDirection: -1),
   DanceIkTargetKey(1, x: -90, y: 8, bendDirection: -1),
   DanceIkTargetKey(2, x: -90, y: -8, bendDirection: -1),
-  DanceIkTargetKey(4, x: -90, y: -48, bendDirection: -1),
-  DanceIkTargetKey(8, x: -72, y: -82, bendDirection: -1),
-  DanceIkTargetKey(12, x: -80, y: -42, bendDirection: -1),
+  DanceIkTargetKey(4, x: -88, y: -38, bendDirection: -1),
+  DanceIkTargetKey(6, x: -74, y: -78, bendDirection: -1),
+  DanceIkTargetKey(8, x: -64, y: -98, bendDirection: -1),
+  DanceIkTargetKey(10, x: -70, y: -82, bendDirection: -1),
+  DanceIkTargetKey(12, x: -80, y: -48, bendDirection: -1),
+  DanceIkTargetKey(14, x: -88, y: -12, bendDirection: -1),
   DanceIkTargetKey(16, x: -92, y: 12, bendDirection: -1),
-  DanceIkTargetKey(20, x: -86, y: -52, bendDirection: -1),
-  DanceIkTargetKey(24, x: -70, y: -86, bendDirection: -1),
-  DanceIkTargetKey(28, x: -84, y: -40, bendDirection: -1),
+  DanceIkTargetKey(18, x: -90, y: -12, bendDirection: -1),
+  DanceIkTargetKey(20, x: -84, y: -48, bendDirection: -1),
+  DanceIkTargetKey(22, x: -72, y: -78, bendDirection: -1),
+  DanceIkTargetKey(24, x: -64, y: -98, bendDirection: -1),
+  DanceIkTargetKey(26, x: -72, y: -80, bendDirection: -1),
+  DanceIkTargetKey(28, x: -84, y: -46, bendDirection: -1),
   DanceIkTargetKey(30, x: -88, y: -2, bendDirection: -1),
   DanceIkTargetKey(31, x: -90, y: 8, bendDirection: -1),
   DanceIkTargetKey(32, x: -90, y: 10, bendDirection: -1),
 ];
 
 const _movingBridgeRockHandRTargetKeys = [
-  DanceIkTargetKey(0, x: 76, y: -78, bendDirection: 1),
-  DanceIkTargetKey(1, x: 78, y: -76, bendDirection: 1),
-  DanceIkTargetKey(2, x: 82, y: -66, bendDirection: 1),
-  DanceIkTargetKey(4, x: 86, y: -42, bendDirection: 1),
-  DanceIkTargetKey(8, x: 92, y: 4, bendDirection: 1),
+  DanceIkTargetKey(0, x: 64, y: -98, bendDirection: 1),
+  DanceIkTargetKey(1, x: 66, y: -98, bendDirection: 1),
+  DanceIkTargetKey(2, x: 72, y: -88, bendDirection: 1),
+  DanceIkTargetKey(4, x: 84, y: -46, bendDirection: 1),
+  DanceIkTargetKey(6, x: 90, y: -10, bendDirection: 1),
+  DanceIkTargetKey(8, x: 92, y: 6, bendDirection: 1),
+  DanceIkTargetKey(10, x: 90, y: -8, bendDirection: 1),
   DanceIkTargetKey(12, x: 88, y: -50, bendDirection: 1),
-  DanceIkTargetKey(16, x: 72, y: -88, bendDirection: 1),
-  DanceIkTargetKey(20, x: 84, y: -44, bendDirection: 1),
-  DanceIkTargetKey(24, x: 90, y: 4, bendDirection: 1),
+  DanceIkTargetKey(14, x: 72, y: -84, bendDirection: 1),
+  DanceIkTargetKey(16, x: 64, y: -98, bendDirection: 1),
+  DanceIkTargetKey(18, x: 72, y: -82, bendDirection: 1),
+  DanceIkTargetKey(20, x: 86, y: -44, bendDirection: 1),
+  DanceIkTargetKey(22, x: 90, y: -16, bendDirection: 1),
+  DanceIkTargetKey(24, x: 92, y: 4, bendDirection: 1),
+  DanceIkTargetKey(26, x: 90, y: -12, bendDirection: 1),
   DanceIkTargetKey(28, x: 88, y: -48, bendDirection: 1),
-  DanceIkTargetKey(30, x: 82, y: -68, bendDirection: 1),
-  DanceIkTargetKey(31, x: 78, y: -76, bendDirection: 1),
-  DanceIkTargetKey(32, x: 76, y: -78, bendDirection: 1),
+  DanceIkTargetKey(30, x: 72, y: -92, bendDirection: 1),
+  DanceIkTargetKey(31, x: 66, y: -98, bendDirection: 1),
+  DanceIkTargetKey(32, x: 64, y: -98, bendDirection: 1),
+];
+
+// Each overhead hand is carried by its shoulder girdle. The lift crests just
+// before the paw, while the low side releases, so the alternating diagonals
+// feel body-led instead of two IK endpoints trading places.
+const _movingBridgeRockClavicleLKeys = [
+  DanceJointKey(0, rotation: 0.02),
+  DanceJointKey(4, rotation: 0.10),
+  DanceJointKey(7, rotation: 0.27),
+  DanceJointKey(9, rotation: 0.24),
+  DanceJointKey(12, rotation: 0.10),
+  DanceJointKey(16, rotation: 0.02),
+  DanceJointKey(20, rotation: 0.11),
+  DanceJointKey(23, rotation: 0.28),
+  DanceJointKey(25, rotation: 0.24),
+  DanceJointKey(28, rotation: 0.10),
+  DanceJointKey(32, rotation: 0.02),
+];
+
+const _movingBridgeRockClavicleRKeys = [
+  DanceJointKey(0, rotation: 0.27),
+  DanceJointKey(1, rotation: 0.27),
+  DanceJointKey(4, rotation: 0.11),
+  DanceJointKey(8, rotation: 0.02),
+  DanceJointKey(12, rotation: 0.11),
+  DanceJointKey(15, rotation: 0.28),
+  DanceJointKey(17, rotation: 0.24),
+  DanceJointKey(20, rotation: 0.10),
+  DanceJointKey(24, rotation: 0.02),
+  DanceJointKey(28, rotation: 0.11),
+  DanceJointKey(31, rotation: 0.27),
+  DanceJointKey(32, rotation: 0.27),
+];
+
+// The bridge chest loads on a different clock from the hook, so inheriting
+// the generic Moving head track made the face nod toward unrelated arm beats.
+// Counter-rotation keeps the gaze available while a small delay at each
+// change of side lets the ribs initiate and the skull arrive last.
+const _movingBridgeRockHeadKeys = [
+  DanceJointKey(0, rotation: -0.07),
+  DanceJointKey(4, rotation: -0.04),
+  DanceJointKey(8, rotation: 0.02),
+  DanceJointKey(12, rotation: 0.07),
+  DanceJointKey(16),
+  DanceJointKey(20, rotation: -0.08),
+  DanceJointKey(24, rotation: 0.02),
+  DanceJointKey(28, rotation: 0.08),
+  DanceJointKey(30, rotation: -0.02),
+  DanceJointKey(32, rotation: -0.07),
 ];
 
 const _movingBridgeRockFootLTargetKeys = [
@@ -2719,12 +2780,12 @@ const _movingGrooveSideAnswerHandLTargetKeys = [
   DanceIkTargetKey(4, x: -88, y: -36, bendDirection: -1),
   DanceIkTargetKey(6, x: -84, y: -44, bendDirection: -1),
   DanceIkTargetKey(8, x: -70, y: -58, bendDirection: -1),
-  DanceIkTargetKey(10, x: -86, y: -62, bendDirection: -1),
-  DanceIkTargetKey(12, x: -100, y: -72, bendDirection: -1),
-  DanceIkTargetKey(14, x: -112, y: -84, bendDirection: -1, tension: 0.2),
-  DanceIkTargetKey(16, x: -108, y: -80, bendDirection: -1, tension: 0.2),
-  DanceIkTargetKey(18, x: -100, y: -68, bendDirection: -1),
-  DanceIkTargetKey(20, x: -104, y: -76, bendDirection: -1),
+  DanceIkTargetKey(10, x: -86, y: -48, bendDirection: -1),
+  DanceIkTargetKey(12, x: -104, y: -30, bendDirection: -1),
+  DanceIkTargetKey(14, x: -110, y: -20, bendDirection: -1),
+  DanceIkTargetKey(16, x: -112, y: -14, bendDirection: -1),
+  DanceIkTargetKey(18, x: -112, y: -16, bendDirection: -1),
+  DanceIkTargetKey(20, x: -108, y: -24, bendDirection: -1),
   // Do not send both fists back to the same rib-height home pose after the
   // crown. The left arm keeps pouring around the outside, then hangs low as
   // the right side finishes its larger arc. This recovery is deliberately a
@@ -2745,13 +2806,14 @@ const _movingGrooveSideAnswerHandRTargetKeys = [
   DanceIkTargetKey(8, x: 82, y: -70, bendDirection: 1),
   DanceIkTargetKey(10, x: 66, y: -90, bendDirection: 1),
   DanceIkTargetKey(12, x: 54, y: -108, bendDirection: 1),
-  // Keep the crown unmistakably overhead without asking the two-link arm to
-  // reach its mathematical limit. The old -152 target clamped the solver at
-  // near-full extension, visibly locking the elbow at the payoff.
-  DanceIkTargetKey(14, x: 48, y: -120, bendDirection: 1, tension: 0.3),
-  DanceIkTargetKey(16, x: 52, y: -118, bendDirection: 1, tension: 0.2),
-  DanceIkTargetKey(18, x: 78, y: -96, bendDirection: 1),
-  DanceIkTargetKey(20, x: 108, y: -74, bendDirection: 1),
+  // Keep the crown above the head but open it toward the upper corner. The
+  // former x=48 apex stacked paw, ear and shoulder into one compact vertical
+  // shape; this diagonal keeps comparable reach with a bent elbow and gives
+  // the outside waterfall a continuous direction of travel.
+  DanceIkTargetKey(14, x: 64, y: -116, bendDirection: 1, tension: 0.3),
+  DanceIkTargetKey(16, x: 72, y: -110, bendDirection: 1, tension: 0.2),
+  DanceIkTargetKey(18, x: 94, y: -88, bendDirection: 1),
+  DanceIkTargetKey(20, x: 116, y: -68, bendDirection: 1),
   // The crown exits through a long outside waterfall into a loose low hand.
   // Previously frames 24-32 drove straight back to the same shoulder-height
   // guard as the left paw, producing the repeated aerobics-demo silhouette
@@ -2798,29 +2860,29 @@ const _movingGrooveSideAnswerBodyKeys = [
   ),
   DanceBodyKey(
     12,
-    rootDx: 18,
-    rootDy: 14,
-    pelvisRotation: 0.2,
-    chestRotation: -0.16,
-    chestScaleY: 1.01,
-  ),
-  DanceBodyKey(
-    14,
-    rootDx: 10,
-    rootDy: 9,
-    pelvisRotation: 0.16,
-    chestRotation: -0.15,
-    chestScaleX: 1.03,
+    rootDx: 20,
+    rootDy: 10,
+    pelvisRotation: 0.22,
+    chestRotation: -0.19,
     chestScaleY: 1.025,
   ),
   DanceBodyKey(
+    14,
+    rootDx: 12,
+    rootDy: 3,
+    pelvisRotation: 0.2,
+    chestRotation: -0.21,
+    chestScaleX: 1.045,
+    chestScaleY: 1.04,
+  ),
+  DanceBodyKey(
     16,
-    rootDx: -8,
-    rootDy: 12,
-    pelvisRotation: -0.08,
-    chestRotation: 0.08,
-    chestScaleX: 1.03,
-    chestScaleY: 1.015,
+    rootDx: -10,
+    rootDy: 6,
+    pelvisRotation: -0.11,
+    chestRotation: 0.12,
+    chestScaleX: 1.04,
+    chestScaleY: 1.035,
   ),
   DanceBodyKey(
     18,
@@ -2937,7 +2999,9 @@ const _movingVerseWindowHandLTargetKeys = [
   DanceIkTargetKey(22, x: -56, y: -124, bendDirection: -1),
   DanceIkTargetKey(24, x: -68, y: -132, bendDirection: -1, tension: 0.25),
   DanceIkTargetKey(26, x: -92, y: -112, bendDirection: -1),
-  DanceIkTargetKey(28, x: -108, y: -78, bendDirection: -1),
+  DanceIkTargetKey(28, x: -110, y: -92, bendDirection: -1),
+  DanceIkTargetKey(30, x: -94, y: -58, bendDirection: -1),
+  DanceIkTargetKey(31, x: -82, y: -42, bendDirection: -1),
   DanceIkTargetKey(32, x: -72, y: -30, bendDirection: -1),
 ];
 
@@ -3059,6 +3123,21 @@ const _movingVerseWindowClavicleRKeys = [
   DanceJointKey(14, rotation: 0.1),
   DanceJointKey(16, rotation: 0.03),
   DanceJointKey(32, rotation: 0.04),
+];
+
+// The eyes follow the active shoulder after it commits. This is rotational
+// focus only: Moving's runtime head translations remain disabled, so the skull
+// stays seated on the collar while avoiding the generic metronomic head loop.
+const _movingVerseWindowHeadKeys = [
+  DanceJointKey(0, rotation: 0.03),
+  DanceJointKey(6, rotation: 0.01),
+  DanceJointKey(10, rotation: -0.035),
+  DanceJointKey(14, rotation: -0.065),
+  DanceJointKey(18, rotation: -0.02),
+  DanceJointKey(22, rotation: 0.035),
+  DanceJointKey(26, rotation: 0.072),
+  DanceJointKey(30, rotation: 0.05),
+  DanceJointKey(32, rotation: 0.03),
 ];
 
 // Verse arms: broad, sustained scoops that counter the heel brush.  Each hand
