@@ -103,7 +103,7 @@ double danceSectionArcTier(String section, int occurrence) {
     case 'chorus':
       return occurrence <= 0 ? 0.90 : (occurrence == 1 ? 0.96 : 1.08);
     case 'post-chorus':
-      return 0.97;
+      return occurrence <= 0 ? 0.97 : 1.06;
     case 'pre-chorus':
       return 0.92;
     case 'verse':
@@ -901,11 +901,17 @@ class DancePerformance {
         };
         return _rotateSetlist(score, phase, sectionSeconds);
       case 'post-chorus':
+        // Early post-choruses RELEASE (grounded low vocabulary); the LAST one
+        // must not — the track still burns near-peak there (~0.78 intensity at
+        // 106s), and leading it with the score's lowest phrase measured as the
+        // weakest window of the whole edit (round-3 panel: lead-zone energy
+        // 3.16 vs chorus 3.82) exactly where the penultimate peak lands. The
+        // final post-chorus keeps the heat with travel/answer vocabulary and
+        // releases only in its closing statement.
         return _rotateSetlist(
-          // Release the late hook downward before travelling again. Starting
-          // with hookReturn reused movingHookLead across the section boundary,
-          // producing a 12-second block of near-identical lead silhouettes.
-          [lowCounter, hookTravel, bodyRoll, windowBridge],
+          variant >= 1
+              ? [hookTravel, hookAnswer, windowBridge, lowCounter]
+              : [lowCounter, hookTravel, bodyRoll, windowBridge],
           phase,
           sectionSeconds,
         );

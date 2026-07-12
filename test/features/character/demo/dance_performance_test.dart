@@ -724,6 +724,15 @@ void main() {
           'movingBodyRoll',
           'movingVerseWindow',
         ]);
+        // The LAST post-chorus keeps the heat — the track still burns near
+        // its peak there, and leading it with the lowest phrase measured as
+        // the weakest window of the whole edit (round-3 panel).
+        expect(score('post-chorus', 1), [
+          'movingChorusTravel',
+          'movingHookSideAnswer',
+          'movingVerseWindow',
+          'movingHookLowCounter',
+        ]);
         // All four verse statements stay in grounded verse vocabulary — the
         // hook-family sideAnswer that used to close the verse put chorus
         // amplitude into the song's breakdown stretch (panel: "the bridge is
@@ -754,7 +763,7 @@ void main() {
           ...score('verse', 0),
           ...score('bridge', 0),
           ...score('chorus', 2),
-          ...score('post-chorus', 0),
+          ...score('post-chorus', 1),
           ...score('outro', 0),
         ];
         for (var i = 1; i < productionLeadScore.length; i++) {
