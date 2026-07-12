@@ -167,7 +167,7 @@ const _bugaBodyKeys = [
     rootDy: 28,
     pelvisRotation: -0.04,
     chestRotation: 0.05,
-    chestScaleY: 1.0,
+    chestScaleY: 1,
   ), // gentle breathe/crest riding the sway — held, spacious
   DanceBodyKey(
     24,
@@ -182,7 +182,7 @@ const _bugaBodyKeys = [
     rootDx: 4,
     rootDy: 30,
     chestRotation: 0.04,
-    chestScaleY: 1.0,
+    chestScaleY: 1,
   ), // stays in the relaxed groove — NO hit
   DanceBodyKey(
     32,

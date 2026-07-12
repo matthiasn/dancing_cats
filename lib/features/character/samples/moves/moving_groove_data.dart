@@ -1,852 +1,5 @@
 part of '../cat_in_suit.dart';
 
-// Pose-first lead hook. Each cell describes one complete silhouette: where the
-// weight is, how the ribs oppose it, where both hands and feet are, and how the
-// elbows/paws/shoulders support that intention. The runtime tracks below are
-// derived from this list; there is no independently tuned hand/body version of
-// the lead phrase to drift out of agreement.
-const _movingHookLeadPoseCellsLegacy = <DancePoseCell>[
-  DancePoseCell(
-    frame: 0,
-    intent: 'first moving gathers in a flexed right elbow',
-    supportFootIds: [CatBones.footL],
-    body: DancePoseBody(
-      rootDx: -16,
-      rootDy: 31,
-      pelvisRotation: -0.18,
-      chestRotation: 0.14,
-      chestScaleY: 0.96,
-    ),
-    limbs: {
-      CatBones.handL: DancePoseLimb(
-        x: -78,
-        y: -18,
-        bendDirection: -1,
-        elbowAbduction: 0.05,
-      ),
-      CatBones.handR: DancePoseLimb(
-        x: 78,
-        y: -25,
-        bendDirection: 1,
-        elbowAbduction: 0.08,
-      ),
-      CatBones.footL: DancePoseLimb(x: -58, y: 110),
-      CatBones.footR: DancePoseLimb(x: 58, y: 110),
-    },
-    joints: {
-      CatBones.handL: DancePoseJoint(rotation: -0.07),
-      CatBones.handR: DancePoseJoint(rotation: 0.11),
-      CatBones.footL: DancePoseJoint(),
-      CatBones.footR: DancePoseJoint(),
-      CatBones.clavicleL: DancePoseJoint(rotation: -0.01),
-      CatBones.clavicleR: DancePoseJoint(rotation: 0.012),
-    },
-  ),
-  DancePoseCell(
-    frame: 2,
-    intent: 'first moving unfurls diagonally from elbow to paw',
-    supportFootIds: [CatBones.footL],
-    body: DancePoseBody(
-      rootDx: -19,
-      rootDy: 18,
-      pelvisRotation: -0.22,
-      chestRotation: 0.1,
-    ),
-    limbs: {
-      CatBones.handL: DancePoseLimb(
-        x: -82,
-        y: -12,
-        bendDirection: -1,
-        elbowAbduction: 0.04,
-      ),
-      CatBones.handR: DancePoseLimb(
-        x: 105,
-        y: -82,
-        bendDirection: 1,
-        elbowAbduction: 0.13,
-        tension: 0.3,
-      ),
-      CatBones.footL: DancePoseLimb(x: -58, y: 110, tension: 0.5),
-      CatBones.footR: DancePoseLimb(x: 48, y: 93),
-    },
-    joints: {
-      CatBones.handR: DancePoseJoint(rotation: 0.15),
-      CatBones.footR: DancePoseJoint(rotation: -0.08),
-      CatBones.clavicleR: DancePoseJoint(rotation: 0.022),
-    },
-  ),
-  DancePoseCell(
-    frame: 4,
-    intent: 'the reached paw exits around the outside edge, not backward',
-    supportFootIds: [CatBones.footL],
-    body: DancePoseBody(
-      rootDx: -16,
-      rootDy: 27,
-      pelvisRotation: -0.16,
-      chestRotation: 0.18,
-      chestScaleX: 1.025,
-      chestScaleY: 0.95,
-    ),
-    limbs: {
-      CatBones.handL: DancePoseLimb(
-        x: -88,
-        y: -18,
-        bendDirection: -1,
-        elbowAbduction: 0.04,
-      ),
-      CatBones.handR: DancePoseLimb(
-        x: 112,
-        y: -58,
-        bendDirection: 1,
-        elbowAbduction: 0.15,
-        tension: 0.12,
-      ),
-      CatBones.footL: DancePoseLimb(x: -58, y: 110, tension: 0.6),
-      CatBones.footR: DancePoseLimb(x: 34, y: 107, tension: 0.35),
-    },
-    joints: {
-      CatBones.handR: DancePoseJoint(rotation: 0.18, tension: 0.1),
-      CatBones.footR: DancePoseJoint(rotation: -0.14),
-      CatBones.clavicleR: DancePoseJoint(rotation: 0.028),
-    },
-  ),
-  DancePoseCell(
-    frame: 6,
-    intent: 'the elbow folds through a low circular preparation',
-    supportFootIds: [CatBones.footL],
-    body: DancePoseBody(
-      rootDx: -5,
-      rootDy: 16,
-      pelvisRotation: -0.05,
-      chestRotation: 0.04,
-    ),
-    limbs: {
-      CatBones.handL: DancePoseLimb(
-        x: -82,
-        y: -30,
-        bendDirection: -1,
-        elbowAbduction: 0.04,
-      ),
-      CatBones.handR: DancePoseLimb(
-        x: 92,
-        y: -22,
-        bendDirection: 1,
-        elbowAbduction: 0.14,
-      ),
-      CatBones.footL: DancePoseLimb(x: -58, y: 110, tension: 0.5),
-      CatBones.footR: DancePoseLimb(x: 48, y: 94),
-    },
-    joints: {
-      CatBones.handR: DancePoseJoint(rotation: 0.15),
-      CatBones.footR: DancePoseJoint(rotation: -0.05),
-      CatBones.clavicleR: DancePoseJoint(rotation: 0.012),
-    },
-  ),
-  DancePoseCell(
-    frame: 8,
-    intent: 'second moving slices outward from the prepared elbow',
-    supportFootIds: [CatBones.footR],
-    body: DancePoseBody(
-      rootDx: 17,
-      rootDy: 52,
-      pelvisRotation: 0.26,
-      chestRotation: -0.22,
-      chestScaleX: 1.05,
-      chestScaleY: 0.87,
-    ),
-    limbs: {
-      CatBones.handL: DancePoseLimb(
-        x: -76,
-        y: -46,
-        bendDirection: -1,
-        elbowAbduction: 0.05,
-      ),
-      CatBones.handR: DancePoseLimb(
-        x: 108,
-        y: -42,
-        bendDirection: 1,
-        elbowAbduction: 0.12,
-      ),
-      CatBones.footL: DancePoseLimb(x: -58, y: 110),
-      CatBones.footR: DancePoseLimb(x: 58, y: 110, tension: 0.6),
-    },
-    joints: {
-      CatBones.handR: DancePoseJoint(rotation: 0.14),
-      CatBones.footR: DancePoseJoint(),
-      CatBones.clavicleL: DancePoseJoint(rotation: -0.012),
-      CatBones.clavicleR: DancePoseJoint(rotation: 0.018),
-    },
-  ),
-  DancePoseCell(
-    frame: 9,
-    intent: 'offbeat rib rebound with both elbows alive',
-    supportFootIds: [CatBones.footR],
-    body: DancePoseBody(
-      rootDx: 22,
-      rootDy: 16,
-      pelvisRotation: 0.28,
-      chestRotation: 0.14,
-      chestScaleX: 1.02,
-      chestScaleY: 1.0,
-    ),
-    limbs: {
-      CatBones.handL: DancePoseLimb(
-        x: -90,
-        y: -70,
-        bendDirection: -1,
-        elbowAbduction: 0.11,
-      ),
-      CatBones.handR: DancePoseLimb(
-        x: 109,
-        y: -36,
-        bendDirection: 1,
-        elbowAbduction: 0.11,
-      ),
-      CatBones.footL: DancePoseLimb(x: -48, y: 98),
-      CatBones.footR: DancePoseLimb(x: 58, y: 110, tension: 0.55),
-    },
-    joints: {
-      CatBones.handL: DancePoseJoint(rotation: -0.13),
-      CatBones.handR: DancePoseJoint(rotation: 0.15),
-      CatBones.footL: DancePoseJoint(rotation: 0.05),
-      CatBones.clavicleL: DancePoseJoint(rotation: -0.02),
-      CatBones.clavicleR: DancePoseJoint(rotation: 0.022),
-    },
-  ),
-  DancePoseCell(
-    frame: 10,
-    intent: 'third moving changes level while the left paw joins',
-    supportFootIds: [CatBones.footR],
-    body: DancePoseBody(
-      rootDx: 19,
-      rootDy: 46,
-      pelvisRotation: 0.27,
-      chestRotation: 0.08,
-      chestScaleX: 1.04,
-      chestScaleY: 0.9,
-    ),
-    limbs: {
-      CatBones.handL: DancePoseLimb(
-        x: -100,
-        y: -60,
-        bendDirection: -1,
-        elbowAbduction: 0.07,
-      ),
-      CatBones.handR: DancePoseLimb(
-        x: 110,
-        y: -30,
-        bendDirection: 1,
-        elbowAbduction: 0.11,
-      ),
-      CatBones.footL: DancePoseLimb(x: -40, y: 92),
-      CatBones.footR: DancePoseLimb(x: 58, y: 110, tension: 0.5),
-    },
-    joints: {
-      CatBones.handR: DancePoseJoint(rotation: 0.13),
-      CatBones.footL: DancePoseJoint(rotation: 0.08),
-      CatBones.clavicleL: DancePoseJoint(rotation: -0.018),
-    },
-  ),
-  DancePoseCell(
-    frame: 11,
-    intent: 'second offbeat tick reverses the ribs over the crossing toe',
-    supportFootIds: [CatBones.footR],
-    body: DancePoseBody(
-      rootDx: 18,
-      rootDy: 14,
-      pelvisRotation: 0.2,
-      chestRotation: -0.28,
-      chestScaleX: 1.03,
-      chestScaleY: 1.0,
-    ),
-    limbs: {
-      CatBones.handL: DancePoseLimb(
-        x: -104,
-        y: -44,
-        bendDirection: -1,
-        elbowAbduction: 0.1,
-      ),
-      CatBones.handR: DancePoseLimb(
-        x: 100,
-        y: -24,
-        bendDirection: 1,
-        elbowAbduction: 0.1,
-      ),
-      CatBones.footL: DancePoseLimb(x: -22, y: 98),
-      CatBones.footR: DancePoseLimb(x: 58, y: 110, tension: 0.55),
-    },
-    joints: {
-      CatBones.handL: DancePoseJoint(rotation: -0.11),
-      CatBones.handR: DancePoseJoint(rotation: 0.12),
-      CatBones.footL: DancePoseJoint(rotation: 0.11),
-      CatBones.clavicleL: DancePoseJoint(rotation: 0.06),
-      CatBones.clavicleR: DancePoseJoint(rotation: 0.024),
-    },
-  ),
-  DancePoseCell(
-    frame: 12,
-    intent: 'both paws finish through a low outside curve',
-    supportFootIds: [CatBones.footR],
-    body: DancePoseBody(
-      rootDx: 16,
-      rootDy: 40,
-      pelvisRotation: 0.16,
-      chestRotation: -0.24,
-      chestScaleX: 1.04,
-      chestScaleY: 0.92,
-    ),
-    limbs: {
-      CatBones.handL: DancePoseLimb(
-        x: -108,
-        y: -28,
-        bendDirection: -1,
-        elbowAbduction: 0.06,
-      ),
-      CatBones.handR: DancePoseLimb(
-        x: 96,
-        y: -4,
-        bendDirection: 1,
-        elbowAbduction: 0.1,
-        tension: 0.12,
-      ),
-      CatBones.footL: DancePoseLimb(x: -8, y: 106, tension: 0.35),
-      CatBones.footR: DancePoseLimb(x: 58, y: 110, tension: 0.6),
-    },
-    joints: {
-      CatBones.handR: DancePoseJoint(rotation: 0.12, tension: 0.1),
-      CatBones.footL: DancePoseJoint(rotation: 0.14),
-      CatBones.clavicleL: DancePoseJoint(rotation: -0.016),
-      CatBones.clavicleR: DancePoseJoint(rotation: 0.02),
-    },
-  ),
-  DancePoseCell(
-    frame: 14,
-    intent: 'ive been gathers the left elbow as the right arm settles',
-    supportFootIds: [CatBones.footR],
-    body: DancePoseBody(
-      rootDx: 5,
-      rootDy: 17,
-      pelvisRotation: 0.05,
-      chestRotation: -0.04,
-    ),
-    limbs: {
-      CatBones.handL: DancePoseLimb(
-        x: -88,
-        y: -42,
-        bendDirection: -1,
-        elbowAbduction: 0.05,
-      ),
-      CatBones.handR: DancePoseLimb(
-        x: 84,
-        y: -20,
-        bendDirection: 1,
-        elbowAbduction: 0.08,
-      ),
-      CatBones.footL: DancePoseLimb(x: -32, y: 94),
-      CatBones.footR: DancePoseLimb(x: 58, y: 110, tension: 0.5),
-    },
-    joints: {
-      CatBones.handL: DancePoseJoint(rotation: -0.09),
-      CatBones.handR: DancePoseJoint(rotation: 0.1),
-      CatBones.footL: DancePoseJoint(rotation: 0.05),
-    },
-  ),
-  DancePoseCell(
-    frame: 16,
-    intent: 'second phrase moving unfurls the left diagonal',
-    supportFootIds: [CatBones.footL],
-    body: DancePoseBody(
-      rootDx: -18,
-      rootDy: 50,
-      pelvisRotation: -0.21,
-      chestRotation: 0.22,
-      chestScaleY: 0.84,
-    ),
-    limbs: {
-      CatBones.handL: DancePoseLimb(
-        x: -105,
-        y: -82,
-        bendDirection: -1,
-        elbowAbduction: 0.12,
-        tension: 0.3,
-      ),
-      CatBones.handR: DancePoseLimb(
-        x: 78,
-        y: -18,
-        bendDirection: 1,
-        elbowAbduction: 0.07,
-      ),
-      CatBones.footL: DancePoseLimb(x: -58, y: 110, tension: 0.6),
-      CatBones.footR: DancePoseLimb(x: 58, y: 110),
-    },
-    joints: {
-      CatBones.handL: DancePoseJoint(rotation: -0.13),
-      CatBones.handR: DancePoseJoint(rotation: 0.08),
-      CatBones.footL: DancePoseJoint(),
-      CatBones.clavicleL: DancePoseJoint(rotation: -0.018),
-      CatBones.clavicleR: DancePoseJoint(rotation: 0.01),
-    },
-  ),
-  DancePoseCell(
-    frame: 18,
-    intent: 'ooh lifts the left elbow toward an overhead pathway',
-    supportFootIds: [CatBones.footL],
-    body: DancePoseBody(
-      rootDx: -20,
-      rootDy: 40,
-      pelvisRotation: -0.24,
-      chestRotation: 0.08,
-      chestScaleX: 1.02,
-      chestScaleY: 0.88,
-    ),
-    limbs: {
-      CatBones.handL: DancePoseLimb(
-        x: -82,
-        y: -98,
-        bendDirection: -1,
-        elbowAbduction: 0.14,
-      ),
-      CatBones.handR: DancePoseLimb(
-        x: 98,
-        y: -50,
-        bendDirection: 1,
-        elbowAbduction: 0.11,
-      ),
-      CatBones.footL: DancePoseLimb(x: -58, y: 110, tension: 0.5),
-      CatBones.footR: DancePoseLimb(x: 48, y: 93),
-    },
-    joints: {
-      CatBones.handL: DancePoseJoint(rotation: -0.16),
-      CatBones.handR: DancePoseJoint(rotation: 0.13),
-      CatBones.footR: DancePoseJoint(rotation: -0.08),
-      CatBones.clavicleL: DancePoseJoint(rotation: -0.022),
-    },
-  ),
-  DancePoseCell(
-    frame: 19,
-    intent: 'left elbow leads the offbeat climb beside the head',
-    supportFootIds: [CatBones.footL],
-    body: DancePoseBody(
-      rootDx: -18,
-      rootDy: 28,
-      pelvisRotation: -0.2,
-      chestRotation: -0.02,
-      chestScaleX: 1.05,
-      chestScaleY: 0.95,
-    ),
-    limbs: {
-      CatBones.handL: DancePoseLimb(
-        x: -64,
-        y: -125,
-        bendDirection: -1,
-        elbowAbduction: 0.08,
-      ),
-      CatBones.handR: DancePoseLimb(
-        x: 104,
-        y: -56,
-        bendDirection: 1,
-        elbowAbduction: 0.13,
-      ),
-      CatBones.footL: DancePoseLimb(x: -58, y: 110, tension: 0.55),
-      CatBones.footR: DancePoseLimb(x: 42, y: 98),
-    },
-    joints: {
-      CatBones.handL: DancePoseJoint(rotation: -0.18),
-      CatBones.handR: DancePoseJoint(rotation: 0.15),
-      CatBones.footR: DancePoseJoint(rotation: -0.11),
-      CatBones.clavicleL: DancePoseJoint(rotation: 0.2),
-    },
-  ),
-  DancePoseCell(
-    frame: 20,
-    intent: 'ooh payoff: left paw above the head as the ribs roll under it',
-    supportFootIds: [CatBones.footL],
-    body: DancePoseBody(
-      rootDx: -14,
-      rootDy: 12,
-      pelvisRotation: -0.12,
-      chestRotation: -0.12,
-      chestScaleX: 1.08,
-      chestScaleY: 1.03,
-    ),
-    limbs: {
-      CatBones.handL: DancePoseLimb(
-        x: -62,
-        y: -147,
-        bendDirection: -1,
-        elbowAbduction: 0.03,
-        tension: 0.2,
-      ),
-      CatBones.handR: DancePoseLimb(
-        x: 108,
-        y: -62,
-        bendDirection: 1,
-        elbowAbduction: 0.14,
-      ),
-      CatBones.footL: DancePoseLimb(x: -58, y: 110, tension: 0.6),
-      CatBones.footR: DancePoseLimb(x: 34, y: 107, tension: 0.35),
-    },
-    joints: {
-      CatBones.handL: DancePoseJoint(rotation: -0.18, tension: 0.08),
-      CatBones.handR: DancePoseJoint(rotation: 0.16),
-      CatBones.footR: DancePoseJoint(rotation: -0.14),
-      CatBones.clavicleL: DancePoseJoint(rotation: 0.35),
-    },
-  ),
-  DancePoseCell(
-    frame: 21,
-    intent: 'suspend the overhead line while the ribs finish underneath',
-    supportFootIds: [CatBones.footL],
-    body: DancePoseBody(
-      rootDx: -8,
-      rootDy: 16,
-      pelvisRotation: -0.04,
-      chestRotation: -0.18,
-      chestScaleX: 1.08,
-      chestScaleY: 0.98,
-    ),
-    limbs: {
-      CatBones.handL: DancePoseLimb(
-        x: -58,
-        y: -143,
-        bendDirection: -1,
-        elbowAbduction: 0.05,
-        tension: 0.18,
-      ),
-      CatBones.handR: DancePoseLimb(
-        x: 110,
-        y: -58,
-        bendDirection: 1,
-        elbowAbduction: 0.14,
-      ),
-      CatBones.footL: DancePoseLimb(x: -58, y: 110, tension: 0.55),
-      CatBones.footR: DancePoseLimb(x: 40, y: 98),
-    },
-    joints: {
-      CatBones.handL: DancePoseJoint(rotation: -0.19, tension: 0.1),
-      CatBones.handR: DancePoseJoint(rotation: 0.16),
-      CatBones.footR: DancePoseJoint(rotation: -0.1),
-      CatBones.clavicleL: DancePoseJoint(rotation: 0.3),
-    },
-  ),
-  DancePoseCell(
-    frame: 22,
-    intent: 'the overhead paw exits diagonally as the body roll travels right',
-    supportFootIds: [CatBones.footL],
-    body: DancePoseBody(
-      rootDx: 0,
-      rootDy: 28,
-      pelvisRotation: 0.03,
-      chestRotation: -0.2,
-      chestScaleX: 1.05,
-      chestScaleY: 0.99,
-    ),
-    limbs: {
-      CatBones.handL: DancePoseLimb(
-        x: -72,
-        y: -112,
-        bendDirection: -1,
-        elbowAbduction: 0.14,
-      ),
-      CatBones.handR: DancePoseLimb(
-        x: 104,
-        y: -48,
-        bendDirection: 1,
-        elbowAbduction: 0.13,
-      ),
-      CatBones.footL: DancePoseLimb(x: -58, y: 110, tension: 0.5),
-      CatBones.footR: DancePoseLimb(x: 48, y: 94),
-    },
-    joints: {
-      CatBones.handL: DancePoseJoint(rotation: -0.17),
-      CatBones.handR: DancePoseJoint(rotation: 0.15),
-      CatBones.footR: DancePoseJoint(rotation: -0.05),
-      CatBones.clavicleL: DancePoseJoint(rotation: 0.16),
-    },
-  ),
-  DancePoseCell(
-    frame: 23,
-    intent: 'drop the overhead line into the final moving preparation',
-    supportFootIds: [CatBones.footL],
-    body: DancePoseBody(
-      rootDx: 10,
-      rootDy: 40,
-      pelvisRotation: 0.12,
-      chestRotation: -0.24,
-      chestScaleX: 1.06,
-      chestScaleY: 0.96,
-    ),
-    limbs: {
-      CatBones.handL: DancePoseLimb(
-        x: -92,
-        y: -92,
-        bendDirection: -1,
-        elbowAbduction: 0.13,
-      ),
-      CatBones.handR: DancePoseLimb(
-        x: 100,
-        y: -40,
-        bendDirection: 1,
-        elbowAbduction: 0.12,
-      ),
-      CatBones.footL: DancePoseLimb(x: -58, y: 110, tension: 0.5),
-      CatBones.footR: DancePoseLimb(x: 50, y: 100),
-    },
-    joints: {
-      CatBones.handL: DancePoseJoint(rotation: -0.17),
-      CatBones.handR: DancePoseJoint(rotation: 0.14),
-      CatBones.footR: DancePoseJoint(rotation: -0.06),
-      CatBones.clavicleL: DancePoseJoint(rotation: 0.02),
-    },
-  ),
-  DancePoseCell(
-    frame: 24,
-    intent: 'final moving sends the left paw outward and slightly high',
-    supportFootIds: [CatBones.footR],
-    body: DancePoseBody(
-      rootDx: 18,
-      rootDy: 50,
-      pelvisRotation: 0.22,
-      chestRotation: -0.12,
-      chestScaleX: 1.04,
-      chestScaleY: 0.93,
-    ),
-    limbs: {
-      CatBones.handL: DancePoseLimb(
-        x: -112,
-        y: -72,
-        bendDirection: -1,
-        elbowAbduction: 0.12,
-        tension: 0.12,
-      ),
-      CatBones.handR: DancePoseLimb(
-        x: 90,
-        y: -28,
-        bendDirection: 1,
-        elbowAbduction: 0.12,
-        tension: 0.1,
-      ),
-      CatBones.footL: DancePoseLimb(x: -58, y: 110),
-      CatBones.footR: DancePoseLimb(x: 58, y: 110, tension: 0.6),
-    },
-    joints: {
-      CatBones.handL: DancePoseJoint(rotation: -0.15),
-      CatBones.handR: DancePoseJoint(rotation: 0.14),
-      CatBones.footR: DancePoseJoint(),
-      CatBones.clavicleL: DancePoseJoint(rotation: -0.02),
-      CatBones.clavicleR: DancePoseJoint(rotation: 0.02),
-    },
-  ),
-  DancePoseCell(
-    frame: 25,
-    intent: 'offbeat rebound keeps the final reach from parking',
-    supportFootIds: [CatBones.footR],
-    body: DancePoseBody(
-      rootDx: 23,
-      rootDy: 12,
-      pelvisRotation: 0.28,
-      chestRotation: 0.04,
-      chestScaleX: 1.02,
-      chestScaleY: 1.0,
-    ),
-    limbs: {
-      CatBones.handL: DancePoseLimb(
-        x: -116,
-        y: -48,
-        bendDirection: -1,
-        elbowAbduction: 0.11,
-      ),
-      CatBones.handR: DancePoseLimb(
-        x: 86,
-        y: -18,
-        bendDirection: 1,
-        elbowAbduction: 0.1,
-      ),
-      CatBones.footL: DancePoseLimb(x: -48, y: 98),
-      CatBones.footR: DancePoseLimb(x: 58, y: 110, tension: 0.55),
-    },
-    joints: {
-      CatBones.handL: DancePoseJoint(rotation: -0.14),
-      CatBones.handR: DancePoseJoint(rotation: 0.12),
-      CatBones.footL: DancePoseJoint(rotation: 0.04),
-      CatBones.clavicleL: DancePoseJoint(rotation: -0.018),
-    },
-  ),
-  DancePoseCell(
-    frame: 26,
-    intent: 'the reached left paw exits downward around the outside',
-    supportFootIds: [CatBones.footR],
-    body: DancePoseBody(
-      rootDx: 20,
-      rootDy: 28,
-      pelvisRotation: 0.24,
-      chestRotation: -0.12,
-      chestScaleX: 1.02,
-      chestScaleY: 0.98,
-    ),
-    limbs: {
-      CatBones.handL: DancePoseLimb(
-        x: -110,
-        y: -42,
-        bendDirection: -1,
-        elbowAbduction: 0.1,
-        tension: 0.08,
-      ),
-      CatBones.handR: DancePoseLimb(
-        x: 84,
-        y: -18,
-        bendDirection: 1,
-        elbowAbduction: 0.1,
-      ),
-      CatBones.footL: DancePoseLimb(x: -50, y: 96),
-      CatBones.footR: DancePoseLimb(x: 58, y: 110, tension: 0.5),
-    },
-    joints: {
-      CatBones.handL: DancePoseJoint(rotation: -0.13),
-      CatBones.handR: DancePoseJoint(rotation: 0.12),
-      CatBones.footL: DancePoseJoint(rotation: 0.05),
-    },
-  ),
-  DancePoseCell(
-    frame: 27,
-    intent: 'low cross-step drop gives the phrase a grounded tail',
-    supportFootIds: [CatBones.footR],
-    body: DancePoseBody(
-      rootDx: 20,
-      rootDy: 50,
-      pelvisRotation: 0.24,
-      chestRotation: -0.22,
-      chestScaleX: 1.04,
-      chestScaleY: 0.9,
-    ),
-    limbs: {
-      CatBones.handL: DancePoseLimb(
-        x: -104,
-        y: -8,
-        bendDirection: -1,
-        elbowAbduction: 0.09,
-      ),
-      CatBones.handR: DancePoseLimb(
-        x: 82,
-        y: -14,
-        bendDirection: 1,
-        elbowAbduction: 0.09,
-      ),
-      CatBones.footL: DancePoseLimb(x: -28, y: 104, tension: 0.2),
-      CatBones.footR: DancePoseLimb(x: 58, y: 110, tension: 0.55),
-    },
-    joints: {
-      CatBones.handL: DancePoseJoint(rotation: -0.1),
-      CatBones.handR: DancePoseJoint(rotation: 0.1),
-      CatBones.footL: DancePoseJoint(rotation: 0.1),
-      CatBones.clavicleL: DancePoseJoint(rotation: -0.02),
-    },
-  ),
-  DancePoseCell(
-    frame: 28,
-    intent: 'the phrase exhales over two beats, not one elastic return',
-    supportFootIds: [CatBones.footR],
-    body: DancePoseBody(
-      rootDx: 16,
-      rootDy: 24,
-      pelvisRotation: 0.18,
-      chestRotation: -0.15,
-      chestScaleY: 0.95,
-    ),
-    limbs: {
-      CatBones.handL: DancePoseLimb(
-        x: -98,
-        y: -18,
-        bendDirection: -1,
-        elbowAbduction: 0.08,
-      ),
-      CatBones.handR: DancePoseLimb(
-        x: 78,
-        y: -12,
-        bendDirection: 1,
-        elbowAbduction: 0.08,
-      ),
-      CatBones.footL: DancePoseLimb(x: -36, y: 107, tension: 0.3),
-      CatBones.footR: DancePoseLimb(x: 58, y: 110, tension: 0.6),
-    },
-    joints: {
-      CatBones.handL: DancePoseJoint(rotation: -0.1),
-      CatBones.handR: DancePoseJoint(rotation: 0.1),
-      CatBones.footL: DancePoseJoint(rotation: 0.12),
-      CatBones.clavicleL: DancePoseJoint(rotation: -0.024),
-    },
-  ),
-  DancePoseCell(
-    frame: 30,
-    intent: 'continue the exhale into the loop seam',
-    supportFootIds: [CatBones.footR],
-    body: DancePoseBody(
-      rootDx: 5,
-      rootDy: 20,
-      pelvisRotation: 0.04,
-      chestRotation: -0.04,
-    ),
-    limbs: {
-      CatBones.handL: DancePoseLimb(
-        x: -84,
-        y: -8,
-        bendDirection: -1,
-        elbowAbduction: 0.08,
-      ),
-      CatBones.handR: DancePoseLimb(
-        x: 76,
-        y: -18,
-        bendDirection: 1,
-        elbowAbduction: 0.05,
-      ),
-      CatBones.footL: DancePoseLimb(x: -50, y: 97),
-      CatBones.footR: DancePoseLimb(x: 58, y: 110, tension: 0.5),
-    },
-    joints: {
-      CatBones.handL: DancePoseJoint(rotation: -0.08),
-      CatBones.handR: DancePoseJoint(rotation: 0.09),
-      CatBones.footL: DancePoseJoint(rotation: 0.04),
-      CatBones.clavicleL: DancePoseJoint(rotation: -0.01),
-    },
-  ),
-  DancePoseCell(
-    frame: 32,
-    intent: 'loop seam returns to the already travelling opening carve',
-    supportFootIds: [CatBones.footL],
-    body: DancePoseBody(
-      rootDx: -16,
-      rootDy: 31,
-      pelvisRotation: -0.18,
-      chestRotation: 0.14,
-      chestScaleY: 0.96,
-    ),
-    limbs: {
-      CatBones.handL: DancePoseLimb(
-        x: -78,
-        y: -18,
-        bendDirection: -1,
-        elbowAbduction: 0.05,
-      ),
-      CatBones.handR: DancePoseLimb(
-        x: 78,
-        y: -25,
-        bendDirection: 1,
-        elbowAbduction: 0.08,
-      ),
-      CatBones.footL: DancePoseLimb(x: -58, y: 110),
-      CatBones.footR: DancePoseLimb(x: 58, y: 110),
-    },
-    joints: {
-      CatBones.handL: DancePoseJoint(rotation: -0.07),
-      CatBones.handR: DancePoseJoint(rotation: 0.11),
-      CatBones.footL: DancePoseJoint(),
-      CatBones.footR: DancePoseJoint(),
-      CatBones.clavicleL: DancePoseJoint(rotation: -0.01),
-      CatBones.clavicleR: DancePoseJoint(rotation: 0.012),
-    },
-  ),
-];
-
 // Production hook phrase, rebuilt around readable dance intentions instead of
 // a pose on nearly every subdivision.  Arms travel through a path and sustain
 // the payoff; the planted foot remains continuous while the free foot taps in,
@@ -1373,50 +526,54 @@ const _movingHookLeadPoseCells = <DancePoseCell>[
   ),
 ];
 
-final _movingHookLeadBodyKeys = bodyKeysFromPoseCells(
+final List<DanceBodyKey> _movingHookLeadBodyKeys = bodyKeysFromPoseCells(
   _movingHookLeadPoseCells,
 );
-final _movingHookLeadHandLTargetKeys = limbKeysFromPoseCells(
-  _movingHookLeadPoseCells,
-  CatBones.handL,
-);
-final _movingHookLeadHandRTargetKeys = limbKeysFromPoseCells(
-  _movingHookLeadPoseCells,
-  CatBones.handR,
-);
-final _movingHookLeadFootLTargetKeys = limbKeysFromPoseCells(
+final List<DanceIkTargetKey> _movingHookLeadHandLTargetKeys =
+    limbKeysFromPoseCells(
+      _movingHookLeadPoseCells,
+      CatBones.handL,
+    );
+final List<DanceIkTargetKey> _movingHookLeadHandRTargetKeys =
+    limbKeysFromPoseCells(
+      _movingHookLeadPoseCells,
+      CatBones.handR,
+    );
+final List<DanceIkTargetKey> _movingHookLeadFootLTargetKeys =
+    limbKeysFromPoseCells(
+      _movingHookLeadPoseCells,
+      CatBones.footL,
+    );
+final List<DanceIkTargetKey> _movingHookLeadFootRTargetKeys =
+    limbKeysFromPoseCells(
+      _movingHookLeadPoseCells,
+      CatBones.footR,
+    );
+final List<DanceJointKey> _movingHookLeadFootLKeys = jointKeysFromPoseCells(
   _movingHookLeadPoseCells,
   CatBones.footL,
 );
-final _movingHookLeadFootRTargetKeys = limbKeysFromPoseCells(
+final List<DanceJointKey> _movingHookLeadFootRKeys = jointKeysFromPoseCells(
   _movingHookLeadPoseCells,
   CatBones.footR,
 );
-final _movingHookLeadFootLKeys = jointKeysFromPoseCells(
-  _movingHookLeadPoseCells,
-  CatBones.footL,
-);
-final _movingHookLeadFootRKeys = jointKeysFromPoseCells(
-  _movingHookLeadPoseCells,
-  CatBones.footR,
-);
-final _movingHookLeadHandLKeys = jointKeysFromPoseCells(
+final List<DanceJointKey> _movingHookLeadHandLKeys = jointKeysFromPoseCells(
   _movingHookLeadPoseCells,
   CatBones.handL,
 );
-final _movingHookLeadHandRKeys = jointKeysFromPoseCells(
+final List<DanceJointKey> _movingHookLeadHandRKeys = jointKeysFromPoseCells(
   _movingHookLeadPoseCells,
   CatBones.handR,
 );
-final _movingHookLeadClavicleLKeys = jointKeysFromPoseCells(
+final List<DanceJointKey> _movingHookLeadClavicleLKeys = jointKeysFromPoseCells(
   _movingHookLeadPoseCells,
   CatBones.clavicleL,
 );
-final _movingHookLeadClavicleRKeys = jointKeysFromPoseCells(
+final List<DanceJointKey> _movingHookLeadClavicleRKeys = jointKeysFromPoseCells(
   _movingHookLeadPoseCells,
   CatBones.clavicleR,
 );
-final _movingHookLeadContactSpans = contactSpansFromPoseCells(
+final List<GroundSpan> _movingHookLeadContactSpans = contactSpansFromPoseCells(
   _movingHookLeadPoseCells,
   32,
 );
@@ -1588,71 +745,9 @@ const _movingGrooveBodyKeys = [
   ),
 ];
 
-// Song-specific signature: "I've been" preloads the working arm, then the
-// three sung "moving" pulses get three diagonal call/point throws at frames
-// 4/8/12. Bar 2 answers on the left; its middle throw sustains one extra frame
-// for the sung "ooh" before the final "moving". Every throw recoils, so the
-// motif has preparation → accent → release rather than three parked poses.
-//
-// These targets stay fully on their own side of the ribcage and outside the
-// arm's acute-fold zone. The planar elbow cannot honestly solve a hand pulled
-// close to the sternum: although the endpoint is mathematically reachable, the
-// only two solutions point the elbow through the chest or turn the forearm
-// inside-out. The "draw" therefore travels low-out -> high-out as a
-// shoulder-led diagonal, never through the tie. No spring interpolation here:
-// the sustained spline is the point of contrast with the catalogue hit moves.
-const _movingGrooveHandLTargetKeys = [
-  // Bar 1: tucked, asymmetrical counterweight while the right paw calls out.
-  DanceIkTargetKey(0, x: -80, y: -10, bendDirection: -1),
-  DanceIkTargetKey(4, x: -86, y: -18, bendDirection: -1),
-  DanceIkTargetKey(8, x: -78, y: -14, bendDirection: -1),
-  DanceIkTargetKey(12, x: -88, y: -12, bendDirection: -1),
-  DanceIkTargetKey(16, x: -80, y: -10, bendDirection: -1),
-  // Bar 2: wind → call/point → recoil → higher answer → second point. Short
-  // spans create a light throw-and-return, while all targets remain in the
-  // relaxed own-side reach envelope of the corrected elbow branch.
-  DanceIkTargetKey(18, x: -75, y: -25, bendDirection: -1),
-  DanceIkTargetKey(20, x: -100, y: -85, bendDirection: -1),
-  DanceIkTargetKey(21, x: -104, y: -88, bendDirection: -1, tension: 0.35),
-  DanceIkTargetKey(22, x: -72, y: -45, bendDirection: -1),
-  DanceIkTargetKey(24, x: -96, y: -75, bendDirection: -1),
-  DanceIkTargetKey(25, x: -100, y: -72, bendDirection: -1, tension: 0.25),
-  DanceIkTargetKey(26, x: -82, y: -20, bendDirection: -1),
-  DanceIkTargetKey(28, x: -102, y: -70, bendDirection: -1),
-  DanceIkTargetKey(30, x: -72, y: -42, bendDirection: -1),
-  DanceIkTargetKey(32, x: -80, y: -10, bendDirection: -1),
-];
-
-const _movingGrooveHandRTargetKeys = [
-  // Bar 1: right-paw call-and-point hook.
-  DanceIkTargetKey(0, x: 80, y: -38, bendDirection: 1),
-  DanceIkTargetKey(2, x: 75, y: -25, bendDirection: 1),
-  DanceIkTargetKey(4, x: 100, y: -85, bendDirection: 1),
-  DanceIkTargetKey(5, x: 104, y: -88, bendDirection: 1, tension: 0.35),
-  DanceIkTargetKey(6, x: 72, y: -45, bendDirection: 1),
-  DanceIkTargetKey(8, x: 96, y: -75, bendDirection: 1),
-  DanceIkTargetKey(10, x: 82, y: -20, bendDirection: 1),
-  DanceIkTargetKey(12, x: 102, y: -70, bendDirection: 1),
-  DanceIkTargetKey(14, x: 80, y: -38, bendDirection: 1),
-  DanceIkTargetKey(16, x: 80, y: -38, bendDirection: 1),
-  // Bar 2: tucked counterweight until the loop returns to the right call.
-  DanceIkTargetKey(20, x: 86, y: -18, bendDirection: 1),
-  DanceIkTargetKey(24, x: 78, y: -14, bendDirection: 1),
-  DanceIkTargetKey(28, x: 88, y: -12, bendDirection: 1),
-  DanceIkTargetKey(30, x: 80, y: -18, bendDirection: 1),
-  DanceIkTargetKey(32, x: 80, y: -38, bendDirection: 1),
-];
-
 // Later-chorus travel. Each eight-frame unit is one complete weight decision:
 // load, send the free shoe outside the stance, collect, and change support.
 // Bar two develops the idea with a deeper landing instead of mirroring bar one.
-const _movingChorusTravelContactSpans = [
-  GroundSpan(CatBones.footL, 0, 0.25),
-  GroundSpan(CatBones.footR, 0.25, 0.5),
-  GroundSpan(CatBones.footL, 0.5, 0.75),
-  GroundSpan(CatBones.footR, 0.75, 1),
-];
-
 const _movingChorusTravelBodyKeys = [
   DanceBodyKey(
     0,
@@ -1939,13 +1034,6 @@ const _movingChorusTravelClavicleRKeys = [
 // Later-chorus escalation. The shoes press outward but remain near the deck;
 // the body's energy comes from a larger lunge and two arms opening together,
 // not from repeating the hook's single lifted fist.
-const _movingChorusOpenContactSpans = [
-  GroundSpan(CatBones.footL, 0, 0.25),
-  GroundSpan(CatBones.footR, 0.25, 0.5),
-  GroundSpan(CatBones.footL, 0.5, 0.75),
-  GroundSpan(CatBones.footR, 0.75, 1),
-];
-
 const _movingChorusOpenBodyKeys = [
   DanceBodyKey(
     0,
@@ -2229,13 +1317,6 @@ const _movingChorusOpenClavicleRKeys = [
 // support anchor is singular; overlapping ownership would make two planted
 // shoes fight over the root at a phrase handoff. The long diagonal pour
 // intentionally has fewer reversals than the chorus.
-const _movingBridgeRockContactSpans = [
-  GroundSpan(CatBones.footL, 0, 0.25),
-  GroundSpan(CatBones.footR, 0.25, 0.5),
-  GroundSpan(CatBones.footL, 0.5, 0.75),
-  GroundSpan(CatBones.footR, 0.75, 1),
-];
-
 const _movingBridgeRockBodyKeys = [
   DanceBodyKey(
     0,
@@ -2274,7 +1355,7 @@ const _movingBridgeRockBodyKeys = [
     rootDy: 17,
     pelvisRotation: -0.10,
     chestRotation: -0.04,
-    chestScaleY: 1.0,
+    chestScaleY: 1,
   ),
   DanceBodyKey(
     12,
@@ -2890,7 +1971,7 @@ const _movingGrooveSideAnswerBodyKeys = [
     rootDy: 18,
     pelvisRotation: -0.24,
     chestRotation: 0.16,
-    chestScaleY: 1.0,
+    chestScaleY: 1,
   ),
   DanceBodyKey(
     20,
@@ -3081,7 +2162,7 @@ const _movingVerseWindowBodyKeys = [
     pelvisRotation: 0.18,
     chestRotation: -0.14,
     chestScaleX: 1.03,
-    chestScaleY: 1.0,
+    chestScaleY: 1,
   ),
   DanceBodyKey(
     28,

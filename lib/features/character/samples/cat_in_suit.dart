@@ -15,8 +15,8 @@ import 'package:dancing_cats/features/character/model/clip.dart';
 import 'package:dancing_cats/features/character/model/dance_dynamics.dart';
 import 'package:dancing_cats/features/character/model/dance_move_compiler.dart';
 import 'package:dancing_cats/features/character/model/dance_move_descriptor.dart';
-import 'package:dancing_cats/features/character/model/dance_pose_cell.dart';
 import 'package:dancing_cats/features/character/model/dance_phrase.dart';
+import 'package:dancing_cats/features/character/model/dance_pose_cell.dart';
 import 'package:dancing_cats/features/character/model/easing.dart';
 import 'package:dancing_cats/features/character/model/face.dart';
 import 'package:dancing_cats/features/character/model/rig_spec.dart';
@@ -532,7 +532,6 @@ class CatClips {
     handRKeys: _movingChorusTravelHandRKeys,
     clavicleLKeys: _movingChorusTravelClavicleLKeys,
     clavicleRKeys: _movingChorusTravelClavicleRKeys,
-    contactSpans: _movingChorusTravelContactSpans,
   );
 
   /// Later-chorus escalation: a wide grounded base and two-arm opposing
@@ -550,7 +549,6 @@ class CatClips {
     handRKeys: _movingChorusOpenHandRKeys,
     clavicleLKeys: _movingChorusOpenClavicleLKeys,
     clavicleRKeys: _movingChorusOpenClavicleRKeys,
-    contactSpans: _movingChorusOpenContactSpans,
   );
 
   /// Verse phrase: a visible heel-tap shuffle with the hips travelling over
@@ -608,6 +606,18 @@ class CatClips {
   /// Bridge counterphrase: long diagonal plants overlap through double
   /// support, giving the body time to pour across the stance instead of
   /// pumping vertically on every half-beat.
+  ///
+  /// KNOWN ISSUE (follow-up): the default quarter-note support rota
+  /// contradicts the authored feet — footR is still mid-gesture at frames
+  /// 8-10 when its span opens, footL at 16-18 — so the support anchor pins
+  /// airborne taps to the deck and flattens the tap gestures (same story for
+  /// movingBridgeBounce's double-time heel pops). Honest spans (support
+  /// trading at the replant frames) were authored and reverted: with the
+  /// gestures un-crushed, the tap paths measured 8.1 units/frame² of foot
+  /// acceleration and 12+ unit one-frame hand reversals against the
+  /// full-song 7/8.2-unit perceptual bands. The authored gesture data was
+  /// tuned while invisibly crushed; re-authoring the gestures and the spans
+  /// together is the follow-up, not a span-side change alone.
   static Clip get movingBridgeRock => _movingGroove(
     name: 'movingBridgeRock',
     handLTargets: _movingBridgeRockHandLTargetKeys,
@@ -622,7 +632,6 @@ class CatClips {
     clavicleLKeys: _movingBridgeRockClavicleLKeys,
     clavicleRKeys: _movingBridgeRockClavicleRKeys,
     headKeys: _movingBridgeRockHeadKeys,
-    contactSpans: _movingBridgeRockContactSpans,
   );
 
   /// Body-led pocket phrase: long plants and toe drags carry a slow rib roll
@@ -671,7 +680,7 @@ class CatClips {
           featuredRegion: BodyRegion.full,
           // Relaxed/light body with sustained, free transitions. Accents from
           // the track still sharpen this through the live dynamics layer.
-          dynamics: DanceDynamics(weight: -0.25, time: -0.3, flow: 0.35),
+          dynamics: const DanceDynamics(weight: -0.25, time: -0.3, flow: 0.35),
         ),
         duration: base.duration,
         contactPinning: base.contactPinning,

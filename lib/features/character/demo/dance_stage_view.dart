@@ -12,13 +12,13 @@ import 'package:dancing_cats/features/character/runtime/character_painter.dart';
 import 'package:dancing_cats/features/character/runtime/character_renderer.dart';
 import 'package:dancing_cats/features/character/runtime/character_scene.dart';
 import 'package:dancing_cats/features/character/samples/cat_in_suit.dart';
+import 'package:dancing_cats/features/scenery/drop_bloom.dart';
 import 'package:dancing_cats/features/scenery/layered_backdrop.dart';
 import 'package:dancing_cats/features/scenery/model/backdrop_grade.dart';
 import 'package:dancing_cats/features/scenery/model/backdrop_scene.dart';
 import 'package:dancing_cats/features/scenery/runtime/grade_filter.dart';
 import 'package:dancing_cats/features/scenery/runtime/stage_lights.dart';
 import 'package:dancing_cats/features/scenery/scene_texture_overlay.dart';
-import 'package:dancing_cats/features/scenery/drop_bloom.dart';
 import 'package:dancing_cats/features/scenery/stage_lights_overlay.dart';
 import 'package:flutter/material.dart';
 
@@ -46,8 +46,6 @@ class DanceStageView extends StatelessWidget {
     required this.stage,
     required this.shot,
     required this.beat,
-    this.bodyAccent = 0,
-    this.bodyAnticipation = 0,
     required this.backdropTimeSeconds,
     required this.lightsTimeSeconds,
     required this.bpm,
@@ -56,6 +54,8 @@ class DanceStageView extends StatelessWidget {
     required this.leadShape,
     required this.bgShape,
     required this.dancerAnchors,
+    this.bodyAccent = 0,
+    this.bodyAnticipation = 0,
     this.onDancerAnchors,
     this.useNewBackdrop = true,
     this.showCaptions = false,
@@ -431,82 +431,112 @@ CharacterPainter danceCharacterPainter({
   ui.Image? wavesImage,
   double bodyAccent = 0,
   double bodyAnticipation = 0,
-}) => CharacterPainter(
-  scene: cast.lead,
-  partnerScene: cast.left,
-  ensembleScenes: [cast.left, cast.right],
-  ensembleExpressions: [
-    danceSingExpression(leadMouth, Expression.neutral, leadShape),
-    danceSingExpression(bgMouth, Expression.content, bgShape),
-    danceSingExpression(bgMouth, Expression.happy, bgShape),
-  ],
-  ensembleClips: [
-    for (var i = 0; i < stage.ensemble.length; i++)
-      accentDroppedClip(
-        productionDanceClip(
-          stage.ensemble[i],
-          stage.dynamics[i],
-          i,
-          stage.energyLevel,
+}) {
+  final moving = stage.lead.belongsToFamily('moving');
+  final load = _bodyLoadEnvelope(bodyAccent, bodyAnticipation);
+  // Moving gets its own phrase-aware accent response instead of the catalogue
+  // treatment: the generic 16-unit drop was tuned against the punchy hit moves
+  // and, together with the unison pop, read as the formation tugging the
+  // authored phrase around on every onset. A shallower plié — deepest on the
+  // lead, slightly softer on the flankers so the hit has a visible owner —
+  // keeps the authored arm/foot phrase untouched (the support anchor turns the
+  // root drop into knee flexion over planted feet) while the BODY finally
+  // lands WITH the track's transients rather than leaving every hit to the
+  // lights.
+  double dropUnits(int lane) => moving
+      ? load *
+            kMovingAccentDropUnits *
+            (lane == 0 ? 1.0 : kMovingAccentFlankerScale)
+      : load * kDanceAccentDropUnits;
+  return CharacterPainter(
+    scene: cast.lead,
+    partnerScene: cast.left,
+    ensembleScenes: [cast.left, cast.right],
+    ensembleExpressions: [
+      danceSingExpression(leadMouth, Expression.neutral, leadShape),
+      danceSingExpression(bgMouth, Expression.content, bgShape),
+      danceSingExpression(bgMouth, Expression.happy, bgShape),
+    ],
+    ensembleClips: [
+      for (var i = 0; i < stage.ensemble.length; i++)
+        accentDroppedClip(
+          productionDanceClip(
+            stage.ensemble[i],
+            stage.dynamics[i],
+            i,
+            stage.energyLevel,
+          ),
+          dropUnits(i),
         ),
-        _bodyLoadEnvelope(
-              stage.lead.belongsToFamily('moving') ? 0 : bodyAccent,
-              stage.lead.belongsToFamily('moving') ? 0 : bodyAnticipation,
-            ) *
-            kDanceAccentDropUnits,
+    ],
+    synchronousEnsemble: stage.synchronous,
+    singingHeadMotion: true,
+    walkingPair: true,
+    clip: accentDroppedClip(
+      productionDanceClip(
+        stage.lead,
+        stage.dynamics.first,
+        0,
+        stage.energyLevel,
       ),
-  ],
-  synchronousEnsemble: stage.synchronous,
-  singingHeadMotion: true,
-  walkingPair: true,
-  clip: accentDroppedClip(
-    productionDanceClip(
-      stage.lead,
-      stage.dynamics.first,
-      0,
-      stage.energyLevel,
+      dropUnits(0),
     ),
-    _bodyLoadEnvelope(
-          stage.lead.belongsToFamily('moving') ? 0 : bodyAccent,
-          stage.lead.belongsToFamily('moving') ? 0 : bodyAnticipation,
-        ) *
-        kDanceAccentDropUnits,
-  ),
-  timeSeconds: stage.seconds,
-  cameraOverride: shot,
-  onDancerAnchors: useNewBackdrop ? onDancerAnchors : null,
-  scale: scale,
-  // The music accent also reaches the painter itself (not just the plié-drop
-  // clip above): it drives the UNISON formation pop — the whole ensemble
-  // surging bigger together on the track's strong transients (see
-  // `CharacterPainter._kUnisonFormationPop`). Single-sourced here so the live
-  // player and every offline renderer pop identically. Its look-ahead partner
-  // [bodyAnticipation] drives the coil that precedes the pop.
-  // Moving's arm hook has its own lyric clock over an independent lower-body
-  // groove. Suppress the generic unison spring/coil so the formation does not
-  // appear to tug the phrase around at every music onset.
-  bodyAccent: stage.lead.belongsToFamily('moving') ? 0 : bodyAccent,
-  bodyAnticipation: stage.lead.belongsToFamily('moving') ? 0 : bodyAnticipation,
-  groundColor: useNewBackdrop ? null : const Color(0xFF374551),
-  backdrop: useNewBackdrop
-      ? CharacterBackdrop.none
-      : CharacterBackdrop.waterfront,
-  backdropImage: useNewBackdrop ? null : backdropImage,
-  backdropCloudsImage: useNewBackdrop ? null : cloudsImage,
-  backdropWavesImage: useNewBackdrop ? null : wavesImage,
-  memberBacklights: backlights,
-  // Surface grade removed (owner: the cats' surfaces read too washed out from
-  // the sky/deck wrap tint — "get rid of the grading of the cats' surfaces...
-  // I can live with more separation with the background"). bodyGrade defaults
-  // to null (no wrap); the rim halo (memberBacklights, above) is separate and
-  // stays.
-  heroStaging: useNewBackdrop,
-  // danceViewProjection intentionally stays at the painter default (false):
-  // front-lock the shipped trio while the arm/shoulder mesh is being rebuilt.
-  // The projection review path still exists for explicit strips, but the app
-  // should not add quarter-turn distortion during limb-attachment review.
-  renderer: renderer,
-);
+    timeSeconds: stage.seconds,
+    cameraOverride: shot,
+    onDancerAnchors: useNewBackdrop ? onDancerAnchors : null,
+    scale: scale,
+    // The music accent also reaches the painter itself (not just the plié-drop
+    // clip above): it drives the UNISON formation pop — the whole ensemble
+    // surging bigger together on the track's strong transients (see
+    // `CharacterPainter._kUnisonFormationPop`). Single-sourced here so the live
+    // player and every offline renderer pop identically. Its look-ahead partner
+    // [bodyAnticipation] drives the coil that precedes the pop.
+    // Moving keeps the SCALE pop/coil suppressed — a whole-row size pulse read
+    // as the formation tugging the authored phrase around on every onset — but
+    // its bodies still hit the music through the per-lane plié drop above.
+    bodyAccent: moving ? 0 : bodyAccent,
+    bodyAnticipation: moving ? 0 : bodyAnticipation,
+    groundColor: useNewBackdrop ? null : const Color(0xFF374551),
+    backdrop: useNewBackdrop
+        ? CharacterBackdrop.none
+        : CharacterBackdrop.waterfront,
+    backdropImage: useNewBackdrop ? null : backdropImage,
+    backdropCloudsImage: useNewBackdrop ? null : cloudsImage,
+    backdropWavesImage: useNewBackdrop ? null : wavesImage,
+    memberBacklights: backlights,
+    // Surface grade removed (owner: the cats' surfaces read too washed out from
+    // the sky/deck wrap tint — "get rid of the grading of the cats' surfaces...
+    // I can live with more separation with the background"). bodyGrade defaults
+    // to null (no wrap); the rim halo (memberBacklights, above) is separate and
+    // stays.
+    heroStaging: useNewBackdrop,
+    // danceViewProjection intentionally stays at the painter default (false):
+    // front-lock the shipped trio while the arm/shoulder mesh is being rebuilt.
+    // The projection review path still exists for explicit strips, but the app
+    // should not add quarter-turn distortion during limb-attachment review.
+    renderer: renderer,
+  );
+}
+
+/// Softens a raw onset envelope ([DancePerformance.accentAt] /
+/// [DancePerformance.anticipationAt]) by the section energy, so the hit is
+/// gentler through low-energy passages and full in the chorus. The single
+/// source for the live player and the offline composer — these two paths
+/// previously each hand-copied the same scaling and could drift.
+double danceBodyAccentEnvelope(double rawEnvelope, double energyLevel) =>
+    rawEnvelope * (0.45 + 0.55 * energyLevel);
+
+/// How many root-units a full-strength onset drops a Moving dancer's body.
+/// Deliberately shallower than the catalogue's [kDanceAccentDropUnits]: the
+/// Moving phrases already author 17-46 unit root dips, so the accent reads as
+/// the knees giving INTO the hit on top of the authored groove, not a second
+/// competing bounce.
+const double kMovingAccentDropUnits = 9;
+
+/// The flankers' share of the Moving accent plié. Slightly shallower than the
+/// lead so the hit has a visible owner — the trio lands together, but not as
+/// three copies of the same impact.
+const double kMovingAccentFlankerScale = 0.75;
 
 /// Joins the look-ahead coil to the post-onset release for the BODY'S vertical
 /// load. Both envelopes are smooth at their endpoints and trade ownership at

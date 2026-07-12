@@ -121,6 +121,15 @@ Clip upperBodyDynamicsWarpedClip(
 /// This creates crew microtiming without the foot pops caused by shifting a
 /// whole dancer's sampled time. Every support/contact-critical channel remains
 /// the original object and therefore samples bit-identically.
+///
+/// The offset is deliberately CONSTANT in clip phase. A phase-varying offset
+/// ("breathing" microtiming) was tried and reverted: any offset that is a
+/// function of the sampled phase changes value discontinuously at a blend
+/// boundary, where the wrapper's clock switches from the outgoing to the
+/// incoming clip — the full-song production probe measured the resulting
+/// upper-body jump at 5.1 units/frame² against the 3.1 transition band. If
+/// per-event microtiming returns, it must blend across both transition clocks
+/// the way `shoulderWoundClip` blends its additive wind.
 Clip upperBodyPhaseOffsetClip(
   Clip clip,
   double phaseOffset, {

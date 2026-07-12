@@ -834,7 +834,7 @@ void main() {
         expect(footL.sample(14 / 32).y, lessThan(100));
         expect(footL.sample(16 / 32).y, greaterThan(105));
 
-        double radiusFromRestShoulder(dynamic target) {
+        double radiusFromRestShoulder(IkTargetPose target) {
           final shoulderX = target.x.isNegative ? -35.0 : 35.0;
           return math.sqrt(
             math.pow(target.x - shoulderX, 2) + math.pow(target.y + 56, 2),
@@ -1040,19 +1040,22 @@ void main() {
       );
     });
 
-    test('Moving bridge rock lets the ribs lead a delayed head counter-focus', () {
-      final head = CatClips.movingBridgeRock.channels[CatBones.head]!;
+    test(
+      'Moving bridge rock lets the ribs lead a delayed head counter-focus',
+      () {
+        final head = CatClips.movingBridgeRock.channels[CatBones.head]!;
 
-      expect(head.sample(0).rotation, lessThan(-0.05));
-      expect(head.sample(12 / 32).rotation, greaterThan(0.05));
-      expect(head.sample(20 / 32).rotation, lessThan(-0.06));
-      expect(head.sample(28 / 32).rotation, greaterThan(0.06));
-      expect(
-        head.sample(1).rotation,
-        closeTo(head.sample(0).rotation, 1e-9),
-        reason: 'the loop seam must return without a head snap',
-      );
-    });
+        expect(head.sample(0).rotation, lessThan(-0.05));
+        expect(head.sample(12 / 32).rotation, greaterThan(0.05));
+        expect(head.sample(20 / 32).rotation, lessThan(-0.06));
+        expect(head.sample(28 / 32).rotation, greaterThan(0.06));
+        expect(
+          head.sample(1).rotation,
+          closeTo(head.sample(0).rotation, 1e-9),
+          reason: 'the loop seam must return without a head snap',
+        );
+      },
+    );
 
     test('Moving verse window focus follows the active shoulder', () {
       final head = CatClips.movingVerseWindow.channels[CatBones.head]!;

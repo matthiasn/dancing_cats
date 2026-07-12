@@ -555,7 +555,8 @@ void main() {
         double bodyAccent, {
         double bodyAnticipation = 0,
       }) async {
-        const w = 760, h = 420;
+        const w = 760;
+        const h = 420;
         final recorder = ui.PictureRecorder();
         final canvas = Canvas(recorder);
         CharacterPainter(
@@ -596,7 +597,9 @@ void main() {
           try {
             final data = await image.toByteData();
             final pixels = data!.buffer.asUint8List();
-            var left = 0, centre = 0, right = 0;
+            var left = 0;
+            var centre = 0;
+            var right = 0;
             for (var y = 0; y < h; y++) {
               for (var x = 0; x < w; x++) {
                 if (pixels[(y * w + x) * 4 + 3] == 0) continue;

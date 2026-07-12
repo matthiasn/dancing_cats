@@ -79,8 +79,6 @@ void main() {
     () {
       final scene = CharacterScene(buildCatInSuitRig());
       final analyzer = TemporalMotionAnalyzer(scene);
-      const speedup = kDanceRealTempoSpeedup;
-
       for (final clip in [
         CatClips.movingGroove,
         CatClips.shaku,
@@ -90,6 +88,8 @@ void main() {
         CatClips.buga,
         CatClips.pouncingCat,
       ]) {
+        // Per-clip: the Moving family ships on its faster two-bar binding.
+        final speedup = danceRealTempoSpeedupFor(clip);
         final report = analyzer.analyze(
           clip: clip,
           samples: 192,
@@ -120,9 +120,6 @@ void main() {
     () {
       final scene = CharacterScene(buildCatInSuitRig());
       final analyzer = TemporalMotionAnalyzer(scene);
-      const speedup = kDanceRealTempoSpeedup;
-      const speedupSquared = speedup * speedup;
-
       for (final clip in [
         CatClips.movingGroove,
         CatClips.shaku,
@@ -132,6 +129,9 @@ void main() {
         CatClips.buga,
         CatClips.pouncingCat,
       ]) {
+        // Per-clip: the Moving family ships on its faster two-bar binding.
+        final speedup = danceRealTempoSpeedupFor(clip);
+        final speedupSquared = speedup * speedup;
         final report = analyzer.analyze(
           clip: clip,
           samples: 192,
@@ -162,9 +162,6 @@ void main() {
     () {
       final scene = CharacterScene(buildCatInSuitRig());
       final analyzer = TemporalMotionAnalyzer(scene);
-      const speedup = kDanceRealTempoSpeedup;
-      const speedupCubed = speedup * speedup * speedup;
-
       for (final clip in [
         CatClips.movingGroove,
         CatClips.shaku,
@@ -174,6 +171,9 @@ void main() {
         CatClips.buga,
         CatClips.pouncingCat,
       ]) {
+        // Per-clip: the Moving family ships on its faster two-bar binding.
+        final speedup = danceRealTempoSpeedupFor(clip);
+        final speedupCubed = speedup * speedup * speedup;
         final report = analyzer.analyze(
           clip: clip,
           samples: 192,

@@ -13,6 +13,8 @@
 /// Lotti mother repo.
 library;
 
+import 'dart:math' as math;
+
 /// The beat grid: detected beat timestamps plus which of them are bar downbeats.
 ///
 /// [beatTimesSec] are the anchors — strictly increasing, at least two. Tempo is
@@ -138,9 +140,27 @@ class BeatMap {
     required BeatLoopBinding binding,
   }) {
     final beat = beatAt(tSec) - binding.anchorBeatIndex;
-    var loopPhase = (beat / binding.loopLengthBeats) % 1.0;
+    final swung = _swungBeat(beat, binding.swing);
+    var loopPhase = (swung / binding.loopLengthBeats) % 1.0;
     if (loopPhase < 0) loopPhase += 1.0; // defensive; Dart % is already >= 0
     return loopPhase * clipDuration;
+  }
+
+  /// [beat] with [BeatLoopBinding.swing]'s pocket warp applied inside each
+  /// detected beat interval: identity AT every beat (downbeat accents stay
+  /// exactly on the grid), while mid-beat clip content arrives up to [swing]
+  /// beats late — the offbeats sit back in the pocket instead of subdividing
+  /// the beat with machine precision.
+  ///
+  /// The `sin²` shape is C2-continuous across beat boundaries (its first and
+  /// second derivatives match at every integer beat), so the warped clock
+  /// never kinks the sampled motion; it stays monotonic for `swing < 1/π`.
+  static double _swungBeat(double beat, double swing) {
+    if (swing == 0) return beat;
+    final whole = beat.floorToDouble();
+    final f = beat - whole;
+    final s = math.sin(math.pi * f);
+    return whole + f - swing * s * s;
   }
 
   static bool _isStrictlyIncreasing(List<double> xs) {
@@ -165,8 +185,13 @@ class BeatLoopBinding {
   const BeatLoopBinding({
     required this.loopLengthBeats,
     required this.anchorBeatIndex,
+    this.swing = 0,
   }) : assert(loopLengthBeats > 0, 'loop must span at least one beat'),
-       assert(anchorBeatIndex >= 0, 'anchor beat index must be non-negative');
+       assert(anchorBeatIndex >= 0, 'anchor beat index must be non-negative'),
+       assert(
+         swing >= 0 && swing < 0.3,
+         'swing must stay below the 1/π monotonicity bound',
+       );
 
   /// Rung 3 — bar-correct. Anchor the loop on the `fromDownbeat`-th detected
   /// downbeat and span `bars` bars. Falls back to beat 0 if the map has no
@@ -204,4 +229,11 @@ class BeatLoopBinding {
 
   /// Beat index that the clip's frame 0 (loop phase 0) lands on.
   final int anchorBeatIndex;
+
+  /// Pocket swing, in beats: how late mid-beat clip content arrives relative
+  /// to the straight grid (see `BeatMap._swungBeat`). 0 (the default) is the
+  /// original straight clock; ~0.06 sits the offbeats ~30ms back at 115 BPM.
+  /// Applied to the WHOLE clip clock — arms, feet, and support changes swing
+  /// together, so contacts stay consistent with the motion they ground.
+  final double swing;
 }

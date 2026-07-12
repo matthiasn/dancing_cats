@@ -4,9 +4,9 @@ import 'dart:ui' as ui;
 
 import 'package:dancing_cats/features/character/demo/dance_performance.dart'
     show
+        danceRealTempoSpeedupFor,
         kDanceLaneDynamicsProfiles,
         kDancePhraseBars,
-        kDanceRealTempoSpeedup,
         sectionEnergyDynamics;
 import 'package:dancing_cats/features/character/demo/motion_trace_panel.dart';
 import 'package:dancing_cats/features/character/engine/autonomic.dart';
@@ -859,9 +859,9 @@ void main() {
               traceSize,
               traces,
               // Ship-tempo seconds: the beat warp plays the authored clip
-              // at kDanceRealTempoSpeedup, and the events/s annotations
-              // must describe what the audience actually sees.
-              loopSeconds: clip.duration / kDanceRealTempoSpeedup,
+              // at its per-family real-tempo factor, and the events/s
+              // annotations must describe what the audience actually sees.
+              loopSeconds: clip.duration / danceRealTempoSpeedupFor(clip),
             );
             final tracesPng = await _pngOf(
               recorder.endRecording(),

@@ -2251,8 +2251,7 @@ class CharacterScene {
         ? -(headWorld.origin.x - headWanderAnchor.origin.x) *
               clip.headLateralStabilize
         : 0.0;
-    final headHorizontalCounter =
-        _isDanceFamily(clip) && !keepMovingHeadOnNeck
+    final headHorizontalCounter = _isDanceFamily(clip) && !keepMovingHeadOnNeck
         ? (_danceHeadHorizontalCounter(rootDx, clip.danceHeadBobScale) +
                       headDxFollow) *
                   baseScale +

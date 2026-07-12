@@ -310,7 +310,7 @@ class DancePlaybackStepper {
     if (perf == null || !stage.energetic) return stage;
     final binding = _segmentBinding(
       perf,
-      stage.lead.name,
+      stage.lead,
       stage.segmentStartSec,
     );
     return (
@@ -354,7 +354,7 @@ class DancePlaybackStepper {
     return perf.map.clipSecondsAt(
       pos,
       clipDuration: from.lead.duration,
-      binding: _segmentBinding(perf, from.lead.name, from.segmentStartSec),
+      binding: _segmentBinding(perf, from.lead, from.segmentStartSec),
     );
   }
 
@@ -378,9 +378,10 @@ class DancePlaybackStepper {
   /// which part of the cycle plays first right after a cut.
   BeatLoopBinding _segmentBinding(
     DancePerformance perf,
-    String moveName,
+    Clip lead,
     double segmentStartSec,
   ) {
+    final moveName = lead.name;
     return _segmentBindings.putIfAbsent((moveName, segmentStartSec), () {
       // Moving is authored as an eight-beat/32-frame phrase: its signature
       // calls sit at frames 4/8/12 and therefore belong on consecutive beats.
@@ -389,10 +390,14 @@ class DancePlaybackStepper {
       // review correctly read as slow and low-energy. Keep the older catalogue
       // on its sustainable four-bar calibration, but let the song-specific
       // Moving family run on its natural two-bar clock (1.5x authored speed,
-      // four authored frames per detected beat at 120 BPM).
-      final loopLengthBeats = moveName.startsWith('moving')
+      // four authored frames per detected beat at 120 BPM) — with the family's
+      // pocket swing, so the phrase subdivides the beat like the track does
+      // instead of like a metronome.
+      final songGroove = lead.belongsToFamily('moving');
+      final loopLengthBeats = songGroove
           ? kMovingPhraseLoopBeats
           : perf.binding.loopLengthBeats;
+      final swing = songGroove ? kMovingSwingBeats : 0.0;
       final offsetBeats =
           ((kDanceEntryPhaseOffset[moveName] ?? 0) * loopLengthBeats).round();
       int rotate(int anchorBeatIndex) {
@@ -413,12 +418,14 @@ class DancePlaybackStepper {
           return BeatLoopBinding(
             loopLengthBeats: loopLengthBeats,
             anchorBeatIndex: rotate(db),
+            swing: swing,
           );
         }
       }
       return BeatLoopBinding(
         loopLengthBeats: loopLengthBeats,
         anchorBeatIndex: rotate(perf.binding.anchorBeatIndex),
+        swing: swing,
       );
     });
   }
@@ -453,6 +460,24 @@ const Map<String, double> kDanceEntryPhaseOffset = {'azonto': 0.65};
 
 /// Moving's authored 32-frame phrase spans eight musical beats (two 4/4 bars).
 const int kMovingPhraseLoopBeats = 8;
+
+/// Pocket swing for the Moving family, in beats (see [BeatLoopBinding.swing]).
+///
+/// The authored phrases are keyed on a straight even-frame grid, but the
+/// track's own accents don't play straight: of the 65 strong onsets the accent
+/// envelope fires on, the median sits ~106ms off the detected beat grid. A
+/// straight clock therefore subdivides every beat with machine precision that
+/// the music itself doesn't have — one of the loudest "robot" tells. 0.06
+/// beats ≈ 31ms at this track's ~115 BPM: the downbeat content stays exactly
+/// on the detected beats while the offbeat content sits back into the pocket.
+/// Applied through the binding so arms, feet, and support changes swing as one
+/// body instead of the upper body detaching from its own steps. The swing
+/// modulates the clip clock's local rate by ±π·swing inside each beat, so the
+/// full-song continuity audit measures motion on the CONTENT clock (see
+/// `_contentClockRate` in dance_production_motion_continuity_test.dart) —
+/// wall-clock bands would otherwise cap the pocket depth by measurement
+/// artefact rather than by musical choice.
+const double kMovingSwingBeats = 0.06;
 
 /// The short window used when one catalogue move changes to another.
 ///

@@ -9,9 +9,9 @@ import 'package:dancing_cats/features/character/demo/dance_stage_view.dart';
 import 'package:dancing_cats/features/character/model/beat_map.dart';
 import 'package:dancing_cats/features/character/runtime/character_painter.dart';
 import 'package:dancing_cats/features/character/runtime/character_renderer.dart';
+import 'package:dancing_cats/features/scenery/drop_bloom.dart';
 import 'package:dancing_cats/features/scenery/layers/backdrop_layer.dart';
 import 'package:dancing_cats/features/scenery/model/backdrop_palette.dart';
-import 'package:dancing_cats/features/scenery/drop_bloom.dart';
 import 'package:dancing_cats/features/scenery/model/backdrop_scene.dart';
 import 'package:dancing_cats/features/scenery/runtime/scenery_shaders.dart';
 import 'package:dancing_cats/features/scenery/runtime/stage_lights.dart';
@@ -236,10 +236,15 @@ class DanceFrameComposer {
     // blooms the stage lights (rim/halo) and drives the warm flash veil below,
     // so the lighting punches hardest exactly where the body does — biggest on
     // the drops (peak energy + strongest onsets).
-    final bodyAccent = perf.accentAt(pos) * (0.45 + 0.55 * stage.energyLevel);
+    final bodyAccent = danceBodyAccentEnvelope(
+      perf.accentAt(pos),
+      stage.energyLevel,
+    );
     // Look-ahead coil before the next hit — same energy scaling as the accent.
-    final bodyAnticipation =
-        perf.anticipationAt(pos) * (0.45 + 0.55 * stage.energyLevel);
+    final bodyAnticipation = danceBodyAccentEnvelope(
+      perf.anticipationAt(pos),
+      stage.energyLevel,
+    );
     final samples = _stageRig.sample(time: pos, beat: beat, bloom: bodyAccent);
 
     // Same trio compositor the live DanceStageView builds — one source of truth.

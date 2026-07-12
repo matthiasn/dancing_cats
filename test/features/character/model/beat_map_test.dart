@@ -88,6 +88,35 @@ void main() {
         closeTo(3.0, 1e-9),
       );
     });
+
+    test('swing keeps every beat on the grid and sits the offbeat late', () {
+      final map = steady();
+      const straight = BeatLoopBinding(loopLengthBeats: 4, anchorBeatIndex: 0);
+      const swung = BeatLoopBinding(
+        loopLengthBeats: 4,
+        anchorBeatIndex: 0,
+        swing: 0.06,
+      );
+      double cs(BeatLoopBinding b, double t) =>
+          map.clipSecondsAt(t, clipDuration: 2, binding: b);
+
+      // Identity AT every detected beat: downbeat accents stay on the grid.
+      for (final t in const [0.0, 0.5, 1.0, 1.5, 2.0]) {
+        expect(cs(swung, t), closeTo(cs(straight, t), 1e-9), reason: 't=$t');
+      }
+      // Mid-beat clip content arrives LATE by exactly the swing: at the real
+      // midpoint of a 0.5s beat the swung clock has only reached beat
+      // fraction 0.5 - 0.06 = 0.44 of that beat (0.44 * 0.5s of clip time).
+      expect(cs(swung, 0.25), closeTo(0.44 * 0.5, 1e-9));
+      // The warp never runs backwards (monotonic within the loop).
+      var last = -1.0;
+      for (var i = 0; i < 200; i++) {
+        final t = i / 200 * 1.9; // stay inside one 2s loop
+        final v = cs(swung, t);
+        expect(v, greaterThanOrEqualTo(last), reason: 't=$t');
+        last = v;
+      }
+    });
   });
 
   group('BeatLoopBinding', () {

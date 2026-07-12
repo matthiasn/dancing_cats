@@ -118,7 +118,7 @@ void main() {
 
     test('converts outgoing transition seconds into normalized phase', () {
       const from = KeyframeChannel([
-        Keyframe(p: 0, rotation: 0, ease: Ease.linear),
+        Keyframe(p: 0, ease: Ease.linear),
         Keyframe(p: 1, rotation: 1, ease: Ease.linear),
       ]);
 
@@ -138,7 +138,7 @@ void main() {
 
     test('maps incoming phase through seconds when durations differ', () {
       const from = KeyframeChannel([
-        Keyframe(p: 0, rotation: 0, ease: Ease.linear),
+        Keyframe(p: 0, ease: Ease.linear),
         Keyframe(p: 1, rotation: 1, ease: Ease.linear),
       ]);
 

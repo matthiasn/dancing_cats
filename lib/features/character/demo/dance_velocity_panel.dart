@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:dancing_cats/features/character/demo/dance_performance.dart'
-    show kDanceRealTempoSpeedup;
+    show danceRealTempoSpeedupFor;
 import 'package:dancing_cats/features/character/model/clip.dart';
 import 'package:dancing_cats/features/character/model/dance_dynamics.dart';
 import 'package:dancing_cats/features/character/model/dance_dynamics_warp.dart';
@@ -159,7 +159,7 @@ HandVelocityProfile sampleHandVelocityProfile(
   // per-step world delta -> rig units per REAL second (ship tempo).
   final toPerSecond = clip.duration <= 0
       ? 0.0
-      : kDanceRealTempoSpeedup * samples / clip.duration;
+      : danceRealTempoSpeedupFor(clip) * samples / clip.duration;
 
   final authoredL = _handSpeeds(
     scene,

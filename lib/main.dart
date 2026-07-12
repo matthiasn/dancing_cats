@@ -919,14 +919,17 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
     final stage = playbackStageForRender(_stepper, _perf, posSec);
     final beat = _perf?.beatPulse(posSec) ?? 0;
     // Music-driven body accent — the onset-hit weight-drop, softened by the
-    // section energy (matches the offline render path).
-    final bodyAccent =
-        (_perf?.accentAt(posSec) ?? 0) * (0.45 + 0.55 * stage.energyLevel);
+    // section energy (single-sourced with the offline render path).
+    final bodyAccent = danceBodyAccentEnvelope(
+      _perf?.accentAt(posSec) ?? 0,
+      stage.energyLevel,
+    );
     // Look-ahead partner: the coil that gathers the ensemble just before the
     // next hit, released by the accent above on the beat (same energy scaling).
-    final bodyAnticipation =
-        (_perf?.anticipationAt(posSec) ?? 0) *
-        (0.45 + 0.55 * stage.energyLevel);
+    final bodyAnticipation = danceBodyAccentEnvelope(
+      _perf?.anticipationAt(posSec) ?? 0,
+      stage.energyLevel,
+    );
     // The director owns the camera; the stepper holds the eased framing and the
     // singing mouths. The whole composite is the generalized DanceStageView,
     // rendered identically by the live app and every offline renderer — there is

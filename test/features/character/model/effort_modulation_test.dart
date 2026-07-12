@@ -35,30 +35,38 @@ void main() {
       expect(lowEx, lessThan(base * 0.75));
       expect(highEx, greaterThan(base * 1.1));
       // A scale of exactly 1 is a no-op (same instance back).
-      expect(identical(effortModulatedClip(clip, (p) => 1.0), clip), isFalse,
-          reason: 'scale fn is applied; identity only when no hand target');
+      expect(
+        identical(effortModulatedClip(clip, (p) => 1.0), clip),
+        isFalse,
+        reason: 'scale fn is applied; identity only when no hand target',
+      );
     });
 
-    test('deterministic variance breathes: not flat, loop-seamless, per-lane', () {
-      final s0 = danceEffortScaleOf(0.5, 0);
+    test(
+      'deterministic variance breathes: not flat, loop-seamless, per-lane',
+      () {
+        final s0 = danceEffortScaleOf(0.5, 0);
 
-      // NOT FLAT: the effort varies beat to beat across the loop.
-      final perBeat = [for (var i = 0; i < 8; i++) s0(i / 8)];
-      final spread =
-          perBeat.reduce(max) - perBeat.reduce(min);
-      expect(spread, greaterThan(0.05),
-          reason: 'effort must vary beat to beat, not be a flat scale');
+        // NOT FLAT: the effort varies beat to beat across the loop.
+        final perBeat = [for (var i = 0; i < 8; i++) s0(i / 8)];
+        final spread = perBeat.reduce(max) - perBeat.reduce(min);
+        expect(
+          spread,
+          greaterThan(0.05),
+          reason: 'effort must vary beat to beat, not be a flat scale',
+        );
 
-      // LOOP-SEAMLESS: periodic so the amplitude does not jump at the seam.
-      expect(s0(0), closeTo(s0(1), 1e-9));
+        // LOOP-SEAMLESS: periodic so the amplitude does not jump at the seam.
+        expect(s0(0), closeTo(s0(1), 1e-9));
 
-      // PER-LANE DISTINCT: the three dancers do not breathe in lockstep.
-      final s1 = danceEffortScaleOf(0.5, 1);
-      expect((s0(0.3) - s1(0.3)).abs(), greaterThan(1e-3));
+        // PER-LANE DISTINCT: the three dancers do not breathe in lockstep.
+        final s1 = danceEffortScaleOf(0.5, 1);
+        expect((s0(0.3) - s1(0.3)).abs(), greaterThan(1e-3));
 
-      // DETERMINISTIC: same inputs → same output every call.
-      expect(s0(0.42), s0(0.42));
-    });
+        // DETERMINISTIC: same inputs → same output every call.
+        expect(s0(0.42), s0(0.42));
+      },
+    );
 
     test('fast-base orbit adds continuous motion, loop-seamless', () {
       final clip = CatClips.zanku; // has hand IK targets
@@ -102,8 +110,11 @@ void main() {
 
       final calmMean = mean(danceEffortScaleOf(0.1, 0));
       final hotMean = mean(danceEffortScaleOf(0.9, 0));
-      expect(hotMean, greaterThan(calmMean),
-          reason: 'hot sections move bigger; calm ones smaller (but still fast)');
+      expect(
+        hotMean,
+        greaterThan(calmMean),
+        reason: 'hot sections move bigger; calm ones smaller (but still fast)',
+      );
     });
   });
 }

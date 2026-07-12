@@ -52,8 +52,6 @@ void main() {
     () {
       final scene = CharacterScene(buildCatInSuitRig());
       final analyzer = TemporalMotionAnalyzer(scene);
-      const speedup = kDanceRealTempoSpeedup;
-
       const known = <String>{};
 
       for (final clip in [
@@ -65,6 +63,8 @@ void main() {
         CatClips.buga,
         CatClips.pouncingCat,
       ]) {
+        // Per-clip: the Moving family ships on its faster two-bar binding.
+        final speedup = danceRealTempoSpeedupFor(clip);
         final report = analyzer.analyze(
           clip: clip,
           samples: 192,
@@ -99,9 +99,6 @@ void main() {
     () {
       final scene = CharacterScene(buildCatInSuitRig());
       final analyzer = TemporalMotionAnalyzer(scene);
-      const speedup = kDanceRealTempoSpeedup;
-      const speedupSquared = speedup * speedup;
-
       const known = <String>{};
 
       for (final clip in [
@@ -113,6 +110,9 @@ void main() {
         CatClips.buga,
         CatClips.pouncingCat,
       ]) {
+        // Per-clip: the Moving family ships on its faster two-bar binding.
+        final speedup = danceRealTempoSpeedupFor(clip);
+        final speedupSquared = speedup * speedup;
         final report = analyzer.analyze(
           clip: clip,
           samples: 192,
@@ -159,7 +159,6 @@ void main() {
   test('catalogue elbow (arm_lower) never snaps past a natural whip', () {
     final scene = CharacterScene(buildCatInSuitRig());
     final analyzer = TemporalMotionAnalyzer(scene);
-    const speedup = kDanceRealTempoSpeedup;
     const elbows = [CatBones.armLowerL, CatBones.armLowerR];
 
     final clips = {
@@ -172,6 +171,8 @@ void main() {
       'pouncingCat': CatClips.pouncingCat,
     };
     for (final entry in clips.entries) {
+      // Per-clip: the Moving family ships on its faster two-bar binding.
+      final speedup = danceRealTempoSpeedupFor(entry.value);
       final eff = effectiveDanceDynamics(
         moveBase: entry.value.dynamics,
         catProfile: kDanceLaneDynamicsProfiles[0],
@@ -218,11 +219,16 @@ void main() {
           // Moving deliberately opts out of the generic velocity-driven hand
           // follow-through spring. Re-enabling it does not violate the broad
           // catalogue safety ceiling above, but it roughly doubles this value
-          // (0.07-0.09 -> 0.16-0.17) and visibly reels the paw back after a
-          // lyric carve. Keep a song-specific perceptual regression gate.
+          // (~0.17 -> ~0.33 at the shipped clock) and visibly reels the paw
+          // back after a lyric carve. Keep a song-specific perceptual
+          // regression gate. Re-centered 0.12 -> 0.24 when the gate switched
+          // from the stale catalogue 0.75x factor to Moving's true 1.5x
+          // binding clock (danceRealTempoSpeedupFor): the measured no-spring
+          // peak is 0.172, the spring-active failure ~0.33 — the bound still
+          // separates them cleanly.
           expect(
             worst,
-            lessThan(0.12),
+            lessThan(0.24),
             reason:
                 '$bone must follow the authored Moving path directly; a '
                 'higher value indicates the generic hand spring is active',

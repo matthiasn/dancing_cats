@@ -1,5 +1,19 @@
 # Moving choreography handoff
 
+> **Historical snapshot.** This document describes the state of the work at
+> commit `46db185`, mid-way through the `feat/moving-musicality-tie` branch.
+> Later commits on the branch superseded several claims below: the app-stage
+> ownership fix and the "critical unresolved teleport" investigation landed
+> (see `ac6d540`/`2fabab1` and `playbackStageForRender`), and a subsequent
+> musicality pass added the Moving accent plié
+> (`kMovingAccentDropUnits` in `dance_stage_view.dart`) and the beat-binding
+> pocket swing (`kMovingSwingBeats` / `BeatLoopBinding.swing`). Known issue
+> left for a follow-up: `movingBridgeBounce`'s and `movingBridgeRock`'s
+> contact spans contradict their authored feet, so the support anchor crushes
+> their heel pops/taps — see the KNOWN ISSUE note on `movingBridgeRock` in
+> `cat_in_suit.dart`. Trust the code and current tests over the sections
+> below where they disagree.
+
 ## Mission
 
 Make the full `Omah Lay - Moving` performance read as a human, organic,

@@ -1,6 +1,7 @@
 import 'package:dancing_cats/features/character/model/clip.dart';
 import 'package:dancing_cats/features/character/model/dance_dynamics.dart';
 import 'package:dancing_cats/features/character/model/dance_dynamics_warp.dart';
+import 'package:dancing_cats/features/character/model/easing.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 const _strong = DanceDynamics(weight: 0.7, time: 0.6, flow: -0.4);
@@ -21,7 +22,6 @@ void main() {
       const hand = SineChannel(
         harmonicAmplitude: 1,
         harmonicMultiplier: 1,
-        harmonicPhase: 0,
       );
       const foot = KeyframeChannel([
         Keyframe(p: 0),
@@ -75,6 +75,38 @@ void main() {
 
       expect(byId['hand.R']!.channel, isA<LoopSeamSettledIkTargetChannel>());
       expect(identical(byId['foot.R']!.channel, footTarget.channel), isTrue);
+    });
+  });
+
+  group('upperBodyPhaseOffsetClip', () {
+    // A linear ramp makes the sampled phase directly readable as rotation.
+    const ramp = KeyframeChannel([
+      Keyframe(p: 0, ease: Ease.linear),
+      Keyframe(p: 1, rotation: 1, ease: Ease.linear),
+    ]);
+
+    test('shifts only upper-body channels by the constant offset', () {
+      final clip = _loopingClip(channels: {'hand.R': ramp, 'foot.R': ramp});
+      final shifted = upperBodyPhaseOffsetClip(
+        clip,
+        0.01,
+        upperBodyBoneIds: {'hand.R'},
+      );
+      expect(
+        shifted.channels['hand.R']!.sample(0.5).rotation,
+        closeTo(0.51, 1e-9),
+      );
+      expect(identical(shifted.channels['foot.R'], ramp), isTrue);
+    });
+
+    test('a zero-offset lane (the lead) passes through untouched', () {
+      final clip = _loopingClip(channels: {'hand.R': ramp});
+      final same = upperBodyPhaseOffsetClip(
+        clip,
+        0,
+        upperBodyBoneIds: {'hand.R'},
+      );
+      expect(identical(same, clip), isTrue);
     });
   });
 

@@ -40,6 +40,47 @@ DancePerformance _perf({List<DanceWord> words = const []}) {
 Widget _hostStage(DanceStageView view) =>
     MaterialApp(home: Scaffold(body: view));
 
+/// A Moving-family production stage (the trio the full-song score assigns in
+/// its first hook statement), for exercising the family's accent treatment.
+DanceStage _movingStage() => (
+  lead: CatClips.movingGroove,
+  ensemble: [
+    CatClips.movingGroove,
+    CatClips.movingGrooveLowCounter,
+    CatClips.movingGrooveSideAnswer,
+  ],
+  seconds: 1.2,
+  section: null,
+  energetic: true,
+  synchronous: true,
+  segmentStartSec: 0,
+  dynamics: const [
+    DanceDynamics.neutral,
+    DanceDynamics.neutral,
+    DanceDynamics.neutral,
+  ],
+  energyLevel: 0.8,
+);
+
+/// A catalogue (non-Moving) stage, for asserting the generic accent treatment
+/// is untouched. Note `_perf().stageAt` cannot supply this: its full-energy
+/// section resolves to the Moving trio via `choreoTrioByLevel(1.0)`.
+DanceStage _catalogueStage() => (
+  lead: CatClips.shaku,
+  ensemble: [CatClips.shaku, CatClips.zanku, CatClips.sekem],
+  seconds: 1.2,
+  section: null,
+  energetic: true,
+  synchronous: true,
+  segmentStartSec: 0,
+  dynamics: const [
+    DanceDynamics.neutral,
+    DanceDynamics.neutral,
+    DanceDynamics.neutral,
+  ],
+  energyLevel: 0.8,
+);
+
 DanceStageView _stageView({
   bool useNewBackdrop = true,
   bool showCaptions = true,
@@ -292,6 +333,73 @@ void main() {
         }
       },
     );
+
+    test('Moving bodies hit the music with a per-lane plié, not the pop', () {
+      final stage = _movingStage();
+      CharacterPainter build(double accent) => danceCharacterPainter(
+        cast: DanceCast.build(),
+        renderer: CharacterRenderer(antiAlias: false),
+        stage: stage,
+        shot: (zoom: 1.0, dx: 0.0, dy: 0.0),
+        leadMouth: 0,
+        bgMouth: 0,
+        leadShape: MouthShape.neutral,
+        bgShape: MouthShape.neutral,
+        scale: 1,
+        backlights: const [],
+        bodyAccent: accent,
+      );
+
+      final still = build(0);
+      final hit = build(0.8);
+
+      // The whole-row SCALE pop/coil stays suppressed for Moving (it read as
+      // the formation tugging the authored phrase around on every onset)...
+      expect(hit.bodyAccent, 0);
+      expect(hit.bodyAnticipation, 0);
+
+      // ...but the BODIES land the hit: the root drops into a plié, deepest
+      // on the lead, visibly shallower on the flankers so the hit has an
+      // owner. The support anchor turns this root offset into knee flexion
+      // over planted feet.
+      double drop(int lane) {
+        final hitClip = lane == 0 ? hit.clip : hit.ensembleClips[lane];
+        final stillClip = lane == 0 ? still.clip : still.ensembleClips[lane];
+        return hitClip.root.sample(0.3).dy - stillClip.root.sample(0.3).dy;
+      }
+
+      final leadDrop = drop(0);
+      expect(leadDrop, closeTo(0.8 * kMovingAccentDropUnits, 1e-9));
+      for (final lane in [1, 2]) {
+        final flankDrop = drop(lane);
+        expect(
+          flankDrop,
+          closeTo(
+            0.8 * kMovingAccentDropUnits * kMovingAccentFlankerScale,
+            1e-9,
+          ),
+        );
+        expect(flankDrop, lessThan(leadDrop));
+      }
+
+      // The catalogue keeps its original treatment: the accent passes through
+      // to the painter's unison pop and the full-depth drop.
+      final catalogue = _catalogueStage();
+      final cataloguePainter = danceCharacterPainter(
+        cast: DanceCast.build(),
+        renderer: CharacterRenderer(antiAlias: false),
+        stage: catalogue,
+        shot: (zoom: 1.0, dx: 0.0, dy: 0.0),
+        leadMouth: 0,
+        bgMouth: 0,
+        leadShape: MouthShape.neutral,
+        bgShape: MouthShape.neutral,
+        scale: 1,
+        backlights: const [],
+        bodyAccent: 0.8,
+      );
+      expect(cataloguePainter.bodyAccent, 0.8);
+    });
   });
 
   group('DanceStageView widget', () {

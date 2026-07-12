@@ -140,11 +140,12 @@ const int kDancePhraseBars = 4;
 /// track's 4/4 time signature. At the sample track's detected
 /// `tempo.global_bpm` (`assets/sample_track/moving.json`, 120.0), 16 beats
 /// take `16 * 60 / 120 = 8` real seconds, versus the `_danceBase` clip's
-/// authored `duration: 6` seconds — so the live/exported app now plays every
-/// routine at `6 / 8 = 0.75x` of the raw clip clock the film-strip tests and
+/// authored `duration: 6` seconds — so the live/exported app plays CATALOGUE
+/// routines at `6 / 8 = 0.75x` of the raw clip clock the film-strip tests and
 /// `TemporalMotionAnalyzer` sample by default (slightly SLOWER than
 /// authored, the sustainable half-time read — down from the previous
-/// two-bar binding's 1.5x, which shipped frantic).
+/// two-bar binding's 1.5x, which shipped frantic). The Moving family does NOT
+/// use this factor — see [danceRealTempoSpeedupFor].
 ///
 /// This is *this project's current default track's* factor, not a universal
 /// constant — it would need recomputing (from the same formula) if the
@@ -153,6 +154,19 @@ const int kDancePhraseBars = 4;
 /// `k`, acceleration by `k^2`, and jerk by `k^3` rather than resampling at a
 /// different clock.
 const double kDanceRealTempoSpeedup = 6 / 8;
+
+/// Real-tempo factor for [clip], honoring per-family bindings.
+///
+/// [kDanceRealTempoSpeedup] describes only the catalogue's four-bar binding.
+/// The Moving family runs on its natural two-bar clock (see
+/// `kMovingPhraseLoopBeats` in `dance_playback_stepper.dart`): 8 beats take
+/// `8 * 60 / 120 = 4` real seconds against the 6-second authored loop, so its
+/// shipped clock is `6 / 4 = 1.5x` — TWICE the catalogue constant. Real-tempo
+/// motion gates and inspection panels must use this per-clip factor: scaling
+/// Moving by the catalogue constant certifies/displays it at half its shipped
+/// speed (velocity 2x off, acceleration 4x, jerk 8x).
+double danceRealTempoSpeedupFor(Clip clip) =>
+    clip.belongsToFamily('moving') ? 6 / 4 : kDanceRealTempoSpeedup;
 
 /// Fraction of the track's energy range below which a section counts as "calm"
 /// (and, if also long enough, eases the trio into idle). See [kMinCalmSeconds].

@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:dancing_cats/features/character/demo/dance_performance.dart'
-    show kDanceRealTempoSpeedup;
+    show danceRealTempoSpeedupFor;
 import 'package:dancing_cats/features/character/demo/dance_velocity_panel.dart';
 import 'package:dancing_cats/features/character/demo/motion_trace_panel.dart';
 import 'package:dancing_cats/features/character/model/affine2d.dart';
@@ -667,7 +667,7 @@ class _DanceMoveInspectorDialogState extends State<_DanceMoveInspectorDialog>
           traces,
           // Ship-tempo seconds, so the events/s annotations describe the
           // live pace the audience sees, not the authored clip clock.
-          loopSeconds: clip.duration / kDanceRealTempoSpeedup,
+          loopSeconds: clip.duration / danceRealTempoSpeedupFor(clip),
         ),
         size: Size.infinite,
       ),
