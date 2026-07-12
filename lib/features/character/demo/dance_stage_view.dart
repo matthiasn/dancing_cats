@@ -444,9 +444,7 @@ CharacterPainter danceCharacterPainter({
   // lands WITH the track's transients rather than leaving every hit to the
   // lights.
   double dropUnits(int lane) => moving
-      ? load *
-            kMovingAccentDropUnits *
-            (lane == 0 ? 1.0 : kMovingAccentFlankerScale)
+      ? movingAccentDropUnits(load, lane)
       : load * kDanceAccentDropUnits;
   // The authored groove yields to the hit while it lands (see
   // [accentDroppedClip]'s bobDuck): only the POSITIVE load ducks the bob —
@@ -551,6 +549,25 @@ const double kMovingAccentFlankerScale = 0.75;
 /// bob) inverts into a visible give — while between hits the authored groove
 /// is untouched.
 const double kMovingAccentBobDuck = 0.35;
+
+/// Extra plié depth for TOP-TIER hits, as a fraction on top of the linear
+/// load scaling (smoothstepped in over load 0.5..0.85). Depth already scales
+/// with onset strength and section energy, but at mid-section energy that
+/// left the song's flagship transients (the strength-1.0 hook downbeat — the
+/// first thing anyone scrubs to) carrying the same knee give as a routine
+/// hit. Strong hits now read unmistakably deeper; weak hits are untouched.
+const double kMovingAccentStrongBoost = 0.45;
+
+/// The Moving accent plié depth for one lane at body [load] — the single
+/// source for the production painter wiring and the tests that gate it.
+double movingAccentDropUnits(double load, int lane) {
+  final t = ((load - 0.5) / 0.35).clamp(0.0, 1.0);
+  final emphasis = 1 + kMovingAccentStrongBoost * t * t * (3 - 2 * t);
+  return load *
+      kMovingAccentDropUnits *
+      emphasis *
+      (lane == 0 ? 1.0 : kMovingAccentFlankerScale);
+}
 
 /// Joins the look-ahead coil to the post-onset release for the BODY'S vertical
 /// load. Both envelopes are smooth at their endpoints and trade ownership at

@@ -387,16 +387,20 @@ void main() {
       }
 
       final leadDrop = drop(0);
-      expect(leadDrop, closeTo(load * kMovingAccentDropUnits, 1e-6));
+      expect(leadDrop, closeTo(movingAccentDropUnits(load, 0), 1e-6));
+      // A 0.8 load is a top-tier hit: the strong-hit emphasis must be live.
+      expect(
+        movingAccentDropUnits(load, 0),
+        greaterThan(load * kMovingAccentDropUnits),
+      );
+      // Weak hits keep the plain linear depth.
+      expect(
+        movingAccentDropUnits(0.4, 0),
+        closeTo(0.4 * kMovingAccentDropUnits, 1e-9),
+      );
       for (final lane in [1, 2]) {
         final flankDrop = drop(lane);
-        expect(
-          flankDrop,
-          closeTo(
-            load * kMovingAccentDropUnits * kMovingAccentFlankerScale,
-            1e-6,
-          ),
-        );
+        expect(flankDrop, closeTo(movingAccentDropUnits(load, lane), 1e-6));
         expect(flankDrop, lessThan(leadDrop));
       }
 

@@ -483,14 +483,27 @@ class DancePerformance {
   /// visible as a load, still fast enough to read as one gesture with the hit.
   static const double _kAnticipationWindowSec = 0.1;
 
+  /// Fixed candidate strength for the SECONDARY accent tier: the lead
+  /// vocal's word starts. Some stretches carry no strong instrumental
+  /// transient at all (the late chorus opens with a 2.2s hole in the onset
+  /// data) yet the vocal clearly phrases there — and hitting on the vocal
+  /// entry is exactly what a dancer does. Kept below the instrumental
+  /// candidates' typical strengths so a real transient always outranks a
+  /// word start in the peak picking.
+  static const double _kVocalAccentStrength = 0.42;
+
   /// The onsets that fire a visible body accent: strength-greedy peak picking
   /// with [_kAccentMinSpacingSec] between hits (see the constants above for
-  /// why this replaced a flat strength floor). Pre-computed once, sorted by
-  /// time.
+  /// why this replaced a flat strength floor). Instrumental onsets are joined
+  /// by a secondary tier of lead-vocal word starts (see
+  /// [_kVocalAccentStrength]). Pre-computed once, sorted by time.
   late final List<({double time, double strength})> _accentOnsets = () {
     final candidates = [
       for (final o in onsets)
         if (o.strength >= _kAccentCandidateFloor) o,
+      for (final w in words)
+        if (w.voice == 'lead')
+          (time: w.start, strength: _kVocalAccentStrength),
     ]..sort((a, b) => b.strength.compareTo(a.strength));
     final picked = <({double time, double strength})>[];
     for (final o in candidates) {
