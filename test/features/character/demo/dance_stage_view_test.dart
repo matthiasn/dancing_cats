@@ -3,11 +3,13 @@ import 'package:dancing_cats/features/character/demo/dance_stage_view.dart';
 import 'package:dancing_cats/features/character/model/beat_map.dart';
 import 'package:dancing_cats/features/character/model/clip.dart';
 import 'package:dancing_cats/features/character/model/dance_dynamics.dart';
+import 'package:dancing_cats/features/character/model/dance_dynamics_warp.dart';
 import 'package:dancing_cats/features/character/model/face.dart';
 import 'package:dancing_cats/features/character/model/rig_spec.dart';
 import 'package:dancing_cats/features/character/runtime/character_painter.dart';
 import 'package:dancing_cats/features/character/runtime/character_renderer.dart';
 import 'package:dancing_cats/features/character/samples/cat_in_suit.dart';
+import 'package:dancing_cats/features/scenery/drop_bloom.dart';
 import 'package:dancing_cats/features/scenery/layered_backdrop.dart';
 import 'package:dancing_cats/features/scenery/runtime/stage_lights.dart';
 import 'package:dancing_cats/features/scenery/scene_texture_overlay.dart';
@@ -87,6 +89,8 @@ DanceStageView _stageView({
   bool showCaptions = true,
   List<DanceWord> words = _words,
   ValueChanged<List<Offset>>? onDancerAnchors,
+  double bodyAccent = 0,
+  List<double>? laneBodyAccents,
 }) {
   final perf = _perf(words: words);
   return DanceStageView(
@@ -98,6 +102,8 @@ DanceStageView _stageView({
     backdropTimeSeconds: 2,
     lightsTimeSeconds: 2,
     bpm: 120,
+    bodyAccent: bodyAccent,
+    laneBodyAccents: laneBodyAccents,
     leadMouth: 0.4,
     bgMouth: 0.2,
     leadShape: MouthShape.smileOpen,
@@ -447,6 +453,50 @@ void main() {
       // The active lyric word is captioned.
       expect(find.byType(DanceCaption), findsOneWidget);
       expect(find.byType(RichText), findsWidgets);
+    });
+
+    testWidgets(
+      'flares a hot echo voice even after the global accent has decayed',
+      (tester) async {
+        // A canon answer peaks AFTER the lead's accent envelope has released,
+        // so the global accent is cold while the left flank's lane is hot —
+        // the drop flare must still be up, carrying that voice's flash.
+        await tester.pumpWidget(
+          _hostStage(_stageView(laneBodyAccents: const [0, 0.8, 0])),
+        );
+        await tester.pump();
+
+        expect(tester.takeException(), isNull);
+        final bloom = tester
+            .widgetList<CustomPaint>(find.byType(CustomPaint))
+            .map((w) => w.painter)
+            .whereType<DropBloomPainter>()
+            .single;
+        expect(bloom.accent, 0);
+        // Ensemble order [lead, left, right] reaches the painter in SCREEN
+        // order [left, lead, right], light-curved: the hot left flank leads.
+        expect(bloom.laneAccents![0], closeTo(danceLightAccentOf(0.8), 1e-9));
+        expect(bloom.laneAccents![1], 0);
+        expect(bloom.laneAccents![2], 0);
+      },
+    );
+
+    testWidgets('no drop flare when every accent envelope is cold', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _hostStage(_stageView(laneBodyAccents: const [0, 0, 0])),
+      );
+      await tester.pump();
+
+      expect(tester.takeException(), isNull);
+      expect(
+        tester
+            .widgetList<CustomPaint>(find.byType(CustomPaint))
+            .map((w) => w.painter)
+            .whereType<DropBloomPainter>(),
+        isEmpty,
+      );
     });
 
     testWidgets('pumps the legacy single-plate path (useNewBackdrop: false)', (

@@ -168,17 +168,21 @@ class DanceStageView extends StatelessWidget {
   Widget build(BuildContext context) {
     // One rig drives BOTH the per-cat rim/halo (memberBacklights) and the floor
     // pools, gel-cycling on the tempo, so a cat's glow always matches its pool.
+    // The rig's pools sit in SCREEN order, so per-voice envelopes are remapped
+    // once here and shared by the pools AND the drop flare — the two can never
+    // disagree about which voice is lit.
+    final laneBlooms = laneBodyAccents == null
+        ? null
+        : danceScreenOrderLanes(
+            laneBodyAccents!.map(danceLightAccentOf).toList(),
+          );
     final rig = danceStageRig(bpm);
     final samples = useNewBackdrop
         ? rig.sample(
             time: lightsTimeSeconds,
             beat: beat,
             bloom: danceLightAccentOf(bodyAccent),
-            laneBlooms: laneBodyAccents == null
-                ? null
-                : danceScreenOrderLanes(
-                    laneBodyAccents!.map(danceLightAccentOf).toList(),
-                  ),
+            laneBlooms: laneBlooms,
           )
         : const <StageLightSample>[];
     final backlights = danceMemberBacklights(samples);
@@ -282,14 +286,22 @@ class DanceStageView extends StatelessWidget {
                         child: const SizedBox.expand(),
                       ),
                     ),
-                    // The drop flash: a warm additive flare centred on the
-                    // dancers that spikes on the music accent (biggest on the
-                    // drops). Single-sourced with the offline composer via
+                    // The drop flash: a warm additive flare that spikes on the
+                    // music accent (biggest on the drops), one flare per voice
+                    // when per-lane envelopes exist so a canon answer lights
+                    // its own dancer instead of lifting the whole frame. The
+                    // gate must consider every lane: an echo voice's accent
+                    // peaks AFTER the lead's has decayed, so gating on the
+                    // global envelope alone would cut the cascade off mid-
+                    // answer. Single-sourced with the offline composer via
                     // [paintDropBloom] so the two paint paths can't drift.
-                    if (useNewBackdrop && bodyAccent > 0.01)
+                    if (useNewBackdrop &&
+                        (bodyAccent > 0.01 ||
+                            (laneBodyAccents?.any((a) => a > 0.01) ?? false)))
                       CustomPaint(
                         painter: DropBloomPainter(
                           danceLightAccentOf(bodyAccent),
+                          laneAccents: laneBlooms,
                         ),
                         child: const SizedBox.expand(),
                       ),

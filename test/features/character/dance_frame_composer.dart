@@ -261,13 +261,16 @@ class DanceFrameComposer {
           stage.energyLevel,
         ),
     ];
+    // Screen-order per-voice blooms, shared by the rig's pools AND the drop
+    // flare — mirrors the live DanceStageView's single remap.
+    final laneBlooms = danceScreenOrderLanes(
+      laneBodyAccents.map(danceLightAccentOf).toList(),
+    );
     final samples = _stageRig.sample(
       time: pos,
       beat: beat,
       bloom: danceLightAccentOf(bodyAccent),
-      laneBlooms: danceScreenOrderLanes(
-        laneBodyAccents.map(danceLightAccentOf).toList(),
-      ),
+      laneBlooms: laneBlooms,
     );
 
     // Same trio compositor the live DanceStageView builds — one source of truth.
@@ -289,7 +292,7 @@ class DanceFrameComposer {
       onDancerAnchors: (anchors) => _dancerAnchors = anchors,
     ).paint(canvas, size);
 
-    _paintDropBloom(canvas, danceLightAccentOf(bodyAccent));
+    _paintDropBloom(canvas, danceLightAccentOf(bodyAccent), laneBlooms);
 
     if (captions && perf.words.isNotEmpty) _paintCaption(canvas, pos);
   }
@@ -338,8 +341,8 @@ class DanceFrameComposer {
   // The drop flash is single-sourced in `paintDropBloom` (scenery/drop_bloom),
   // shared verbatim with the live DanceStageView so the two paint paths cannot
   // drift.
-  void _paintDropBloom(Canvas canvas, double accent) =>
-      paintDropBloom(canvas, size, accent);
+  void _paintDropBloom(Canvas canvas, double accent, List<double> lanes) =>
+      paintDropBloom(canvas, size, accent, laneAccents: lanes);
 
   void _paintCaption(Canvas canvas, double pos) {
     // Caption window, per-word style and box metrics are single-sourced from
