@@ -687,10 +687,15 @@ Clip productionDanceClip(
     // correlation, the "boy-band clone" tell. A static ±8-10% spread keeps
     // every lane on the authored path shape while no two cats hit the same
     // extent.
+    // The Moving arm extent also rides the section arc (0.78 + 0.22·E): the
+    // energy tier alone moves root amplitude but left the valley's ARMS at
+    // full reach — round-4 measured the valley out-dancing the capped chorus.
     final effort = songGroove
         ? effortModulatedClip(
             orbited,
-            (_) => kMovingLaneAmplitudeScale[lane],
+            (_) =>
+                kMovingLaneAmplitudeScale[lane] *
+                (0.78 + 0.22 * energyLevel.clamp(0.0, 1.0)),
           )
         : effortModulatedClip(
             orbited,

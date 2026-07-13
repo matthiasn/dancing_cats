@@ -48,7 +48,7 @@ const List<double> kMovingLaneAmplitudeScale = [1.0, 0.88, 0.95];
 /// the 7-unit band at every chorus entry. At one beat the handoff lands
 /// ~0.52s in, clear of every blend window — and a beat-late answer reads
 /// more clearly as an answer anyway.
-const double kMovingEchoPhase = -1 / 8;
+const double kMovingEchoPhase = -1 / 8 - 0.006;
 
 /// The GREY (left-flank) canon delay: TWO beats behind the lead's call in
 /// the hook statement — a featured, unmistakable answer voice (round-3
@@ -56,7 +56,16 @@ const double kMovingEchoPhase = -1 / 8;
 /// flank's one-beat echo so the three voices never collapse into two. Two
 /// beats is span-grid-aligned (the quarter-note support rota maps onto
 /// itself), so the canon variant has no seam stubs at all.
-const double kMovingCanonPhase = -2 / 8;
+///
+/// Both displacements carry a few extra milliseconds of HUMANIZATION
+/// (kMovingEchoPhase −25ms, canon +29ms): with pure beat-grid shifts every
+/// cat's foot strikes land on the identical frame at every shared beat —
+/// round-4 biomech measured 0-frame plant coincidence across the trio and
+/// read it as "drill-team symmetry under one master clock; human backup
+/// dancers land 20-60ms apart even on unison choreography". The deltas are
+/// far smaller than any blend window, so support handoffs stay clear of
+/// statement entries.
+const double kMovingCanonPhase = -2 / 8 + 0.007;
 
 /// Returns [clip] with EVERYTHING shifted by [phaseShift] — every joint
 /// channel, hand and foot IK target, the root, and the phase-ranged data

@@ -107,9 +107,13 @@ double danceSectionArcTier(String section, int occurrence) {
     case 'pre-chorus':
       return 0.92;
     case 'verse':
-      return 0.85;
+      // Lowered 0.85 -> 0.80 with the bridge (round-4 cartoon: the valley
+      // measured 1.08x the capped chorus — "a valley that forgot to be a
+      // valley"); the quiet-step loading and full lunge vocabulary carry
+      // plenty of life at the smaller extent.
+      return 0.80;
     case 'bridge':
-      return 0.82;
+      return 0.78;
     case 'outro':
       return 1;
     default:
@@ -645,11 +649,24 @@ class DancePerformance {
   );
 
   /// The grey flank's FEATURED canon voice: the low counter two beats
-  /// behind the lead in the hook call, so the trio reads as three voices —
-  /// call, late answer, later ground echo — instead of lead + echo + filler.
+  /// behind the lead in the hook call — a literal QUOTE of the lead's own
+  /// hook motif, so the trio reads as call → answer → later answer of the
+  /// SAME sentence instead of three simultaneous different ones.
   static final Clip _movingLowCounterCanon = wholeClipPhaseShiftedClip(
-    CatClips.movingGrooveLowCounter,
+    CatClips.movingGroove,
     kMovingCanonPhase,
+  );
+
+  /// The right flank's one-beat QUOTE of the lead's hook motif for the CALL
+  /// statement. Round-4 coach and animator converged on the same finding: a
+  /// displaced *different* phrase reads as counterpoint, not conversation
+  /// ("duplicate the lead's call gesture, delay it" / "copy the lead's
+  /// gesture curve") — and a one-beat shift of a different beat-periodic
+  /// phrase aliased to lag-0 in every measured window. The per-lane
+  /// amplitude spread keeps both quotes subordinate to the call.
+  static final Clip _movingHookEcho = wholeClipPhaseShiftedClip(
+    CatClips.movingGroove,
+    kMovingEchoPhase,
   );
   static final Clip _movingVerse = CatClips.movingVerseGroove;
   static final Clip _movingVerseWindow = CatClips.movingVerseWindow;
@@ -836,7 +853,7 @@ class DancePerformance {
   }) {
     final hookCall = (
       lead: _moving,
-      ensemble: [_moving, _movingLowCounterCanon, _movingSideAnswerEcho],
+      ensemble: [_moving, _movingLowCounterCanon, _movingHookEcho],
     );
     final hookAnswer = (
       lead: _movingSideAnswer,

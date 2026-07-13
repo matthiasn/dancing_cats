@@ -313,40 +313,41 @@ void main() {
     // assertions compare the stable `name` rather than instance identity.
     final perf = _perf();
 
-    test('the chorus gives the Moving hook three coordinated roles', () {
+    test('the chorus opens on a canon of the hook motif', () {
       final trio = perf.choreoTrioForSection('chorus', 0.6, 0.5, 0);
       expect(trio.lead.name, 'movingHookLead');
-      expect(trio.ensemble.map((c) => c.name).toList(), [
-        'movingHookLead',
-        'movingHookLowCounter',
-        'movingHookSideAnswer',
-      ]);
-      // All three share the song-specific movement family, but only the lead
-      // states the diagonal lyric call. The backups carry authored counter
-      // phrases rather than executing a duplicate in unison.
+      // All three voices QUOTE the lead's hook motif (round-4 panel: a
+      // displaced different phrase reads as counterpoint, not an answer) —
+      // but on three displaced clocks, so no two state it simultaneously.
+      expect(
+        trio.ensemble.map((c) => c.name).toSet(),
+        {'movingHookLead'},
+      );
       final leadRight = trio.ensemble[0].limbTargets
           .singleWhere((t) => t.endBoneId == 'hand.R')
           .channel;
-      final lowCounterRight = trio.ensemble[1].limbTargets
-          .singleWhere((t) => t.endBoneId == 'hand.R')
-          .channel;
-      final sideAnswerRight = trio.ensemble[2].limbTargets
-          .singleWhere((t) => t.endBoneId == 'hand.R')
-          .channel;
-      expect(
-        (lowCounterRight.sample(6 / 32).y - leadRight.sample(6 / 32).y).abs(),
-        greaterThan(5),
-      );
-      expect(
-        (sideAnswerRight.sample(14 / 32).y - leadRight.sample(14 / 32).y).abs(),
-        greaterThan(40),
-        reason:
-            'the side-answer roof lift must remain a distinct upper silhouette',
-      );
-      expect(
-        (sideAnswerRight.sample(9 / 32).y - leadRight.sample(9 / 32).y).abs(),
-        greaterThan(3),
-      );
+      for (final lane in [1, 2]) {
+        final voiceRight = trio.ensemble[lane].limbTargets
+            .singleWhere((t) => t.endBoneId == 'hand.R')
+            .channel;
+        // Sampled at the SAME instants, the displaced voice is elsewhere in
+        // the motif — the trio never collapses into unison outside the
+        // final chorus's earned hookUnison payoff. (Individual phases can
+        // coincide where the motif crosses itself; the voices must be far
+        // apart somewhere in every bar.)
+        var maxGap = 0.0;
+        for (var i = 0; i < 32; i++) {
+          final gap =
+              (voiceRight.sample(i / 32).y - leadRight.sample(i / 32).y).abs();
+          if (gap > maxGap) maxGap = gap;
+        }
+        expect(
+          maxGap,
+          greaterThan(25),
+          reason: 'lane $lane must not shadow the lead frame-for-frame',
+        );
+        expect(identical(trio.ensemble[lane], trio.ensemble[0]), isFalse);
+      }
     });
 
     test('the first two choruses establish the same lead signature', () {
@@ -824,7 +825,7 @@ void main() {
   });
 
   group('call-and-response echo', () {
-    test('the flanks answer with their WHOLE bodies, spans included', () {
+    test('the hook call is a literal canon of the lead motif', () {
       final perf = _perf(
         sections: const [
           (start: 0, end: 6, label: 'A', energetic: true, level: 1),
@@ -837,61 +838,42 @@ void main() {
         0,
         sectionSeconds: 16,
       );
-      // Right flank: the side-answer half a beat late — hands AND feet (an
-      // upper-body-only echo measured as lag-0 whole-body correlation).
-      final echo = call.ensemble[2];
-      final plain = CatClips.movingGrooveSideAnswer;
-      expect(echo.name, plain.name);
-      for (final bone in [CatBones.handR, CatBones.footL]) {
-        final e = echo.limbTargets
-            .singleWhere((t) => t.endBoneId == bone)
-            .channel;
-        final pl = plain.limbTargets
-            .singleWhere((t) => t.endBoneId == bone)
-            .channel;
-        expect(
-          e.sample(0.4).y,
-          closeTo(pl.sample(0.4 + kMovingEchoPhase).y, 1e-9),
-          reason: '$bone must answer late with the rest of the body',
-        );
-      }
-      // The contact spans shifted WITH the feet: the declared support foot
-      // must still be authored on the deck through every span (the crush
-      // invariant that protects the world anchor).
-      for (final span in echo.contactSpans) {
-        final channel = echo.limbTargets
-            .singleWhere((t) => t.endBoneId == span.bone)
-            .channel;
-        for (var i = 0; i <= 32; i++) {
-          final p = span.start + (span.end - span.start) * i / 32;
+      final lead = CatClips.movingGroove;
+      // Both flanks QUOTE the lead's own phrase — whole body, spans included
+      // — displaced by their voice's delay (echo one beat + humanization,
+      // canon two beats − humanization). A displaced DIFFERENT phrase read
+      // as counterpoint, not an answer.
+      for (final (lane, shift) in [(1, kMovingCanonPhase), (2, kMovingEchoPhase)]) {
+        final voice = call.ensemble[lane];
+        expect(voice.name, lead.name);
+        for (final bone in [CatBones.handR, CatBones.footL]) {
+          final v = voice.limbTargets
+              .singleWhere((t) => t.endBoneId == bone)
+              .channel;
+          final pl = lead.limbTargets
+              .singleWhere((t) => t.endBoneId == bone)
+              .channel;
           expect(
-            channel.sample(p).y,
-            greaterThan(104),
-            reason:
-                'shifted span ${span.bone} '
-                '${span.start.toStringAsFixed(3)}..'
-                '${span.end.toStringAsFixed(3)} must keep its foot planted '
-                'at phase ${p.toStringAsFixed(3)}',
+            v.sample(0.4).y,
+            closeTo(pl.sample(0.4 + shift).y, 1e-9),
+            reason: 'lane $lane $bone must quote the lead $shift late',
           );
         }
+        // The shifted spans keep their feet planted (the crush invariant).
+        for (final span in voice.contactSpans) {
+          final channel = voice.limbTargets
+              .singleWhere((t) => t.endBoneId == span.bone)
+              .channel;
+          for (var i = 0; i <= 16; i++) {
+            final p = span.start + (span.end - span.start) * i / 16;
+            expect(channel.sample(p).y, greaterThan(104));
+          }
+        }
       }
-      // Grey flank: the low counter a FULL beat late — a featured canon
-      // voice distinct from the right flank's half-beat echo.
-      final canon = call.ensemble[1];
-      final plainLow = CatClips.movingGrooveLowCounter;
-      expect(canon.name, plainLow.name);
-      final canonHand = canon.limbTargets
-          .singleWhere((t) => t.endBoneId == CatBones.handR)
-          .channel;
-      final plainHand = plainLow.limbTargets
-          .singleWhere((t) => t.endBoneId == CatBones.handR)
-          .channel;
-      expect(
-        canonHand.sample(0.4).y,
-        closeTo(plainHand.sample(0.4 + kMovingCanonPhase).y, 1e-9),
-      );
-      expect(canon.root.sample(0.4).dy,
-          closeTo(plainLow.root.sample(0.4 + kMovingCanonPhase).dy, 1e-9));
+      // The two voices are HUMANIZED off the pure beat grid — their strike
+      // times must not coincide with each other or the lead on shared beats.
+      expect(kMovingEchoPhase, isNot(closeTo(-1 / 8, 1e-4)));
+      expect(kMovingCanonPhase, isNot(closeTo(-2 / 8, 1e-4)));
     });
   });
 
