@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:dancing_cats/features/character/demo/dance_loaders.dart';
 import 'package:dancing_cats/features/character/demo/dance_performance.dart';
 import 'package:dancing_cats/features/character/model/beat_map.dart';
+import 'package:dancing_cats/features/character/model/clip.dart';
 import 'package:dancing_cats/features/character/model/dance_dynamics.dart';
 import 'package:dancing_cats/features/character/model/dance_dynamics_warp.dart';
 import 'package:dancing_cats/features/character/samples/cat_in_suit.dart';
@@ -921,6 +922,49 @@ void main() {
       // Anticipation displaces identically.
       expect(perf.laneAnticipationAt(1.45, 1), greaterThan(0.4));
       expect(perf.laneAnticipationAt(0.95, 1), closeTo(0, 1e-9));
+    });
+
+    test('a blending clip lerps the ENVELOPES, never the displacement', () {
+      final perf = DancePerformance.fromBeatMapJson(
+        json: const {
+          'onsets': [
+            {'time_sec': 1.0, 'strength': 1.0},
+          ],
+        },
+        map: _beatMap(),
+        trackDurationSec: 6,
+      );
+      final tutti = CatClips.movingGroove; // echoBeats 0
+      final canon = wholeClipPhaseShiftedClip(tutti, -2 / 8); // 2 beats
+      final blended = blendedClip(from: canon, to: tutti, weight: 0.5);
+
+      // The blended clip carries the lerped displacement (one beat)...
+      expect(blended.echoBeats, closeTo(1, 1e-9));
+      // ...and at pos 1.5 the envelope AT that lerped displacement lands
+      // exactly on the onset — the phantom replay that shipped as a
+      // one-frame stage-light pop at the reprise exit (114.73s): the
+      // sweep of a lerping echoBeats crosses onset attacks the voice
+      // already played.
+      expect(perf.laneAccentAt(1.5, blended.echoBeats), 1);
+      // Both REAL sides are quiet there: the tutti side played the onset
+      // 0.5s ago (released) and the canon side won't reach it for another
+      // half beat. The blend-aware envelope lerps the sides — no replay.
+      expect(perf.laneAccentAt(1.5, 0), closeTo(0, 1e-9));
+      expect(perf.laneAccentAt(1.5, canon.echoBeats), closeTo(0, 1e-9));
+      expect(perf.laneAccentForClip(1.5, blended), closeTo(0, 1e-9));
+
+      // Away from transitions the clip's own displacement is used...
+      expect(perf.laneAccentForClip(2, canon), 1);
+      // ...and anticipation blends the same way.
+      expect(
+        perf.laneAnticipationForClip(1.5, blended),
+        closeTo(
+          (perf.laneAnticipationAt(1.5, canon.echoBeats) +
+                  perf.laneAnticipationAt(1.5, 0)) /
+              2,
+          1e-9,
+        ),
+      );
     });
 
     test('the echo voice HOLDS its reprise answers at peak', () {

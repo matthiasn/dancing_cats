@@ -644,6 +644,33 @@ class DancePerformance {
       ? anticipationAt(posSec)
       : anticipationAt(map.timeAtBeat(map.beatAt(posSec) - echoBeats));
 
+  /// The accent envelope for a STAGE clip, blend-aware. A transitioning clip
+  /// carries a LERPED `echoBeats`, but the envelope is nonlinear in the
+  /// displacement: evaluating it at the lerped value sweeps the displaced
+  /// lookup across the track at several times real speed (a 2-beat canon
+  /// exiting over a 0.44s blend fast-forwards ~1.1s of onsets), and any
+  /// onset attack the sweep crosses REPLAYS as a compressed flash — shipped
+  /// as a one-frame full-stage light pop at 114.73s, where the reprise exit
+  /// swept grey's lookup across the cadence hit. Blend the ENVELOPES of the
+  /// plan's two sides instead: endpoints match the pure clips exactly, and
+  /// no lookup ever moves faster than the track.
+  double laneAccentForClip(double posSec, Clip clip) {
+    final plan = clip.transitionPlan;
+    if (plan == null) return laneAccentAt(posSec, clip.echoBeats);
+    final from = laneAccentAt(posSec, plan.from.echoBeats);
+    final to = laneAccentAt(posSec, plan.to.echoBeats);
+    return from + (to - from) * plan.weight;
+  }
+
+  /// [laneAccentForClip] for the look-ahead coil.
+  double laneAnticipationForClip(double posSec, Clip clip) {
+    final plan = clip.transitionPlan;
+    if (plan == null) return laneAnticipationAt(posSec, clip.echoBeats);
+    final from = laneAnticipationAt(posSec, plan.from.echoBeats);
+    final to = laneAnticipationAt(posSec, plan.to.echoBeats);
+    return from + (to - from) * plan.weight;
+  }
+
   /// Look-ahead "coil" envelope at [posSec] (0..1): rises as the NEXT strong
   /// onset approaches (within [_kAnticipationWindowSec]) and returns to 0 AT
   /// the onset, where [accentAt]'s instant attack takes over — so the body

@@ -993,18 +993,20 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
       stage.energyLevel,
     );
     // Per-lane envelopes: a canon voice's pool and plié fire on ITS
-    // displaced beat (Clip.echoBeats), not on the lead's call.
+    // displaced beat (Clip.echoBeats), not on the lead's call. Blend-aware:
+    // a transitioning clip blends the two sides' ENVELOPES, never the
+    // displacement (see laneAccentForClip).
     final laneBodyAccents = [
       for (final clip in stage.ensemble)
         danceBodyAccentEnvelope(
-          _perf?.laneAccentAt(posSec, clip.echoBeats) ?? 0,
+          _perf?.laneAccentForClip(posSec, clip) ?? 0,
           stage.energyLevel,
         ),
     ];
     final laneBodyAnticipations = [
       for (final clip in stage.ensemble)
         danceBodyAccentEnvelope(
-          _perf?.laneAnticipationAt(posSec, clip.echoBeats) ?? 0,
+          _perf?.laneAnticipationForClip(posSec, clip) ?? 0,
           stage.energyLevel,
         ),
     ];

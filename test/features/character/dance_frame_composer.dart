@@ -246,18 +246,19 @@ class DanceFrameComposer {
       stage.energyLevel,
     );
     // Per-lane envelopes — see main.dart: a canon voice's pool and plié fire
-    // on ITS displaced beat.
+    // on ITS displaced beat, blend-aware (envelopes lerp, displacements
+    // never do — see laneAccentForClip).
     final laneBodyAccents = [
       for (final clip in stage.ensemble)
         danceBodyAccentEnvelope(
-          perf.laneAccentAt(pos, clip.echoBeats),
+          perf.laneAccentForClip(pos, clip),
           stage.energyLevel,
         ),
     ];
     final laneBodyAnticipations = [
       for (final clip in stage.ensemble)
         danceBodyAccentEnvelope(
-          perf.laneAnticipationAt(pos, clip.echoBeats),
+          perf.laneAnticipationForClip(pos, clip),
           stage.energyLevel,
         ),
     ];
