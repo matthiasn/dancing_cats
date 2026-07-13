@@ -174,9 +174,11 @@ class DanceStageView extends StatelessWidget {
             time: lightsTimeSeconds,
             beat: beat,
             bloom: danceLightAccentOf(bodyAccent),
-            laneBlooms: laneBodyAccents
-                ?.map(danceLightAccentOf)
-                .toList(growable: false),
+            laneBlooms: laneBodyAccents == null
+                ? null
+                : danceScreenOrderLanes(
+                    laneBodyAccents!.map(danceLightAccentOf).toList(),
+                  ),
           )
         : const <StageLightSample>[];
     final backlights = danceMemberBacklights(samples);
@@ -581,6 +583,18 @@ double danceBodyAccentEnvelope(double rawEnvelope, double energyLevel) =>
 /// zero and full at full; only the middle lifts.
 double danceLightAccentOf(double bodyAccent) =>
     bodyAccent <= 0 ? 0 : math.sqrt(bodyAccent.clamp(0.0, 1.0));
+
+/// Reorders per-lane values from ENSEMBLE order (lead, backup-left,
+/// backup-right) to the light rig's SCREEN order (left, centre, right).
+/// The rig's pools anchor at x 0.30/0.50/0.70; feeding it ensemble order
+/// put the lead's call on the LEFT pool and the left flank's two-beat echo
+/// on the CENTRE pool — the round-6 coach measured the grey quote landing
+/// with no pool while the "call" bloomed off the lead's mark.
+List<double> danceScreenOrderLanes(List<double> ensembleOrder) => [
+  ensembleOrder[1],
+  ensembleOrder[0],
+  ensembleOrder[2],
+];
 
 /// How many root-units a full-strength onset drops a Moving dancer's body.
 /// Deliberately shallower than the catalogue's [kDanceAccentDropUnits]: the

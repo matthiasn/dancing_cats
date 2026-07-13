@@ -265,9 +265,9 @@ class DanceFrameComposer {
       time: pos,
       beat: beat,
       bloom: danceLightAccentOf(bodyAccent),
-      laneBlooms: laneBodyAccents
-          .map(danceLightAccentOf)
-          .toList(growable: false),
+      laneBlooms: danceScreenOrderLanes(
+        laneBodyAccents.map(danceLightAccentOf).toList(),
+      ),
     );
 
     // Same trio compositor the live DanceStageView builds — one source of truth.
