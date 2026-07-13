@@ -633,8 +633,7 @@ class DancePerformance {
   /// and has already faded to ~0.1x at the two-beat canon voice.
   double _laneAccentHoldSec(double posSec, double echoBeats) {
     if (echoBeats <= 0) return 0;
-    if (sectionInfoAt(posSec).section != 'post-chorus') return 0;
-    if (sectionOccurrenceAt(posSec, 'post-chorus') < 1) return 0;
+    if (!sectionIsFinalOccurrenceAt(posSec, 'post-chorus')) return 0;
     final bump =
         1 - (echoBeats - kMovingEchoAnswerBeats).abs() / kMovingEchoAnswerBeats;
     return bump <= 0 ? 0 : kMovingRepriseAccentHoldSec * bump;
@@ -755,6 +754,7 @@ class DancePerformance {
         level,
         occ,
         sectionSeconds: lyric.seconds,
+        finalOccurrence: sectionIsFinalOccurrenceAt(pos, lyric.section),
       );
       final sectionDynamics = sectionEnergyDynamics(level);
       // Music-reactive amplitude: the dance size follows the CONTINUOUS track
@@ -852,6 +852,22 @@ class DancePerformance {
     }
   }
 
+  /// Whether the span covering [pos] is the LAST [section]-labelled span of
+  /// the song — "the final post-chorus", however many came before. Finality
+  /// and occurrence are different questions: this track tags post-chorus
+  /// exactly once, so its occurrence is 0 and any `occurrence >= 1` gate on
+  /// "the final one" is unreachable — the round-6 canon reprise shipped
+  /// panel-certified but DEAD, staged only in tests that passed the variant
+  /// by hand. False when no [section] span covers [pos].
+  bool sectionIsFinalOccurrenceAt(double pos, String section) {
+    var covering = false;
+    for (final s in sectionSpans) {
+      if (s.section != section) continue;
+      covering = pos >= s.start && pos < s.end;
+    }
+    return covering;
+  }
+
   /// How many earlier spans share [section]'s label — 0 for its first occurrence.
   /// Lets the choreography vary repeated choruses/verses so they don't read
   /// identical.
@@ -907,6 +923,7 @@ class DancePerformance {
     double level,
     int variant, {
     double sectionSeconds = 0,
+    bool finalOccurrence = false,
   }) {
     final hookCall = (
       lead: _moving,
@@ -999,7 +1016,10 @@ class DancePerformance {
           // (round-5 animator: the late chorus "abandons the conversation…
           // exactly where the arc should peak" — either restate the canon
           // or commit to a tutti; the canon is the piece's signature now).
-          variant >= 1
+          // Keyed on FINALITY, not occurrence: this track tags post-chorus
+          // once, so an occurrence-only gate never fired and the reprise
+          // shipped dead (see sectionIsFinalOccurrenceAt).
+          variant >= 1 || finalOccurrence
               ? [hookTravel, hookCall, windowBridge, lowCounter]
               : [lowCounter, hookTravel, bodyRoll, windowBridge],
           phase,

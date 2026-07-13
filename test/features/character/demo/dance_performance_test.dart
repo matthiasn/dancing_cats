@@ -1,3 +1,7 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:dancing_cats/features/character/demo/dance_loaders.dart';
 import 'package:dancing_cats/features/character/demo/dance_performance.dart';
 import 'package:dancing_cats/features/character/model/beat_map.dart';
 import 'package:dancing_cats/features/character/model/dance_dynamics.dart';
@@ -687,7 +691,11 @@ void main() {
     test(
       'the 144s score assigns one deliberate statement per two-bar slot',
       () {
-        List<String> score(String section, int occurrence) => [
+        List<String> score(
+          String section,
+          int occurrence, {
+          bool finalOccurrence = false,
+        }) => [
           for (final phase in [0.05, 0.3, 0.55, 0.8])
             perf
                 .choreoTrioForSection(
@@ -696,6 +704,7 @@ void main() {
                   0.5,
                   occurrence,
                   sectionSeconds: 16,
+                  finalOccurrence: finalOccurrence,
                 )
                 .lead
                 .name,
@@ -736,6 +745,14 @@ void main() {
           'movingVerseWindow',
           'movingHookLowCounter',
         ]);
+        // FINALITY, not occurrence, selects the reprise: this track tags
+        // post-chorus exactly once, so its occurrence is 0 — an
+        // occurrence-only gate shipped the reprise dead while this test
+        // passed the variant by hand (round-7 regression).
+        expect(
+          score('post-chorus', 0, finalOccurrence: true),
+          score('post-chorus', 1),
+        );
         // All four verse statements stay in grounded verse vocabulary — the
         // hook-family sideAnswer that used to close the verse put chorus
         // amplitude into the song's breakdown stretch (panel: "the bridge is
@@ -953,6 +970,56 @@ void main() {
       expect(
         perf.laneAccentAt(canonPeak + hold * 0.9, canonBeats),
         lessThan(0.9),
+      );
+    });
+  });
+
+  group('real-track staging (regression)', () {
+    test('the final post-chorus stages the canon reprise on the real song', () {
+      // Round 6 shipped the reprise gated on `occurrence >= 1`, and the
+      // score test passed that variant BY HAND — but the real track tags
+      // post-chorus exactly once, so the certified reprise never staged.
+      // This test walks the actual song: the score must put the hook call's
+      // three-voice canon inside the real final post-chorus span.
+      final beatJson =
+          jsonDecode(File('assets/sample_track/moving.json').readAsStringSync())
+              as Map<String, Object?>;
+      final wordsJson =
+          jsonDecode(
+                File(
+                  'assets/sample_track/moving.words.json',
+                ).readAsStringSync(),
+              )
+              as Map<String, Object?>;
+      final map = BeatMap.fromJson(beatJson);
+      final perf = DancePerformance.fromBeatMapJson(
+        json: beatJson,
+        map: map,
+        trackDurationSec: 144.066,
+        words: parseDanceWords(wordsJson),
+      );
+
+      final span = perf.sectionSpans.lastWhere(
+        (s) => s.section == 'post-chorus',
+      );
+      // The reprise is the second of the section's four statements.
+      final t = span.start + (span.end - span.start) * 3 / 8;
+      expect(perf.sectionIsFinalOccurrenceAt(t, 'post-chorus'), isTrue);
+
+      final stage = perf.stageAt(t);
+      expect(
+        stage.lead.name,
+        'movingHookLead',
+        reason: "the reprise restates the hook call at the arc's peak",
+      );
+      // ...as the three-voice canon: both flanks answer displaced.
+      expect(
+        stage.ensemble[2].echoBeats,
+        closeTo(kMovingEchoAnswerBeats, 1e-9),
+      );
+      expect(
+        stage.ensemble[1].echoBeats,
+        closeTo(-kMovingCanonPhase * kDanceBeatsPerPhraseLoop, 1e-9),
       );
     });
   });
