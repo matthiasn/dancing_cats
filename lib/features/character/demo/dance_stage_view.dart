@@ -803,8 +803,15 @@ Clip productionDanceClip(
             upperBodyBoneIds: kDanceUpperBodyWarpBoneIds,
           )
         : warped;
+    // 2b. Vertical-lane pocket fix: the Moving bounce bottomed 113-155ms
+    // ahead of every beat (v91 biomech) — retard ONLY the root's dy so the
+    // weight lands INTO the beat; limbs, sway, footwork and contact phases
+    // measured on-grid and keep the authored clock.
+    final retarded = songGroove
+        ? bobRetardedClip(seamEased, kMovingBobRetardSec)
+        : seamEased;
     final orbited = fastBaseOrbitedClip(
-      seamEased,
+      retarded,
       lane,
       radius: songGroove ? 0 : kDanceFastBaseOrbitRadius,
     );

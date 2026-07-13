@@ -287,12 +287,16 @@ void main() {
     // the same worst case scaled, not new content: the peak was grey's
     // quoted hookLead seam turnaround at 0.88 lane amplitude (10.4), and the
     // quote now plays at the caller's full amplitude — 10.4 x 1.0/0.88 =
-    // 11.84 measured. The genuine failure class this band exists for
-    // (one-frame arm snaps) measured 20-30+ units; 12.0 stays far below it
-    // while ratcheting the new baseline.
+    // 11.84 measured. 12.0 -> 12.5: the vertical-lane pocket retard
+    // (kMovingBobRetardSec) re-aligned the same turnaround inside its 30fps
+    // sampling window (11.84 -> 12.20 at the identical frame/bone/phase) —
+    // the alignment sensitivity documented above, not new motion. The
+    // genuine failure class this band exists for (one-frame arm snaps)
+    // measured 20-30+ units; 12.5 stays far below it while ratcheting the
+    // new baseline.
     expect(
       peak.value,
-      lessThan(12.0),
+      lessThan(12.5),
       reason:
           '${peak.kind} ${peak.value.toStringAsFixed(3)} at '
           '${peak.t.toStringAsFixed(3)} lane=${peak.lane} '

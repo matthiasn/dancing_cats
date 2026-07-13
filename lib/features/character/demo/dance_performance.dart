@@ -834,6 +834,33 @@ class DancePerformance {
         }
       }
     }
+    // The BREAK before a chorus-family drop is performed, not played
+    // through (v91 animator: the 2s break at 88.9s — "the biggest musical
+    // punctuation in the song" — got continuous mid-amplitude groove): the
+    // last strong onset within 2.5s BEFORE a chorus/post-chorus span is a
+    // door too, so the trio holds a statement through the silence and
+    // releases into the drop's own stamp.
+    for (final s in sectionSpans) {
+      if (s.section != 'chorus' && s.section != 'post-chorus') continue;
+      for (var i = _lastOnsetIndex(s.start - 1e-9); i >= 0; i--) {
+        final o = _accentOnsets[i];
+        if (o.time < s.start - 2.5) break;
+        if (o.strength >= 0.6) {
+          doors.add(i);
+          break;
+        }
+      }
+    }
+    // The song's LAST accent is always a door: the final statement earns a
+    // trio button (the v91 panel measured 4.4s of statue after the last
+    // hit — "the piece exhales into nothing instead of stamping the last
+    // note"). The door's long hold melts directly into the closing tableau.
+    for (var i = _accentOnsets.length - 1; i >= 0; i--) {
+      if (_accentOnsets[i].strength >= 0.5) {
+        doors.add(i);
+        break;
+      }
+    }
     return doors;
   }();
 
@@ -854,11 +881,16 @@ class DancePerformance {
   /// The accent-pose envelope at [dt] seconds past the owning hit: a C1
   /// figure that LAUNCHES through the pickup's last moments, snaps to a
   /// slight (12%) overshoot just past the hit, settles into a genuine HOLD,
-  /// then melts back to groove. Zero (value and slope) outside the figure,
-  /// which clears well before the 1s onset-spacing floor — consecutive
-  /// poses can never overlap.
-  static double _poseEnvelope(double dt) {
-    if (dt <= kMovingPoseRiseStartSec || dt >= kMovingPoseReleaseEndSec) {
+  /// then melts back to groove. Zero (value and slope) outside the figure.
+  /// A DOOR pose (section stamp / finale button) holds far longer — the v91
+  /// panel found the stamp grammar "keeps its promise exactly once": only
+  /// the first door read as a hold; the rest passed through. Door poses may
+  /// overlap the next onset's ornament tail; both terms are continuous, so
+  /// the sum is too.
+  static double _poseEnvelope(double dt, {bool door = false}) {
+    final holdEnd = door ? 0.55 : kMovingPoseHoldEndSec;
+    final releaseEnd = door ? 1.05 : kMovingPoseReleaseEndSec;
+    if (dt <= kMovingPoseRiseStartSec || dt >= releaseEnd) {
       return 0;
     }
     if (dt < kMovingPoseRiseEndSec) {
@@ -867,14 +899,11 @@ class DancePerformance {
           (kMovingPoseRiseEndSec - kMovingPoseRiseStartSec);
       return r * r * (3 - 2 * r) * 1.12;
     }
-    if (dt < kMovingPoseHoldEndSec) {
+    if (dt < holdEnd) {
       final s = ((dt - kMovingPoseRiseEndSec) / 0.08).clamp(0.0, 1.0);
       return 1 + 0.12 * (1 - s * s * (3 - 2 * s));
     }
-    final r =
-        ((dt - kMovingPoseHoldEndSec) /
-                (kMovingPoseReleaseEndSec - kMovingPoseHoldEndSec))
-            .clamp(0.0, 1.0);
+    final r = ((dt - holdEnd) / (releaseEnd - holdEnd)).clamp(0.0, 1.0);
     return 1 - r * r * (3 - 2 * r);
   }
 
@@ -998,13 +1027,19 @@ class DancePerformance {
     for (final i in [lastIdx, lastIdx + 1]) {
       if (i < 0 || i >= o.length) continue;
       if (!_poseAt(i, lane, o[i].strength)) continue;
-      final env = _poseEnvelope(dp - o[i].time);
+      final door = _sectionDoorOnsets.contains(i);
+      final env = _poseEnvelope(dp - o[i].time, door: door);
       if (env == 0) continue;
       final flavor = (_flourishHash(i, lane, 5) * _kAccentPoses.length)
           .floor()
           .clamp(0, _kAccentPoses.length - 1);
       final pose = _kAccentPoses[flavor];
-      final amp = kMovingAccentPoseUnits * o[i].strength * env;
+      // A door statement reaches full extension even in low-energy sections
+      // (the finale button fires at E~0.1 where the painter's energy scale
+      // would otherwise halve it; the IK solver clamps the excess for hot
+      // sections, so the boost costs nothing there).
+      final amp =
+          kMovingAccentPoseUnits * (door ? 1.4 : 1.0) * o[i].strength * env;
       final wrist = _kAccentPoseWrist[flavor] * env;
       final open = env.clamp(0.0, 1.0);
       // pose.x is OUTWARD: -x for the left arm, +x for the right.
@@ -1554,6 +1589,9 @@ class DancePerformance {
           ? 0
           : sectionOccurrenceAt(next.start, next.section),
       secondsSinceMoveCut: secondsSinceMoveCut,
+      sectionIsFinal: sectionIsFinalOccurrenceAt(pos, info.section),
+      nextSectionIsFinal: next != null &&
+          sectionIsFinalOccurrenceAt(next.start, next.section),
     );
   }
 

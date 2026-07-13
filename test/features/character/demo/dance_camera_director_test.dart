@@ -471,7 +471,10 @@ void main() {
       // The zoom relaxes slightly through the crossing — an arc, not a slide.
       final mid = cameraShot(_ctx(section: 'bridge', sectionPhase: 0.5));
       expect(mid.zoom, lessThan(earlyA.zoom));
-      expect(earlyA.zoom, closeTo(1.48, 0.02));
+      // Register relaxed 1.48 -> 1.41 (v91 musicality panel: the bridge —
+      // the arc's intended floor — was the closest framing of the whole
+      // valley and photographed hotter than the verse).
+      expect(earlyA.zoom, closeTo(1.41, 0.02));
       // The traverse is a DOLLY: finely swept, the pan never jumps (the old
       // hand-off flipped the target by ~335 ref px for the rig to whip across).
       var prev = cameraShot(_ctx(section: 'bridge', sectionPhase: 0.26));

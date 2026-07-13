@@ -710,6 +710,49 @@ Clip handFlourishedClip(
   );
 }
 
+/// How far the Moving family's vertical bounce lane is retarded, in seconds.
+/// The v91 musicality panel measured the deepest plié bottom landing 113 to
+/// 155ms BEFORE the beat in every dance section (tight IQRs, confirmed by an
+/// independent vertical-velocity phase profile) — the body rising through
+/// the beat instead of landing weight into it, "eager" against the track's
+/// laid-back pocket. Limb-accent apexes measured on-grid (+5..+67ms), so
+/// only the root's dy is delayed: sway, turn, footwork and contact phases
+/// keep the authored clock.
+const double kMovingBobRetardSec = 0.12;
+
+/// Returns [clip] with its root dy sampled [delaySec] late (wrapping the
+/// loop) — see [kMovingBobRetardSec]. Identity for non-looping clips and
+/// zero delay.
+Clip bobRetardedClip(Clip clip, double delaySec) {
+  if (delaySec == 0 || !clip.loop || clip.duration <= 0) return clip;
+  return Clip(
+    name: clip.name,
+    family: clip.family,
+    echoBeats: clip.echoBeats,
+    duration: clip.duration,
+    channels: clip.channels,
+    loop: clip.loop,
+    root: DelayedDyRootChannel(clip.root, delaySec / clip.duration),
+    locomotionSpeed: clip.locomotionSpeed,
+    groundSpans: clip.groundSpans,
+    contactSpans: clip.contactSpans,
+    contactPinning: clip.contactPinning,
+    limbTargets: clip.limbTargets,
+    supportFootWorldAnchor: clip.supportFootWorldAnchor,
+    supportFootWorldAnchorStrength: clip.supportFootWorldAnchorStrength,
+    supportFootWorldAnchorVerticalBoost:
+        clip.supportFootWorldAnchorVerticalBoost,
+    danceHeadBobScale: clip.danceHeadBobScale,
+    danceHeadLevelClampMin: clip.danceHeadLevelClampMin,
+    armReachScale: clip.armReachScale,
+    headLateralStabilize: clip.headLateralStabilize,
+    enforceSoleFloor: clip.enforceSoleFloor,
+    transitionPlan: clip.transitionPlan,
+    zOrderSwaps: clip.zOrderSwaps,
+    dynamics: clip.dynamics,
+  );
+}
+
 /// How far the toe beans swing apart at full splay (radians), how much they
 /// swell (scale multiplier at full splay), and how far the thumb swings OPEN
 /// from its resting curl. Together they turn the closed resting paw into a

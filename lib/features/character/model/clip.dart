@@ -1288,6 +1288,24 @@ sealed class RootChannel {
   ({double dx, double dy, double rotation}) sample(double p);
 }
 
+/// Samples dx/rotation at the given phase but dy from [delayPhase] earlier
+/// (wrapping) — retards ONLY the vertical bounce lane of a looping clip,
+/// leaving sway, turn, footwork and contact phases on the authored clock.
+class DelayedDyRootChannel extends RootChannel {
+  const DelayedDyRootChannel(this.inner, this.delayPhase);
+
+  final RootChannel inner;
+  final double delayPhase;
+
+  @override
+  ({double dx, double dy, double rotation}) sample(double p) {
+    final now = inner.sample(p);
+    var q = (p - delayPhase) % 1.0;
+    if (q < 0) q += 1.0;
+    return (dx: now.dx, dy: inner.sample(q).dy, rotation: now.rotation);
+  }
+}
+
 /// Adds several root channels together. This keeps large authored beats in a
 /// keyframed channel while layering tiny cyclic pulses on top.
 class LayeredRootChannel extends RootChannel {
