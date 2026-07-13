@@ -684,19 +684,22 @@ class DancePerformance {
   /// to the authored hand paths — a shading on the phrase, not a new phrase.
   static const double kMovingFlourishUnits = 4.5;
 
-  /// Peak subdivision-fill radius, in rig units, at full onset strength.
-  static const double kMovingFillUnits = 3;
+  /// Peak double-time fill radius, in rig units, at full onset strength.
+  /// Sized so the IK solver visibly swings the FOREARM through the loop,
+  /// not just the paw (owner: "more 2x in hands and arms").
+  static const double kMovingFillUnits = 6;
 
-  /// How long a subdivision fill's pickup runs before the hit it leads into.
+  /// How long a double-time fill's pickup runs before the hit it leads into.
   static const double kMovingFillBeats = 1.5;
 
-  /// A quad-time roll must be BIGGER and LONGER than a double-time one to
-  /// read at all: at 3 units a 4x roll was a sub-pixel shimmer (owner:
-  /// "might be too subtle, did not notice it"). The faster the subdivision,
-  /// the more amplitude and runway it earns.
-  static const double kMovingQuadFillBoost = 2;
-  static const double kMovingDoubleFillBoost = 1.25;
-  static const double kMovingQuadFillBeats = 2.5;
+  /// Full loops the hand traces across one fill window. Two loops per 1.5
+  /// beats ≈ one readable swooping arc per 0.4s — a dancer's double-time
+  /// hand roll (~2.5Hz). The PACE multiplier applies to the GESTURE rate,
+  /// never the beat: the first cut oscillated at 4 cycles PER BEAT (7.5Hz),
+  /// a positional tremor the owner read as "out of the blue being
+  /// electrocuted". Quad-time was dropped with it — at gesture scale the
+  /// double-time loop is the fastest motion that still reads as dancing.
+  static const double kMovingFillLoops = 2;
 
   /// Per-onset ornament directions, one picked per hit by [_flourishHash]:
   /// outward flick, lift, press, inward pull. The two hands never mirror
@@ -737,15 +740,14 @@ class DancePerformance {
     return idx;
   }
 
-  /// The subdivision (0 = none, 2 = double-time, 4 = quad) onset [idx] earns
-  /// as a pickup fill for [lane]. Rare by design (owner: "probably rarely"):
-  /// ~16% of strong onsets roll double-time, ~10% quad.
-  int _fillSubdivision(int idx, int lane, double strength) {
-    if (strength < 0.55) return 0;
-    final r = _flourishHash(idx, lane, 2);
-    if (r < 0.10) return 4;
-    if (r < 0.26) return 2;
-    return 0;
+  /// Whether onset [idx] earns a double-time pickup fill for [lane]. A
+  /// TEXTURE, not a garnish (owner: "we need a whole lot more 2x in hands
+  /// and arms"): a bit over half of each lane's strong onsets roll, so with
+  /// three decorrelated lanes some cat is filling into most big hits while
+  /// each individual cat still breathes between its own.
+  bool _fillAt(int idx, int lane, double strength) {
+    if (strength < 0.5) return false;
+    return _flourishHash(idx, lane, 2) < 0.55;
   }
 
   /// The hand-flourish displacement for a Moving lane at [posSec] — the
@@ -759,11 +761,14 @@ class DancePerformance {
   ///    Flavors can only switch while the load is zero: decay (0.42s) + the
   ///    reprise hold (0.08s) + the coil window (0.1s) stay under the 1s
   ///    onset spacing floor, so there is always a dead zone between hits.
-  /// 2. A RARE beat-locked subdivision fill (double- or quad-time wrist
-  ///    roll) that swells through a [kMovingFillBeats] pickup and dies
-  ///    exactly at the hit it leads into — sin² bump, zero value AND slope
-  ///    at both ends, window clamped clear of the previous onset so the
-  ///    owning-onset flip always happens at zero amplitude.
+  /// 2. A DOUBLE-TIME pickup fill — a full swooping hand/arm loop traced
+  ///    [kMovingFillLoops] times across a [kMovingFillBeats] window, at
+  ///    gesture rate (~2.5Hz), swelling from a small curl and dying exactly
+  ///    at the hit it leads into — sin² bump, zero value AND slope at both
+  ///    ends, window clamped clear of the previous onset so the
+  ///    owning-onset flip always happens at zero amplitude. Frequent enough
+  ///    to be a texture (see [_fillAt]), loop-shaped so it can never read
+  ///    as a tremor.
   DanceHandFlourish _handFlourishAt(double posSec, double echoBeats, int lane) {
     final o = _accentOnsets;
     if (o.isEmpty) return kNoHandFlourish;
@@ -795,15 +800,10 @@ class DancePerformance {
 
     final next = _lastOnsetIndex(dp) + 1;
     if (next < o.length) {
-      final subdivision = _fillSubdivision(next, lane, o[next].strength);
-      if (subdivision > 0) {
-        final quad = subdivision == 4;
+      if (_fillAt(next, lane, o[next].strength)) {
         final tn = o[next].time;
         var windowSec =
-            tn -
-            map.timeAtBeat(
-              map.beatAt(tn) - (quad ? kMovingQuadFillBeats : kMovingFillBeats),
-            );
+            tn - map.timeAtBeat(map.beatAt(tn) - kMovingFillBeats);
         if (next > 0) {
           windowSec = math.min(windowSec, 0.9 * (tn - o[next - 1].time));
         }
@@ -812,17 +812,24 @@ class DancePerformance {
           if (u > 0 && u < 1) {
             final bump = math.sin(math.pi * u);
             final swell = bump * bump;
-            final phase =
-                2 * math.pi * subdivision * map.beatAt(dp) + lane * 0.9;
-            final amp =
-                kMovingFillUnits *
-                (quad ? kMovingQuadFillBoost : kMovingDoubleFillBoost) *
-                o[next].strength *
-                swell;
-            lx += amp * math.sin(phase);
-            ly += amp * 0.8 * math.cos(phase);
-            rx += amp * math.sin(phase + 2.2);
-            ry += amp * 0.8 * math.cos(phase + 2.2);
+            // The loop is locked to the WINDOW's progress (not the absolute
+            // beat): a swooping arc that starts as a small curl, blooms, and
+            // dies into the hit — never an oscillator switching on. Each
+            // fill gets its own ellipse orientation so no two loops trace
+            // the same screen path.
+            final phase = 2 * math.pi * kMovingFillLoops * u + lane * 0.9;
+            final tilt = _flourishHash(next, lane, 3) * math.pi;
+            final cosT = math.cos(tilt);
+            final sinT = math.sin(tilt);
+            final amp = kMovingFillUnits * o[next].strength * swell;
+            final cxL = amp * math.sin(phase);
+            final cyL = amp * 0.8 * math.cos(phase);
+            final cxR = amp * math.sin(phase + 2.2);
+            final cyR = amp * 0.8 * math.cos(phase + 2.2);
+            lx += cxL * cosT - cyL * sinT;
+            ly += cxL * sinT + cyL * cosT;
+            rx += cxR * cosT - cyR * sinT;
+            ry += cxR * sinT + cyR * cosT;
           }
         }
       }

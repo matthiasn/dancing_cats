@@ -1077,7 +1077,7 @@ void main() {
       expect(at(0.1), kNoHandFlourish);
     });
 
-    test('subdivision fills exist but stay rare', () {
+    test('double-time fills are a texture, not a constant', () {
       // Sample each onset's pickup (0.35s ahead: ornament released, coil not
       // yet open) — any motion there is a fill.
       var fills = 0;
@@ -1088,12 +1088,11 @@ void main() {
           if (mag(at(t - 0.35, lane: lane)) > 0.05) fills++;
         }
       }
-      expect(fills, greaterThan(0), reason: 'the layer must actually fire');
-      expect(
-        fills / samples,
-        lessThan(0.5),
-        reason: 'fills are spice, not a constant garnish',
-      );
+      // Owner: "a whole lot more 2x in hands and arms" — a bit over half of
+      // each lane's strong onsets roll, but never all of them: each cat
+      // still breathes between its own fills.
+      expect(fills / samples, greaterThan(0.25));
+      expect(fills / samples, lessThan(0.9));
     });
 
     test('the hands never teleport — dense continuity sweep', () {
@@ -1111,10 +1110,10 @@ void main() {
         prev = f;
       }
       // Envelope-slope bound: the coil ramps 10/s (0.09 per 2ms step at
-      // 4.5 units) and a boosted quad-time fill (6 units at ~47 rad/s)
-      // oscillates at ~285 units/s (0.57 per step). A flavor or window
-      // step would land 1-6+ units in one sample — far above this band.
-      expect(worst, lessThan(0.75));
+      // 4.5 units) and the double-time loop (6 units at ~16 rad/s) slews
+      // under 100 units/s (0.19 per step). A flavor or window step would
+      // land 1-6+ units in one sample — far above this band.
+      expect(worst, lessThan(0.45));
     });
 
     test("a blending clip lerps the two sides' flourishes", () {
@@ -1217,11 +1216,11 @@ void main() {
         }
         expect(
           worst,
-          lessThan(0.75),
+          lessThan(0.45),
           reason:
               'lane $lane worst flourish step $worst at '
-              '${worstT.toStringAsFixed(3)}s — the boosted quad fill slews '
-              '~0.57/step at most; a teleport-class step measures 1-6+ '
+              '${worstT.toStringAsFixed(3)}s — the double-time loop slews '
+              '~0.19/step at most; a teleport-class step measures 1-6+ '
               'units in one 2ms sample',
         );
       }
