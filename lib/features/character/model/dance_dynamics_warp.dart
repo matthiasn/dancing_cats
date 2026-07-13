@@ -50,6 +50,13 @@ const List<double> kMovingLaneAmplitudeScale = [1.0, 0.88, 0.95];
 /// more clearly as an answer anyway.
 const double kMovingEchoPhase = -1 / 8 - 0.008;
 
+/// The right flank's echo displacement in BEATS — the value a
+/// [wholeClipPhaseShiftedClip] of [kMovingEchoPhase] carries as
+/// `Clip.echoBeats`. The reprise accent hold keys on it to pick the one-beat
+/// answer voice out of a continuously-lerping blend.
+const double kMovingEchoAnswerBeats =
+    -kMovingEchoPhase * kDanceBeatsPerPhraseLoop;
+
 /// The GREY (left-flank) canon delay: TWO beats behind the lead's call in
 /// the hook statement — a featured, unmistakable answer voice (round-3
 /// coach: "the trio reads lead + echo + filler"), distinct from the right
@@ -614,6 +621,214 @@ Clip accentDroppedClip(
     channels: channels,
     loop: clip.loop,
     root: RootDyOffsetChannel(ducked, dropDy),
+    locomotionSpeed: clip.locomotionSpeed,
+    groundSpans: clip.groundSpans,
+    contactSpans: clip.contactSpans,
+    contactPinning: clip.contactPinning,
+    limbTargets: clip.limbTargets,
+    supportFootWorldAnchor: clip.supportFootWorldAnchor,
+    supportFootWorldAnchorStrength: clip.supportFootWorldAnchorStrength,
+    supportFootWorldAnchorVerticalBoost:
+        clip.supportFootWorldAnchorVerticalBoost,
+    danceHeadBobScale: clip.danceHeadBobScale,
+    danceHeadLevelClampMin: clip.danceHeadLevelClampMin,
+    armReachScale: clip.armReachScale,
+    headLateralStabilize: clip.headLateralStabilize,
+    enforceSoleFloor: clip.enforceSoleFloor,
+    transitionPlan: clip.transitionPlan,
+    zOrderSwaps: clip.zOrderSwaps,
+    dynamics: clip.dynamics,
+  );
+}
+
+/// Returns [clip] with per-frame additive offsets on the two hand IK targets
+/// — the flourish layer that varies what the hands do on each hit (per-onset
+/// ornament flavors + rare double/quad-time pickup fills; the values are
+/// computed per frame by `DancePerformance.laneHandFlourishFor` and are
+/// continuous in song time by construction). Offsetting the IK TARGET moves
+/// the whole arm through the solver, so the elbow follows naturally and the
+/// authored path shape underneath is untouched. Identity when the flourish
+/// is zero.
+Clip handFlourishedClip(
+  Clip clip,
+  ({double lx, double ly, double rx, double ry}) flourish, {
+  String leftHandBoneId = 'hand.L',
+  String rightHandBoneId = 'hand.R',
+}) {
+  if ((flourish.lx == 0 &&
+          flourish.ly == 0 &&
+          flourish.rx == 0 &&
+          flourish.ry == 0) ||
+      clip.duration <= 0) {
+    return clip;
+  }
+  LimbIkTarget offset(LimbIkTarget target, double dx, double dy) =>
+      target.withChannel(
+        LayeredIkTargetChannel([
+          target.channel,
+          FixedIkTargetChannel(x: dx, y: dy),
+        ]),
+      );
+  var changed = false;
+  final limbTargets = clip.limbTargets.map((target) {
+    if (target.endBoneId == leftHandBoneId) {
+      changed = true;
+      return offset(target, flourish.lx, flourish.ly);
+    }
+    if (target.endBoneId == rightHandBoneId) {
+      changed = true;
+      return offset(target, flourish.rx, flourish.ry);
+    }
+    return target;
+  }).toList();
+  if (!changed) return clip;
+  return Clip(
+    name: clip.name,
+    family: clip.family,
+    echoBeats: clip.echoBeats,
+    duration: clip.duration,
+    channels: clip.channels,
+    loop: clip.loop,
+    root: clip.root,
+    locomotionSpeed: clip.locomotionSpeed,
+    groundSpans: clip.groundSpans,
+    contactSpans: clip.contactSpans,
+    contactPinning: clip.contactPinning,
+    limbTargets: limbTargets,
+    supportFootWorldAnchor: clip.supportFootWorldAnchor,
+    supportFootWorldAnchorStrength: clip.supportFootWorldAnchorStrength,
+    supportFootWorldAnchorVerticalBoost:
+        clip.supportFootWorldAnchorVerticalBoost,
+    danceHeadBobScale: clip.danceHeadBobScale,
+    danceHeadLevelClampMin: clip.danceHeadLevelClampMin,
+    armReachScale: clip.armReachScale,
+    headLateralStabilize: clip.headLateralStabilize,
+    enforceSoleFloor: clip.enforceSoleFloor,
+    transitionPlan: clip.transitionPlan,
+    zOrderSwaps: clip.zOrderSwaps,
+    dynamics: clip.dynamics,
+  );
+}
+
+/// How far the Moving family's vertical bounce lane is retarded, in seconds.
+/// The v91 musicality panel measured the deepest plié bottom landing 113 to
+/// 155ms BEFORE the beat in every dance section (tight IQRs, confirmed by an
+/// independent vertical-velocity phase profile) — the body rising through
+/// the beat instead of landing weight into it, "eager" against the track's
+/// laid-back pocket. Limb-accent apexes measured on-grid (+5..+67ms), so
+/// only the root's dy is delayed: sway, turn, footwork and contact phases
+/// keep the authored clock.
+const double kMovingBobRetardSec = 0.12;
+
+/// Returns [clip] with its root dy sampled [delaySec] late (wrapping the
+/// loop) — see [kMovingBobRetardSec]. Identity for non-looping clips and
+/// zero delay.
+Clip bobRetardedClip(Clip clip, double delaySec) {
+  if (delaySec == 0 || !clip.loop || clip.duration <= 0) return clip;
+  return Clip(
+    name: clip.name,
+    family: clip.family,
+    echoBeats: clip.echoBeats,
+    duration: clip.duration,
+    channels: clip.channels,
+    loop: clip.loop,
+    root: DelayedDyRootChannel(clip.root, delaySec / clip.duration),
+    locomotionSpeed: clip.locomotionSpeed,
+    groundSpans: clip.groundSpans,
+    contactSpans: clip.contactSpans,
+    contactPinning: clip.contactPinning,
+    limbTargets: clip.limbTargets,
+    supportFootWorldAnchor: clip.supportFootWorldAnchor,
+    supportFootWorldAnchorStrength: clip.supportFootWorldAnchorStrength,
+    supportFootWorldAnchorVerticalBoost:
+        clip.supportFootWorldAnchorVerticalBoost,
+    danceHeadBobScale: clip.danceHeadBobScale,
+    danceHeadLevelClampMin: clip.danceHeadLevelClampMin,
+    armReachScale: clip.armReachScale,
+    headLateralStabilize: clip.headLateralStabilize,
+    enforceSoleFloor: clip.enforceSoleFloor,
+    transitionPlan: clip.transitionPlan,
+    zOrderSwaps: clip.zOrderSwaps,
+    dynamics: clip.dynamics,
+  );
+}
+
+/// How far the toe beans swing apart at full splay (radians), how much they
+/// swell (scale multiplier at full splay), and how far the thumb swings OPEN
+/// from its resting curl. Together they turn the closed resting paw into a
+/// visibly open hand — skeletally, so the opening is as continuous as the
+/// envelope driving it (no sprite swap, no pop).
+const double kDancePawToeSplayRad = 0.6;
+const double kDancePawToeSplayScale = 0.28;
+const double kDancePawThumbOpenRad = 0.55;
+
+/// Returns [clip] with per-frame paw ARTICULATION layered onto the hand,
+/// toe-bean, and thumb joint channels: wrist rotation (the paw lags/aligns
+/// instead of riding the forearm like a mitten on a stick) and a 0..1 splay
+/// that swings the toe beans apart, swells them, and opens the thumb from
+/// its resting curl. Values come per frame from
+/// `DancePerformance.lanePawPoseFor` and are continuous in song time by
+/// construction. The left/right rigs are mirrored, so rotations flip sign
+/// per side. Identity when the paws are at rest.
+Clip pawArticulatedClip(
+  Clip clip,
+  ({double wristL, double splayL, double wristR, double splayR}) paw,
+) {
+  if ((paw.wristL == 0 &&
+          paw.splayL == 0 &&
+          paw.wristR == 0 &&
+          paw.splayR == 0) ||
+      clip.duration <= 0) {
+    return clip;
+  }
+  JointChannel layered(JointChannel? base, double rotation, double scale) {
+    final fixed = FixedJointChannel(
+      rotation: rotation,
+      scaleX: scale,
+      scaleY: scale,
+    );
+    return base == null ? fixed : LayeredJointChannel([base, fixed]);
+  }
+
+  final channels = Map<String, JointChannel>.of(clip.channels);
+  void articulate(
+    String side, // 'L' or 'R'
+    double wrist,
+    double splay,
+  ) {
+    if (wrist == 0 && splay == 0) return;
+    final sign = side == 'L' ? 1.0 : -1.0;
+    final hand = 'hand.$side';
+    channels[hand] = layered(channels[hand], wrist, 1);
+    final toeSwing = kDancePawToeSplayRad * splay;
+    final toeScale = 1 + kDancePawToeSplayScale * splay;
+    channels['paw_toe1.$side'] = layered(
+      channels['paw_toe1.$side'],
+      sign * -toeSwing,
+      toeScale,
+    );
+    channels['paw_toe2.$side'] = layered(
+      channels['paw_toe2.$side'],
+      sign * toeSwing,
+      toeScale,
+    );
+    channels['thumb.$side'] = layered(
+      channels['thumb.$side'],
+      sign * kDancePawThumbOpenRad * splay,
+      1,
+    );
+  }
+
+  articulate('L', paw.wristL, paw.splayL);
+  articulate('R', paw.wristR, paw.splayR);
+  return Clip(
+    name: clip.name,
+    family: clip.family,
+    echoBeats: clip.echoBeats,
+    duration: clip.duration,
+    channels: channels,
+    loop: clip.loop,
+    root: clip.root,
     locomotionSpeed: clip.locomotionSpeed,
     groundSpans: clip.groundSpans,
     contactSpans: clip.contactSpans,

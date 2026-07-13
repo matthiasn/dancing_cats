@@ -993,20 +993,36 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
       stage.energyLevel,
     );
     // Per-lane envelopes: a canon voice's pool and plié fire on ITS
-    // displaced beat (Clip.echoBeats), not on the lead's call.
+    // displaced beat (Clip.echoBeats), not on the lead's call. Blend-aware:
+    // a transitioning clip blends the two sides' ENVELOPES, never the
+    // displacement (see laneAccentForClip).
     final laneBodyAccents = [
       for (final clip in stage.ensemble)
         danceBodyAccentEnvelope(
-          _perf?.laneAccentAt(posSec, clip.echoBeats) ?? 0,
+          _perf?.laneAccentForClip(posSec, clip) ?? 0,
           stage.energyLevel,
         ),
     ];
     final laneBodyAnticipations = [
       for (final clip in stage.ensemble)
         danceBodyAccentEnvelope(
-          _perf?.laneAnticipationAt(posSec, clip.echoBeats) ?? 0,
+          _perf?.laneAnticipationForClip(posSec, clip) ?? 0,
           stage.energyLevel,
         ),
+    ];
+    // The hands' hit-variation layer: per-onset ornament flavors +
+    // double-time pickup fills + hit-and-hold poses, per voice on its
+    // displaced clock — with the paw articulation (wrist lag, toe/thumb
+    // splay) riding the same envelopes.
+    final laneHandFlourishes = [
+      for (var lane = 0; lane < stage.ensemble.length; lane++)
+        _perf?.laneHandFlourishFor(posSec, stage.ensemble[lane], lane) ??
+            kNoHandFlourish,
+    ];
+    final lanePawPoses = [
+      for (var lane = 0; lane < stage.ensemble.length; lane++)
+        _perf?.lanePawPoseFor(posSec, stage.ensemble[lane], lane) ??
+            kClosedPaws,
     ];
     // The director owns the camera; the stepper holds the eased framing and the
     // singing mouths. The whole composite is the generalized DanceStageView,
@@ -1043,6 +1059,8 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
       bodyAnticipation: bodyAnticipation,
       laneBodyAccents: laneBodyAccents,
       laneBodyAnticipations: laneBodyAnticipations,
+      laneHandFlourishes: laneHandFlourishes,
+      lanePawPoses: lanePawPoses,
       backdropTimeSeconds: posSec,
       // Ambient stage lights run on a steady wall clock (decoupled from the
       // looping dance); offline renderers pass the audio position instead so a

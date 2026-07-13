@@ -16,6 +16,8 @@
 /// (`DancePlaybackStepper`) and consume these results.
 library;
 
+import 'dart:math' as math;
+
 import 'package:dancing_cats/features/character/demo/dance_camera_director.dart';
 import 'package:dancing_cats/features/character/demo/dance_lip_sync.dart';
 import 'package:dancing_cats/features/character/model/beat_map.dart';
@@ -50,6 +52,27 @@ typedef DanceSectionSpan = ({double start, double end, String section});
 
 /// The lead move plus the three-cat ensemble (ensemble[0] is the lead's clip).
 typedef DanceTrio = ({Clip lead, List<Clip> ensemble});
+
+/// One frame of additive hand-flourish displacement for a Moving lane, in rig
+/// units: (lx, ly) offsets the left hand's IK target, (rx, ry) the right.
+typedef DanceHandFlourish = ({double lx, double ly, double rx, double ry});
+
+/// The flourish at rest — wrappers treat it as a zero-cost identity.
+const DanceHandFlourish kNoHandFlourish = (lx: 0, ly: 0, rx: 0, ry: 0);
+
+/// One frame of paw ARTICULATION for a Moving lane: `wristL`/`wristR` are
+/// radians added to the authored hand-bone rotation (the paw stops being a
+/// mitten glued to the forearm), `splayL`/`splayR` are 0..1 — 0 the closed
+/// resting paw, 1 fully OPEN (toes splayed and swollen, thumb swung out).
+typedef DancePawPose = ({
+  double wristL,
+  double splayL,
+  double wristR,
+  double splayR,
+});
+
+/// Paws at rest — wrappers treat it as a zero-cost identity.
+const DancePawPose kClosedPaws = (wristL: 0, splayL: 0, wristR: 0, splayR: 0);
 
 /// Per-lane Laban-Effort personality offsets, index-parallel to
 /// `DanceTrio.ensemble` (`[0]` lead, `[1]` backup-left, `[2]` backup-right).
@@ -98,11 +121,23 @@ DanceDynamics sectionEnergyDynamics(double level) =>
 /// last one; this tier caps the early statements and releases the ceiling as
 /// occurrences accumulate. Verses/bridge sit low so the valley is an energy
 /// valley, not just a vocabulary change.
-double danceSectionArcTier(String section, int occurrence) {
+double danceSectionArcTier(
+  String section,
+  int occurrence, {
+  bool finalOccurrence = false,
+}) {
   switch (section) {
     case 'chorus':
       return occurrence <= 0 ? 0.90 : (occurrence == 1 ? 0.96 : 1.08);
     case 'post-chorus':
+      // The FINAL post-chorus is the song's actual climax (the reprise —
+      // audio peaks at ~0.79 there) and must top everything before it.
+      // Keyed on finality like the reprise setlist itself: this track tags
+      // post-chorus once, so the old `occurrence >= 1` tier was dead and
+      // the musicality panel measured the reprise DANCING BELOW THE VALLEY
+      // (lead-band motion 1.79 vs valley 1.85) — a de-crescendo through
+      // the drop.
+      if (finalOccurrence) return 1.12;
       return occurrence <= 0 ? 0.97 : 1.06;
     case 'pre-chorus':
       return 0.92;
@@ -110,10 +145,13 @@ double danceSectionArcTier(String section, int occurrence) {
       // Lowered 0.85 -> 0.80 with the bridge (round-4 cartoon: the valley
       // measured 1.08x the capped chorus — "a valley that forgot to be a
       // valley"); the quiet-step loading and full lunge vocabulary carry
-      // plenty of life at the smaller extent.
-      return 0.80;
+      // plenty of life at the smaller extent. Shaved again 0.80 -> 0.76
+      // with the reprise tier lift: the musicality panel measured the
+      // valley OUT-DANCING the reprise (1.85 vs 1.79 lead-band) — contrast
+      // is bought on both sides.
+      return 0.76;
     case 'bridge':
-      return 0.78;
+      return 0.74;
     case 'outro':
       return 1;
     default:
@@ -502,6 +540,12 @@ class DancePerformance {
   static const double _kAccentMinSpacingSec = 1;
   static const double _kAccentDecaySec = 0.42;
 
+  /// How long the dark flank's reprise answer sustains at peak before its
+  /// release plays (see [_laneAccentHoldSec]) — about five 60fps frames, a
+  /// readable hold at playback speed without blunting the hit-and-breathe
+  /// release the rest of the song keeps.
+  static const double kMovingRepriseAccentHoldSec = 0.08;
+
   /// How far past neutral the accent's release BREATHES back up, as a
   /// fraction of the drop (see [accentAt]'s breathe lobe). A plié that only
   /// sinks and returns reads as a lean; real weight rebounds slightly above
@@ -558,7 +602,13 @@ class DancePerformance {
   /// Music-driven accent envelope at [posSec] (0..1): a quick decay pop on the
   /// most recent STRONG onset, so the body lands WITH the track's hits. 0
   /// between hits; 0 with no onsets (synthetic performances).
-  double accentAt(double posSec) {
+  ///
+  /// [holdSec] sustains the envelope AT its peak for that long before the
+  /// release plays (the whole decay shifts later, the attack stays on the
+  /// onset) — the "held accent frame" the reprise answer earns. The value is
+  /// continuous in [holdSec], so a hold that ramps with a blend cannot step
+  /// the envelope.
+  double accentAt(double posSec, {double holdSec = 0}) {
     final o = _accentOnsets;
     if (o.isEmpty) return 0;
     var lo = 0;
@@ -575,8 +625,8 @@ class DancePerformance {
     }
     if (idx < 0) return 0;
     final dt = posSec - o[idx].time;
-    if (dt < 0 || dt > _kAccentDecaySec) return 0;
-    final u = (dt / _kAccentDecaySec).clamp(0.0, 1.0);
+    if (dt < 0 || dt > _kAccentDecaySec + holdSec) return 0;
+    final u = ((dt - holdSec) / _kAccentDecaySec).clamp(0.0, 1.0);
     // Drop, then BREATHE. The drop eases out with zero velocity at the onset
     // and reaches neutral at [_kAccentRecoverShare] of the window; the
     // remainder is a C1 negative lobe (zero-derivative at both ends) dipping
@@ -604,12 +654,456 @@ class DancePerformance {
   /// beat under bodies that answer later.
   double laneAccentAt(double posSec, double echoBeats) => echoBeats == 0
       ? accentAt(posSec)
-      : accentAt(map.timeAtBeat(map.beatAt(posSec) - echoBeats));
+      : accentAt(
+          map.timeAtBeat(map.beatAt(posSec) - echoBeats),
+          holdSec: _laneAccentHoldSec(posSec, echoBeats),
+        );
+
+  /// Peak-hold for the one-beat echo voice's REPRISE answers: in the final
+  /// post-chorus the dark flank sustains each hit at full depth for
+  /// [kMovingRepriseAccentHoldSec] before the release plays — the held
+  /// accent frame that marks the reprise's answer as a statement rather
+  /// than a passing hit (round-6 animator), in the one section where the
+  /// canon returns as the arc's peak. Shaped as a smooth bump over the
+  /// DISPLACEMENT: a blending clip's `echoBeats` lerps through the blend
+  /// window, so a boolean gate would step the envelope mid-decay; the bump
+  /// ramps the hold in and out with the blend, peaks on the one-beat voice,
+  /// and has already faded to ~0.1x at the two-beat canon voice.
+  double _laneAccentHoldSec(double posSec, double echoBeats) {
+    if (echoBeats <= 0) return 0;
+    if (!sectionIsFinalOccurrenceAt(posSec, 'post-chorus')) return 0;
+    final bump =
+        1 - (echoBeats - kMovingEchoAnswerBeats).abs() / kMovingEchoAnswerBeats;
+    return bump <= 0 ? 0 : kMovingRepriseAccentHoldSec * bump;
+  }
 
   /// [anticipationAt] for a displaced voice — see [laneAccentAt].
   double laneAnticipationAt(double posSec, double echoBeats) => echoBeats == 0
       ? anticipationAt(posSec)
       : anticipationAt(map.timeAtBeat(map.beatAt(posSec) - echoBeats));
+
+  /// The accent envelope for a STAGE clip, blend-aware. A transitioning clip
+  /// carries a LERPED `echoBeats`, but the envelope is nonlinear in the
+  /// displacement: evaluating it at the lerped value sweeps the displaced
+  /// lookup across the track at several times real speed (a 2-beat canon
+  /// exiting over a 0.44s blend fast-forwards ~1.1s of onsets), and any
+  /// onset attack the sweep crosses REPLAYS as a compressed flash — shipped
+  /// as a one-frame full-stage light pop at 114.73s, where the reprise exit
+  /// swept grey's lookup across the cadence hit. Blend the ENVELOPES of the
+  /// plan's two sides instead: endpoints match the pure clips exactly, and
+  /// no lookup ever moves faster than the track.
+  double laneAccentForClip(double posSec, Clip clip) {
+    final plan = clip.transitionPlan;
+    if (plan == null) return laneAccentAt(posSec, clip.echoBeats);
+    final from = laneAccentAt(posSec, plan.from.echoBeats);
+    final to = laneAccentAt(posSec, plan.to.echoBeats);
+    return from + (to - from) * plan.weight;
+  }
+
+  /// [laneAccentForClip] for the look-ahead coil.
+  double laneAnticipationForClip(double posSec, Clip clip) {
+    final plan = clip.transitionPlan;
+    if (plan == null) return laneAnticipationAt(posSec, clip.echoBeats);
+    final from = laneAnticipationAt(posSec, plan.from.echoBeats);
+    final to = laneAnticipationAt(posSec, plan.to.echoBeats);
+    return from + (to - from) * plan.weight;
+  }
+
+  /// Peak hand-flourish displacement, in rig units, at full load. Small next
+  /// to the authored hand paths — a shading on the phrase, not a new phrase.
+  static const double kMovingFlourishUnits = 4.5;
+
+  /// Peak double-time fill radius, in rig units, at full onset strength.
+  /// Sized so the IK solver visibly swings the FOREARM through the loop,
+  /// not just the paw (owner: "more 2x in hands and arms").
+  static const double kMovingFillUnits = 6;
+
+  /// How long a double-time fill's pickup runs before the hit it leads into.
+  static const double kMovingFillBeats = 1.5;
+
+  /// Full loops the hand traces across one fill window. Two loops per 1.5
+  /// beats ≈ one readable swooping arc per 0.4s — a dancer's double-time
+  /// hand roll (~2.5Hz). The PACE multiplier applies to the GESTURE rate,
+  /// never the beat: the first cut oscillated at 4 cycles PER BEAT (7.5Hz),
+  /// a positional tremor the owner read as "out of the blue being
+  /// electrocuted". Quad-time was dropped with it — at gesture scale the
+  /// double-time loop is the fastest motion that still reads as dancing.
+  static const double kMovingFillLoops = 2;
+
+  /// Per-onset ornament directions, one picked per hit by [_flourishHash]:
+  /// outward flick, lift, press, inward pull. The two hands never mirror
+  /// exactly (asymmetric magnitudes), matching the authored microtiming
+  /// asymmetry. y is rig-down, so a lift is negative.
+  static const List<DanceHandFlourish> _kFlourishFlavors = [
+    (lx: -1, ly: -0.25, rx: 0.85, ry: -0.2),
+    (lx: 0.1, ly: -1.0, rx: -0.1, ry: -0.85),
+    (lx: 0.45, ly: 0.8, rx: -0.35, ry: 0.7),
+    (lx: 0.8, ly: -0.3, rx: -0.7, ry: -0.25),
+  ];
+
+  /// Peak accent-pose reach, in rig units. Deliberately BEYOND the arm's
+  /// length from its authored position: the two-bone IK solver clamps an
+  /// out-of-reach target to a straight-elbow extension toward it, which is
+  /// exactly the pose — the arm genuinely leaves the chest-to-hip box.
+  static const double kMovingAccentPoseUnits = 30;
+
+  /// Accent-pose envelope timing, in seconds around the owning hit: launch
+  /// through the pickup's last moments, SNAP to full reach just past the
+  /// hit (with a slight overshoot-settle), HOLD, then melt back to groove.
+  /// The whole figure clears well before the 1s onset-spacing floor.
+  static const double kMovingPoseRiseStartSec = -0.15;
+  static const double kMovingPoseRiseEndSec = 0.09;
+  static const double kMovingPoseHoldEndSec = 0.30;
+  static const double kMovingPoseReleaseEndSec = 0.65;
+
+  /// One-arm accent poses, picked per hit: point up-out, cross-body reach,
+  /// overhead throw, low sweep. x sign is flipped for a right-arm pose; the
+  /// OTHER arm stays on groove (a parked/travelling contrast instead of the
+  /// perpetual two-arm jog).
+  static const List<({double x, double y})> _kAccentPoses = [
+    (x: 0.75, y: -0.75), // point up-out at 45°
+    (x: -0.65, y: -0.25), // cross-body reach
+    (x: 0.2, y: -1), // overhead throw
+    (x: 0.85, y: 0.35), // low sweep-out
+  ];
+
+  /// Wrist rotation (radians, outward) accompanying each accent pose, index-
+  /// parallel to [_kAccentPoses] — the paw aligns with the reach instead of
+  /// staying frozen at the forearm's angle.
+  static const List<double> _kAccentPoseWrist = [0.5, -0.35, 0.6, 0.35];
+
+  /// Peak wrist roll during a double-time fill (radians): the paw leads and
+  /// lags the loop, so the wrist reads as rolling flesh, not a stick end.
+  static const double kMovingFillWristRad = 0.3;
+
+  /// Deterministic 0..1 hash of (onset index, lane, salt) — the flourish's
+  /// only source of "randomness", so every render of the same song makes the
+  /// same choices and tests can pin them.
+  static double _flourishHash(int idx, int lane, int salt) {
+    var h = idx * 374761393 + lane * 668265263 + salt * 2246822519;
+    h = (h ^ (h >> 13)) * 1274126177;
+    h = h ^ (h >> 16);
+    return (h & 0xfffff) / 0x100000;
+  }
+
+  /// Index of the latest onset at or before [t] (-1 before the first).
+  int _lastOnsetIndex(double t) {
+    final o = _accentOnsets;
+    var lo = 0;
+    var hi = o.length - 1;
+    var idx = -1;
+    while (lo <= hi) {
+      final mid = (lo + hi) >> 1;
+      if (o[mid].time <= t) {
+        idx = mid;
+        lo = mid + 1;
+      } else {
+        hi = mid - 1;
+      }
+    }
+    return idx;
+  }
+
+  /// Whether onset [idx] earns a double-time pickup fill for [lane]. A
+  /// TEXTURE, not a garnish (owner: "we need a whole lot more 2x in hands
+  /// and arms"): a bit over half of each lane's strong onsets roll, so with
+  /// three decorrelated lanes some cat is filling into most big hits while
+  /// each individual cat still breathes between its own.
+  bool _fillAt(int idx, int lane, double strength) {
+    if (strength < 0.5) return false;
+    return _flourishHash(idx, lane, 2) < 0.55;
+  }
+
+  /// Onset indices that OPEN a semantic section: the first accent with real
+  /// weight inside each span's first 1.2s — the structural doors. The
+  /// musicality panel measured all three cats walking straight through the
+  /// late-chorus drop (92.14s: -4/-11/-6% motion on the hit) and the outro
+  /// entry; a section turn the band doesn't stamp together reads as the
+  /// music changing without the dancers noticing.
+  late final Set<int> _sectionDoorOnsets = () {
+    final doors = <int>{};
+    for (final s in sectionSpans) {
+      for (var i = _lastOnsetIndex(s.start - 1e-9) + 1;
+          i < _accentOnsets.length;
+          i++) {
+        final o = _accentOnsets[i];
+        if (o.time >= s.start + 1.2) break;
+        if (o.strength >= 0.6) {
+          doors.add(i);
+          break;
+        }
+      }
+    }
+    // The BREAK before a chorus-family drop is performed, not played
+    // through (v91 animator: the 2s break at 88.9s — "the biggest musical
+    // punctuation in the song" — got continuous mid-amplitude groove): the
+    // last strong onset within 2.5s BEFORE a chorus/post-chorus span is a
+    // door too, so the trio holds a statement through the silence and
+    // releases into the drop's own stamp.
+    for (final s in sectionSpans) {
+      if (s.section != 'chorus' && s.section != 'post-chorus') continue;
+      for (var i = _lastOnsetIndex(s.start - 1e-9); i >= 0; i--) {
+        final o = _accentOnsets[i];
+        if (o.time < s.start - 2.5) break;
+        if (o.strength >= 0.6) {
+          doors.add(i);
+          break;
+        }
+      }
+    }
+    // The song's LAST accent is always a door: the final statement earns a
+    // trio button (the v91 panel measured 4.4s of statue after the last
+    // hit — "the piece exhales into nothing instead of stamping the last
+    // note"). The door's long hold melts directly into the closing tableau.
+    for (var i = _accentOnsets.length - 1; i >= 0; i--) {
+      if (_accentOnsets[i].strength >= 0.5) {
+        doors.add(i);
+        break;
+      }
+    }
+    return doors;
+  }();
+
+  /// Whether onset [idx] earns a hit-and-hold accent POSE for [lane] — the
+  /// unanimous panel finding after the fills shipped: the hits had nowhere
+  /// to LAND. Every gesture resolved into the same fist-by-the-ear pump, so
+  /// the downbeat was "the smallest, least interesting arm frame of the
+  /// bar". Roughly 1-2 of the strongest hits per phrase, per cat, hashed
+  /// per lane so the three cats pose on DIFFERENT hits (arm counterpoint
+  /// for free) — EXCEPT on a section door, which the whole trio stamps
+  /// together (each cat still picks its own pose flavor and arm).
+  bool _poseAt(int idx, int lane, double strength) {
+    if (_sectionDoorOnsets.contains(idx)) return true;
+    if (strength < 0.72) return false;
+    return _flourishHash(idx, lane, 4) < 0.45;
+  }
+
+  /// The accent-pose envelope at [dt] seconds past the owning hit: a C1
+  /// figure that LAUNCHES through the pickup's last moments, snaps to a
+  /// slight (12%) overshoot just past the hit, settles into a genuine HOLD,
+  /// then melts back to groove. Zero (value and slope) outside the figure.
+  /// A DOOR pose (section stamp / finale button) holds far longer — the v91
+  /// panel found the stamp grammar "keeps its promise exactly once": only
+  /// the first door read as a hold; the rest passed through. Door poses may
+  /// overlap the next onset's ornament tail; both terms are continuous, so
+  /// the sum is too.
+  static double _poseEnvelope(double dt, {bool door = false}) {
+    final holdEnd = door ? 0.55 : kMovingPoseHoldEndSec;
+    final releaseEnd = door ? 1.05 : kMovingPoseReleaseEndSec;
+    if (dt <= kMovingPoseRiseStartSec || dt >= releaseEnd) {
+      return 0;
+    }
+    if (dt < kMovingPoseRiseEndSec) {
+      final r =
+          (dt - kMovingPoseRiseStartSec) /
+          (kMovingPoseRiseEndSec - kMovingPoseRiseStartSec);
+      return r * r * (3 - 2 * r) * 1.12;
+    }
+    if (dt < holdEnd) {
+      final s = ((dt - kMovingPoseRiseEndSec) / 0.08).clamp(0.0, 1.0);
+      return 1 + 0.12 * (1 - s * s * (3 - 2 * s));
+    }
+    final r = ((dt - holdEnd) / (releaseEnd - holdEnd)).clamp(0.0, 1.0);
+    return 1 - r * r * (3 - 2 * r);
+  }
+
+  /// The hand-flourish displacement for a Moving lane at [posSec] — the
+  /// variation layer that keeps repeated hits from reading identical
+  /// (owner: "hand movement is still a bit monotonous"). Two additive terms,
+  /// each continuous by construction so the hands can never teleport:
+  ///
+  /// 1. A per-hit ORNAMENT riding the same joined load envelope as the plié
+  ///    (anticipation meets the accent AT the hit, so the ride is continuous),
+  ///    with a deterministic per-onset flavor — flick / lift / press / pull.
+  ///    Flavors can only switch while the load is zero: decay (0.42s) + the
+  ///    reprise hold (0.08s) + the coil window (0.1s) stay under the 1s
+  ///    onset spacing floor, so there is always a dead zone between hits.
+  /// 2. A DOUBLE-TIME pickup fill — a full swooping hand/arm loop traced
+  ///    [kMovingFillLoops] times across a [kMovingFillBeats] window, at
+  ///    gesture rate (~2.5Hz), swelling from a small curl and dying exactly
+  ///    at the hit it leads into — sin² bump, zero value AND slope at both
+  ///    ends, window clamped clear of the previous onset so the
+  ///    owning-onset flip always happens at zero amplitude. Frequent enough
+  ///    to be a texture (see [_fillAt]), loop-shaped so it can never read
+  ///    as a tremor.
+  /// 3. A HIT-AND-HOLD accent pose on the strongest selected hits (see
+  ///    [_poseAt] / [_poseEnvelope]): one arm snaps out of the groove box
+  ///    into a full extension, holds, and melts back — the downbeat
+  ///    finally differs in SHAPE from the groove, not just in amplitude.
+  ({DanceHandFlourish flourish, DancePawPose paw}) _handExpressionAt(
+    double posSec,
+    double echoBeats,
+    int lane,
+  ) {
+    final o = _accentOnsets;
+    if (o.isEmpty) return (flourish: kNoHandFlourish, paw: kClosedPaws);
+    final dp = echoBeats == 0
+        ? posSec
+        : map.timeAtBeat(map.beatAt(posSec) - echoBeats);
+
+    var lx = 0.0;
+    var ly = 0.0;
+    var rx = 0.0;
+    var ry = 0.0;
+    var wristL = 0.0;
+    var wristR = 0.0;
+    var splayL = 0.0;
+    var splayR = 0.0;
+
+    final acc = laneAccentAt(posSec, echoBeats).clamp(0.0, 1.0);
+    final ant = laneAnticipationAt(posSec, echoBeats);
+    final load = acc >= ant ? acc : ant;
+    if (load > 0) {
+      final owner = acc >= ant ? _lastOnsetIndex(dp) : _lastOnsetIndex(dp) + 1;
+      final flavor =
+          (_flourishHash(owner, lane, 1) * _kFlourishFlavors.length)
+              .floor()
+              .clamp(0, _kFlourishFlavors.length - 1);
+      final v = _kFlourishFlavors[flavor];
+      final amp = kMovingFlourishUnits * load;
+      lx += amp * v.lx;
+      ly += amp * v.ly;
+      rx += amp * v.rx;
+      ry += amp * v.ry;
+      // Every hit softens the paws open a touch — a fist that never
+      // breathes is the mitten tell.
+      splayL += 0.18 * load;
+      splayR += 0.18 * load;
+    }
+
+    final next = _lastOnsetIndex(dp) + 1;
+    if (next < o.length) {
+      if (_fillAt(next, lane, o[next].strength)) {
+        final tn = o[next].time;
+        var windowSec =
+            tn - map.timeAtBeat(map.beatAt(tn) - kMovingFillBeats);
+        if (next > 0) {
+          windowSec = math.min(windowSec, 0.9 * (tn - o[next - 1].time));
+        }
+        if (windowSec > 0) {
+          final u = 1 - (tn - dp) / windowSec;
+          if (u > 0 && u < 1) {
+            final bump = math.sin(math.pi * u);
+            final swell = bump * bump;
+            // The loop is locked to the WINDOW's progress (not the absolute
+            // beat): a swooping arc that starts as a small curl, blooms, and
+            // dies into the hit — never an oscillator switching on. Each
+            // fill gets its own ellipse orientation so no two loops trace
+            // the same screen path.
+            final phase = 2 * math.pi * kMovingFillLoops * u + lane * 0.9;
+            final tilt = _flourishHash(next, lane, 3) * math.pi;
+            final cosT = math.cos(tilt);
+            final sinT = math.sin(tilt);
+            final amp = kMovingFillUnits * o[next].strength * swell;
+            final cxL = amp * math.sin(phase);
+            final cyL = amp * 0.8 * math.cos(phase);
+            final cxR = amp * math.sin(phase + 2.2);
+            final cyR = amp * 0.8 * math.cos(phase + 2.2);
+            lx += cxL * cosT - cyL * sinT;
+            ly += cxL * sinT + cyL * cosT;
+            rx += cxR * cosT - cyR * sinT;
+            ry += cxR * sinT + cyR * cosT;
+            // The wrist ROLLS with the loop (leading it slightly) and the
+            // paw loosens — flesh riding the arc, not a stick end.
+            final roll = kMovingFillWristRad * swell;
+            wristL += roll * math.sin(phase + 0.6);
+            wristR += roll * math.sin(phase + 2.8);
+            splayL += 0.22 * swell;
+            splayR += 0.22 * swell;
+          }
+        }
+      }
+    }
+
+    // Hit-and-hold accent poses: on the selected strongest hits, ONE arm
+    // launches out of the groove box into a full extension (the 30-unit
+    // target is deliberately past the arm's reach — the IK solver clamps to
+    // a straight-elbow pose toward it), holds, and melts back while the
+    // other arm keeps grooving. The paw OPENS with the reach (full splay,
+    // wrist aligned to the pose) — the hit lands as an open hand, not a
+    // mitten. The envelope starts before the hit, so both the owning onset
+    // and its successor are candidates.
+    final lastIdx = _lastOnsetIndex(dp);
+    for (final i in [lastIdx, lastIdx + 1]) {
+      if (i < 0 || i >= o.length) continue;
+      if (!_poseAt(i, lane, o[i].strength)) continue;
+      final door = _sectionDoorOnsets.contains(i);
+      final env = _poseEnvelope(dp - o[i].time, door: door);
+      if (env == 0) continue;
+      final flavor = (_flourishHash(i, lane, 5) * _kAccentPoses.length)
+          .floor()
+          .clamp(0, _kAccentPoses.length - 1);
+      final pose = _kAccentPoses[flavor];
+      // A door statement reaches full extension even in low-energy sections
+      // (the finale button fires at E~0.1 where the painter's energy scale
+      // would otherwise halve it; the IK solver clamps the excess for hot
+      // sections, so the boost costs nothing there).
+      final amp =
+          kMovingAccentPoseUnits * (door ? 1.4 : 1.0) * o[i].strength * env;
+      final wrist = _kAccentPoseWrist[flavor] * env;
+      final open = env.clamp(0.0, 1.0);
+      // pose.x is OUTWARD: -x for the left arm, +x for the right.
+      if (_flourishHash(i, lane, 6) < 0.5) {
+        lx += amp * -pose.x;
+        ly += amp * pose.y;
+        wristL += -wrist;
+        splayL += open;
+      } else {
+        rx += amp * pose.x;
+        ry += amp * pose.y;
+        wristR += wrist;
+        splayR += open;
+      }
+    }
+    return (
+      flourish: (lx: lx, ly: ly, rx: rx, ry: ry),
+      paw: (
+        wristL: wristL.clamp(-0.85, 0.85),
+        splayL: splayL.clamp(0.0, 1.0),
+        wristR: wristR.clamp(-0.85, 0.85),
+        splayR: splayR.clamp(0.0, 1.0),
+      ),
+    );
+  }
+
+  DanceHandFlourish _handFlourishAt(double posSec, double echoBeats, int lane) =>
+      _handExpressionAt(posSec, echoBeats, lane).flourish;
+
+  /// [_handFlourishAt] for a STAGE clip, blend-aware the same way
+  /// [laneAccentForClip] is: the flourish of a transitioning clip is the
+  /// LERP of its two sides' flourishes — never an evaluation at the lerped
+  /// displacement, which sweeps onset attacks (the 114.73s one-frame pop).
+  DanceHandFlourish laneHandFlourishFor(double posSec, Clip clip, int lane) {
+    final plan = clip.transitionPlan;
+    if (plan == null) return _handFlourishAt(posSec, clip.echoBeats, lane);
+    final from = _handFlourishAt(posSec, plan.from.echoBeats, lane);
+    final to = _handFlourishAt(posSec, plan.to.echoBeats, lane);
+    final w = plan.weight;
+    return (
+      lx: from.lx + (to.lx - from.lx) * w,
+      ly: from.ly + (to.ly - from.ly) * w,
+      rx: from.rx + (to.rx - from.rx) * w,
+      ry: from.ry + (to.ry - from.ry) * w,
+    );
+  }
+
+  /// The paw articulation for a STAGE clip — wrist lag and toe/thumb splay
+  /// riding the same envelopes as the flourish, blend-aware the same way.
+  DancePawPose lanePawPoseFor(double posSec, Clip clip, int lane) {
+    final plan = clip.transitionPlan;
+    if (plan == null) {
+      return _handExpressionAt(posSec, clip.echoBeats, lane).paw;
+    }
+    final from = _handExpressionAt(posSec, plan.from.echoBeats, lane).paw;
+    final to = _handExpressionAt(posSec, plan.to.echoBeats, lane).paw;
+    final w = plan.weight;
+    return (
+      wristL: from.wristL + (to.wristL - from.wristL) * w,
+      splayL: from.splayL + (to.splayL - from.splayL) * w,
+      wristR: from.wristR + (to.wristR - from.wristR) * w,
+      splayR: from.splayR + (to.splayR - from.splayR) * w,
+    );
+  }
 
   /// Look-ahead "coil" envelope at [posSec] (0..1): rises as the NEXT strong
   /// onset approaches (within [_kAnticipationWindowSec]) and returns to 0 AT
@@ -715,12 +1209,14 @@ class DancePerformance {
     if (!resting) {
       final lyric = sectionInfoAt(pos);
       final occ = sectionOccurrenceAt(pos, lyric.section);
+      final finalOcc = sectionIsFinalOccurrenceAt(pos, lyric.section);
       final trio = choreoTrioForSection(
         lyric.section,
         lyric.phase,
         level,
         occ,
         sectionSeconds: lyric.seconds,
+        finalOccurrence: finalOcc,
       );
       final sectionDynamics = sectionEnergyDynamics(level);
       // Music-reactive amplitude: the dance size follows the CONTINUOUS track
@@ -732,9 +1228,14 @@ class DancePerformance {
       // (no-waveform) perfs.
       final danceEnergy = waveform.isEmpty
           ? level
-          : ((intensityAt(pos) * danceSectionArcTier(lyric.section, occ))
-                        .clamp(0.0, 1.0) *
-                    20)
+          : ((intensityAt(pos) *
+                        danceSectionArcTier(
+                          lyric.section,
+                          occ,
+                          finalOccurrence: finalOcc,
+                        ))
+                    .clamp(0.0, 1.0) *
+                20)
                 .round() /
             20;
       return (
@@ -818,6 +1319,22 @@ class DancePerformance {
     }
   }
 
+  /// Whether the span covering [pos] is the LAST [section]-labelled span of
+  /// the song — "the final post-chorus", however many came before. Finality
+  /// and occurrence are different questions: this track tags post-chorus
+  /// exactly once, so its occurrence is 0 and any `occurrence >= 1` gate on
+  /// "the final one" is unreachable — the round-6 canon reprise shipped
+  /// panel-certified but DEAD, staged only in tests that passed the variant
+  /// by hand. False when no [section] span covers [pos].
+  bool sectionIsFinalOccurrenceAt(double pos, String section) {
+    var covering = false;
+    for (final s in sectionSpans) {
+      if (s.section != section) continue;
+      covering = pos >= s.start && pos < s.end;
+    }
+    return covering;
+  }
+
   /// How many earlier spans share [section]'s label — 0 for its first occurrence.
   /// Lets the choreography vary repeated choruses/verses so they don't read
   /// identical.
@@ -873,6 +1390,7 @@ class DancePerformance {
     double level,
     int variant, {
     double sectionSeconds = 0,
+    bool finalOccurrence = false,
   }) {
     final hookCall = (
       lead: _moving,
@@ -965,7 +1483,10 @@ class DancePerformance {
           // (round-5 animator: the late chorus "abandons the conversation…
           // exactly where the arc should peak" — either restate the canon
           // or commit to a tutti; the canon is the piece's signature now).
-          variant >= 1
+          // Keyed on FINALITY, not occurrence: this track tags post-chorus
+          // once, so an occurrence-only gate never fired and the reprise
+          // shipped dead (see sectionIsFinalOccurrenceAt).
+          variant >= 1 || finalOccurrence
               ? [hookTravel, hookCall, windowBridge, lowCounter]
               : [lowCounter, hookTravel, bodyRoll, windowBridge],
           phase,
@@ -1068,6 +1589,9 @@ class DancePerformance {
           ? 0
           : sectionOccurrenceAt(next.start, next.section),
       secondsSinceMoveCut: secondsSinceMoveCut,
+      sectionIsFinal: sectionIsFinalOccurrenceAt(pos, info.section),
+      nextSectionIsFinal: next != null &&
+          sectionIsFinalOccurrenceAt(next.start, next.section),
     );
   }
 

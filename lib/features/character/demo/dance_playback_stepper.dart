@@ -672,6 +672,8 @@ DanceCameraContext _withoutMoveCut(DanceCameraContext c) => DanceCameraContext(
   secondsToNext: c.secondsToNext,
   nextSection: c.nextSection,
   nextOccurrence: c.nextOccurrence,
+  sectionIsFinal: c.sectionIsFinal,
+  nextSectionIsFinal: c.nextSectionIsFinal,
 );
 
 String _stageSignature(DanceStage stage) => [

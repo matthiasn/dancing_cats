@@ -256,6 +256,130 @@ void main() {
     });
   });
 
+  group('handFlourishedClip', () {
+    const target = KeyframeIkTargetChannel([
+      IkTargetKeyframe(p: 0, x: 5, y: 60),
+      IkTargetKeyframe(p: 1, x: 5, y: 60),
+    ]);
+    LimbIkTarget limb(String end) => LimbIkTarget(
+      upperBoneId: 'u',
+      lowerBoneId: 'l',
+      endBoneId: end,
+      anchorBoneId: 'hips',
+      channel: target,
+    );
+    final clip = Clip(
+      name: 'flourishme',
+      duration: 4,
+      channels: const {},
+      limbTargets: [limb('hand.L'), limb('hand.R'), limb('foot.R')],
+    );
+    IkTargetPose sampleOf(Clip c, String end) => c.limbTargets
+        .singleWhere((t) => t.endBoneId == end)
+        .channel
+        .sample(0.3);
+
+    test('offsets only the hands, preserving the solve weight', () {
+      final f = handFlourishedClip(clip, (lx: 3, ly: -2, rx: -1.5, ry: 1));
+      final baseL = sampleOf(clip, 'hand.L');
+      final l = sampleOf(f, 'hand.L');
+      expect(l.x - baseL.x, closeTo(3, 1e-9));
+      expect(l.y - baseL.y, closeTo(-2, 1e-9));
+      expect(l.weight, baseL.weight, reason: 'solve weight stays authored');
+      final r = sampleOf(f, 'hand.R');
+      expect(r.x - baseL.x, closeTo(-1.5, 1e-9));
+      expect(r.y - baseL.y, closeTo(1, 1e-9));
+      // The feet do not flourish.
+      final foot = sampleOf(f, 'foot.R');
+      expect(foot.x, baseL.x);
+      expect(foot.y, baseL.y);
+    });
+
+    test('pawArticulatedClip rotates wrist, splays toes+thumb, mirrored', () {
+      const base = Clip(
+        name: 'pawme',
+        duration: 4,
+        channels: {
+          'hand.L': SineChannel(harmonicAmplitude: 0.1),
+        },
+      );
+      final posed = pawArticulatedClip(base, (
+        wristL: 0.4,
+        splayL: 1,
+        wristR: 0,
+        splayR: 0,
+      ));
+      // Wrist rotation layers over the authored hand channel.
+      expect(
+        posed.channels['hand.L']!.sample(0.25).rotation,
+        closeTo(base.channels['hand.L']!.sample(0.25).rotation + 0.4, 1e-9),
+      );
+      // Toes swing apart (opposite signs), swell, and the thumb opens —
+      // channels are INSERTED where the clip authored none.
+      final toe1 = posed.channels['paw_toe1.L']!.sample(0);
+      final toe2 = posed.channels['paw_toe2.L']!.sample(0);
+      expect(toe1.rotation, closeTo(-kDancePawToeSplayRad, 1e-9));
+      expect(toe2.rotation, closeTo(kDancePawToeSplayRad, 1e-9));
+      expect(toe1.scaleX, closeTo(1 + kDancePawToeSplayScale, 1e-9));
+      expect(
+        posed.channels['thumb.L']!.sample(0).rotation,
+        closeTo(kDancePawThumbOpenRad, 1e-9),
+      );
+      // The untouched right paw gains no channels.
+      expect(posed.channels.containsKey('paw_toe1.R'), isFalse);
+
+      // The mirrored right side flips every sign.
+      final right = pawArticulatedClip(base, (
+        wristL: 0,
+        splayL: 0,
+        wristR: 0.4,
+        splayR: 1,
+      ));
+      expect(
+        right.channels['thumb.R']!.sample(0).rotation,
+        closeTo(-kDancePawThumbOpenRad, 1e-9),
+      );
+      expect(
+        right.channels['paw_toe1.R']!.sample(0).rotation,
+        closeTo(kDancePawToeSplayRad, 1e-9),
+      );
+
+      // Rest is an identity.
+      expect(
+        identical(
+          pawArticulatedClip(base, (
+            wristL: 0,
+            splayL: 0,
+            wristR: 0,
+            splayR: 0,
+          )),
+          base,
+        ),
+        isTrue,
+      );
+    });
+
+    test('zero flourish and handless clips are identities', () {
+      expect(
+        identical(handFlourishedClip(clip, (lx: 0, ly: 0, rx: 0, ry: 0)), clip),
+        isTrue,
+      );
+      final handless = Clip(
+        name: 'feetonly',
+        duration: 4,
+        channels: const {},
+        limbTargets: [limb('foot.R')],
+      );
+      expect(
+        identical(
+          handFlourishedClip(handless, (lx: 1, ly: 0, rx: 0, ry: 0)),
+          handless,
+        ),
+        isTrue,
+      );
+    });
+  });
+
   group('upperBodyDynamicsWarpedClip — identity no-op cases', () {
     test('neutral dynamics returns the SAME clip instance', () {
       final clip = _loopingClip();

@@ -59,6 +59,8 @@ class DanceStageView extends StatelessWidget {
     this.bodyAnticipation = 0,
     this.laneBodyAccents,
     this.laneBodyAnticipations,
+    this.laneHandFlourishes,
+    this.lanePawPoses,
     this.onDancerAnchors,
     this.useNewBackdrop = true,
     this.showCaptions = false,
@@ -103,6 +105,15 @@ class DanceStageView extends StatelessWidget {
   /// the scalar [bodyAccent]/[bodyAnticipation] for every lane.
   final List<double>? laneBodyAccents;
   final List<double>? laneBodyAnticipations;
+
+  /// Per-lane hand-flourish displacements (see
+  /// `DancePerformance.laneHandFlourishFor`) — the hit-variation layer for
+  /// the hands. Null → no flourish.
+  final List<DanceHandFlourish>? laneHandFlourishes;
+
+  /// Per-lane paw articulation (wrist lag + toe/thumb splay, see
+  /// `DancePerformance.lanePawPoseFor`). Null → paws rest closed.
+  final List<DancePawPose>? lanePawPoses;
 
   /// Audio position seconds — drives the scenery (it pauses/seeks with the
   /// track).
@@ -168,17 +179,21 @@ class DanceStageView extends StatelessWidget {
   Widget build(BuildContext context) {
     // One rig drives BOTH the per-cat rim/halo (memberBacklights) and the floor
     // pools, gel-cycling on the tempo, so a cat's glow always matches its pool.
+    // The rig's pools sit in SCREEN order, so per-voice envelopes are remapped
+    // once here and shared by the pools AND the drop flare — the two can never
+    // disagree about which voice is lit.
+    final laneBlooms = laneBodyAccents == null
+        ? null
+        : danceScreenOrderLanes(
+            laneBodyAccents!.map(danceLightAccentOf).toList(),
+          );
     final rig = danceStageRig(bpm);
     final samples = useNewBackdrop
         ? rig.sample(
             time: lightsTimeSeconds,
             beat: beat,
             bloom: danceLightAccentOf(bodyAccent),
-            laneBlooms: laneBodyAccents == null
-                ? null
-                : danceScreenOrderLanes(
-                    laneBodyAccents!.map(danceLightAccentOf).toList(),
-                  ),
+            laneBlooms: laneBlooms,
           )
         : const <StageLightSample>[];
     final backlights = danceMemberBacklights(samples);
@@ -267,6 +282,8 @@ class DanceStageView extends StatelessWidget {
                           bodyAnticipation: bodyAnticipation,
                           laneBodyAccents: laneBodyAccents,
                           laneBodyAnticipations: laneBodyAnticipations,
+                          laneHandFlourishes: laneHandFlourishes,
+                          lanePawPoses: lanePawPoses,
                           leadMouth: leadMouth,
                           bgMouth: bgMouth,
                           leadShape: leadShape,
@@ -282,14 +299,22 @@ class DanceStageView extends StatelessWidget {
                         child: const SizedBox.expand(),
                       ),
                     ),
-                    // The drop flash: a warm additive flare centred on the
-                    // dancers that spikes on the music accent (biggest on the
-                    // drops). Single-sourced with the offline composer via
+                    // The drop flash: a warm additive flare that spikes on the
+                    // music accent (biggest on the drops), one flare per voice
+                    // when per-lane envelopes exist so a canon answer lights
+                    // its own dancer instead of lifting the whole frame. The
+                    // gate must consider every lane: an echo voice's accent
+                    // peaks AFTER the lead's has decayed, so gating on the
+                    // global envelope alone would cut the cascade off mid-
+                    // answer. Single-sourced with the offline composer via
                     // [paintDropBloom] so the two paint paths can't drift.
-                    if (useNewBackdrop && bodyAccent > 0.01)
+                    if (useNewBackdrop &&
+                        (bodyAccent > 0.01 ||
+                            (laneBodyAccents?.any((a) => a > 0.01) ?? false)))
                       CustomPaint(
                         painter: DropBloomPainter(
                           danceLightAccentOf(bodyAccent),
+                          laneAccents: laneBlooms,
                         ),
                         child: const SizedBox.expand(),
                       ),
@@ -456,6 +481,8 @@ CharacterPainter danceCharacterPainter({
   double bodyAnticipation = 0,
   List<double>? laneBodyAccents,
   List<double>? laneBodyAnticipations,
+  List<DanceHandFlourish>? laneHandFlourishes,
+  List<DancePawPose>? lanePawPoses,
 }) {
   final moving = stage.lead.belongsToFamily('moving');
   final load = _bodyLoadEnvelope(bodyAccent, bodyAnticipation);
@@ -493,6 +520,42 @@ CharacterPainter danceCharacterPainter({
     final l = laneLoad(lane);
     return moving && l > 0 ? kMovingAccentChestCompress * l : 0.0;
   }
+
+  // The hand-flourish layer (per-hit ornament variation + rare subdivision
+  // fills) rides the section energy like every other accent response, so the
+  // valley's hands stay disciplined while the chorus talks with its wrists.
+  // Moving-only: the catalogue keeps its authored hit vocabulary.
+  Clip flourished(Clip clip, int lane) {
+    final flourish = laneHandFlourishes == null || !moving
+        ? kNoHandFlourish
+        : laneHandFlourishes[lane];
+    if (identical(flourish, kNoHandFlourish)) return clip;
+    final s = danceBodyAccentEnvelope(1, stage.energyLevel);
+    return handFlourishedClip(clip, (
+      lx: flourish.lx * s,
+      ly: flourish.ly * s,
+      rx: flourish.rx * s,
+      ry: flourish.ry * s,
+    ));
+  }
+
+  // Paw articulation (wrist lag + toe/thumb splay) rides the same energy
+  // scaling: the valley's paws stay quietly closed, the chorus talks with
+  // open hands.
+  Clip pawPosed(Clip clip, int lane) {
+    final paw = lanePawPoses == null || !moving
+        ? kClosedPaws
+        : lanePawPoses[lane];
+    if (identical(paw, kClosedPaws)) return clip;
+    final s = danceBodyAccentEnvelope(1, stage.energyLevel);
+    return pawArticulatedClip(clip, (
+      wristL: paw.wristL * s,
+      splayL: paw.splayL * s,
+      wristR: paw.wristR * s,
+      splayR: paw.splayR * s,
+    ));
+  }
+
   return CharacterPainter(
     scene: cast.lead,
     partnerScene: cast.left,
@@ -504,31 +567,43 @@ CharacterPainter danceCharacterPainter({
     ],
     ensembleClips: [
       for (var i = 0; i < stage.ensemble.length; i++)
-        accentDroppedClip(
-          productionDanceClip(
-            stage.ensemble[i],
-            stage.dynamics[i],
+        pawPosed(
+          flourished(
+            accentDroppedClip(
+              productionDanceClip(
+                stage.ensemble[i],
+                stage.dynamics[i],
+                i,
+                stage.energyLevel,
+              ),
+              dropUnits(i),
+              bobDuck: bobDuckFor(i),
+              chestCompress: chestCompressFor(i),
+            ),
             i,
-            stage.energyLevel,
           ),
-          dropUnits(i),
-          bobDuck: bobDuckFor(i),
-          chestCompress: chestCompressFor(i),
+          i,
         ),
     ],
     synchronousEnsemble: stage.synchronous,
     singingHeadMotion: true,
     walkingPair: true,
-    clip: accentDroppedClip(
-      productionDanceClip(
-        stage.lead,
-        stage.dynamics.first,
+    clip: pawPosed(
+      flourished(
+        accentDroppedClip(
+          productionDanceClip(
+            stage.lead,
+            stage.dynamics.first,
+            0,
+            stage.energyLevel,
+          ),
+          dropUnits(0),
+          bobDuck: bobDuckFor(0),
+          chestCompress: chestCompressFor(0),
+        ),
         0,
-        stage.energyLevel,
       ),
-      dropUnits(0),
-      bobDuck: bobDuckFor(0),
-      chestCompress: chestCompressFor(0),
+      0,
     ),
     timeSeconds: stage.seconds,
     cameraOverride: shot,
@@ -640,6 +715,19 @@ double movingAccentDropUnits(double load, int lane) {
       (lane == 0 ? 1.0 : kMovingAccentFlankerScale);
 }
 
+/// The Moving arm-extent amplitude for [clip] on [lane]: the per-lane unison
+/// shading (kMovingLaneAmplitudeScale) riding the section arc (0.78 + 0.22·E).
+/// A canon QUOTE (echoBeats != 0) is delivered at the caller's full amplitude
+/// instead of the lane's shading: the ±8-10% spread exists to de-clone
+/// simultaneous statements, but a canon voice is already separated in time,
+/// and the shading just made grey's answer read under-powered against the
+/// call it quotes (round-6 panel).
+double movingLaneAmplitude(Clip clip, int lane, double energyLevel) =>
+    (clip.echoBeats != 0
+        ? kMovingLaneAmplitudeScale.first
+        : kMovingLaneAmplitudeScale[lane]) *
+    (0.78 + 0.22 * energyLevel.clamp(0.0, 1.0));
+
 /// Joins the look-ahead coil to the post-onset release for the BODY'S vertical
 /// load. Both envelopes are smooth at their endpoints and trade ownership at
 /// the onset, so the knees compress into the beat continuously. The lights and
@@ -715,8 +803,15 @@ Clip productionDanceClip(
             upperBodyBoneIds: kDanceUpperBodyWarpBoneIds,
           )
         : warped;
+    // 2b. Vertical-lane pocket fix: the Moving bounce bottomed 113-155ms
+    // ahead of every beat (v91 biomech) — retard ONLY the root's dy so the
+    // weight lands INTO the beat; limbs, sway, footwork and contact phases
+    // measured on-grid and keep the authored clock.
+    final retarded = songGroove
+        ? bobRetardedClip(seamEased, kMovingBobRetardSec)
+        : seamEased;
     final orbited = fastBaseOrbitedClip(
-      seamEased,
+      retarded,
       lane,
       radius: songGroove ? 0 : kDanceFastBaseOrbitRadius,
     );
@@ -734,12 +829,15 @@ Clip productionDanceClip(
     // The Moving arm extent also rides the section arc (0.78 + 0.22·E): the
     // energy tier alone moves root amplitude but left the valley's ARMS at
     // full reach — round-4 measured the valley out-dancing the capped chorus.
+    // A canon QUOTE (echoBeats != 0) is delivered at the caller's full
+    // amplitude instead of the lane's unison shading: the ±8-10% spread
+    // exists to de-clone simultaneous statements, but a canon voice is
+    // already separated in time, and the shading just made grey's answer
+    // read under-powered against the call it quotes (round-6 panel).
     final effort = songGroove
         ? effortModulatedClip(
             orbited,
-            (_) =>
-                kMovingLaneAmplitudeScale[lane] *
-                (0.78 + 0.22 * energyLevel.clamp(0.0, 1.0)),
+            (_) => movingLaneAmplitude(clip, lane, energyLevel),
           )
         : effortModulatedClip(
             orbited,

@@ -14,6 +14,26 @@ sealed class JointChannel {
   JointPose sample(double p);
 }
 
+/// A constant joint pose, independent of phase. Per-frame decorations layer
+/// it over (or in place of) authored channels to carry this frame's
+/// articulation — e.g. the paw's wrist lag and toe splay, whose VALUES evolve
+/// continuously outside the clip on the producers' envelopes.
+class FixedJointChannel extends JointChannel {
+  const FixedJointChannel({
+    this.rotation = 0,
+    this.scaleX = 1,
+    this.scaleY = 1,
+  });
+
+  final double rotation;
+  final double scaleX;
+  final double scaleY;
+
+  @override
+  JointPose sample(double p) =>
+      JointPose(rotation: rotation, scaleX: scaleX, scaleY: scaleY);
+}
+
 /// Adds several joint channels together.
 ///
 /// Rotation is additive. Scale is multiplicative because each child channel is
@@ -1266,6 +1286,24 @@ sealed class RootChannel {
   const RootChannel();
 
   ({double dx, double dy, double rotation}) sample(double p);
+}
+
+/// Samples dx/rotation at the given phase but dy from [delayPhase] earlier
+/// (wrapping) — retards ONLY the vertical bounce lane of a looping clip,
+/// leaving sway, turn, footwork and contact phases on the authored clock.
+class DelayedDyRootChannel extends RootChannel {
+  const DelayedDyRootChannel(this.inner, this.delayPhase);
+
+  final RootChannel inner;
+  final double delayPhase;
+
+  @override
+  ({double dx, double dy, double rotation}) sample(double p) {
+    final now = inner.sample(p);
+    var q = (p - delayPhase) % 1.0;
+    if (q < 0) q += 1.0;
+    return (dx: now.dx, dy: inner.sample(q).dy, rotation: now.rotation);
+  }
 }
 
 /// Adds several root channels together. This keeps large authored beats in a

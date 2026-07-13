@@ -3,11 +3,13 @@ import 'package:dancing_cats/features/character/demo/dance_stage_view.dart';
 import 'package:dancing_cats/features/character/model/beat_map.dart';
 import 'package:dancing_cats/features/character/model/clip.dart';
 import 'package:dancing_cats/features/character/model/dance_dynamics.dart';
+import 'package:dancing_cats/features/character/model/dance_dynamics_warp.dart';
 import 'package:dancing_cats/features/character/model/face.dart';
 import 'package:dancing_cats/features/character/model/rig_spec.dart';
 import 'package:dancing_cats/features/character/runtime/character_painter.dart';
 import 'package:dancing_cats/features/character/runtime/character_renderer.dart';
 import 'package:dancing_cats/features/character/samples/cat_in_suit.dart';
+import 'package:dancing_cats/features/scenery/drop_bloom.dart';
 import 'package:dancing_cats/features/scenery/layered_backdrop.dart';
 import 'package:dancing_cats/features/scenery/runtime/stage_lights.dart';
 import 'package:dancing_cats/features/scenery/scene_texture_overlay.dart';
@@ -87,6 +89,8 @@ DanceStageView _stageView({
   bool showCaptions = true,
   List<DanceWord> words = _words,
   ValueChanged<List<Offset>>? onDancerAnchors,
+  double bodyAccent = 0,
+  List<double>? laneBodyAccents,
 }) {
   final perf = _perf(words: words);
   return DanceStageView(
@@ -98,6 +102,8 @@ DanceStageView _stageView({
     backdropTimeSeconds: 2,
     lightsTimeSeconds: 2,
     bpm: 120,
+    bodyAccent: bodyAccent,
+    laneBodyAccents: laneBodyAccents,
     leadMouth: 0.4,
     bgMouth: 0.2,
     leadShape: MouthShape.smileOpen,
@@ -429,6 +435,79 @@ void main() {
       );
       expect(cataloguePainter.bodyAccent, 0.8);
     });
+
+    test('Moving hands take the flourish layer; the catalogue does not', () {
+      const flourish = (lx: 4.0, ly: -2.0, rx: -1.0, ry: 0.5);
+      CharacterPainter build(
+        DanceStage stage, {
+        List<DanceHandFlourish>? flourishes,
+      }) => danceCharacterPainter(
+        cast: DanceCast.build(),
+        renderer: CharacterRenderer(antiAlias: false),
+        stage: stage,
+        shot: (zoom: 1.0, dx: 0.0, dy: 0.0),
+        leadMouth: 0,
+        bgMouth: 0,
+        leadShape: MouthShape.neutral,
+        bgShape: MouthShape.neutral,
+        scale: 1,
+        backlights: const [],
+        laneHandFlourishes: flourishes,
+      );
+      double handLx(CharacterPainter p) => p.clip.limbTargets
+          .singleWhere((t) => t.endBoneId == CatBones.handL)
+          .channel
+          .sample(0.4)
+          .x;
+
+      final moving = _movingStage();
+      final plain = build(moving);
+      final flourished = build(
+        moving,
+        flourishes: const [flourish, kNoHandFlourish, kNoHandFlourish],
+      );
+      // The lead's left hand shifts by the flourish, scaled by the section
+      // energy like every other accent response.
+      final s = danceBodyAccentEnvelope(1, moving.energyLevel);
+      expect(
+        handLx(flourished) - handLx(plain),
+        closeTo(flourish.lx * s, 1e-9),
+      );
+
+      // The catalogue keeps its authored hit vocabulary untouched.
+      final catalogue = _catalogueStage();
+      expect(
+        handLx(
+          build(
+            catalogue,
+            flourishes: const [flourish, kNoHandFlourish, kNoHandFlourish],
+          ),
+        ),
+        handLx(build(catalogue)),
+      );
+    });
+
+    test("a canon quote is delivered at the caller's full amplitude", () {
+      final base = CatClips.movingGroove;
+      final quote = wholeClipPhaseShiftedClip(base, kMovingCanonPhase);
+      expect(quote.echoBeats, isNot(0));
+
+      // Unison statements keep the de-clone shading (no two cats at the same
+      // extent)...
+      expect(
+        movingLaneAmplitude(base, 1, 1),
+        lessThan(movingLaneAmplitude(base, 0, 1)),
+      );
+      // ...but a quoted answer rises to the caller's own extent — the canon
+      // separates the voices in time, so the shading only made grey's answer
+      // read under-powered against the call it quotes.
+      expect(movingLaneAmplitude(quote, 1, 1), movingLaneAmplitude(base, 0, 1));
+      // The section arc still rides on top of the quote's amplitude.
+      expect(
+        movingLaneAmplitude(quote, 1, 0.4),
+        closeTo(kMovingLaneAmplitudeScale.first * (0.78 + 0.22 * 0.4), 1e-12),
+      );
+    });
   });
 
   group('DanceStageView widget', () {
@@ -447,6 +526,50 @@ void main() {
       // The active lyric word is captioned.
       expect(find.byType(DanceCaption), findsOneWidget);
       expect(find.byType(RichText), findsWidgets);
+    });
+
+    testWidgets(
+      'flares a hot echo voice even after the global accent has decayed',
+      (tester) async {
+        // A canon answer peaks AFTER the lead's accent envelope has released,
+        // so the global accent is cold while the left flank's lane is hot —
+        // the drop flare must still be up, carrying that voice's flash.
+        await tester.pumpWidget(
+          _hostStage(_stageView(laneBodyAccents: const [0, 0.8, 0])),
+        );
+        await tester.pump();
+
+        expect(tester.takeException(), isNull);
+        final bloom = tester
+            .widgetList<CustomPaint>(find.byType(CustomPaint))
+            .map((w) => w.painter)
+            .whereType<DropBloomPainter>()
+            .single;
+        expect(bloom.accent, 0);
+        // Ensemble order [lead, left, right] reaches the painter in SCREEN
+        // order [left, lead, right], light-curved: the hot left flank leads.
+        expect(bloom.laneAccents![0], closeTo(danceLightAccentOf(0.8), 1e-9));
+        expect(bloom.laneAccents![1], 0);
+        expect(bloom.laneAccents![2], 0);
+      },
+    );
+
+    testWidgets('no drop flare when every accent envelope is cold', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _hostStage(_stageView(laneBodyAccents: const [0, 0, 0])),
+      );
+      await tester.pump();
+
+      expect(tester.takeException(), isNull);
+      expect(
+        tester
+            .widgetList<CustomPaint>(find.byType(CustomPaint))
+            .map((w) => w.painter)
+            .whereType<DropBloomPainter>(),
+        isEmpty,
+      );
     });
 
     testWidgets('pumps the legacy single-plate path (useNewBackdrop: false)', (

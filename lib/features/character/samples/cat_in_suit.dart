@@ -2143,43 +2143,57 @@ class CatClips {
       // A whisper of bob (-1) is all that's left so the shoulders just
       // barely rise on the breath.
       rawRoot: SineRootChannel(bobAmplitude: -1, bobHarmonic: 1),
+      // The tableau must STAND on the deck: full-loop contact + the support
+      // anchor pin the shoes against the sway (the musicality panel measured
+      // 8-14px of planted-foot skating per sway cycle at 720p — the whole
+      // rig translating instead of the pelvis moving over pinned feet).
+      rawContactSpans: [
+        GroundSpan(CatBones.footL, 0, 1),
+        GroundSpan(CatBones.footR, 0, 1),
+      ],
+      supportFootWorldAnchor: true,
+      supportFootWorldAnchorStrength: 0.9,
       extraJointChannels: {
         // Breathing: the chest expands (scaleY) and the spine sways a hair,
         // so the character is never a frozen frame even when standing
         // still. The face's autonomic blink + eye-darts layer on top for
-        // the rest of the "alive".
-        CatBones.torso: SineChannel(amplitude: 0.01, scaleYAmplitude: 0.045),
-        CatBones.hips: SineChannel(amplitude: 0.012, phase: 0.5),
+        // the rest of the "alive". Amplitudes sized to survive the WIDE
+        // establish framing at 60fps — the panel measured the closing
+        // tableau at a 0.03 whole-frame motion floor ("reads like the
+        // render stopped"); alive-at-rest must clear the visibility
+        // threshold at the smallest cast size, not just in close-up.
+        CatBones.torso: SineChannel(amplitude: 0.016, scaleYAmplitude: 0.07),
+        CatBones.hips: SineChannel(amplitude: 0.02, phase: 0.5),
         // A tiny, slow head settle — kept very tight so the head sits on
         // the shoulders instead of drifting/floating around.
         CatBones.neck: SineChannel(amplitude: 0.002, phase: 0.2),
         CatBones.head: SineChannel(amplitude: 0.0015, phase: 0.35),
-        CatBones.armLowerL: SineChannel(amplitude: 0.03, bias: 0.18),
+        CatBones.armLowerL: SineChannel(amplitude: 0.05, bias: 0.18),
         CatBones.armLowerR: SineChannel(
-          amplitude: 0.03,
+          amplitude: 0.05,
           phase: 0.5,
           bias: 0.18,
         ),
         // Ears twitch slowly (listening) and the tail does a lazy
         // travelling sway down all 7 links — the "alive at rest" tell.
-        CatBones.tie: SineChannel(amplitude: 0.015, phase: 0.2),
+        CatBones.tie: SineChannel(amplitude: 0.024, phase: 0.2),
         CatBones.tieLower: SineChannel(
-          amplitude: 0.012,
+          amplitude: 0.02,
           phase: 0.23,
           bias: 0.025,
         ),
-        CatBones.earL: SineChannel(amplitude: 0.03, phase: 0.3),
-        CatBones.earR: SineChannel(amplitude: 0.03, phase: 0.8),
-        CatBones.tail0: SineChannel(amplitude: 0.04, bias: 0.05),
-        CatBones.tail1: SineChannel(amplitude: 0.06, phase: 0.08),
-        CatBones.tail2: SineChannel(amplitude: 0.08, phase: 0.16),
-        CatBones.tail3: SineChannel(amplitude: 0.11, phase: 0.24),
-        CatBones.tail4: SineChannel(amplitude: 0.14, phase: 0.32),
-        CatBones.tail5: SineChannel(amplitude: 0.17, phase: 0.4),
+        CatBones.earL: SineChannel(amplitude: 0.05, phase: 0.3),
+        CatBones.earR: SineChannel(amplitude: 0.05, phase: 0.8),
+        CatBones.tail0: SineChannel(amplitude: 0.06, bias: 0.05),
+        CatBones.tail1: SineChannel(amplitude: 0.09, phase: 0.08),
+        CatBones.tail2: SineChannel(amplitude: 0.12, phase: 0.16),
+        CatBones.tail3: SineChannel(amplitude: 0.17, phase: 0.24),
+        CatBones.tail4: SineChannel(amplitude: 0.21, phase: 0.32),
+        CatBones.tail5: SineChannel(amplitude: 0.26, phase: 0.4),
         CatBones.tail6: SineChannel(
-          amplitude: 0.21,
+          amplitude: 0.32,
           phase: 0.48,
-          harmonicAmplitude: 0.07,
+          harmonicAmplitude: 0.11,
           harmonicPhase: 0.5,
         ),
       },

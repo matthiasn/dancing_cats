@@ -263,6 +263,8 @@ class DanceCameraContext {
     this.nextSection,
     this.nextOccurrence = 0,
     this.secondsSinceMoveCut = double.infinity,
+    this.sectionIsFinal = false,
+    this.nextSectionIsFinal = false,
   });
 
   /// Section label (lower-case: intro/verse/pre-chorus/chorus/post-chorus/
@@ -319,6 +321,16 @@ class DanceCameraContext {
   /// panel unanimously read a fully static camera through every such cut as
   /// an accidental jump-cut rather than a directed edit.
   final double secondsSinceMoveCut;
+
+  /// Whether the current/next section is the LAST of its label in the song —
+  /// finality, not occurrence (this track tags post-chorus once, so an
+  /// occurrence key can never see "the final one"). The FINAL post-chorus is
+  /// the reprise, the arc's peak: it takes a committed apex push instead of
+  /// the wind-down coil (the musicality panel measured the reprise danced at
+  /// film-max but SHOT at the widest framing — "the top tier is danced; it
+  /// isn't photographed").
+  final bool sectionIsFinal;
+  final bool nextSectionIsFinal;
 }
 
 /// Builds the context from the absolute (fractional) beat and the loop binding.
@@ -340,6 +352,8 @@ DanceCameraContext cameraContext({
   String? nextSection,
   int nextOccurrence = 0,
   double secondsSinceMoveCut = double.infinity,
+  bool sectionIsFinal = false,
+  bool nextSectionIsFinal = false,
 }) {
   final rel = beat - anchorBeat;
   var phrase = loopLengthBeats > 0 ? (rel / loopLengthBeats) % 1.0 : 0.0;
@@ -356,6 +370,8 @@ DanceCameraContext cameraContext({
     nextSection: nextSection,
     nextOccurrence: nextOccurrence,
     secondsSinceMoveCut: math.max(0, secondsSinceMoveCut),
+    sectionIsFinal: sectionIsFinal,
+    nextSectionIsFinal: nextSectionIsFinal,
   );
 }
 
@@ -422,6 +438,7 @@ Shot cameraShot(DanceCameraContext c) {
     c.occurrence,
     c.sectionPhase,
     launchSeconds: launchSeconds,
+    finalOccurrence: c.sectionIsFinal,
   );
   final next = c.nextSection;
   if (next != null) {
@@ -443,6 +460,7 @@ Shot cameraShot(DanceCameraContext c) {
         c.nextOccurrence,
         0,
         launchSeconds: math.max(0, kCameraLaunchLeadSeconds - c.secondsToNext),
+        finalOccurrence: c.nextSectionIsFinal,
       );
       shot = _mix(shot, open, t);
     }
@@ -493,6 +511,7 @@ Shot _sectionShot(
   int occurrence,
   double sectionPhase, {
   required double launchSeconds,
+  bool finalOccurrence = false,
 }) {
   if (section.isEmpty) {
     // No semantic timeline here: dance in the grounded pocket, rest wide.
@@ -502,7 +521,7 @@ Shot _sectionShot(
     case 'chorus':
       return _chorusShot(c, occurrence, sectionPhase, launchSeconds);
     case 'post-chorus':
-      return _postChorusShot(c, sectionPhase);
+      return _postChorusShot(c, sectionPhase, finalOccurrence: finalOccurrence);
     case 'bridge':
       return _bridgeShot(c, sectionPhase);
     case 'pre-chorus':
@@ -624,12 +643,38 @@ Shot _chorusShot(
 /// sway that loads the frame off-centre fades in over the section's opening
 /// edge and back out before the finish, so the coil enters and resolves with
 /// zero lateral velocity no matter where the phrase grid sits.
-Shot _postChorusShot(DanceCameraContext c, double sectionPhase) {
-  // ONE breath: the zoom rises out of the chorus, crests mid-coil and
-  // RELEASES early, instead of flat-lining for four bars. The crest (1.41)
-  // sits BELOW the tight two-shot register, so the wind-down never re-occupies
-  // the chorus shot size — the coil reads as its own register, not a fourth
-  // build.
+Shot _postChorusShot(
+  DanceCameraContext c,
+  double sectionPhase, {
+  bool finalOccurrence = false,
+}) {
+  // The FINAL post-chorus is the reprise — the arc's peak, not a wind-down.
+  // The musicality panel measured it danced at film-max but shot at the
+  // widest framing ("the top tier is danced; it isn't photographed"), so it
+  // takes a committed apex push: rise through the opening statement, CREST
+  // above every chorus home through the canon (the tightest sustained
+  // framing of the film, still under the 1.55 ceiling with the breathe),
+  // and release late into the outro's pull-back.
+  if (finalOccurrence) {
+    final rise = smoothstep(((sectionPhase - 0.04) / 0.26).clamp(0.0, 1.0));
+    final release = smoothstep(((sectionPhase - 0.78) / 0.22).clamp(0.0, 1.0));
+    final envelope =
+        smoothstep((sectionPhase / 0.12).clamp(0.0, 1.0)) *
+        smoothstep(((1 - sectionPhase) / 0.3).clamp(0.0, 1.0)) *
+        (1 - 0.5 * sectionPhase);
+    final swing =
+        (math.sin(c.phrasePhase * 2 * math.pi) +
+            0.3 * math.sin(4 * math.pi * c.phrasePhase - 0.9)) /
+        1.15;
+    final z = 1.40 + 0.13 * rise - 0.10 * release;
+    final sway = swing * 0.05 * envelope;
+    return (zoom: z, dx: sway * z * kSideCatCentreRef, dy: 0);
+  }
+  // Earlier post-choruses: ONE breath — the zoom rises out of the chorus,
+  // crests mid-coil and RELEASES early, instead of flat-lining for four
+  // bars. The crest (1.41) sits BELOW the tight two-shot register, so the
+  // wind-down never re-occupies the chorus shot size — the coil reads as its
+  // own register, not a fourth build.
   final z =
       1.375 + 0.035 * math.sin(math.pi * (sectionPhase / 0.88).clamp(0.0, 1.0));
   // Sway fades in over the opening edge, DECAYS across the coil (a pendulum
@@ -673,8 +718,12 @@ Shot _bridgeShot(DanceCameraContext c, double sectionPhase) {
       math.sin(c.phrasePhase * 2 * math.pi) * 0.015 * _breatheIn(sectionPhase);
   // The zoom-relax arc TROUGHS exactly at the dx crossing (frac zero at
   // t≈0.592), so the frame is widest at the closest pass — the panel measured
-  // the old symmetric dip bottoming ~1.6s before the crossing.
-  final z = 1.48 - 0.035 * math.sin(math.pi * (t / 1.184)) + breathe;
+  // the old symmetric dip bottoming ~1.6s before the crossing. Register
+  // relaxed 1.48 -> 1.41 (musicality panel: the bridge — the arc's intended
+  // FLOOR — was the closest framing of the whole valley and read hotter on
+  // screen than the verse; the traverse keeps its feature lean, one register
+  // wider, so the valley finally photographs as a valley).
+  final z = 1.41 - 0.035 * math.sin(math.pi * (t / 1.184)) + breathe;
   return (zoom: z, dx: frac * z * kSideCatCentreRef, dy: 0);
 }
 
