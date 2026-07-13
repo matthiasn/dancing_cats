@@ -435,6 +435,28 @@ void main() {
       );
       expect(cataloguePainter.bodyAccent, 0.8);
     });
+
+    test("a canon quote is delivered at the caller's full amplitude", () {
+      final base = CatClips.movingGroove;
+      final quote = wholeClipPhaseShiftedClip(base, kMovingCanonPhase);
+      expect(quote.echoBeats, isNot(0));
+
+      // Unison statements keep the de-clone shading (no two cats at the same
+      // extent)...
+      expect(
+        movingLaneAmplitude(base, 1, 1),
+        lessThan(movingLaneAmplitude(base, 0, 1)),
+      );
+      // ...but a quoted answer rises to the caller's own extent — the canon
+      // separates the voices in time, so the shading only made grey's answer
+      // read under-powered against the call it quotes.
+      expect(movingLaneAmplitude(quote, 1, 1), movingLaneAmplitude(base, 0, 1));
+      // The section arc still rides on top of the quote's amplitude.
+      expect(
+        movingLaneAmplitude(quote, 1, 0.4),
+        closeTo(kMovingLaneAmplitudeScale.first * (0.78 + 0.22 * 0.4), 1e-12),
+      );
+    });
   });
 
   group('DanceStageView widget', () {

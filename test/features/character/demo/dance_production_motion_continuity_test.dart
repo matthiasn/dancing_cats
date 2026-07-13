@@ -276,18 +276,23 @@ void main() {
 
   test('full-song 30fps arms do not reverse within one rendered frame', () {
     final peak = fullSongAudit.arm30Peak;
-    // Re-centered 8.2 -> 10.5 for the pocket swing. The band is an empirical
+    // Re-centered 8.2 -> 10.5 for the pocket swing, then 10.5 -> 12.0 for
+    // the canon quote's amplitude parity. The band is an empirical
     // ratchet ("current peak + headroom"), and its 30fps sampling is
     // alignment-sensitive: the swing shifts offbeat content by up to ~31ms —
     // a full 30fps frame — so WHICH turnaround centres inside a sampling
     // window reshuffles, and the measured peak moved 8.0 -> 9.7 with no
     // content change (a C2 clock warp cannot create a discontinuity; the
-    // same authored splines sample at new offsets). The genuine failure
-    // class this band exists for (one-frame arm snaps) measured 20-30+
-    // units; 10.5 stays far below it while ratcheting the new baseline.
+    // same authored splines sample at new offsets). The 10.5 -> 12.0 step is
+    // the same worst case scaled, not new content: the peak was grey's
+    // quoted hookLead seam turnaround at 0.88 lane amplitude (10.4), and the
+    // quote now plays at the caller's full amplitude — 10.4 x 1.0/0.88 =
+    // 11.84 measured. The genuine failure class this band exists for
+    // (one-frame arm snaps) measured 20-30+ units; 12.0 stays far below it
+    // while ratcheting the new baseline.
     expect(
       peak.value,
-      lessThan(10.5),
+      lessThan(12.0),
       reason:
           '${peak.kind} ${peak.value.toStringAsFixed(3)} at '
           '${peak.t.toStringAsFixed(3)} lane=${peak.lane} '

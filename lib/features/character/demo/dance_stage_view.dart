@@ -652,6 +652,19 @@ double movingAccentDropUnits(double load, int lane) {
       (lane == 0 ? 1.0 : kMovingAccentFlankerScale);
 }
 
+/// The Moving arm-extent amplitude for [clip] on [lane]: the per-lane unison
+/// shading (kMovingLaneAmplitudeScale) riding the section arc (0.78 + 0.22·E).
+/// A canon QUOTE (echoBeats != 0) is delivered at the caller's full amplitude
+/// instead of the lane's shading: the ±8-10% spread exists to de-clone
+/// simultaneous statements, but a canon voice is already separated in time,
+/// and the shading just made grey's answer read under-powered against the
+/// call it quotes (round-6 panel).
+double movingLaneAmplitude(Clip clip, int lane, double energyLevel) =>
+    (clip.echoBeats != 0
+        ? kMovingLaneAmplitudeScale.first
+        : kMovingLaneAmplitudeScale[lane]) *
+    (0.78 + 0.22 * energyLevel.clamp(0.0, 1.0));
+
 /// Joins the look-ahead coil to the post-onset release for the BODY'S vertical
 /// load. Both envelopes are smooth at their endpoints and trade ownership at
 /// the onset, so the knees compress into the beat continuously. The lights and
@@ -746,12 +759,15 @@ Clip productionDanceClip(
     // The Moving arm extent also rides the section arc (0.78 + 0.22·E): the
     // energy tier alone moves root amplitude but left the valley's ARMS at
     // full reach — round-4 measured the valley out-dancing the capped chorus.
+    // A canon QUOTE (echoBeats != 0) is delivered at the caller's full
+    // amplitude instead of the lane's unison shading: the ±8-10% spread
+    // exists to de-clone simultaneous statements, but a canon voice is
+    // already separated in time, and the shading just made grey's answer
+    // read under-powered against the call it quotes (round-6 panel).
     final effort = songGroove
         ? effortModulatedClip(
             orbited,
-            (_) =>
-                kMovingLaneAmplitudeScale[lane] *
-                (0.78 + 0.22 * energyLevel.clamp(0.0, 1.0)),
+            (_) => movingLaneAmplitude(clip, lane, energyLevel),
           )
         : effortModulatedClip(
             orbited,
