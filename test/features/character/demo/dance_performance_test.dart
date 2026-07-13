@@ -892,10 +892,10 @@ void main() {
       );
       // On the 0.5s grid, one echo beat = 0.5s: the displaced voice's
       // envelope peaks exactly one beat after the plain one.
-      expect(perf.laneAccentAt(1.0, 0), 1);
-      expect(perf.laneAccentAt(1.0, 1), closeTo(0, 1e-9));
+      expect(perf.laneAccentAt(1, 0), 1);
+      expect(perf.laneAccentAt(1, 1), closeTo(0, 1e-9));
       expect(perf.laneAccentAt(1.5, 1), 1);
-      expect(perf.laneAccentAt(2.0, 2), 1);
+      expect(perf.laneAccentAt(2, 2), 1);
       // Anticipation displaces identically.
       expect(perf.laneAnticipationAt(1.45, 1), greaterThan(0.4));
       expect(perf.laneAnticipationAt(0.95, 1), closeTo(0, 1e-9));

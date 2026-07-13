@@ -75,21 +75,21 @@ void main() {
       }
     });
 
-    test('per-lane blooms flare only the displaced voice\'s pool', () {
+    test("per-lane blooms flare only the displaced voice's pool", () {
       // The canon: the lead's call blooms lane 0; the answering flanks'
       // pools stay dark until THEIR displaced beats deliver a lane bloom.
-      final call = rig.sample(time: 1, beat: 0, laneBlooms: [1, 0, 0]);
-      final quietBase = rig.sample(time: 1, beat: 0, laneBlooms: [0, 0, 0]);
+      final call = rig.sample(time: 1, laneBlooms: [1, 0, 0]);
+      final quietBase = rig.sample(time: 1, laneBlooms: [0, 0, 0]);
       expect(call[0].intensity, greaterThan(quietBase[0].intensity));
       expect(call[1].intensity, closeTo(quietBase[1].intensity, 1e-9));
       expect(call[2].intensity, closeTo(quietBase[2].intensity, 1e-9));
 
-      final answer = rig.sample(time: 1, beat: 0, laneBlooms: [0, 0, 1]);
+      final answer = rig.sample(time: 1, laneBlooms: [0, 0, 1]);
       expect(answer[2].intensity, greaterThan(quietBase[2].intensity));
       expect(answer[0].intensity, closeTo(quietBase[0].intensity, 1e-9));
 
       // Without laneBlooms the scalar bloom lifts the whole row (legacy).
-      final whole = rig.sample(time: 1, beat: 0, bloom: 1);
+      final whole = rig.sample(time: 1, bloom: 1);
       for (var i = 0; i < 3; i++) {
         expect(whole[i].intensity, greaterThan(quietBase[i].intensity));
       }
