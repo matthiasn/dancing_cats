@@ -1111,10 +1111,10 @@ void main() {
         prev = f;
       }
       // Envelope-slope bound: the coil ramps 10/s (0.09 per 2ms step at
-      // 4.5 units) and a quad-time fill oscillates at ~150 units/s (0.30
-      // per step). A flavor or window step would land 1-4+ units in one
-      // sample — orders of magnitude above this band.
-      expect(worst, lessThan(0.45));
+      // 4.5 units) and a boosted quad-time fill (6 units at ~47 rad/s)
+      // oscillates at ~285 units/s (0.57 per step). A flavor or window
+      // step would land 1-6+ units in one sample — far above this band.
+      expect(worst, lessThan(0.75));
     });
 
     test("a blending clip lerps the two sides' flourishes", () {
@@ -1217,11 +1217,12 @@ void main() {
         }
         expect(
           worst,
-          lessThan(0.45),
+          lessThan(0.75),
           reason:
               'lane $lane worst flourish step $worst at '
-              '${worstT.toStringAsFixed(3)}s — a teleport-class step would '
-              'measure 1-4+ units in one 2ms sample',
+              '${worstT.toStringAsFixed(3)}s — the boosted quad fill slews '
+              '~0.57/step at most; a teleport-class step measures 1-6+ '
+              'units in one 2ms sample',
         );
       }
     });

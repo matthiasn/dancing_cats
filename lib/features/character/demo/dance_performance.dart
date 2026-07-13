@@ -690,6 +690,14 @@ class DancePerformance {
   /// How long a subdivision fill's pickup runs before the hit it leads into.
   static const double kMovingFillBeats = 1.5;
 
+  /// A quad-time roll must be BIGGER and LONGER than a double-time one to
+  /// read at all: at 3 units a 4x roll was a sub-pixel shimmer (owner:
+  /// "might be too subtle, did not notice it"). The faster the subdivision,
+  /// the more amplitude and runway it earns.
+  static const double kMovingQuadFillBoost = 2;
+  static const double kMovingDoubleFillBoost = 1.25;
+  static const double kMovingQuadFillBeats = 2.5;
+
   /// Per-onset ornament directions, one picked per hit by [_flourishHash]:
   /// outward flick, lift, press, inward pull. The two hands never mirror
   /// exactly (asymmetric magnitudes), matching the authored microtiming
@@ -731,12 +739,12 @@ class DancePerformance {
 
   /// The subdivision (0 = none, 2 = double-time, 4 = quad) onset [idx] earns
   /// as a pickup fill for [lane]. Rare by design (owner: "probably rarely"):
-  /// ~16% of strong onsets roll double-time, ~6% quad.
+  /// ~16% of strong onsets roll double-time, ~10% quad.
   int _fillSubdivision(int idx, int lane, double strength) {
     if (strength < 0.55) return 0;
     final r = _flourishHash(idx, lane, 2);
-    if (r < 0.06) return 4;
-    if (r < 0.22) return 2;
+    if (r < 0.10) return 4;
+    if (r < 0.26) return 2;
     return 0;
   }
 
@@ -789,8 +797,13 @@ class DancePerformance {
     if (next < o.length) {
       final subdivision = _fillSubdivision(next, lane, o[next].strength);
       if (subdivision > 0) {
+        final quad = subdivision == 4;
         final tn = o[next].time;
-        var windowSec = tn - map.timeAtBeat(map.beatAt(tn) - kMovingFillBeats);
+        var windowSec =
+            tn -
+            map.timeAtBeat(
+              map.beatAt(tn) - (quad ? kMovingQuadFillBeats : kMovingFillBeats),
+            );
         if (next > 0) {
           windowSec = math.min(windowSec, 0.9 * (tn - o[next - 1].time));
         }
@@ -801,11 +814,15 @@ class DancePerformance {
             final swell = bump * bump;
             final phase =
                 2 * math.pi * subdivision * map.beatAt(dp) + lane * 0.9;
-            final amp = kMovingFillUnits * o[next].strength * swell;
+            final amp =
+                kMovingFillUnits *
+                (quad ? kMovingQuadFillBoost : kMovingDoubleFillBoost) *
+                o[next].strength *
+                swell;
             lx += amp * math.sin(phase);
-            ly += amp * 0.55 * math.cos(phase);
+            ly += amp * 0.8 * math.cos(phase);
             rx += amp * math.sin(phase + 2.2);
-            ry += amp * 0.55 * math.cos(phase + 2.2);
+            ry += amp * 0.8 * math.cos(phase + 2.2);
           }
         }
       }
