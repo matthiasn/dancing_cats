@@ -596,6 +596,21 @@ class DancePerformance {
     return (shape * o[idx].strength).clamp(-1.0, 1.0);
   }
 
+  /// The accent envelope a LANE receives: a canon voice answering
+  /// [echoBeats] behind the ensemble clock hits — and is lit — on its OWN
+  /// displaced beat. With a scalar envelope the whole rig bloomed on the
+  /// call while the answers played dark (round-5 MV: "the middle voice of
+  /// the canon dances unlit"), and the flank pliés dropped on the lead's
+  /// beat under bodies that answer later.
+  double laneAccentAt(double posSec, double echoBeats) => echoBeats == 0
+      ? accentAt(posSec)
+      : accentAt(map.timeAtBeat(map.beatAt(posSec) - echoBeats));
+
+  /// [anticipationAt] for a displaced voice — see [laneAccentAt].
+  double laneAnticipationAt(double posSec, double echoBeats) => echoBeats == 0
+      ? anticipationAt(posSec)
+      : anticipationAt(map.timeAtBeat(map.beatAt(posSec) - echoBeats));
+
   /// Look-ahead "coil" envelope at [posSec] (0..1): rises as the NEXT strong
   /// onset approaches (within [_kAnticipationWindowSec]) and returns to 0 AT
   /// the onset, where [accentAt]'s instant attack takes over — so the body
@@ -652,9 +667,17 @@ class DancePerformance {
   /// behind the lead in the hook call — a literal QUOTE of the lead's own
   /// hook motif, so the trio reads as call → answer → later answer of the
   /// SAME sentence instead of three simultaneous different ones.
-  static final Clip _movingLowCounterCanon = wholeClipPhaseShiftedClip(
-    CatClips.movingGroove,
-    kMovingCanonPhase,
+  static final Clip _movingLowCounterCanon = upperBodyPhaseOffsetClip(
+    wholeClipPhaseShiftedClip(CatClips.movingGroove, kMovingCanonPhase),
+    // Re-lock the quote's arms to its feet: the source phrase's arm accents
+    // ride ~50-80ms hot of its footwork — the lead wears that as style, but
+    // on the two-beat quote it measured as the second voice RUSHING its
+    // answer (round-6 animator: arm median -103ms vs feet -87ms). A small
+    // extra upper-body delay aligns the quoted arms with the quoted steps.
+    // Safe here because the offset is baked into the score-level variant
+    // (pre-blend), exactly like the displacement itself.
+    kMovingCanonArmRelock,
+    upperBodyBoneIds: kDanceUpperBodyWarpBoneIds,
   );
 
   /// The right flank's one-beat QUOTE of the lead's hook motif for the CALL
@@ -938,8 +961,12 @@ class DancePerformance {
         // final post-chorus keeps the heat with travel/answer vocabulary and
         // releases only in its closing statement.
         return _rotateSetlist(
+          // The final post-chorus RESTATES THE CANON at the arc's peak
+          // (round-5 animator: the late chorus "abandons the conversation…
+          // exactly where the arc should peak" — either restate the canon
+          // or commit to a tutti; the canon is the piece's signature now).
           variant >= 1
-              ? [hookTravel, hookAnswer, windowBridge, lowCounter]
+              ? [hookTravel, hookCall, windowBridge, lowCounter]
               : [lowCounter, hookTravel, bodyRoll, windowBridge],
           phase,
           sectionSeconds,

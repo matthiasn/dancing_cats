@@ -728,9 +728,11 @@ void main() {
         // The LAST post-chorus keeps the heat — the track still burns near
         // its peak there, and leading it with the lowest phrase measured as
         // the weakest window of the whole edit (round-3 panel).
+        // ...and RESTATES THE CANON in its second statement (round-5: the
+        // arc's peak must not abandon the conversation).
         expect(score('post-chorus', 1), [
           'movingChorusTravel',
-          'movingHookSideAnswer',
+          'movingHookLead',
           'movingVerseWindow',
           'movingHookLowCounter',
         ]);
@@ -853,10 +855,15 @@ void main() {
           final pl = lead.limbTargets
               .singleWhere((t) => t.endBoneId == bone)
               .channel;
+          // The grey quote's ARMS carry the extra re-lock delay (see
+          // kMovingCanonArmRelock); feet stay on the pure displacement.
+          final boneShift = lane == 1 && bone == CatBones.handR
+              ? shift + kMovingCanonArmRelock
+              : shift;
           expect(
             v.sample(0.4).y,
-            closeTo(pl.sample(0.4 + shift).y, 1e-9),
-            reason: 'lane $lane $bone must quote the lead $shift late',
+            closeTo(pl.sample(0.4 + boneShift).y, 1e-9),
+            reason: 'lane $lane $bone must quote the lead $boneShift late',
           );
         }
         // The shifted spans keep their feet planted (the crush invariant).
@@ -874,6 +881,29 @@ void main() {
       // times must not coincide with each other or the lead on shared beats.
       expect(kMovingEchoPhase, isNot(closeTo(-1 / 8, 1e-4)));
       expect(kMovingCanonPhase, isNot(closeTo(-2 / 8, 1e-4)));
+    });
+  });
+
+  group('lane envelopes follow the displaced voice', () {
+    test('an echo lane hits one beat after the call', () {
+      final perf = DancePerformance.fromBeatMapJson(
+        json: const {
+          'onsets': [
+            {'time_sec': 1.0, 'strength': 1.0},
+          ],
+        },
+        map: _beatMap(),
+        trackDurationSec: 6,
+      );
+      // On the 0.5s grid, one echo beat = 0.5s: the displaced voice's
+      // envelope peaks exactly one beat after the plain one.
+      expect(perf.laneAccentAt(1, 0), 1);
+      expect(perf.laneAccentAt(1, 1), closeTo(0, 1e-9));
+      expect(perf.laneAccentAt(1.5, 1), 1);
+      expect(perf.laneAccentAt(2, 2), 1);
+      // Anticipation displaces identically.
+      expect(perf.laneAnticipationAt(1.45, 1), greaterThan(0.4));
+      expect(perf.laneAnticipationAt(0.95, 1), closeTo(0, 1e-9));
     });
   });
 

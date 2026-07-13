@@ -1857,6 +1857,7 @@ class Clip {
     required this.duration,
     required this.channels,
     this.family,
+    this.echoBeats = 0,
     this.loop = true,
     this.root = const SineRootChannel(),
     this.locomotionSpeed = 0,
@@ -1888,6 +1889,13 @@ class Clip {
 
   /// Display/lookup name.
   final String name;
+
+  /// How many musical BEATS this clip's content answers BEHIND the ensemble
+  /// clock — nonzero only on the call-and-response variants built by
+  /// `wholeClipPhaseShiftedClip`. Runtime consumers use it to follow the
+  /// voice: the stage lights fire a lane's echo pool on ITS displaced beat
+  /// instead of blooming the whole rig on the call.
+  final double echoBeats;
 
   /// Semantic movement family shared by distinct choreographic phrases.
   ///
@@ -2107,6 +2115,7 @@ Clip blendedClip({
   return Clip(
     name: name ?? '${from.name}->${to.name}',
     family: from.family == to.family ? from.family : null,
+    echoBeats: _lerp(from.echoBeats, to.echoBeats, rootWeight),
     duration: to.duration,
     loop: from.loop && to.loop,
     channels: {

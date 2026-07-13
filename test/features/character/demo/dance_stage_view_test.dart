@@ -276,6 +276,13 @@ void main() {
     });
   });
 
+  group('danceScreenOrderLanes', () {
+    test('maps ensemble order (lead, left, right) to screen order', () {
+      // Rig pools anchor left/centre/right; the lead is the CENTRE pool.
+      expect(danceScreenOrderLanes([0.9, 0.2, 0.4]), [0.2, 0.9, 0.4]);
+    });
+  });
+
   group('danceCharacterPainter', () {
     test('front-locks the shipped trio while arm attachment is reviewed', () {
       final painter = danceCharacterPainter(

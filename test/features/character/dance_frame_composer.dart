@@ -245,15 +245,36 @@ class DanceFrameComposer {
       perf.anticipationAt(pos),
       stage.energyLevel,
     );
+    // Per-lane envelopes — see main.dart: a canon voice's pool and plié fire
+    // on ITS displaced beat.
+    final laneBodyAccents = [
+      for (final clip in stage.ensemble)
+        danceBodyAccentEnvelope(
+          perf.laneAccentAt(pos, clip.echoBeats),
+          stage.energyLevel,
+        ),
+    ];
+    final laneBodyAnticipations = [
+      for (final clip in stage.ensemble)
+        danceBodyAccentEnvelope(
+          perf.laneAnticipationAt(pos, clip.echoBeats),
+          stage.energyLevel,
+        ),
+    ];
     final samples = _stageRig.sample(
       time: pos,
       beat: beat,
       bloom: danceLightAccentOf(bodyAccent),
+      laneBlooms: danceScreenOrderLanes(
+        laneBodyAccents.map(danceLightAccentOf).toList(),
+      ),
     );
 
     // Same trio compositor the live DanceStageView builds — one source of truth.
     danceCharacterPainter(
       cast: _cast,
+      laneBodyAccents: laneBodyAccents,
+      laneBodyAnticipations: laneBodyAnticipations,
       renderer: _renderer,
       stage: stage,
       shot: _stepper.shot,

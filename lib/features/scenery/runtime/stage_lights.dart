@@ -109,12 +109,18 @@ class StageLightRig {
     required double time,
     double beat = 0,
     double bloom = 0,
+    List<double>? laneBlooms,
     bool reducedMotion = false,
   }) {
     final t = reducedMotion ? 0.0 : time;
     final b = reducedMotion ? 0.0 : beat.clamp(0.0, 1.0);
     final bl = reducedMotion ? 0.0 : bloom.clamp(0.0, 1.0);
     return List<StageLightSample>.generate(count, (i) {
+      // Per-lane bloom override: a canon voice's pool flares on ITS
+      // displaced beat instead of the whole rig blooming on the call.
+      final laneBl = reducedMotion || laneBlooms == null
+          ? bl
+          : laneBlooms[i % laneBlooms.length].clamp(0.0, 1.0);
       final anchor = anchors[i % anchors.length];
       final phase = i * (math.pi * 2 / count);
       final osc = reducedMotion
@@ -126,7 +132,7 @@ class StageLightRig {
       return StageLightSample(
         color: colors[colorIndexAt(i, t)],
         targetX: targetX,
-        intensity: (baseIntensity + beatBoost * b + bloomBoost * bl).clamp(
+        intensity: (baseIntensity + beatBoost * b + bloomBoost * laneBl).clamp(
           0.0,
           1.0,
         ),

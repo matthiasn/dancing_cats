@@ -992,6 +992,22 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
       _perf?.anticipationAt(posSec) ?? 0,
       stage.energyLevel,
     );
+    // Per-lane envelopes: a canon voice's pool and plié fire on ITS
+    // displaced beat (Clip.echoBeats), not on the lead's call.
+    final laneBodyAccents = [
+      for (final clip in stage.ensemble)
+        danceBodyAccentEnvelope(
+          _perf?.laneAccentAt(posSec, clip.echoBeats) ?? 0,
+          stage.energyLevel,
+        ),
+    ];
+    final laneBodyAnticipations = [
+      for (final clip in stage.ensemble)
+        danceBodyAccentEnvelope(
+          _perf?.laneAnticipationAt(posSec, clip.echoBeats) ?? 0,
+          stage.energyLevel,
+        ),
+    ];
     // The director owns the camera; the stepper holds the eased framing and the
     // singing mouths. The whole composite is the generalized DanceStageView,
     // rendered identically by the live app and every offline renderer — there is
@@ -1025,6 +1041,8 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
       beat: beat,
       bodyAccent: bodyAccent,
       bodyAnticipation: bodyAnticipation,
+      laneBodyAccents: laneBodyAccents,
+      laneBodyAnticipations: laneBodyAnticipations,
       backdropTimeSeconds: posSec,
       // Ambient stage lights run on a steady wall clock (decoupled from the
       // looping dance); offline renderers pass the audio position instead so a
