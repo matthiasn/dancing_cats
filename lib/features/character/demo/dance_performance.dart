@@ -667,9 +667,17 @@ class DancePerformance {
   /// behind the lead in the hook call — a literal QUOTE of the lead's own
   /// hook motif, so the trio reads as call → answer → later answer of the
   /// SAME sentence instead of three simultaneous different ones.
-  static final Clip _movingLowCounterCanon = wholeClipPhaseShiftedClip(
-    CatClips.movingGroove,
-    kMovingCanonPhase,
+  static final Clip _movingLowCounterCanon = upperBodyPhaseOffsetClip(
+    wholeClipPhaseShiftedClip(CatClips.movingGroove, kMovingCanonPhase),
+    // Re-lock the quote's arms to its feet: the source phrase's arm accents
+    // ride ~50-80ms hot of its footwork — the lead wears that as style, but
+    // on the two-beat quote it measured as the second voice RUSHING its
+    // answer (round-6 animator: arm median -103ms vs feet -87ms). A small
+    // extra upper-body delay aligns the quoted arms with the quoted steps.
+    // Safe here because the offset is baked into the score-level variant
+    // (pre-blend), exactly like the displacement itself.
+    kMovingCanonArmRelock,
+    upperBodyBoneIds: kDanceUpperBodyWarpBoneIds,
   );
 
   /// The right flank's one-beat QUOTE of the lead's hook motif for the CALL

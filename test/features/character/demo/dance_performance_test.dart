@@ -855,10 +855,15 @@ void main() {
           final pl = lead.limbTargets
               .singleWhere((t) => t.endBoneId == bone)
               .channel;
+          // The grey quote's ARMS carry the extra re-lock delay (see
+          // kMovingCanonArmRelock); feet stay on the pure displacement.
+          final boneShift = lane == 1 && bone == CatBones.handR
+              ? shift + kMovingCanonArmRelock
+              : shift;
           expect(
             v.sample(0.4).y,
-            closeTo(pl.sample(0.4 + shift).y, 1e-9),
-            reason: 'lane $lane $bone must quote the lead $shift late',
+            closeTo(pl.sample(0.4 + boneShift).y, 1e-9),
+            reason: 'lane $lane $bone must quote the lead $boneShift late',
           );
         }
         // The shifted spans keep their feet planted (the crush invariant).

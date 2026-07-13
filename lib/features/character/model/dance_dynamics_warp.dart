@@ -69,6 +69,11 @@ const double kMovingEchoPhase = -1 / 8 - 0.008;
 /// any blend window, so support handoffs stay clear of statement entries.
 const double kMovingCanonPhase = -2 / 8 + 0.008;
 
+/// Extra upper-body delay on the grey canon quote, re-locking its arms to
+/// its feet: the source phrase's arm accents ride ~50-80ms hot of its
+/// footwork — style on the lead, smear on the quote (round-6 animator).
+const double kMovingCanonArmRelock = -0.015;
+
 /// Returns [clip] with EVERYTHING shifted by [phaseShift] — every joint
 /// channel, hand and foot IK target, the root, and the phase-ranged data
 /// (contact spans, ground spans, z-order windows) — so the whole dancer,
