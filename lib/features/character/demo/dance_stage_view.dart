@@ -57,6 +57,8 @@ class DanceStageView extends StatelessWidget {
     required this.dancerAnchors,
     this.bodyAccent = 0,
     this.bodyAnticipation = 0,
+    this.laneBodyAccents,
+    this.laneBodyAnticipations,
     this.onDancerAnchors,
     this.useNewBackdrop = true,
     this.showCaptions = false,
@@ -94,6 +96,13 @@ class DanceStageView extends StatelessWidget {
   /// Music-driven anticipation (0..1) — the look-ahead coil before the next hit
   /// (see `DancePerformance.anticipationAt`). 0 = no imminent hit.
   final double bodyAnticipation;
+
+  /// Per-lane accent/anticipation envelopes (lead, backup-left,
+  /// backup-right), displaced per voice (see `DancePerformance.laneAccentAt`)
+  /// so a canon answer's pool and plié fire on ITS beat. Null falls back to
+  /// the scalar [bodyAccent]/[bodyAnticipation] for every lane.
+  final List<double>? laneBodyAccents;
+  final List<double>? laneBodyAnticipations;
 
   /// Audio position seconds — drives the scenery (it pauses/seeks with the
   /// track).
@@ -165,6 +174,9 @@ class DanceStageView extends StatelessWidget {
             time: lightsTimeSeconds,
             beat: beat,
             bloom: danceLightAccentOf(bodyAccent),
+            laneBlooms: laneBodyAccents
+                ?.map(danceLightAccentOf)
+                .toList(growable: false),
           )
         : const <StageLightSample>[];
     final backlights = danceMemberBacklights(samples);
@@ -251,6 +263,8 @@ class DanceStageView extends StatelessWidget {
                           shot: shot,
                           bodyAccent: bodyAccent,
                           bodyAnticipation: bodyAnticipation,
+                          laneBodyAccents: laneBodyAccents,
+                          laneBodyAnticipations: laneBodyAnticipations,
                           leadMouth: leadMouth,
                           bgMouth: bgMouth,
                           leadShape: leadShape,
@@ -438,9 +452,20 @@ CharacterPainter danceCharacterPainter({
   ui.Image? wavesImage,
   double bodyAccent = 0,
   double bodyAnticipation = 0,
+  List<double>? laneBodyAccents,
+  List<double>? laneBodyAnticipations,
 }) {
   final moving = stage.lead.belongsToFamily('moving');
   final load = _bodyLoadEnvelope(bodyAccent, bodyAnticipation);
+  // A canon voice's plié rides ITS displaced envelope, so the body drop and
+  // the (equally displaced) pool land together under the answering dancer.
+  double laneLoad(int lane) =>
+      laneBodyAccents == null || laneBodyAnticipations == null
+      ? load
+      : _bodyLoadEnvelope(
+          laneBodyAccents[lane],
+          laneBodyAnticipations[lane],
+        );
   // Moving gets its own phrase-aware accent response instead of the catalogue
   // treatment: the generic 16-unit drop was tuned against the punchy hit moves
   // and, together with the unison pop, read as the formation tugging the
@@ -451,16 +476,21 @@ CharacterPainter danceCharacterPainter({
   // lands WITH the track's transients rather than leaving every hit to the
   // lights.
   double dropUnits(int lane) => moving
-      ? movingAccentDropUnits(load, lane)
+      ? movingAccentDropUnits(laneLoad(lane), lane)
       : load * kDanceAccentDropUnits;
   // The authored groove yields to the hit while it lands (see
   // [accentDroppedClip]'s bobDuck): only the POSITIVE load ducks the bob —
   // the release tail's slight rebound must not amplify it back. The chest
   // compresses on the same positive envelope.
-  final bobDuck = moving && load > 0 ? kMovingAccentBobDuck * load : 0.0;
-  final chestCompress = moving && load > 0
-      ? kMovingAccentChestCompress * load
-      : 0.0;
+  double bobDuckFor(int lane) {
+    final l = laneLoad(lane);
+    return moving && l > 0 ? kMovingAccentBobDuck * l : 0.0;
+  }
+
+  double chestCompressFor(int lane) {
+    final l = laneLoad(lane);
+    return moving && l > 0 ? kMovingAccentChestCompress * l : 0.0;
+  }
   return CharacterPainter(
     scene: cast.lead,
     partnerScene: cast.left,
@@ -480,8 +510,8 @@ CharacterPainter danceCharacterPainter({
             stage.energyLevel,
           ),
           dropUnits(i),
-          bobDuck: bobDuck,
-          chestCompress: chestCompress,
+          bobDuck: bobDuckFor(i),
+          chestCompress: chestCompressFor(i),
         ),
     ],
     synchronousEnsemble: stage.synchronous,
@@ -495,8 +525,8 @@ CharacterPainter danceCharacterPainter({
         stage.energyLevel,
       ),
       dropUnits(0),
-      bobDuck: bobDuck,
-      chestCompress: chestCompress,
+      bobDuck: bobDuckFor(0),
+      chestCompress: chestCompressFor(0),
     ),
     timeSeconds: stage.seconds,
     cameraOverride: shot,
@@ -782,6 +812,7 @@ Clip _clipWithTransitionPlan(Clip clip, ClipTransitionPlan transitionPlan) =>
     Clip(
       name: clip.name,
       family: clip.family,
+      echoBeats: clip.echoBeats,
       duration: clip.duration,
       channels: clip.channels,
       loop: clip.loop,

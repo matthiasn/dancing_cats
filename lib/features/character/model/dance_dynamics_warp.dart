@@ -48,7 +48,7 @@ const List<double> kMovingLaneAmplitudeScale = [1.0, 0.88, 0.95];
 /// the 7-unit band at every chorus entry. At one beat the handoff lands
 /// ~0.52s in, clear of every blend window — and a beat-late answer reads
 /// more clearly as an answer anyway.
-const double kMovingEchoPhase = -1 / 8 - 0.006;
+const double kMovingEchoPhase = -1 / 8 - 0.008;
 
 /// The GREY (left-flank) canon delay: TWO beats behind the lead's call in
 /// the hook statement — a featured, unmistakable answer voice (round-3
@@ -62,10 +62,12 @@ const double kMovingEchoPhase = -1 / 8 - 0.006;
 /// cat's foot strikes land on the identical frame at every shared beat —
 /// round-4 biomech measured 0-frame plant coincidence across the trio and
 /// read it as "drill-team symmetry under one master clock; human backup
-/// dancers land 20-60ms apart even on unison choreography". The deltas are
-/// far smaller than any blend window, so support handoffs stay clear of
-/// statement entries.
-const double kMovingCanonPhase = -2 / 8 + 0.007;
+/// dancers land 20-60ms apart even on unison choreography". Widened to
+/// ±0.008 phase (±34ms of clip time) with OPPOSITE signs in round 6: the
+/// round-5 deltas moved the cats off the grid but left some lead-flank
+/// pairs inside one 30fps frame bucket. The deltas remain far smaller than
+/// any blend window, so support handoffs stay clear of statement entries.
+const double kMovingCanonPhase = -2 / 8 + 0.008;
 
 /// Returns [clip] with EVERYTHING shifted by [phaseShift] — every joint
 /// channel, hand and foot IK target, the root, and the phase-ranged data
@@ -146,6 +148,7 @@ Clip wholeClipPhaseShiftedClip(Clip clip, double phaseShift) {
   return Clip(
     name: clip.name,
     family: clip.family,
+    echoBeats: -phaseShift * kDanceBeatsPerPhraseLoop,
     duration: clip.duration,
     channels: {
       for (final entry in clip.channels.entries)
@@ -255,6 +258,7 @@ Clip upperBodyDynamicsWarpedClip(
   return Clip(
     name: clip.name,
     family: clip.family,
+    echoBeats: clip.echoBeats,
     duration: clip.duration,
     channels: channels,
     loop: clip.loop,
@@ -325,6 +329,7 @@ Clip upperBodyPhaseOffsetClip(
   return Clip(
     name: clip.name,
     family: clip.family,
+    echoBeats: clip.echoBeats,
     duration: clip.duration,
     channels: channels,
     loop: clip.loop,
@@ -386,6 +391,7 @@ Clip upperBodyLoopSeamEasedClip(
   return Clip(
     name: clip.name,
     family: clip.family,
+    echoBeats: clip.echoBeats,
     duration: clip.duration,
     channels: channels,
     loop: clip.loop,
@@ -486,6 +492,7 @@ Clip effortModulatedClip(
   return Clip(
     name: clip.name,
     family: clip.family,
+    echoBeats: clip.echoBeats,
     duration: clip.duration,
     channels: clip.channels,
     loop: clip.loop,
@@ -525,6 +532,7 @@ Clip bodyGrooveScaledClip(Clip clip, double scale) {
   return Clip(
     name: clip.name,
     family: clip.family,
+    echoBeats: clip.echoBeats,
     duration: clip.duration,
     channels: clip.channels,
     loop: clip.loop,
@@ -596,6 +604,7 @@ Clip accentDroppedClip(
   return Clip(
     name: clip.name,
     family: clip.family,
+    echoBeats: clip.echoBeats,
     duration: clip.duration,
     channels: channels,
     loop: clip.loop,
@@ -682,6 +691,7 @@ Clip singleSupportLoadedClip(
   return Clip(
     name: clip.name,
     family: clip.family,
+    echoBeats: clip.echoBeats,
     duration: clip.duration,
     channels: clip.channels,
     loop: clip.loop,
@@ -796,6 +806,7 @@ Clip shoulderWoundClip(Clip clip, int lane) {
   return Clip(
     name: clip.name,
     family: clip.family,
+    echoBeats: clip.echoBeats,
     duration: clip.duration,
     channels: channels,
     loop: clip.loop,
@@ -873,6 +884,7 @@ Clip fastBaseOrbitedClip(
   return Clip(
     name: clip.name,
     family: clip.family,
+    echoBeats: clip.echoBeats,
     duration: clip.duration,
     channels: clip.channels,
     loop: clip.loop,
