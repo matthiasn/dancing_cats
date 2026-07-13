@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:dancing_cats/features/character/demo/dance_loaders.dart';
 import 'package:dancing_cats/features/character/demo/dance_performance.dart';
@@ -1018,6 +1019,115 @@ void main() {
     });
   });
 
+  group('hand flourish — varied, rare, and continuous', () {
+    // A longer 0.5s grid so multi-onset windows and fills fit comfortably.
+    final map = BeatMap(
+      beatTimesSec: [for (var i = 0; i < 25; i++) i * 0.5],
+      downbeatIndices: const [0, 4, 8, 12, 16, 20, 24],
+    );
+    final perf = DancePerformance(
+      map: map,
+      binding: BeatLoopBinding.barAligned(map, bars: kDancePhraseBars),
+      sections: const [],
+      sectionSpans: const [],
+      trackDurationSec: 12,
+      onsets: const [
+        (time: 1.0, strength: 1.0),
+        (time: 2.5, strength: 1.0),
+        (time: 4.0, strength: 1.0),
+        (time: 5.5, strength: 1.0),
+        (time: 7.0, strength: 1.0),
+        (time: 8.5, strength: 1.0),
+        (time: 10.0, strength: 1.0),
+      ],
+    );
+    final groove = CatClips.movingGroove;
+    DanceHandFlourish at(double t, {int lane = 0}) =>
+        perf.laneHandFlourishFor(t, groove, lane);
+    double mag(DanceHandFlourish f) =>
+        f.lx.abs() + f.ly.abs() + f.rx.abs() + f.ry.abs();
+
+    test('every hit carries an ornament, and the hits VARY', () {
+      final hits = [for (final t in [1.0, 2.5, 4.0, 5.5, 7.0]) at(t)];
+      for (final f in hits) {
+        expect(mag(f), greaterThan(1), reason: 'hits must reach the hands');
+      }
+      // The whole point of the layer: consecutive hits do not repeat the
+      // same hand accent (deterministic per-onset flavors).
+      final directions = {
+        for (final f in hits) (f.lx.sign, f.ly.sign, f.rx.sign, f.ry.sign),
+      };
+      expect(directions.length, greaterThan(1));
+      // Lanes decorate the same hit differently.
+      final lanes = {
+        for (final lane in [0, 1, 2])
+          () {
+            final f = at(2.5, lane: lane);
+            return (f.lx, f.ly);
+          }(),
+      };
+      expect(lanes.length, greaterThan(1));
+    });
+
+    test('quiet gaps are exactly still', () {
+      // 1.6s: past the 0.42s release of the 1.0 hit, before any fill window
+      // of the 2.5 hit (fills start at most 0.75s = 1.5 beats ahead).
+      expect(at(1.6), kNoHandFlourish);
+      // Before the first onset's fill window opens.
+      expect(at(0.1), kNoHandFlourish);
+    });
+
+    test('subdivision fills exist but stay rare', () {
+      // Sample each onset's pickup (0.35s ahead: ornament released, coil not
+      // yet open) — any motion there is a fill.
+      var fills = 0;
+      var samples = 0;
+      for (final lane in [0, 1, 2]) {
+        for (final t in [1.0, 2.5, 4.0, 5.5, 7.0, 8.5, 10.0]) {
+          samples++;
+          if (mag(at(t - 0.35, lane: lane)) > 0.05) fills++;
+        }
+      }
+      expect(fills, greaterThan(0), reason: 'the layer must actually fire');
+      expect(
+        fills / samples,
+        lessThan(0.5),
+        reason: 'fills are spice, not a constant garnish',
+      );
+    });
+
+    test('the hands never teleport — dense continuity sweep', () {
+      var prev = at(0.5);
+      var worst = 0.0;
+      for (var t = 0.502; t <= 10.5; t += 0.002) {
+        final f = at(t);
+        final step = [
+          (f.lx - prev.lx).abs(),
+          (f.ly - prev.ly).abs(),
+          (f.rx - prev.rx).abs(),
+          (f.ry - prev.ry).abs(),
+        ].reduce(math.max);
+        if (step > worst) worst = step;
+        prev = f;
+      }
+      // Envelope-slope bound: the coil ramps 10/s (0.09 per 2ms step at
+      // 4.5 units) and a quad-time fill oscillates at ~150 units/s (0.30
+      // per step). A flavor or window step would land 1-4+ units in one
+      // sample — orders of magnitude above this band.
+      expect(worst, lessThan(0.45));
+    });
+
+    test("a blending clip lerps the two sides' flourishes", () {
+      final canon = wholeClipPhaseShiftedClip(groove, -2 / 8);
+      final blended = blendedClip(from: canon, to: groove, weight: 0.25);
+      final f = perf.laneHandFlourishFor(2.5, blended, 1);
+      final side0 = perf.laneHandFlourishFor(2.5, canon, 1);
+      final side1 = perf.laneHandFlourishFor(2.5, groove, 1);
+      expect(f.lx, closeTo(side0.lx + (side1.lx - side0.lx) * 0.25, 1e-9));
+      expect(f.ry, closeTo(side0.ry + (side1.ry - side0.ry) * 0.25, 1e-9));
+    });
+  });
+
   group('real-track staging (regression)', () {
     test('the final post-chorus stages the canon reprise on the real song', () {
       // Round 6 shipped the reprise gated on `occurrence >= 1`, and the
@@ -1065,6 +1175,55 @@ void main() {
         stage.ensemble[1].echoBeats,
         closeTo(-kMovingCanonPhase * kDanceBeatsPerPhraseLoop, 1e-9),
       );
+    });
+
+    test('the flourish never steps on the real track (all voices)', () {
+      // The owner's constraint for the hand layer: "it must not teleport."
+      // Sweep the full 144s at 2ms for the three real displacement states
+      // (tutti, one-beat echo, two-beat canon quote); every irregularity of
+      // the real onset list — crowded neighbourhoods, tempo drift, the
+      // reprise hold — passes under this gate.
+      final beatJson =
+          jsonDecode(File('assets/sample_track/moving.json').readAsStringSync())
+              as Map<String, Object?>;
+      final map = BeatMap.fromJson(beatJson);
+      final perf = DancePerformance.fromBeatMapJson(
+        json: beatJson,
+        map: map,
+        trackDurationSec: 144.066,
+      );
+      final voices = [
+        CatClips.movingGroove,
+        wholeClipPhaseShiftedClip(CatClips.movingGroove, kMovingEchoPhase),
+        wholeClipPhaseShiftedClip(CatClips.movingGroove, kMovingCanonPhase),
+      ];
+      for (var lane = 0; lane < voices.length; lane++) {
+        var prev = perf.laneHandFlourishFor(0, voices[lane], lane);
+        var worst = 0.0;
+        var worstT = 0.0;
+        for (var t = 0.002; t <= 144.0; t += 0.002) {
+          final f = perf.laneHandFlourishFor(t, voices[lane], lane);
+          final step = [
+            (f.lx - prev.lx).abs(),
+            (f.ly - prev.ly).abs(),
+            (f.rx - prev.rx).abs(),
+            (f.ry - prev.ry).abs(),
+          ].reduce(math.max);
+          if (step > worst) {
+            worst = step;
+            worstT = t;
+          }
+          prev = f;
+        }
+        expect(
+          worst,
+          lessThan(0.45),
+          reason:
+              'lane $lane worst flourish step $worst at '
+              '${worstT.toStringAsFixed(3)}s — a teleport-class step would '
+              'measure 1-4+ units in one 2ms sample',
+        );
+      }
     });
   });
 

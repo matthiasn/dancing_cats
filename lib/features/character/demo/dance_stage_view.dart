@@ -59,6 +59,7 @@ class DanceStageView extends StatelessWidget {
     this.bodyAnticipation = 0,
     this.laneBodyAccents,
     this.laneBodyAnticipations,
+    this.laneHandFlourishes,
     this.onDancerAnchors,
     this.useNewBackdrop = true,
     this.showCaptions = false,
@@ -103,6 +104,11 @@ class DanceStageView extends StatelessWidget {
   /// the scalar [bodyAccent]/[bodyAnticipation] for every lane.
   final List<double>? laneBodyAccents;
   final List<double>? laneBodyAnticipations;
+
+  /// Per-lane hand-flourish displacements (see
+  /// `DancePerformance.laneHandFlourishFor`) — the hit-variation layer for
+  /// the hands. Null → no flourish.
+  final List<DanceHandFlourish>? laneHandFlourishes;
 
   /// Audio position seconds — drives the scenery (it pauses/seeks with the
   /// track).
@@ -271,6 +277,7 @@ class DanceStageView extends StatelessWidget {
                           bodyAnticipation: bodyAnticipation,
                           laneBodyAccents: laneBodyAccents,
                           laneBodyAnticipations: laneBodyAnticipations,
+                          laneHandFlourishes: laneHandFlourishes,
                           leadMouth: leadMouth,
                           bgMouth: bgMouth,
                           leadShape: leadShape,
@@ -468,6 +475,7 @@ CharacterPainter danceCharacterPainter({
   double bodyAnticipation = 0,
   List<double>? laneBodyAccents,
   List<double>? laneBodyAnticipations,
+  List<DanceHandFlourish>? laneHandFlourishes,
 }) {
   final moving = stage.lead.belongsToFamily('moving');
   final load = _bodyLoadEnvelope(bodyAccent, bodyAnticipation);
@@ -505,6 +513,25 @@ CharacterPainter danceCharacterPainter({
     final l = laneLoad(lane);
     return moving && l > 0 ? kMovingAccentChestCompress * l : 0.0;
   }
+
+  // The hand-flourish layer (per-hit ornament variation + rare subdivision
+  // fills) rides the section energy like every other accent response, so the
+  // valley's hands stay disciplined while the chorus talks with its wrists.
+  // Moving-only: the catalogue keeps its authored hit vocabulary.
+  Clip flourished(Clip clip, int lane) {
+    final flourish = laneHandFlourishes == null || !moving
+        ? kNoHandFlourish
+        : laneHandFlourishes[lane];
+    if (identical(flourish, kNoHandFlourish)) return clip;
+    final s = danceBodyAccentEnvelope(1, stage.energyLevel);
+    return handFlourishedClip(clip, (
+      lx: flourish.lx * s,
+      ly: flourish.ly * s,
+      rx: flourish.rx * s,
+      ry: flourish.ry * s,
+    ));
+  }
+
   return CharacterPainter(
     scene: cast.lead,
     partnerScene: cast.left,
@@ -516,31 +543,37 @@ CharacterPainter danceCharacterPainter({
     ],
     ensembleClips: [
       for (var i = 0; i < stage.ensemble.length; i++)
-        accentDroppedClip(
-          productionDanceClip(
-            stage.ensemble[i],
-            stage.dynamics[i],
-            i,
-            stage.energyLevel,
+        flourished(
+          accentDroppedClip(
+            productionDanceClip(
+              stage.ensemble[i],
+              stage.dynamics[i],
+              i,
+              stage.energyLevel,
+            ),
+            dropUnits(i),
+            bobDuck: bobDuckFor(i),
+            chestCompress: chestCompressFor(i),
           ),
-          dropUnits(i),
-          bobDuck: bobDuckFor(i),
-          chestCompress: chestCompressFor(i),
+          i,
         ),
     ],
     synchronousEnsemble: stage.synchronous,
     singingHeadMotion: true,
     walkingPair: true,
-    clip: accentDroppedClip(
-      productionDanceClip(
-        stage.lead,
-        stage.dynamics.first,
-        0,
-        stage.energyLevel,
+    clip: flourished(
+      accentDroppedClip(
+        productionDanceClip(
+          stage.lead,
+          stage.dynamics.first,
+          0,
+          stage.energyLevel,
+        ),
+        dropUnits(0),
+        bobDuck: bobDuckFor(0),
+        chestCompress: chestCompressFor(0),
       ),
-      dropUnits(0),
-      bobDuck: bobDuckFor(0),
-      chestCompress: chestCompressFor(0),
+      0,
     ),
     timeSeconds: stage.seconds,
     cameraOverride: shot,

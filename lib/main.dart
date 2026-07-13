@@ -1010,6 +1010,13 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
           stage.energyLevel,
         ),
     ];
+    // The hands' hit-variation layer: per-onset ornament flavors + rare
+    // double/quad-time pickup fills, per voice on its displaced clock.
+    final laneHandFlourishes = [
+      for (var lane = 0; lane < stage.ensemble.length; lane++)
+        _perf?.laneHandFlourishFor(posSec, stage.ensemble[lane], lane) ??
+            kNoHandFlourish,
+    ];
     // The director owns the camera; the stepper holds the eased framing and the
     // singing mouths. The whole composite is the generalized DanceStageView,
     // rendered identically by the live app and every offline renderer — there is
@@ -1045,6 +1052,7 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
       bodyAnticipation: bodyAnticipation,
       laneBodyAccents: laneBodyAccents,
       laneBodyAnticipations: laneBodyAnticipations,
+      laneHandFlourishes: laneHandFlourishes,
       backdropTimeSeconds: posSec,
       // Ambient stage lights run on a steady wall clock (decoupled from the
       // looping dance); offline renderers pass the audio position instead so a

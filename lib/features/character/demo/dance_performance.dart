@@ -16,6 +16,8 @@
 /// (`DancePlaybackStepper`) and consume these results.
 library;
 
+import 'dart:math' as math;
+
 import 'package:dancing_cats/features/character/demo/dance_camera_director.dart';
 import 'package:dancing_cats/features/character/demo/dance_lip_sync.dart';
 import 'package:dancing_cats/features/character/model/beat_map.dart';
@@ -50,6 +52,13 @@ typedef DanceSectionSpan = ({double start, double end, String section});
 
 /// The lead move plus the three-cat ensemble (ensemble[0] is the lead's clip).
 typedef DanceTrio = ({Clip lead, List<Clip> ensemble});
+
+/// One frame of additive hand-flourish displacement for a Moving lane, in rig
+/// units: (lx, ly) offsets the left hand's IK target, (rx, ry) the right.
+typedef DanceHandFlourish = ({double lx, double ly, double rx, double ry});
+
+/// The flourish at rest — wrappers treat it as a zero-cost identity.
+const DanceHandFlourish kNoHandFlourish = (lx: 0, ly: 0, rx: 0, ry: 0);
 
 /// Per-lane Laban-Effort personality offsets, index-parallel to
 /// `DanceTrio.ensemble` (`[0]` lead, `[1]` backup-left, `[2]` backup-right).
@@ -669,6 +678,157 @@ class DancePerformance {
     final from = laneAnticipationAt(posSec, plan.from.echoBeats);
     final to = laneAnticipationAt(posSec, plan.to.echoBeats);
     return from + (to - from) * plan.weight;
+  }
+
+  /// Peak hand-flourish displacement, in rig units, at full load. Small next
+  /// to the authored hand paths — a shading on the phrase, not a new phrase.
+  static const double kMovingFlourishUnits = 4.5;
+
+  /// Peak subdivision-fill radius, in rig units, at full onset strength.
+  static const double kMovingFillUnits = 3;
+
+  /// How long a subdivision fill's pickup runs before the hit it leads into.
+  static const double kMovingFillBeats = 1.5;
+
+  /// Per-onset ornament directions, one picked per hit by [_flourishHash]:
+  /// outward flick, lift, press, inward pull. The two hands never mirror
+  /// exactly (asymmetric magnitudes), matching the authored microtiming
+  /// asymmetry. y is rig-down, so a lift is negative.
+  static const List<DanceHandFlourish> _kFlourishFlavors = [
+    (lx: -1, ly: -0.25, rx: 0.85, ry: -0.2),
+    (lx: 0.1, ly: -1.0, rx: -0.1, ry: -0.85),
+    (lx: 0.45, ly: 0.8, rx: -0.35, ry: 0.7),
+    (lx: 0.8, ly: -0.3, rx: -0.7, ry: -0.25),
+  ];
+
+  /// Deterministic 0..1 hash of (onset index, lane, salt) — the flourish's
+  /// only source of "randomness", so every render of the same song makes the
+  /// same choices and tests can pin them.
+  static double _flourishHash(int idx, int lane, int salt) {
+    var h = idx * 374761393 + lane * 668265263 + salt * 2246822519;
+    h = (h ^ (h >> 13)) * 1274126177;
+    h = h ^ (h >> 16);
+    return (h & 0xfffff) / 0x100000;
+  }
+
+  /// Index of the latest onset at or before [t] (-1 before the first).
+  int _lastOnsetIndex(double t) {
+    final o = _accentOnsets;
+    var lo = 0;
+    var hi = o.length - 1;
+    var idx = -1;
+    while (lo <= hi) {
+      final mid = (lo + hi) >> 1;
+      if (o[mid].time <= t) {
+        idx = mid;
+        lo = mid + 1;
+      } else {
+        hi = mid - 1;
+      }
+    }
+    return idx;
+  }
+
+  /// The subdivision (0 = none, 2 = double-time, 4 = quad) onset [idx] earns
+  /// as a pickup fill for [lane]. Rare by design (owner: "probably rarely"):
+  /// ~16% of strong onsets roll double-time, ~6% quad.
+  int _fillSubdivision(int idx, int lane, double strength) {
+    if (strength < 0.55) return 0;
+    final r = _flourishHash(idx, lane, 2);
+    if (r < 0.06) return 4;
+    if (r < 0.22) return 2;
+    return 0;
+  }
+
+  /// The hand-flourish displacement for a Moving lane at [posSec] — the
+  /// variation layer that keeps repeated hits from reading identical
+  /// (owner: "hand movement is still a bit monotonous"). Two additive terms,
+  /// each continuous by construction so the hands can never teleport:
+  ///
+  /// 1. A per-hit ORNAMENT riding the same joined load envelope as the plié
+  ///    (anticipation meets the accent AT the hit, so the ride is continuous),
+  ///    with a deterministic per-onset flavor — flick / lift / press / pull.
+  ///    Flavors can only switch while the load is zero: decay (0.42s) + the
+  ///    reprise hold (0.08s) + the coil window (0.1s) stay under the 1s
+  ///    onset spacing floor, so there is always a dead zone between hits.
+  /// 2. A RARE beat-locked subdivision fill (double- or quad-time wrist
+  ///    roll) that swells through a [kMovingFillBeats] pickup and dies
+  ///    exactly at the hit it leads into — sin² bump, zero value AND slope
+  ///    at both ends, window clamped clear of the previous onset so the
+  ///    owning-onset flip always happens at zero amplitude.
+  DanceHandFlourish _handFlourishAt(double posSec, double echoBeats, int lane) {
+    final o = _accentOnsets;
+    if (o.isEmpty) return kNoHandFlourish;
+    final dp = echoBeats == 0
+        ? posSec
+        : map.timeAtBeat(map.beatAt(posSec) - echoBeats);
+
+    var lx = 0.0;
+    var ly = 0.0;
+    var rx = 0.0;
+    var ry = 0.0;
+
+    final acc = laneAccentAt(posSec, echoBeats).clamp(0.0, 1.0);
+    final ant = laneAnticipationAt(posSec, echoBeats);
+    final load = acc >= ant ? acc : ant;
+    if (load > 0) {
+      final owner = acc >= ant ? _lastOnsetIndex(dp) : _lastOnsetIndex(dp) + 1;
+      final flavor =
+          (_flourishHash(owner, lane, 1) * _kFlourishFlavors.length)
+              .floor()
+              .clamp(0, _kFlourishFlavors.length - 1);
+      final v = _kFlourishFlavors[flavor];
+      final amp = kMovingFlourishUnits * load;
+      lx += amp * v.lx;
+      ly += amp * v.ly;
+      rx += amp * v.rx;
+      ry += amp * v.ry;
+    }
+
+    final next = _lastOnsetIndex(dp) + 1;
+    if (next < o.length) {
+      final subdivision = _fillSubdivision(next, lane, o[next].strength);
+      if (subdivision > 0) {
+        final tn = o[next].time;
+        var windowSec = tn - map.timeAtBeat(map.beatAt(tn) - kMovingFillBeats);
+        if (next > 0) {
+          windowSec = math.min(windowSec, 0.9 * (tn - o[next - 1].time));
+        }
+        if (windowSec > 0) {
+          final u = 1 - (tn - dp) / windowSec;
+          if (u > 0 && u < 1) {
+            final bump = math.sin(math.pi * u);
+            final swell = bump * bump;
+            final phase =
+                2 * math.pi * subdivision * map.beatAt(dp) + lane * 0.9;
+            final amp = kMovingFillUnits * o[next].strength * swell;
+            lx += amp * math.sin(phase);
+            ly += amp * 0.55 * math.cos(phase);
+            rx += amp * math.sin(phase + 2.2);
+            ry += amp * 0.55 * math.cos(phase + 2.2);
+          }
+        }
+      }
+    }
+    return (lx: lx, ly: ly, rx: rx, ry: ry);
+  }
+
+  /// [_handFlourishAt] for a STAGE clip, blend-aware the same way
+  /// [laneAccentForClip] is: the flourish of a transitioning clip is the
+  /// LERP of its two sides' flourishes — never an evaluation at the lerped
+  /// displacement, which sweeps onset attacks (the 114.73s one-frame pop).
+  DanceHandFlourish laneHandFlourishFor(double posSec, Clip clip, int lane) {
+    final plan = clip.transitionPlan;
+    if (plan == null) return _handFlourishAt(posSec, clip.echoBeats, lane);
+    final from = _handFlourishAt(posSec, plan.from.echoBeats, lane);
+    final to = _handFlourishAt(posSec, plan.to.echoBeats, lane);
+    final w = plan.weight;
+    return (
+      lx: from.lx + (to.lx - from.lx) * w,
+      ly: from.ly + (to.ly - from.ly) * w,
+      rx: from.rx + (to.rx - from.rx) * w,
+      ry: from.ry + (to.ry - from.ry) * w,
+    );
   }
 
   /// Look-ahead "coil" envelope at [posSec] (0..1): rises as the NEXT strong

@@ -256,6 +256,66 @@ void main() {
     });
   });
 
+  group('handFlourishedClip', () {
+    const target = KeyframeIkTargetChannel([
+      IkTargetKeyframe(p: 0, x: 5, y: 60),
+      IkTargetKeyframe(p: 1, x: 5, y: 60),
+    ]);
+    LimbIkTarget limb(String end) => LimbIkTarget(
+      upperBoneId: 'u',
+      lowerBoneId: 'l',
+      endBoneId: end,
+      anchorBoneId: 'hips',
+      channel: target,
+    );
+    final clip = Clip(
+      name: 'flourishme',
+      duration: 4,
+      channels: const {},
+      limbTargets: [limb('hand.L'), limb('hand.R'), limb('foot.R')],
+    );
+    IkTargetPose sampleOf(Clip c, String end) => c.limbTargets
+        .singleWhere((t) => t.endBoneId == end)
+        .channel
+        .sample(0.3);
+
+    test('offsets only the hands, preserving the solve weight', () {
+      final f = handFlourishedClip(clip, (lx: 3, ly: -2, rx: -1.5, ry: 1));
+      final baseL = sampleOf(clip, 'hand.L');
+      final l = sampleOf(f, 'hand.L');
+      expect(l.x - baseL.x, closeTo(3, 1e-9));
+      expect(l.y - baseL.y, closeTo(-2, 1e-9));
+      expect(l.weight, baseL.weight, reason: 'solve weight stays authored');
+      final r = sampleOf(f, 'hand.R');
+      expect(r.x - baseL.x, closeTo(-1.5, 1e-9));
+      expect(r.y - baseL.y, closeTo(1, 1e-9));
+      // The feet do not flourish.
+      final foot = sampleOf(f, 'foot.R');
+      expect(foot.x, baseL.x);
+      expect(foot.y, baseL.y);
+    });
+
+    test('zero flourish and handless clips are identities', () {
+      expect(
+        identical(handFlourishedClip(clip, (lx: 0, ly: 0, rx: 0, ry: 0)), clip),
+        isTrue,
+      );
+      final handless = Clip(
+        name: 'feetonly',
+        duration: 4,
+        channels: const {},
+        limbTargets: [limb('foot.R')],
+      );
+      expect(
+        identical(
+          handFlourishedClip(handless, (lx: 1, ly: 0, rx: 0, ry: 0)),
+          handless,
+        ),
+        isTrue,
+      );
+    });
+  });
+
   group('upperBodyDynamicsWarpedClip — identity no-op cases', () {
     test('neutral dynamics returns the SAME clip instance', () {
       final clip = _loopingClip();

@@ -436,6 +436,57 @@ void main() {
       expect(cataloguePainter.bodyAccent, 0.8);
     });
 
+    test('Moving hands take the flourish layer; the catalogue does not', () {
+      const flourish = (lx: 4.0, ly: -2.0, rx: -1.0, ry: 0.5);
+      CharacterPainter build(
+        DanceStage stage, {
+        List<DanceHandFlourish>? flourishes,
+      }) => danceCharacterPainter(
+        cast: DanceCast.build(),
+        renderer: CharacterRenderer(antiAlias: false),
+        stage: stage,
+        shot: (zoom: 1.0, dx: 0.0, dy: 0.0),
+        leadMouth: 0,
+        bgMouth: 0,
+        leadShape: MouthShape.neutral,
+        bgShape: MouthShape.neutral,
+        scale: 1,
+        backlights: const [],
+        laneHandFlourishes: flourishes,
+      );
+      double handLx(CharacterPainter p) => p.clip.limbTargets
+          .singleWhere((t) => t.endBoneId == CatBones.handL)
+          .channel
+          .sample(0.4)
+          .x;
+
+      final moving = _movingStage();
+      final plain = build(moving);
+      final flourished = build(
+        moving,
+        flourishes: const [flourish, kNoHandFlourish, kNoHandFlourish],
+      );
+      // The lead's left hand shifts by the flourish, scaled by the section
+      // energy like every other accent response.
+      final s = danceBodyAccentEnvelope(1, moving.energyLevel);
+      expect(
+        handLx(flourished) - handLx(plain),
+        closeTo(flourish.lx * s, 1e-9),
+      );
+
+      // The catalogue keeps its authored hit vocabulary untouched.
+      final catalogue = _catalogueStage();
+      expect(
+        handLx(
+          build(
+            catalogue,
+            flourishes: const [flourish, kNoHandFlourish, kNoHandFlourish],
+          ),
+        ),
+        handLx(build(catalogue)),
+      );
+    });
+
     test("a canon quote is delivered at the caller's full amplitude", () {
       final base = CatClips.movingGroove;
       final quote = wholeClipPhaseShiftedClip(base, kMovingCanonPhase);

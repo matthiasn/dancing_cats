@@ -641,6 +641,75 @@ Clip accentDroppedClip(
   );
 }
 
+/// Returns [clip] with per-frame additive offsets on the two hand IK targets
+/// — the flourish layer that varies what the hands do on each hit (per-onset
+/// ornament flavors + rare double/quad-time pickup fills; the values are
+/// computed per frame by `DancePerformance.laneHandFlourishFor` and are
+/// continuous in song time by construction). Offsetting the IK TARGET moves
+/// the whole arm through the solver, so the elbow follows naturally and the
+/// authored path shape underneath is untouched. Identity when the flourish
+/// is zero.
+Clip handFlourishedClip(
+  Clip clip,
+  ({double lx, double ly, double rx, double ry}) flourish, {
+  String leftHandBoneId = 'hand.L',
+  String rightHandBoneId = 'hand.R',
+}) {
+  if ((flourish.lx == 0 &&
+          flourish.ly == 0 &&
+          flourish.rx == 0 &&
+          flourish.ry == 0) ||
+      clip.duration <= 0) {
+    return clip;
+  }
+  LimbIkTarget offset(LimbIkTarget target, double dx, double dy) =>
+      target.withChannel(
+        LayeredIkTargetChannel([
+          target.channel,
+          FixedIkTargetChannel(x: dx, y: dy),
+        ]),
+      );
+  var changed = false;
+  final limbTargets = clip.limbTargets.map((target) {
+    if (target.endBoneId == leftHandBoneId) {
+      changed = true;
+      return offset(target, flourish.lx, flourish.ly);
+    }
+    if (target.endBoneId == rightHandBoneId) {
+      changed = true;
+      return offset(target, flourish.rx, flourish.ry);
+    }
+    return target;
+  }).toList();
+  if (!changed) return clip;
+  return Clip(
+    name: clip.name,
+    family: clip.family,
+    echoBeats: clip.echoBeats,
+    duration: clip.duration,
+    channels: clip.channels,
+    loop: clip.loop,
+    root: clip.root,
+    locomotionSpeed: clip.locomotionSpeed,
+    groundSpans: clip.groundSpans,
+    contactSpans: clip.contactSpans,
+    contactPinning: clip.contactPinning,
+    limbTargets: limbTargets,
+    supportFootWorldAnchor: clip.supportFootWorldAnchor,
+    supportFootWorldAnchorStrength: clip.supportFootWorldAnchorStrength,
+    supportFootWorldAnchorVerticalBoost:
+        clip.supportFootWorldAnchorVerticalBoost,
+    danceHeadBobScale: clip.danceHeadBobScale,
+    danceHeadLevelClampMin: clip.danceHeadLevelClampMin,
+    armReachScale: clip.armReachScale,
+    headLateralStabilize: clip.headLateralStabilize,
+    enforceSoleFloor: clip.enforceSoleFloor,
+    transitionPlan: clip.transitionPlan,
+    zOrderSwaps: clip.zOrderSwaps,
+    dynamics: clip.dynamics,
+  );
+}
+
 /// Peak quiet-step body load, in root units: how far the pelvis dips when a
 /// foot is authored fully airborne (scaled by lift height up to
 /// [kDanceSingleSupportLiftRef]). Independent of the accent envelope — real
