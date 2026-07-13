@@ -1410,6 +1410,61 @@ class ScaledRootChannel extends RootChannel {
   }
 }
 
+/// Samples an inner root channel at a constant cyclic phase offset — the
+/// root half of a whole-clip phase shift (see `wholeClipPhaseShiftedClip`).
+class PhaseShiftedRootChannel extends RootChannel {
+  const PhaseShiftedRootChannel(this.inner, this.shift);
+
+  final RootChannel inner;
+  final double shift;
+
+  @override
+  ({double dx, double dy, double rotation}) sample(double p) {
+    var s = p + shift;
+    s -= s.floorToDouble();
+    return inner.sample(s < 0 ? s + 1 : s);
+  }
+}
+
+/// Multiplies an inner joint channel's scaleY — the accent's mass travelling
+/// through the TORSO: a small chest compression riding the same envelope as
+/// the plié, so strong hits read muscled through the trunk instead of
+/// knee-only (round-2 biomech/animator finding). Constant per frame; the
+/// envelope varies across frames outside.
+class CompressedJointChannel extends JointChannel {
+  const CompressedJointChannel(this.inner, this.scaleYFactor);
+
+  final JointChannel inner;
+  final double scaleYFactor;
+
+  @override
+  JointPose sample(double p) {
+    final s = inner.sample(p);
+    return JointPose(
+      rotation: s.rotation,
+      scaleX: s.scaleX,
+      scaleY: s.scaleY * scaleYFactor,
+    );
+  }
+}
+
+/// Adds a PHASE-DEPENDENT dy to an inner root channel — the quiet-step body
+/// load: the pelvis dips while a foot is authored airborne, driven by a
+/// precomputed envelope (see `singleSupportLoadedClip`), so weight transfers
+/// read loaded even where no accent fires.
+class EnvelopeRootDyChannel extends RootChannel {
+  const EnvelopeRootDyChannel(this.inner, this.dyOf);
+
+  final RootChannel inner;
+  final double Function(double p) dyOf;
+
+  @override
+  ({double dx, double dy, double rotation}) sample(double p) {
+    final s = inner.sample(p);
+    return (dx: s.dx, dy: s.dy + dyOf(p), rotation: s.rotation);
+  }
+}
+
 /// Adds a constant [dy] (down) to an inner root channel — the music ACCENT as a
 /// grounded body DROP. Because the support foot is world-anchored, dropping the
 /// root makes the knee flex and the pelvis descend over a planted foot (a plié)

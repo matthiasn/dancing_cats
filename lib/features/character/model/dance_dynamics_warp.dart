@@ -29,6 +29,155 @@ const List<double> kDanceLaneUpperBodyPhaseOffsets = [0, 0.006, -0.008];
 /// arm velocities past the full-song continuity bands.
 const List<double> kMovingLaneAmplitudeScale = [1.0, 0.88, 0.95];
 
+/// CALL-AND-RESPONSE echo, in normalized clip phase: the side-answer phrase,
+/// when scored on the RIGHT FLANK, answers ONE BEAT behind the lead's call
+/// instead of moving simultaneously (round-2/3 cartoon/coach finding).
+/// Negative = the lane samples earlier content, i.e. arrives late. One beat
+/// on Moving's eight-beat loop = 1/8. Applied by baking a shifted
+/// SCORE-LEVEL clip variant (see `DancePerformance`'s echo side-answer):
+/// applying it as a production-stage wrapper popped a 0.125s upper-body
+/// teleport at the dance→idle exit, because a phase offset wrapped around a
+/// BLENDED clip shifts the outgoing side by the two clips' duration ratio
+/// rather than by its own phase.
+///
+/// The displacement is a FULL beat (not the half-beat first tried): the
+/// shifted contact spans put the variant's first support handoff at
+/// `shift × loop` seconds after a statement entry, and a half-beat put that
+/// handoff INSIDE the entry blend window — the to-side anchor changed feet
+/// mid-blend and the flank's foot measured 7.4-11.2 units/frame² against
+/// the 7-unit band at every chorus entry. At one beat the handoff lands
+/// ~0.52s in, clear of every blend window — and a beat-late answer reads
+/// more clearly as an answer anyway.
+const double kMovingEchoPhase = -1 / 8 - 0.006;
+
+/// The GREY (left-flank) canon delay: TWO beats behind the lead's call in
+/// the hook statement — a featured, unmistakable answer voice (round-3
+/// coach: "the trio reads lead + echo + filler"), distinct from the right
+/// flank's one-beat echo so the three voices never collapse into two. Two
+/// beats is span-grid-aligned (the quarter-note support rota maps onto
+/// itself), so the canon variant has no seam stubs at all.
+///
+/// Both displacements carry a few extra milliseconds of HUMANIZATION
+/// (kMovingEchoPhase −25ms, canon +29ms): with pure beat-grid shifts every
+/// cat's foot strikes land on the identical frame at every shared beat —
+/// round-4 biomech measured 0-frame plant coincidence across the trio and
+/// read it as "drill-team symmetry under one master clock; human backup
+/// dancers land 20-60ms apart even on unison choreography". The deltas are
+/// far smaller than any blend window, so support handoffs stay clear of
+/// statement entries.
+const double kMovingCanonPhase = -2 / 8 + 0.007;
+
+/// Returns [clip] with EVERYTHING shifted by [phaseShift] — every joint
+/// channel, hand and foot IK target, the root, and the phase-ranged data
+/// (contact spans, ground spans, z-order windows) — so the whole dancer,
+/// steps and weight changes included, performs the same phrase displaced in
+/// time. This is the full-body call-and-response variant: shifting only the
+/// upper body reads as a timing offset (round-3 measured whole-body
+/// correlation still peaking at lag 0 because the shared feet dominate);
+/// shifting the whole clip makes the answer a separate visible event.
+///
+/// Spans/windows that cross the loop seam are split in two; the runtime's
+/// same-bone first/last wrap-join re-fuses the contact pair. Because the
+/// motion AND its contact metadata shift together, the span-vs-authored-feet
+/// consistency that protects the support anchor is preserved by
+/// construction (gated by test).
+Clip wholeClipPhaseShiftedClip(Clip clip, double phaseShift) {
+  if (phaseShift == 0 || !clip.loop || clip.duration <= 0) return clip;
+
+  double shifted(double p) {
+    var s = p + phaseShift;
+    s -= s.floorToDouble();
+    return s < 0 ? s + 1 : s;
+  }
+
+  // Content authored at phase q appears at playback phase q + delay.
+  final delay = -phaseShift;
+  double moved(double edge) {
+    var e = edge + delay;
+    e -= e.floorToDouble();
+    return e < 0 ? e + 1 : e;
+  }
+
+  List<GroundSpan> shiftSpans(List<GroundSpan> spans) {
+    final out = <GroundSpan>[];
+    for (final s in spans) {
+      final a = moved(s.start);
+      // A span ending exactly at 1 must keep ending at the seam, not at 0.
+      final rawB = moved(s.end);
+      final b = s.end > s.start && rawB <= a ? rawB + 1 : rawB;
+      if (b <= 1) {
+        out.add(GroundSpan(s.bone, a, b));
+      } else {
+        out
+          ..add(GroundSpan(s.bone, a, 1))
+          ..add(GroundSpan(s.bone, 0, b - 1));
+      }
+    }
+    out.sort((x, y) => x.start.compareTo(y.start));
+    return out;
+  }
+
+  List<ZOrderSwapWindow> shiftWindows(List<ZOrderSwapWindow> windows) {
+    final out = <ZOrderSwapWindow>[];
+    for (final w in windows) {
+      final a = moved(w.start);
+      final rawB = moved(w.end);
+      final b = w.end > w.start && rawB <= a ? rawB + 1 : rawB;
+      ZOrderSwapWindow part(double s, double e) => ZOrderSwapWindow(
+        boneA: w.boneA,
+        boneB: w.boneB,
+        start: s,
+        end: e,
+        swap: w.swap,
+        shadeBehind: w.shadeBehind,
+      );
+      if (b <= 1) {
+        out.add(part(a, b));
+      } else {
+        out
+          ..add(part(a, 1))
+          ..add(part(0, b - 1));
+      }
+    }
+    out.sort((x, y) => x.start.compareTo(y.start));
+    return out;
+  }
+
+  return Clip(
+    name: clip.name,
+    family: clip.family,
+    duration: clip.duration,
+    channels: {
+      for (final entry in clip.channels.entries)
+        entry.key: PhaseWarpedJointChannel(entry.value, shifted),
+    },
+    loop: clip.loop,
+    root: PhaseShiftedRootChannel(clip.root, phaseShift),
+    locomotionSpeed: clip.locomotionSpeed,
+    groundSpans: shiftSpans(clip.groundSpans),
+    contactSpans: shiftSpans(clip.contactSpans),
+    contactPinning: clip.contactPinning,
+    limbTargets: [
+      for (final target in clip.limbTargets)
+        target.withChannel(
+          PhaseWarpedIkTargetChannel(target.channel, shifted),
+        ),
+    ],
+    supportFootWorldAnchor: clip.supportFootWorldAnchor,
+    supportFootWorldAnchorStrength: clip.supportFootWorldAnchorStrength,
+    supportFootWorldAnchorVerticalBoost:
+        clip.supportFootWorldAnchorVerticalBoost,
+    danceHeadBobScale: clip.danceHeadBobScale,
+    danceHeadLevelClampMin: clip.danceHeadLevelClampMin,
+    armReachScale: clip.armReachScale,
+    headLateralStabilize: clip.headLateralStabilize,
+    enforceSoleFloor: clip.enforceSoleFloor,
+    transitionPlan: clip.transitionPlan,
+    zOrderSwaps: shiftWindows(clip.zOrderSwaps),
+    dynamics: clip.dynamics,
+  );
+}
+
 /// Width of the Moving upper-body loop recovery at either side of the phrase
 /// seam, in normalized six-second clip phase. At production's 1.5x clock this
 /// is about 180ms: enough to carry arm momentum through the wrap without
@@ -416,18 +565,127 @@ const double kDanceAccentDropUnits = 16;
 /// audit measured the export's biggest bloom riding a rising lead in the
 /// finale). Ducking the bob hands the vertical to the accent envelope exactly
 /// while the hit owns the moment, then returns it as the envelope decays.
-Clip accentDroppedClip(Clip clip, double dropDy, {double bobDuck = 0}) {
-  if ((dropDy == 0 && bobDuck == 0) || clip.duration <= 0) return clip;
+Clip accentDroppedClip(
+  Clip clip,
+  double dropDy, {
+  double bobDuck = 0,
+  double chestCompress = 0,
+}) {
+  if ((dropDy == 0 && bobDuck == 0 && chestCompress == 0) ||
+      clip.duration <= 0) {
+    return clip;
+  }
   final ducked = bobDuck > 0
       ? ScaledRootChannel(clip.root, (1 - bobDuck).clamp(0.0, 1.0))
       : clip.root;
+  // The hit's mass travels THROUGH the trunk: a small chest compression on
+  // the same envelope as the plié (round-2 biomech: "torso pitch and hip
+  // angle stay rigid through the hit — spring-loaded rather than
+  // muscle-damped"; animator: accents carried "by limbs and head only").
+  final channels = chestCompress > 0
+      ? {
+          for (final entry in clip.channels.entries)
+            entry.key: (entry.key == 'chest' || entry.key == 'torso')
+                ? CompressedJointChannel(
+                    entry.value,
+                    (1 - chestCompress).clamp(0.0, 1.0),
+                  )
+                : entry.value,
+        }
+      : clip.channels;
+  return Clip(
+    name: clip.name,
+    family: clip.family,
+    duration: clip.duration,
+    channels: channels,
+    loop: clip.loop,
+    root: RootDyOffsetChannel(ducked, dropDy),
+    locomotionSpeed: clip.locomotionSpeed,
+    groundSpans: clip.groundSpans,
+    contactSpans: clip.contactSpans,
+    contactPinning: clip.contactPinning,
+    limbTargets: clip.limbTargets,
+    supportFootWorldAnchor: clip.supportFootWorldAnchor,
+    supportFootWorldAnchorStrength: clip.supportFootWorldAnchorStrength,
+    supportFootWorldAnchorVerticalBoost:
+        clip.supportFootWorldAnchorVerticalBoost,
+    danceHeadBobScale: clip.danceHeadBobScale,
+    danceHeadLevelClampMin: clip.danceHeadLevelClampMin,
+    armReachScale: clip.armReachScale,
+    headLateralStabilize: clip.headLateralStabilize,
+    enforceSoleFloor: clip.enforceSoleFloor,
+    transitionPlan: clip.transitionPlan,
+    zOrderSwaps: clip.zOrderSwaps,
+    dynamics: clip.dynamics,
+  );
+}
+
+/// Peak quiet-step body load, in root units: how far the pelvis dips when a
+/// foot is authored fully airborne (scaled by lift height up to
+/// [kDanceSingleSupportLiftRef]). Independent of the accent envelope — real
+/// weight transfers load the stance even where the music is quiet (round-2
+/// biomech: "a weight transfer with zero pelvic dip still reads faintly
+/// weightless where the groove is quiet").
+const double kDanceSingleSupportDipUnits = 3.2;
+
+/// Foot lift (rig units above its planted level) that earns the full
+/// single-support dip.
+const double kDanceSingleSupportLiftRef = 20;
+
+/// Returns [clip] with a small phase-driven root dip while either foot is
+/// authored off the deck — the body LOADS its quiet steps. The envelope is
+/// precomputed from the authored foot IK targets at 64 samples (each foot's
+/// planted level is its own loop maximum y) and interpolated linearly, so
+/// the dip follows exactly the footwork that is already there. Applied
+/// inside the production-clip cache; same clip back when the clip has no
+/// foot targets or never lifts.
+Clip singleSupportLoadedClip(
+  Clip clip, {
+  double dipUnits = kDanceSingleSupportDipUnits,
+}) {
+  if (!clip.loop || clip.duration <= 0 || dipUnits == 0) return clip;
+  final feet = [
+    for (final t in clip.limbTargets)
+      if (t.endBoneId.startsWith('foot')) t.channel,
+  ];
+  if (feet.isEmpty) return clip;
+
+  const n = 64;
+  final lift = List<double>.filled(n, 0);
+  for (final foot in feet) {
+    var planted = double.negativeInfinity;
+    final ys = List<double>.generate(n, (i) => foot.sample(i / n).y);
+    for (final y in ys) {
+      if (y > planted) planted = y;
+    }
+    for (var i = 0; i < n; i++) {
+      final raised = planted - ys[i];
+      if (raised > lift[i]) lift[i] = raised;
+    }
+  }
+  var any = false;
+  final dip = List<double>.generate(n, (i) {
+    final u = (lift[i] / kDanceSingleSupportLiftRef).clamp(0.0, 1.0);
+    final d = dipUnits * u * u * (3 - 2 * u);
+    if (d > 0.01) any = true;
+    return d;
+  });
+  if (!any) return clip;
+
+  double dipOf(double p) {
+    final x = (p - p.floorToDouble()) * n;
+    final i = x.floor() % n;
+    final f = x - x.floorToDouble();
+    return dip[i] * (1 - f) + dip[(i + 1) % n] * f;
+  }
+
   return Clip(
     name: clip.name,
     family: clip.family,
     duration: clip.duration,
     channels: clip.channels,
     loop: clip.loop,
-    root: RootDyOffsetChannel(ducked, dropDy),
+    root: EnvelopeRootDyChannel(clip.root, dipOf),
     locomotionSpeed: clip.locomotionSpeed,
     groundSpans: clip.groundSpans,
     contactSpans: clip.contactSpans,

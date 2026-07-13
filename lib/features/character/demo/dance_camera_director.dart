@@ -708,7 +708,16 @@ Shot _outroShot(DanceCameraContext c, double sectionPhase) {
   // final frames, so the landing curve is monotone-then-flat, never V-shaped.
   final est = _calmShot(c);
   final g = smoothstep(((sectionPhase - 0.72) / 0.18).clamp(0.0, 1.0));
-  final q = smoothstep((sectionPhase / 0.75).clamp(0.0, 1.0));
+  // HOLD the tight register through most of the outro's danced statements
+  // and pull back over the middle, landing the establish by ~0.70 — the
+  // moment the energy gate can hand off to the idle wide (the dance exits at
+  // ~sectionPhase 0.71 on this track), which is why the landing cannot move
+  // later. The old pull-back began at the section's first frame, so the
+  // piece's biggest choreography played in its widest framing — round-3
+  // panel: "the biggest movement of the edit delivers the smallest on-screen
+  // motion" (lead 137px vs 172-187px elsewhere). Rate stays ~0.07 zoom/s,
+  // far under the 0.20 eased-rig band.
+  final q = smoothstep(((sectionPhase - 0.40) / 0.30).clamp(0.0, 1.0));
   final sway = math.sin(c.phrasePhase * 2 * math.pi) * 45;
   return (
     zoom: _lerp(1.40, _establish.zoom + (est.zoom - _establish.zoom) * g, q),

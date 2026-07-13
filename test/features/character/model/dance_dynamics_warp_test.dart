@@ -110,6 +110,152 @@ void main() {
     });
   });
 
+  group('singleSupportLoadedClip', () {
+    const ground = 110.0;
+    const lifted = 90.0;
+    LimbIkTarget foot(String side, IkTargetChannel channel) => LimbIkTarget(
+      upperBoneId: 'leg_upper.$side',
+      lowerBoneId: 'leg_lower.$side',
+      endBoneId: 'foot.$side',
+      anchorBoneId: 'hips',
+      channel: channel,
+    );
+
+    test('dips the root while a foot is authored airborne', () {
+      // footR lifts 20 units around phase 0.5; footL stays planted.
+      const liftKeys = KeyframeIkTargetChannel([
+        IkTargetKeyframe(p: 0, x: 58, y: ground),
+        IkTargetKeyframe(p: 0.4, x: 58, y: ground),
+        IkTargetKeyframe(p: 0.5, x: 58, y: lifted),
+        IkTargetKeyframe(p: 0.6, x: 58, y: ground),
+        IkTargetKeyframe(p: 1, x: 58, y: ground),
+      ]);
+      const plantedKeys = FixedIkTargetChannel(x: -58, y: ground);
+      final clip = _loopingClip(
+        limbTargets: [foot('R', liftKeys), foot('L', plantedKeys)],
+      );
+      final loadedClip = singleSupportLoadedClip(clip);
+
+      expect(identical(loadedClip, clip), isFalse);
+      final restingDy = clip.root.sample(0.2).dy;
+      expect(
+        loadedClip.root.sample(0.2).dy,
+        closeTo(restingDy, 0.15),
+        reason: 'both feet planted → no added load',
+      );
+      final liftDip =
+          loadedClip.root.sample(0.5).dy - clip.root.sample(0.5).dy;
+      expect(
+        liftDip,
+        closeTo(kDanceSingleSupportDipUnits, 0.2),
+        reason: 'a full 20-unit lift earns the full single-support dip',
+      );
+    });
+
+    test('a clip whose feet never leave the deck is untouched', () {
+      const planted = FixedIkTargetChannel(x: 58, y: ground);
+      final clip = _loopingClip(limbTargets: [foot('R', planted)]);
+      expect(identical(singleSupportLoadedClip(clip), clip), isTrue);
+    });
+
+    test('a clip with no foot targets is untouched', () {
+      final clip = _loopingClip();
+      expect(identical(singleSupportLoadedClip(clip), clip), isTrue);
+    });
+  });
+
+  group('wholeClipPhaseShiftedClip', () {
+    test('shifts channels, root, targets, and phase-ranged data together', () {
+      const joint = KeyframeChannel([
+        Keyframe(p: 0, ease: Ease.linear),
+        Keyframe(p: 1, rotation: 1, ease: Ease.linear),
+      ]);
+      const foot = KeyframeIkTargetChannel([
+        IkTargetKeyframe(p: 0, x: 0, y: 110),
+        IkTargetKeyframe(p: 0.5, x: 10, y: 110),
+        IkTargetKeyframe(p: 1, x: 0, y: 110),
+      ]);
+      const clip = Clip(
+        name: 'shiftme',
+        duration: 6,
+        channels: {'torso': joint},
+        limbTargets: [
+          LimbIkTarget(
+            upperBoneId: 'leg_upper.R',
+            lowerBoneId: 'leg_lower.R',
+            endBoneId: 'foot.R',
+            anchorBoneId: 'hips',
+            channel: foot,
+          ),
+        ],
+        contactSpans: [GroundSpan('foot.R', 0.5, 0.9)],
+        zOrderSwaps: [
+          ZOrderSwapWindow(
+            boneA: 'hand.L',
+            boneB: 'hand.R',
+            start: 0.85,
+            end: 0.95,
+          ),
+        ],
+      );
+      const shift = -0.25; // content arrives a quarter-loop LATE
+      final late = wholeClipPhaseShiftedClip(clip, shift);
+
+      // Channels and targets sample earlier content.
+      expect(
+        late.channels['torso']!.sample(0.5).rotation,
+        closeTo(joint.sample(0.25).rotation, 1e-9),
+      );
+      expect(
+        late.limbTargets.single.channel.sample(0.5).x,
+        closeTo(foot.sample(0.25).x, 1e-9),
+      );
+      // Spans move WITH the content: [0.5, 0.9] + 0.25 delay = [0.75, 1.15]
+      // → split at the seam into [0.75, 1] and [0, 0.15], sorted.
+      expect(late.contactSpans, hasLength(2));
+      expect(late.contactSpans[0].start, closeTo(0, 1e-9));
+      expect(late.contactSpans[0].end, closeTo(0.15, 1e-9));
+      expect(late.contactSpans[1].start, closeTo(0.75, 1e-9));
+      expect(late.contactSpans[1].end, closeTo(1, 1e-9));
+      expect(late.contactSpans.map((s) => s.bone).toSet(), {'foot.R'});
+      // Z-order windows shift the same way (no split needed here):
+      // [0.85, 0.95] + 0.25 → [0.10, 0.20].
+      expect(late.zOrderSwaps.single.start, closeTo(0.10, 1e-9));
+      expect(late.zOrderSwaps.single.end, closeTo(0.20, 1e-9));
+    });
+
+    test('zero shift and one-shot clips pass through untouched', () {
+      final clip = _loopingClip();
+      expect(identical(wholeClipPhaseShiftedClip(clip, 0), clip), isTrue);
+      const oneShot = Clip(
+        name: 'kick',
+        duration: 1,
+        loop: false,
+        channels: {},
+      );
+      expect(
+        identical(wholeClipPhaseShiftedClip(oneShot, -0.25), oneShot),
+        isTrue,
+      );
+    });
+  });
+
+  group('accentDroppedClip chest compression', () {
+    test('compresses only the chest/torso scaleY on the hit', () {
+      const chest = KeyframeChannel([Keyframe(p: 0)]);
+      const hand = KeyframeChannel([Keyframe(p: 0)]);
+      final clip = _loopingClip(channels: {'chest': chest, 'hand.R': hand});
+      final hit = accentDroppedClip(clip, 5, chestCompress: 0.04);
+
+      expect(
+        hit.channels['chest']!.sample(0.3).scaleY,
+        closeTo(0.96, 1e-9),
+      );
+      expect(identical(hit.channels['hand.R'], hand), isTrue);
+      expect(hit.root.sample(0.3).dy - clip.root.sample(0.3).dy, closeTo(5, 1e-9));
+    });
+  });
+
   group('upperBodyDynamicsWarpedClip — identity no-op cases', () {
     test('neutral dynamics returns the SAME clip instance', () {
       final clip = _loopingClip();

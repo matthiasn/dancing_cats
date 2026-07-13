@@ -505,6 +505,10 @@ const double kMovingPhraseTransitionSeconds = 0.4;
 /// the old two-beat/1.0s dissolve that the full-song review found low-energy.
 const double kMovingHookAnswerTransitionSeconds = 0.55;
 
+/// Entering the hook call (lead `movingHookLead`), whose flanks answer on
+/// displaced clocks — see `_movingTransitionSeconds`.
+const double kMovingHookCallTransitionSeconds = 0.44;
+
 /// Body-roll entries/exits trade a high arm-led phrase for the lowest,
 /// torso-led silhouette in the score. The generic 0.4s Moving handoff still
 /// reverses a rendered hand within one 30fps frame on that full-range change;
@@ -516,6 +520,16 @@ double _movingTransitionSeconds(DanceStage from, DanceStage to) {
   if (from.lead.name == 'movingHookLead' &&
       to.lead.name == 'movingHookSideAnswer') {
     return kMovingHookAnswerTransitionSeconds;
+  }
+  // Entering the hook CALL statement: its flanks are the phase-shifted
+  // call-and-response variants (kMovingEchoPhase/kMovingCanonPhase), whose
+  // support timing is deliberately displaced from the outgoing statement's.
+  // The generic 0.4s window measured 7.42 units/frame² of flank foot
+  // acceleration at the blend's end — inside the historical support-flip
+  // signature band the 7-unit gate exists to catch — so this named entry
+  // takes a slightly longer pour.
+  if (to.lead.name == 'movingHookLead') {
+    return kMovingHookCallTransitionSeconds;
   }
   if (from.lead.name == 'movingBodyRoll' || to.lead.name == 'movingBodyRoll') {
     return kMovingBodyRollTransitionSeconds;

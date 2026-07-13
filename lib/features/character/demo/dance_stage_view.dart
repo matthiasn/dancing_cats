@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:dancing_cats/features/character/demo/dance_camera_director.dart';
@@ -160,7 +161,11 @@ class DanceStageView extends StatelessWidget {
     // pools, gel-cycling on the tempo, so a cat's glow always matches its pool.
     final rig = danceStageRig(bpm);
     final samples = useNewBackdrop
-        ? rig.sample(time: lightsTimeSeconds, beat: beat, bloom: bodyAccent)
+        ? rig.sample(
+            time: lightsTimeSeconds,
+            beat: beat,
+            bloom: danceLightAccentOf(bodyAccent),
+          )
         : const <StageLightSample>[];
     final backlights = danceMemberBacklights(samples);
 
@@ -267,7 +272,9 @@ class DanceStageView extends StatelessWidget {
                     // [paintDropBloom] so the two paint paths can't drift.
                     if (useNewBackdrop && bodyAccent > 0.01)
                       CustomPaint(
-                        painter: DropBloomPainter(bodyAccent),
+                        painter: DropBloomPainter(
+                          danceLightAccentOf(bodyAccent),
+                        ),
                         child: const SizedBox.expand(),
                       ),
                   ],
@@ -448,8 +455,12 @@ CharacterPainter danceCharacterPainter({
       : load * kDanceAccentDropUnits;
   // The authored groove yields to the hit while it lands (see
   // [accentDroppedClip]'s bobDuck): only the POSITIVE load ducks the bob —
-  // the release tail's slight rebound must not amplify it back.
+  // the release tail's slight rebound must not amplify it back. The chest
+  // compresses on the same positive envelope.
   final bobDuck = moving && load > 0 ? kMovingAccentBobDuck * load : 0.0;
+  final chestCompress = moving && load > 0
+      ? kMovingAccentChestCompress * load
+      : 0.0;
   return CharacterPainter(
     scene: cast.lead,
     partnerScene: cast.left,
@@ -470,6 +481,7 @@ CharacterPainter danceCharacterPainter({
           ),
           dropUnits(i),
           bobDuck: bobDuck,
+          chestCompress: chestCompress,
         ),
     ],
     synchronousEnsemble: stage.synchronous,
@@ -484,6 +496,7 @@ CharacterPainter danceCharacterPainter({
       ),
       dropUnits(0),
       bobDuck: bobDuck,
+      chestCompress: chestCompress,
     ),
     timeSeconds: stage.seconds,
     cameraOverride: shot,
@@ -530,6 +543,15 @@ CharacterPainter danceCharacterPainter({
 double danceBodyAccentEnvelope(double rawEnvelope, double energyLevel) =>
     rawEnvelope * (0.45 + 0.55 * energyLevel);
 
+/// The LIGHTS' view of the accent envelope: a sqrt curve that lifts the
+/// mid-strength hits toward full brightness. The body deliberately scales
+/// its response linearly with strength (a soft hit earns a soft plié), but
+/// a bloom at 35% intensity barely reads on camera — round-3 MV: the
+/// vocal-tier hits were "danced but never lit". The curve keeps zero at
+/// zero and full at full; only the middle lifts.
+double danceLightAccentOf(double bodyAccent) =>
+    bodyAccent <= 0 ? 0 : math.sqrt(bodyAccent.clamp(0.0, 1.0));
+
 /// How many root-units a full-strength onset drops a Moving dancer's body.
 /// Deliberately shallower than the catalogue's [kDanceAccentDropUnits]: the
 /// Moving phrases already author 17-46 unit root dips, so the accent reads as
@@ -557,6 +579,11 @@ const double kMovingAccentBobDuck = 0.35;
 /// first thing anyone scrubs to) carrying the same knee give as a routine
 /// hit. Strong hits now read unmistakably deeper; weak hits are untouched.
 const double kMovingAccentStrongBoost = 0.45;
+
+/// Chest compression at a full-strength hit (fraction of scaleY): the hit's
+/// mass travels through the trunk on the same envelope as the plié, so
+/// strong accents read muscled through the torso instead of knee-only.
+const double kMovingAccentChestCompress = 0.045;
 
 /// The Moving accent plié depth for one lane at body [load] — the single
 /// source for the production painter wiring and the tests that gate it.
@@ -660,10 +687,15 @@ Clip productionDanceClip(
     // correlation, the "boy-band clone" tell. A static ±8-10% spread keeps
     // every lane on the authored path shape while no two cats hit the same
     // extent.
+    // The Moving arm extent also rides the section arc (0.78 + 0.22·E): the
+    // energy tier alone moves root amplitude but left the valley's ARMS at
+    // full reach — round-4 measured the valley out-dancing the capped chorus.
     final effort = songGroove
         ? effortModulatedClip(
             orbited,
-            (_) => kMovingLaneAmplitudeScale[lane],
+            (_) =>
+                kMovingLaneAmplitudeScale[lane] *
+                (0.78 + 0.22 * energyLevel.clamp(0.0, 1.0)),
           )
         : effortModulatedClip(
             orbited,
@@ -676,18 +708,24 @@ Clip productionDanceClip(
       effort,
       danceBodyGrooveScaleOf(energyLevel),
     );
+    // 4b. QUIET-STEP LOAD: the pelvis dips while a foot is authored airborne,
+    // driven by the footwork itself — weight transfers read loaded even where
+    // no accent fires (round-2 biomech).
+    final loaded = songGroove ? singleSupportLoadedClip(grooved) : grooved;
     // 5. CREW MICROTIMING: the backups anticipate/drag by a few tens of
     // milliseconds in their upper bodies only. Feet, root, and support changes
     // stay on the shared clock, so the formation lands together without the
-    // machine-perfect simultaneous arm reversals of a cloned timeline.
+    // machine-perfect simultaneous arm reversals of a cloned timeline. (The
+    // half-beat call-and-response echo is NOT applied here — it is baked into
+    // the score-level side-answer variant; see kMovingEchoPhase.)
     final microTimed = songGroove
         ? upperBodyPhaseOffsetClip(
-            grooved,
+            loaded,
             kDanceLaneUpperBodyPhaseOffsets[lane] *
                 _movingTransitionOwnership(transition),
             upperBodyBoneIds: kDanceUpperBodyWarpBoneIds,
           )
-        : grooved;
+        : loaded;
     // 6. Continuous shoulder/chest WIND: the upper body keeps rolling so it is
     // never a static posed post while the hips bounce (the pocket is upper-
     // body-led — coach).

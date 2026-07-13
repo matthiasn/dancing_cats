@@ -21,6 +21,7 @@ import 'package:dancing_cats/features/character/demo/dance_lip_sync.dart';
 import 'package:dancing_cats/features/character/model/beat_map.dart';
 import 'package:dancing_cats/features/character/model/clip.dart';
 import 'package:dancing_cats/features/character/model/dance_dynamics.dart';
+import 'package:dancing_cats/features/character/model/dance_dynamics_warp.dart';
 import 'package:dancing_cats/features/character/samples/cat_in_suit.dart';
 
 /// A structural energy section of the track, tagged energetic/calm with a
@@ -85,6 +86,40 @@ const DanceDynamics kDanceSectionEnergyGain = DanceDynamics(
 /// move-selection boundaries `choreoTrioByLevel` already has.
 DanceDynamics sectionEnergyDynamics(double level) =>
     kDanceSectionEnergyGain.scale((level.clamp(0, 1) - 0.5) * 2);
+
+/// Multiplier on the waveform-driven dance energy per section occurrence —
+/// the PERFORMANCE arc, layered over the track's raw loudness.
+///
+/// The raw waveform peaks early (first chorus ~0.74, late chorus ~0.78), so
+/// an untiered performance visually peaks at chorus one and coasts downhill —
+/// the round-2 panel measured window motion energy of chorus 5.28 vs late
+/// chorus 4.79 vs finale 4.03 and read the back half as deflating. Real
+/// staging holds the first chorus in reserve and spends everything on the
+/// last one; this tier caps the early statements and releases the ceiling as
+/// occurrences accumulate. Verses/bridge sit low so the valley is an energy
+/// valley, not just a vocabulary change.
+double danceSectionArcTier(String section, int occurrence) {
+  switch (section) {
+    case 'chorus':
+      return occurrence <= 0 ? 0.90 : (occurrence == 1 ? 0.96 : 1.08);
+    case 'post-chorus':
+      return occurrence <= 0 ? 0.97 : 1.06;
+    case 'pre-chorus':
+      return 0.92;
+    case 'verse':
+      // Lowered 0.85 -> 0.80 with the bridge (round-4 cartoon: the valley
+      // measured 1.08x the capped chorus — "a valley that forgot to be a
+      // valley"); the quiet-step loading and full lunge vocabulary carry
+      // plenty of life at the smaller extent.
+      return 0.80;
+    case 'bridge':
+      return 0.78;
+    case 'outro':
+      return 1;
+    default:
+      return 1;
+  }
+}
 
 /// Everything the painter needs for one frame: the lead clip, the ensemble
 /// clips, the warped pose clock `seconds`, the active `section`, whether the
@@ -465,17 +500,21 @@ class DancePerformance {
   // every other beat — never a bob on every 16th, which reads hectic.
   static const double _kAccentCandidateFloor = 0.35;
   static const double _kAccentMinSpacingSec = 1;
-  static const double _kAccentDecaySec = 0.3;
+  static const double _kAccentDecaySec = 0.42;
 
   /// How far past neutral the accent's release BREATHES back up, as a
   /// fraction of the drop (see [accentAt]'s breathe lobe). A plié that only
   /// sinks and returns reads as a lean; real weight rebounds slightly above
-  /// neutral before settling (coach: "hit and breathe").
-  static const double _kAccentReboundDepth = 0.15;
+  /// neutral before settling (coach: "hit and breathe"). Deepened 0.15→0.22
+  /// and the window extended 0.3→0.42s with a faster recovery share, per the
+  /// round-3 MV read: the first chorus "nods where the finale punches" — the
+  /// pop after the dip needs to read at roughly a third of the dip over
+  /// ~250ms, not vanish inside 130ms.
+  static const double _kAccentReboundDepth = 0.22;
 
   /// Fraction of [_kAccentDecaySec] spent recovering from the drop; the rest
   /// carries the breathe lobe past neutral and settles.
-  static const double _kAccentRecoverShare = 0.55;
+  static const double _kAccentRecoverShare = 0.4;
 
   /// Window (seconds) BEFORE a strong onset over which the body "coils" in
   /// anticipation of the hit — a short gather that releases into [accentAt]'s
@@ -597,6 +636,38 @@ class DancePerformance {
   static final Clip _moving = CatClips.movingGroove;
   static final Clip _movingLowCounter = CatClips.movingGrooveLowCounter;
   static final Clip _movingSideAnswer = CatClips.movingGrooveSideAnswer;
+
+  /// The side-answer answering ONE BEAT behind the lead's call — the
+  /// WHOLE dancer (steps, weight changes, contacts included, see
+  /// [wholeClipPhaseShiftedClip]): an upper-body-only echo measured as lag-0
+  /// whole-body correlation because the shared feet dominated. A score-level
+  /// variant (not a production-stage wrapper) so transitions blend it as an
+  /// ordinary clip on its own clock.
+  static final Clip _movingSideAnswerEcho = wholeClipPhaseShiftedClip(
+    CatClips.movingGrooveSideAnswer,
+    kMovingEchoPhase,
+  );
+
+  /// The grey flank's FEATURED canon voice: the low counter two beats
+  /// behind the lead in the hook call — a literal QUOTE of the lead's own
+  /// hook motif, so the trio reads as call → answer → later answer of the
+  /// SAME sentence instead of three simultaneous different ones.
+  static final Clip _movingLowCounterCanon = wholeClipPhaseShiftedClip(
+    CatClips.movingGroove,
+    kMovingCanonPhase,
+  );
+
+  /// The right flank's one-beat QUOTE of the lead's hook motif for the CALL
+  /// statement. Round-4 coach and animator converged on the same finding: a
+  /// displaced *different* phrase reads as counterpoint, not conversation
+  /// ("duplicate the lead's call gesture, delay it" / "copy the lead's
+  /// gesture curve") — and a one-beat shift of a different beat-periodic
+  /// phrase aliased to lag-0 in every measured window. The per-lane
+  /// amplitude spread keeps both quotes subordinate to the call.
+  static final Clip _movingHookEcho = wholeClipPhaseShiftedClip(
+    CatClips.movingGroove,
+    kMovingEchoPhase,
+  );
   static final Clip _movingVerse = CatClips.movingVerseGroove;
   static final Clip _movingVerseWindow = CatClips.movingVerseWindow;
   static final Clip _movingBreakdown = CatClips.movingBreakdownGroove;
@@ -631,11 +702,18 @@ class DancePerformance {
       final sectionDynamics = sectionEnergyDynamics(level);
       // Music-reactive amplitude: the dance size follows the CONTINUOUS track
       // loudness (swells into drops, eases through the breakdown) instead of the
-      // coarse per-section step. Quantized to 0.05 to bound the effort-clip
-      // cache; falls back to the section level for synthetic (no-waveform) perfs.
+      // coarse per-section step, TIERED by the section arc (see
+      // [danceSectionArcTier]) so the performance builds across the song
+      // instead of peaking at the first chorus. Quantized to 0.05 to bound the
+      // effort-clip cache; falls back to the section level for synthetic
+      // (no-waveform) perfs.
       final danceEnergy = waveform.isEmpty
           ? level
-          : (intensityAt(pos) * 20).round() / 20;
+          : ((intensityAt(pos) * danceSectionArcTier(lyric.section, occ))
+                        .clamp(0.0, 1.0) *
+                    20)
+                .round() /
+            20;
       return (
         lead: trio.lead,
         ensemble: trio.ensemble,
@@ -775,7 +853,7 @@ class DancePerformance {
   }) {
     final hookCall = (
       lead: _moving,
-      ensemble: [_moving, _movingLowCounter, _movingSideAnswer],
+      ensemble: [_moving, _movingLowCounterCanon, _movingHookEcho],
     );
     final hookAnswer = (
       lead: _movingSideAnswer,
@@ -795,7 +873,7 @@ class DancePerformance {
     );
     final hookOpen = (
       lead: _movingChorusOpen,
-      ensemble: [_movingChorusOpen, _movingChorusTravel, _movingSideAnswer],
+      ensemble: [_movingChorusOpen, _movingChorusTravel, _movingSideAnswerEcho],
     );
     final verseShuffle = (
       lead: _movingVerse,
@@ -852,11 +930,17 @@ class DancePerformance {
         };
         return _rotateSetlist(score, phase, sectionSeconds);
       case 'post-chorus':
+        // Early post-choruses RELEASE (grounded low vocabulary); the LAST one
+        // must not — the track still burns near-peak there (~0.78 intensity at
+        // 106s), and leading it with the score's lowest phrase measured as the
+        // weakest window of the whole edit (round-3 panel: lead-zone energy
+        // 3.16 vs chorus 3.82) exactly where the penultimate peak lands. The
+        // final post-chorus keeps the heat with travel/answer vocabulary and
+        // releases only in its closing statement.
         return _rotateSetlist(
-          // Release the late hook downward before travelling again. Starting
-          // with hookReturn reused movingHookLead across the section boundary,
-          // producing a 12-second block of near-identical lead silhouettes.
-          [lowCounter, hookTravel, bodyRoll, windowBridge],
+          variant >= 1
+              ? [hookTravel, hookAnswer, windowBridge, lowCounter]
+              : [lowCounter, hookTravel, bodyRoll, windowBridge],
           phase,
           sectionSeconds,
         );

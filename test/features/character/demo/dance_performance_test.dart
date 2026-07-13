@@ -1,6 +1,8 @@
 import 'package:dancing_cats/features/character/demo/dance_performance.dart';
 import 'package:dancing_cats/features/character/model/beat_map.dart';
 import 'package:dancing_cats/features/character/model/dance_dynamics.dart';
+import 'package:dancing_cats/features/character/model/dance_dynamics_warp.dart';
+import 'package:dancing_cats/features/character/samples/cat_in_suit.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:glados/glados.dart' as glados;
 
@@ -311,40 +313,41 @@ void main() {
     // assertions compare the stable `name` rather than instance identity.
     final perf = _perf();
 
-    test('the chorus gives the Moving hook three coordinated roles', () {
+    test('the chorus opens on a canon of the hook motif', () {
       final trio = perf.choreoTrioForSection('chorus', 0.6, 0.5, 0);
       expect(trio.lead.name, 'movingHookLead');
-      expect(trio.ensemble.map((c) => c.name).toList(), [
-        'movingHookLead',
-        'movingHookLowCounter',
-        'movingHookSideAnswer',
-      ]);
-      // All three share the song-specific movement family, but only the lead
-      // states the diagonal lyric call. The backups carry authored counter
-      // phrases rather than executing a duplicate in unison.
+      // All three voices QUOTE the lead's hook motif (round-4 panel: a
+      // displaced different phrase reads as counterpoint, not an answer) —
+      // but on three displaced clocks, so no two state it simultaneously.
+      expect(
+        trio.ensemble.map((c) => c.name).toSet(),
+        {'movingHookLead'},
+      );
       final leadRight = trio.ensemble[0].limbTargets
           .singleWhere((t) => t.endBoneId == 'hand.R')
           .channel;
-      final lowCounterRight = trio.ensemble[1].limbTargets
-          .singleWhere((t) => t.endBoneId == 'hand.R')
-          .channel;
-      final sideAnswerRight = trio.ensemble[2].limbTargets
-          .singleWhere((t) => t.endBoneId == 'hand.R')
-          .channel;
-      expect(
-        (lowCounterRight.sample(6 / 32).y - leadRight.sample(6 / 32).y).abs(),
-        greaterThan(5),
-      );
-      expect(
-        (sideAnswerRight.sample(14 / 32).y - leadRight.sample(14 / 32).y).abs(),
-        greaterThan(40),
-        reason:
-            'the side-answer roof lift must remain a distinct upper silhouette',
-      );
-      expect(
-        (sideAnswerRight.sample(9 / 32).y - leadRight.sample(9 / 32).y).abs(),
-        greaterThan(3),
-      );
+      for (final lane in [1, 2]) {
+        final voiceRight = trio.ensemble[lane].limbTargets
+            .singleWhere((t) => t.endBoneId == 'hand.R')
+            .channel;
+        // Sampled at the SAME instants, the displaced voice is elsewhere in
+        // the motif — the trio never collapses into unison outside the
+        // final chorus's earned hookUnison payoff. (Individual phases can
+        // coincide where the motif crosses itself; the voices must be far
+        // apart somewhere in every bar.)
+        var maxGap = 0.0;
+        for (var i = 0; i < 32; i++) {
+          final gap =
+              (voiceRight.sample(i / 32).y - leadRight.sample(i / 32).y).abs();
+          if (gap > maxGap) maxGap = gap;
+        }
+        expect(
+          maxGap,
+          greaterThan(25),
+          reason: 'lane $lane must not shadow the lead frame-for-frame',
+        );
+        expect(identical(trio.ensemble[lane], trio.ensemble[0]), isFalse);
+      }
     });
 
     test('the first two choruses establish the same lead signature', () {
@@ -722,6 +725,15 @@ void main() {
           'movingBodyRoll',
           'movingVerseWindow',
         ]);
+        // The LAST post-chorus keeps the heat — the track still burns near
+        // its peak there, and leading it with the lowest phrase measured as
+        // the weakest window of the whole edit (round-3 panel).
+        expect(score('post-chorus', 1), [
+          'movingChorusTravel',
+          'movingHookSideAnswer',
+          'movingVerseWindow',
+          'movingHookLowCounter',
+        ]);
         // All four verse statements stay in grounded verse vocabulary — the
         // hook-family sideAnswer that used to close the verse put chorus
         // amplitude into the song's breakdown stretch (panel: "the bridge is
@@ -752,7 +764,7 @@ void main() {
           ...score('verse', 0),
           ...score('bridge', 0),
           ...score('chorus', 2),
-          ...score('post-chorus', 0),
+          ...score('post-chorus', 1),
           ...score('outro', 0),
         ];
         for (var i = 1; i < productionLeadScore.length; i++) {
@@ -786,6 +798,85 @@ void main() {
     });
   });
 
+  group('danceSectionArcTier', () {
+    test('the performance builds: early choruses are capped, the last one '
+        'owns the ceiling, and the valley sits below the verses', () {
+      expect(danceSectionArcTier('chorus', 0), lessThan(1));
+      expect(
+        danceSectionArcTier('chorus', 1),
+        greaterThan(danceSectionArcTier('chorus', 0)),
+      );
+      expect(
+        danceSectionArcTier('chorus', 2),
+        greaterThan(danceSectionArcTier('chorus', 1)),
+      );
+      expect(
+        danceSectionArcTier('bridge', 0),
+        lessThan(danceSectionArcTier('verse', 0)),
+      );
+      expect(
+        danceSectionArcTier('verse', 0),
+        lessThan(danceSectionArcTier('chorus', 0)),
+      );
+      // The arc rides ON the waveform energy — it must never push the
+      // quantized energy outside the effort-cache's 0..1 domain.
+      expect(danceSectionArcTier('chorus', 3), lessThan(1.25));
+    });
+  });
+
+  group('call-and-response echo', () {
+    test('the hook call is a literal canon of the lead motif', () {
+      final perf = _perf(
+        sections: const [
+          (start: 0, end: 6, label: 'A', energetic: true, level: 1),
+        ],
+      );
+      final call = perf.choreoTrioForSection(
+        'chorus',
+        0.05,
+        0.5,
+        0,
+        sectionSeconds: 16,
+      );
+      final lead = CatClips.movingGroove;
+      // Both flanks QUOTE the lead's own phrase — whole body, spans included
+      // — displaced by their voice's delay (echo one beat + humanization,
+      // canon two beats − humanization). A displaced DIFFERENT phrase read
+      // as counterpoint, not an answer.
+      for (final (lane, shift) in [(1, kMovingCanonPhase), (2, kMovingEchoPhase)]) {
+        final voice = call.ensemble[lane];
+        expect(voice.name, lead.name);
+        for (final bone in [CatBones.handR, CatBones.footL]) {
+          final v = voice.limbTargets
+              .singleWhere((t) => t.endBoneId == bone)
+              .channel;
+          final pl = lead.limbTargets
+              .singleWhere((t) => t.endBoneId == bone)
+              .channel;
+          expect(
+            v.sample(0.4).y,
+            closeTo(pl.sample(0.4 + shift).y, 1e-9),
+            reason: 'lane $lane $bone must quote the lead $shift late',
+          );
+        }
+        // The shifted spans keep their feet planted (the crush invariant).
+        for (final span in voice.contactSpans) {
+          final channel = voice.limbTargets
+              .singleWhere((t) => t.endBoneId == span.bone)
+              .channel;
+          for (var i = 0; i <= 16; i++) {
+            final p = span.start + (span.end - span.start) * i / 16;
+            expect(channel.sample(p).y, greaterThan(104));
+          }
+        }
+      }
+      // The two voices are HUMANIZED off the pure beat grid — their strike
+      // times must not coincide with each other or the lead on shared beats.
+      expect(kMovingEchoPhase, isNot(closeTo(-1 / 8, 1e-4)));
+      expect(kMovingCanonPhase, isNot(closeTo(-2 / 8, 1e-4)));
+    });
+  });
+
   group('DancePerformance onset phrasing', () {
     final perf = DancePerformance.fromBeatMapJson(
       json: const {
@@ -802,14 +893,14 @@ void main() {
       expect(perf.anticipationAt(0.95), closeTo(0.5, 1e-9));
       expect(perf.anticipationAt(1 - 1e-6), closeTo(1, 1e-8));
       expect(perf.accentAt(1), 1);
-      // Drop: recovers to neutral over the first 55% of the 0.3s window...
-      expect(perf.accentAt(1 + 0.3 * 0.275), closeTo(0.5, 1e-9));
-      expect(perf.accentAt(1 + 0.3 * 0.55), closeTo(0, 1e-9));
+      // Drop: recovers to neutral over the first 40% of the 0.42s window...
+      expect(perf.accentAt(1 + 0.42 * 0.2), closeTo(0.5, 1e-9));
+      expect(perf.accentAt(1 + 0.42 * 0.4), closeTo(0, 1e-9));
       // ...then BREATHES past neutral (the body lifts slightly above its
       // groove line — hit-and-breathe, not sink-and-return) and settles.
-      expect(perf.accentAt(1 + 0.3 * 0.775), closeTo(-0.15, 1e-9));
-      expect(perf.accentAt(1.3), closeTo(0, 1e-9));
-      expect(perf.accentAt(1.31), 0);
+      expect(perf.accentAt(1 + 0.42 * 0.7), closeTo(-0.22, 1e-9));
+      expect(perf.accentAt(1.42), closeTo(0, 1e-9));
+      expect(perf.accentAt(1.43), 0);
     });
 
     test('peak picking spaces accents and rescues soft-mix sections', () {
