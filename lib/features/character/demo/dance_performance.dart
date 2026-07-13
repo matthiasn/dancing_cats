@@ -60,6 +60,20 @@ typedef DanceHandFlourish = ({double lx, double ly, double rx, double ry});
 /// The flourish at rest — wrappers treat it as a zero-cost identity.
 const DanceHandFlourish kNoHandFlourish = (lx: 0, ly: 0, rx: 0, ry: 0);
 
+/// One frame of paw ARTICULATION for a Moving lane: `wristL`/`wristR` are
+/// radians added to the authored hand-bone rotation (the paw stops being a
+/// mitten glued to the forearm), `splayL`/`splayR` are 0..1 — 0 the closed
+/// resting paw, 1 fully OPEN (toes splayed and swollen, thumb swung out).
+typedef DancePawPose = ({
+  double wristL,
+  double splayL,
+  double wristR,
+  double splayR,
+});
+
+/// Paws at rest — wrappers treat it as a zero-cost identity.
+const DancePawPose kClosedPaws = (wristL: 0, splayL: 0, wristR: 0, splayR: 0);
+
 /// Per-lane Laban-Effort personality offsets, index-parallel to
 /// `DanceTrio.ensemble` (`[0]` lead, `[1]` backup-left, `[2]` backup-right).
 /// Composed with each move's base dynamics and the section-energy term via
@@ -738,6 +752,15 @@ class DancePerformance {
     (x: 0.85, y: 0.35), // low sweep-out
   ];
 
+  /// Wrist rotation (radians, outward) accompanying each accent pose, index-
+  /// parallel to [_kAccentPoses] — the paw aligns with the reach instead of
+  /// staying frozen at the forearm's angle.
+  static const List<double> _kAccentPoseWrist = [0.5, -0.35, 0.6, 0.35];
+
+  /// Peak wrist roll during a double-time fill (radians): the paw leads and
+  /// lags the loop, so the wrist reads as rolling flesh, not a stick end.
+  static const double kMovingFillWristRad = 0.3;
+
   /// Deterministic 0..1 hash of (onset index, lane, salt) — the flourish's
   /// only source of "randomness", so every render of the same song makes the
   /// same choices and tests can pin them.
@@ -838,9 +861,13 @@ class DancePerformance {
   ///    [_poseAt] / [_poseEnvelope]): one arm snaps out of the groove box
   ///    into a full extension, holds, and melts back — the downbeat
   ///    finally differs in SHAPE from the groove, not just in amplitude.
-  DanceHandFlourish _handFlourishAt(double posSec, double echoBeats, int lane) {
+  ({DanceHandFlourish flourish, DancePawPose paw}) _handExpressionAt(
+    double posSec,
+    double echoBeats,
+    int lane,
+  ) {
     final o = _accentOnsets;
-    if (o.isEmpty) return kNoHandFlourish;
+    if (o.isEmpty) return (flourish: kNoHandFlourish, paw: kClosedPaws);
     final dp = echoBeats == 0
         ? posSec
         : map.timeAtBeat(map.beatAt(posSec) - echoBeats);
@@ -849,6 +876,10 @@ class DancePerformance {
     var ly = 0.0;
     var rx = 0.0;
     var ry = 0.0;
+    var wristL = 0.0;
+    var wristR = 0.0;
+    var splayL = 0.0;
+    var splayR = 0.0;
 
     final acc = laneAccentAt(posSec, echoBeats).clamp(0.0, 1.0);
     final ant = laneAnticipationAt(posSec, echoBeats);
@@ -865,6 +896,10 @@ class DancePerformance {
       ly += amp * v.ly;
       rx += amp * v.rx;
       ry += amp * v.ry;
+      // Every hit softens the paws open a touch — a fist that never
+      // breathes is the mitten tell.
+      splayL += 0.18 * load;
+      splayR += 0.18 * load;
     }
 
     final next = _lastOnsetIndex(dp) + 1;
@@ -899,6 +934,13 @@ class DancePerformance {
             ly += cxL * sinT + cyL * cosT;
             rx += cxR * cosT - cyR * sinT;
             ry += cxR * sinT + cyR * cosT;
+            // The wrist ROLLS with the loop (leading it slightly) and the
+            // paw loosens — flesh riding the arc, not a stick end.
+            final roll = kMovingFillWristRad * swell;
+            wristL += roll * math.sin(phase + 0.6);
+            wristR += roll * math.sin(phase + 2.8);
+            splayL += 0.22 * swell;
+            splayR += 0.22 * swell;
           }
         }
       }
@@ -908,30 +950,49 @@ class DancePerformance {
     // launches out of the groove box into a full extension (the 30-unit
     // target is deliberately past the arm's reach — the IK solver clamps to
     // a straight-elbow pose toward it), holds, and melts back while the
-    // other arm keeps grooving. The envelope starts before the hit, so
-    // both the owning onset and its successor are candidates.
+    // other arm keeps grooving. The paw OPENS with the reach (full splay,
+    // wrist aligned to the pose) — the hit lands as an open hand, not a
+    // mitten. The envelope starts before the hit, so both the owning onset
+    // and its successor are candidates.
     final lastIdx = _lastOnsetIndex(dp);
     for (final i in [lastIdx, lastIdx + 1]) {
       if (i < 0 || i >= o.length) continue;
       if (!_poseAt(i, lane, o[i].strength)) continue;
       final env = _poseEnvelope(dp - o[i].time);
       if (env == 0) continue;
-      final pose = _kAccentPoses[(_flourishHash(i, lane, 5) *
-              _kAccentPoses.length)
+      final flavor = (_flourishHash(i, lane, 5) * _kAccentPoses.length)
           .floor()
-          .clamp(0, _kAccentPoses.length - 1)];
+          .clamp(0, _kAccentPoses.length - 1);
+      final pose = _kAccentPoses[flavor];
       final amp = kMovingAccentPoseUnits * o[i].strength * env;
+      final wrist = _kAccentPoseWrist[flavor] * env;
+      final open = env.clamp(0.0, 1.0);
       // pose.x is OUTWARD: -x for the left arm, +x for the right.
       if (_flourishHash(i, lane, 6) < 0.5) {
         lx += amp * -pose.x;
         ly += amp * pose.y;
+        wristL += -wrist;
+        splayL += open;
       } else {
         rx += amp * pose.x;
         ry += amp * pose.y;
+        wristR += wrist;
+        splayR += open;
       }
     }
-    return (lx: lx, ly: ly, rx: rx, ry: ry);
+    return (
+      flourish: (lx: lx, ly: ly, rx: rx, ry: ry),
+      paw: (
+        wristL: wristL.clamp(-0.85, 0.85),
+        splayL: splayL.clamp(0.0, 1.0),
+        wristR: wristR.clamp(-0.85, 0.85),
+        splayR: splayR.clamp(0.0, 1.0),
+      ),
+    );
   }
+
+  DanceHandFlourish _handFlourishAt(double posSec, double echoBeats, int lane) =>
+      _handExpressionAt(posSec, echoBeats, lane).flourish;
 
   /// [_handFlourishAt] for a STAGE clip, blend-aware the same way
   /// [laneAccentForClip] is: the flourish of a transitioning clip is the
@@ -948,6 +1009,24 @@ class DancePerformance {
       ly: from.ly + (to.ly - from.ly) * w,
       rx: from.rx + (to.rx - from.rx) * w,
       ry: from.ry + (to.ry - from.ry) * w,
+    );
+  }
+
+  /// The paw articulation for a STAGE clip — wrist lag and toe/thumb splay
+  /// riding the same envelopes as the flourish, blend-aware the same way.
+  DancePawPose lanePawPoseFor(double posSec, Clip clip, int lane) {
+    final plan = clip.transitionPlan;
+    if (plan == null) {
+      return _handExpressionAt(posSec, clip.echoBeats, lane).paw;
+    }
+    final from = _handExpressionAt(posSec, plan.from.echoBeats, lane).paw;
+    final to = _handExpressionAt(posSec, plan.to.echoBeats, lane).paw;
+    final w = plan.weight;
+    return (
+      wristL: from.wristL + (to.wristL - from.wristL) * w,
+      splayL: from.splayL + (to.splayL - from.splayL) * w,
+      wristR: from.wristR + (to.wristR - from.wristR) * w,
+      splayR: from.splayR + (to.splayR - from.splayR) * w,
     );
   }
 

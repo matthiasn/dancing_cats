@@ -60,6 +60,7 @@ class DanceStageView extends StatelessWidget {
     this.laneBodyAccents,
     this.laneBodyAnticipations,
     this.laneHandFlourishes,
+    this.lanePawPoses,
     this.onDancerAnchors,
     this.useNewBackdrop = true,
     this.showCaptions = false,
@@ -109,6 +110,10 @@ class DanceStageView extends StatelessWidget {
   /// `DancePerformance.laneHandFlourishFor`) — the hit-variation layer for
   /// the hands. Null → no flourish.
   final List<DanceHandFlourish>? laneHandFlourishes;
+
+  /// Per-lane paw articulation (wrist lag + toe/thumb splay, see
+  /// `DancePerformance.lanePawPoseFor`). Null → paws rest closed.
+  final List<DancePawPose>? lanePawPoses;
 
   /// Audio position seconds — drives the scenery (it pauses/seeks with the
   /// track).
@@ -278,6 +283,7 @@ class DanceStageView extends StatelessWidget {
                           laneBodyAccents: laneBodyAccents,
                           laneBodyAnticipations: laneBodyAnticipations,
                           laneHandFlourishes: laneHandFlourishes,
+                          lanePawPoses: lanePawPoses,
                           leadMouth: leadMouth,
                           bgMouth: bgMouth,
                           leadShape: leadShape,
@@ -476,6 +482,7 @@ CharacterPainter danceCharacterPainter({
   List<double>? laneBodyAccents,
   List<double>? laneBodyAnticipations,
   List<DanceHandFlourish>? laneHandFlourishes,
+  List<DancePawPose>? lanePawPoses,
 }) {
   final moving = stage.lead.belongsToFamily('moving');
   final load = _bodyLoadEnvelope(bodyAccent, bodyAnticipation);
@@ -532,6 +539,23 @@ CharacterPainter danceCharacterPainter({
     ));
   }
 
+  // Paw articulation (wrist lag + toe/thumb splay) rides the same energy
+  // scaling: the valley's paws stay quietly closed, the chorus talks with
+  // open hands.
+  Clip pawPosed(Clip clip, int lane) {
+    final paw = lanePawPoses == null || !moving
+        ? kClosedPaws
+        : lanePawPoses[lane];
+    if (identical(paw, kClosedPaws)) return clip;
+    final s = danceBodyAccentEnvelope(1, stage.energyLevel);
+    return pawArticulatedClip(clip, (
+      wristL: paw.wristL * s,
+      splayL: paw.splayL * s,
+      wristR: paw.wristR * s,
+      splayR: paw.splayR * s,
+    ));
+  }
+
   return CharacterPainter(
     scene: cast.lead,
     partnerScene: cast.left,
@@ -543,17 +567,20 @@ CharacterPainter danceCharacterPainter({
     ],
     ensembleClips: [
       for (var i = 0; i < stage.ensemble.length; i++)
-        flourished(
-          accentDroppedClip(
-            productionDanceClip(
-              stage.ensemble[i],
-              stage.dynamics[i],
-              i,
-              stage.energyLevel,
+        pawPosed(
+          flourished(
+            accentDroppedClip(
+              productionDanceClip(
+                stage.ensemble[i],
+                stage.dynamics[i],
+                i,
+                stage.energyLevel,
+              ),
+              dropUnits(i),
+              bobDuck: bobDuckFor(i),
+              chestCompress: chestCompressFor(i),
             ),
-            dropUnits(i),
-            bobDuck: bobDuckFor(i),
-            chestCompress: chestCompressFor(i),
+            i,
           ),
           i,
         ),
@@ -561,17 +588,20 @@ CharacterPainter danceCharacterPainter({
     synchronousEnsemble: stage.synchronous,
     singingHeadMotion: true,
     walkingPair: true,
-    clip: flourished(
-      accentDroppedClip(
-        productionDanceClip(
-          stage.lead,
-          stage.dynamics.first,
-          0,
-          stage.energyLevel,
+    clip: pawPosed(
+      flourished(
+        accentDroppedClip(
+          productionDanceClip(
+            stage.lead,
+            stage.dynamics.first,
+            0,
+            stage.energyLevel,
+          ),
+          dropUnits(0),
+          bobDuck: bobDuckFor(0),
+          chestCompress: chestCompressFor(0),
         ),
-        dropUnits(0),
-        bobDuck: bobDuckFor(0),
-        chestCompress: chestCompressFor(0),
+        0,
       ),
       0,
     ),

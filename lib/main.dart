@@ -1010,12 +1010,19 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
           stage.energyLevel,
         ),
     ];
-    // The hands' hit-variation layer: per-onset ornament flavors + rare
-    // double/quad-time pickup fills, per voice on its displaced clock.
+    // The hands' hit-variation layer: per-onset ornament flavors +
+    // double-time pickup fills + hit-and-hold poses, per voice on its
+    // displaced clock — with the paw articulation (wrist lag, toe/thumb
+    // splay) riding the same envelopes.
     final laneHandFlourishes = [
       for (var lane = 0; lane < stage.ensemble.length; lane++)
         _perf?.laneHandFlourishFor(posSec, stage.ensemble[lane], lane) ??
             kNoHandFlourish,
+    ];
+    final lanePawPoses = [
+      for (var lane = 0; lane < stage.ensemble.length; lane++)
+        _perf?.lanePawPoseFor(posSec, stage.ensemble[lane], lane) ??
+            kClosedPaws,
     ];
     // The director owns the camera; the stepper holds the eased framing and the
     // singing mouths. The whole composite is the generalized DanceStageView,
@@ -1053,6 +1060,7 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
       laneBodyAccents: laneBodyAccents,
       laneBodyAnticipations: laneBodyAnticipations,
       laneHandFlourishes: laneHandFlourishes,
+      lanePawPoses: lanePawPoses,
       backdropTimeSeconds: posSec,
       // Ambient stage lights run on a steady wall clock (decoupled from the
       // looping dance); offline renderers pass the audio position instead so a

@@ -295,6 +295,70 @@ void main() {
       expect(foot.y, baseL.y);
     });
 
+    test('pawArticulatedClip rotates wrist, splays toes+thumb, mirrored', () {
+      const base = Clip(
+        name: 'pawme',
+        duration: 4,
+        channels: {
+          'hand.L': SineChannel(harmonicAmplitude: 0.1),
+        },
+      );
+      final posed = pawArticulatedClip(base, (
+        wristL: 0.4,
+        splayL: 1,
+        wristR: 0,
+        splayR: 0,
+      ));
+      // Wrist rotation layers over the authored hand channel.
+      expect(
+        posed.channels['hand.L']!.sample(0.25).rotation,
+        closeTo(base.channels['hand.L']!.sample(0.25).rotation + 0.4, 1e-9),
+      );
+      // Toes swing apart (opposite signs), swell, and the thumb opens —
+      // channels are INSERTED where the clip authored none.
+      final toe1 = posed.channels['paw_toe1.L']!.sample(0);
+      final toe2 = posed.channels['paw_toe2.L']!.sample(0);
+      expect(toe1.rotation, closeTo(-kDancePawToeSplayRad, 1e-9));
+      expect(toe2.rotation, closeTo(kDancePawToeSplayRad, 1e-9));
+      expect(toe1.scaleX, closeTo(1 + kDancePawToeSplayScale, 1e-9));
+      expect(
+        posed.channels['thumb.L']!.sample(0).rotation,
+        closeTo(kDancePawThumbOpenRad, 1e-9),
+      );
+      // The untouched right paw gains no channels.
+      expect(posed.channels.containsKey('paw_toe1.R'), isFalse);
+
+      // The mirrored right side flips every sign.
+      final right = pawArticulatedClip(base, (
+        wristL: 0,
+        splayL: 0,
+        wristR: 0.4,
+        splayR: 1,
+      ));
+      expect(
+        right.channels['thumb.R']!.sample(0).rotation,
+        closeTo(-kDancePawThumbOpenRad, 1e-9),
+      );
+      expect(
+        right.channels['paw_toe1.R']!.sample(0).rotation,
+        closeTo(kDancePawToeSplayRad, 1e-9),
+      );
+
+      // Rest is an identity.
+      expect(
+        identical(
+          pawArticulatedClip(base, (
+            wristL: 0,
+            splayL: 0,
+            wristR: 0,
+            splayR: 0,
+          )),
+          base,
+        ),
+        isTrue,
+      );
+    });
+
     test('zero flourish and handless clips are identities', () {
       expect(
         identical(handFlourishedClip(clip, (lx: 0, ly: 0, rx: 0, ry: 0)), clip),

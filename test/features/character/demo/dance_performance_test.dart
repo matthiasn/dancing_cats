@@ -1131,6 +1131,56 @@ void main() {
       expect(mag(at(t0 + 0.75, lane: lane)), lessThan(0.6));
     });
 
+    test('the paw opens on the posing hand and rolls through fills', () {
+      // Reuse the pose finder: a posed hit shows a large one-arm reach.
+      (double, int)? posed;
+      for (final t in [1.0, 2.5, 4.0, 5.5, 7.0, 8.5, 10.0]) {
+        for (final lane in [0, 1, 2]) {
+          if (mag(at(t + 0.2, lane: lane)) > 15) {
+            posed = (t, lane);
+            break;
+          }
+        }
+        if (posed != null) break;
+      }
+      final (t0, lane) = posed!;
+      final paw = perf.lanePawPoseFor(t0 + 0.2, groove, lane);
+      final f = at(t0 + 0.2, lane: lane);
+      final leftPosing = f.lx.abs() + f.ly.abs() > f.rx.abs() + f.ry.abs();
+      // The posing hand is OPEN at the hold; the other stays near closed
+      // (only the small per-hit softening).
+      final posingSplay = leftPosing ? paw.splayL : paw.splayR;
+      final restingSplay = leftPosing ? paw.splayR : paw.splayL;
+      expect(posingSplay, greaterThan(0.8));
+      expect(restingSplay, lessThan(0.35));
+      // The posing wrist aligns with the reach.
+      final posingWrist = leftPosing ? paw.wristL : paw.wristR;
+      expect(posingWrist.abs(), greaterThan(0.2));
+
+      // Quiet gaps: paws fully at rest.
+      expect(perf.lanePawPoseFor(1.6, groove, 0), kClosedPaws);
+
+      // During a fill the wrist ROLLS: it changes sign across the window.
+      (double, int)? filled;
+      for (final t in [1.0, 2.5, 4.0, 5.5, 7.0, 8.5, 10.0]) {
+        for (final l in [0, 1, 2]) {
+          if (mag(at(t - 0.35, lane: l)) > 0.05 &&
+              mag(at(t + 0.2, lane: l)) < 15) {
+            filled = (t, l);
+            break;
+          }
+        }
+        if (filled != null) break;
+      }
+      final (tf, lf) = filled!;
+      final wrists = [
+        for (var t = tf - 0.7; t < tf; t += 0.03)
+          perf.lanePawPoseFor(t, groove, lf).wristL,
+      ];
+      expect(wrists.any((w) => w > 0.02), isTrue);
+      expect(wrists.any((w) => w < -0.02), isTrue);
+    });
+
     test('the hands never teleport — dense continuity sweep', () {
       var prev = at(0.5);
       var worst = 0.0;

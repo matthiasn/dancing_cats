@@ -14,6 +14,26 @@ sealed class JointChannel {
   JointPose sample(double p);
 }
 
+/// A constant joint pose, independent of phase. Per-frame decorations layer
+/// it over (or in place of) authored channels to carry this frame's
+/// articulation — e.g. the paw's wrist lag and toe splay, whose VALUES evolve
+/// continuously outside the clip on the producers' envelopes.
+class FixedJointChannel extends JointChannel {
+  const FixedJointChannel({
+    this.rotation = 0,
+    this.scaleX = 1,
+    this.scaleY = 1,
+  });
+
+  final double rotation;
+  final double scaleX;
+  final double scaleY;
+
+  @override
+  JointPose sample(double p) =>
+      JointPose(rotation: rotation, scaleX: scaleX, scaleY: scaleY);
+}
+
 /// Adds several joint channels together.
 ///
 /// Rotation is additive. Scale is multiplicative because each child channel is

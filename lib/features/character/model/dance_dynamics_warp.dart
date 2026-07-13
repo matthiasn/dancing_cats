@@ -710,6 +710,102 @@ Clip handFlourishedClip(
   );
 }
 
+/// How far the toe beans swing apart at full splay (radians), how much they
+/// swell (scale multiplier at full splay), and how far the thumb swings OPEN
+/// from its resting curl. Together they turn the closed resting paw into a
+/// visibly open hand — skeletally, so the opening is as continuous as the
+/// envelope driving it (no sprite swap, no pop).
+const double kDancePawToeSplayRad = 0.6;
+const double kDancePawToeSplayScale = 0.28;
+const double kDancePawThumbOpenRad = 0.55;
+
+/// Returns [clip] with per-frame paw ARTICULATION layered onto the hand,
+/// toe-bean, and thumb joint channels: wrist rotation (the paw lags/aligns
+/// instead of riding the forearm like a mitten on a stick) and a 0..1 splay
+/// that swings the toe beans apart, swells them, and opens the thumb from
+/// its resting curl. Values come per frame from
+/// `DancePerformance.lanePawPoseFor` and are continuous in song time by
+/// construction. The left/right rigs are mirrored, so rotations flip sign
+/// per side. Identity when the paws are at rest.
+Clip pawArticulatedClip(
+  Clip clip,
+  ({double wristL, double splayL, double wristR, double splayR}) paw,
+) {
+  if ((paw.wristL == 0 &&
+          paw.splayL == 0 &&
+          paw.wristR == 0 &&
+          paw.splayR == 0) ||
+      clip.duration <= 0) {
+    return clip;
+  }
+  JointChannel layered(JointChannel? base, double rotation, double scale) {
+    final fixed = FixedJointChannel(
+      rotation: rotation,
+      scaleX: scale,
+      scaleY: scale,
+    );
+    return base == null ? fixed : LayeredJointChannel([base, fixed]);
+  }
+
+  final channels = Map<String, JointChannel>.of(clip.channels);
+  void articulate(
+    String side, // 'L' or 'R'
+    double wrist,
+    double splay,
+  ) {
+    if (wrist == 0 && splay == 0) return;
+    final sign = side == 'L' ? 1.0 : -1.0;
+    final hand = 'hand.$side';
+    channels[hand] = layered(channels[hand], wrist, 1);
+    final toeSwing = kDancePawToeSplayRad * splay;
+    final toeScale = 1 + kDancePawToeSplayScale * splay;
+    channels['paw_toe1.$side'] = layered(
+      channels['paw_toe1.$side'],
+      sign * -toeSwing,
+      toeScale,
+    );
+    channels['paw_toe2.$side'] = layered(
+      channels['paw_toe2.$side'],
+      sign * toeSwing,
+      toeScale,
+    );
+    channels['thumb.$side'] = layered(
+      channels['thumb.$side'],
+      sign * kDancePawThumbOpenRad * splay,
+      1,
+    );
+  }
+
+  articulate('L', paw.wristL, paw.splayL);
+  articulate('R', paw.wristR, paw.splayR);
+  return Clip(
+    name: clip.name,
+    family: clip.family,
+    echoBeats: clip.echoBeats,
+    duration: clip.duration,
+    channels: channels,
+    loop: clip.loop,
+    root: clip.root,
+    locomotionSpeed: clip.locomotionSpeed,
+    groundSpans: clip.groundSpans,
+    contactSpans: clip.contactSpans,
+    contactPinning: clip.contactPinning,
+    limbTargets: clip.limbTargets,
+    supportFootWorldAnchor: clip.supportFootWorldAnchor,
+    supportFootWorldAnchorStrength: clip.supportFootWorldAnchorStrength,
+    supportFootWorldAnchorVerticalBoost:
+        clip.supportFootWorldAnchorVerticalBoost,
+    danceHeadBobScale: clip.danceHeadBobScale,
+    danceHeadLevelClampMin: clip.danceHeadLevelClampMin,
+    armReachScale: clip.armReachScale,
+    headLateralStabilize: clip.headLateralStabilize,
+    enforceSoleFloor: clip.enforceSoleFloor,
+    transitionPlan: clip.transitionPlan,
+    zOrderSwaps: clip.zOrderSwaps,
+    dynamics: clip.dynamics,
+  );
+}
+
 /// Peak quiet-step body load, in root units: how far the pelvis dips when a
 /// foot is authored fully airborne (scaled by lift height up to
 /// [kDanceSingleSupportLiftRef]). Independent of the accent envelope — real

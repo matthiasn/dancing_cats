@@ -262,10 +262,14 @@ class DanceFrameComposer {
           stage.energyLevel,
         ),
     ];
-    // Hands' hit-variation layer, mirroring main.dart.
+    // Hands' hit-variation layer + paw articulation, mirroring main.dart.
     final laneHandFlourishes = [
       for (var lane = 0; lane < stage.ensemble.length; lane++)
         perf.laneHandFlourishFor(pos, stage.ensemble[lane], lane),
+    ];
+    final lanePawPoses = [
+      for (var lane = 0; lane < stage.ensemble.length; lane++)
+        perf.lanePawPoseFor(pos, stage.ensemble[lane], lane),
     ];
     // Screen-order per-voice blooms, shared by the rig's pools AND the drop
     // flare — mirrors the live DanceStageView's single remap.
@@ -285,6 +289,7 @@ class DanceFrameComposer {
       laneBodyAccents: laneBodyAccents,
       laneBodyAnticipations: laneBodyAnticipations,
       laneHandFlourishes: laneHandFlourishes,
+      lanePawPoses: lanePawPoses,
       renderer: _renderer,
       stage: stage,
       shot: _stepper.shot,
