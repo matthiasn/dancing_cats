@@ -121,11 +121,23 @@ DanceDynamics sectionEnergyDynamics(double level) =>
 /// last one; this tier caps the early statements and releases the ceiling as
 /// occurrences accumulate. Verses/bridge sit low so the valley is an energy
 /// valley, not just a vocabulary change.
-double danceSectionArcTier(String section, int occurrence) {
+double danceSectionArcTier(
+  String section,
+  int occurrence, {
+  bool finalOccurrence = false,
+}) {
   switch (section) {
     case 'chorus':
       return occurrence <= 0 ? 0.90 : (occurrence == 1 ? 0.96 : 1.08);
     case 'post-chorus':
+      // The FINAL post-chorus is the song's actual climax (the reprise —
+      // audio peaks at ~0.79 there) and must top everything before it.
+      // Keyed on finality like the reprise setlist itself: this track tags
+      // post-chorus once, so the old `occurrence >= 1` tier was dead and
+      // the musicality panel measured the reprise DANCING BELOW THE VALLEY
+      // (lead-band motion 1.79 vs valley 1.85) — a de-crescendo through
+      // the drop.
+      if (finalOccurrence) return 1.12;
       return occurrence <= 0 ? 0.97 : 1.06;
     case 'pre-chorus':
       return 0.92;
@@ -133,10 +145,13 @@ double danceSectionArcTier(String section, int occurrence) {
       // Lowered 0.85 -> 0.80 with the bridge (round-4 cartoon: the valley
       // measured 1.08x the capped chorus — "a valley that forgot to be a
       // valley"); the quiet-step loading and full lunge vocabulary carry
-      // plenty of life at the smaller extent.
-      return 0.80;
+      // plenty of life at the smaller extent. Shaved again 0.80 -> 0.76
+      // with the reprise tier lift: the musicality panel measured the
+      // valley OUT-DANCING the reprise (1.85 vs 1.79 lead-band) — contrast
+      // is bought on both sides.
+      return 0.76;
     case 'bridge':
-      return 0.78;
+      return 0.74;
     case 'outro':
       return 1;
     default:
@@ -799,14 +814,39 @@ class DancePerformance {
     return _flourishHash(idx, lane, 2) < 0.55;
   }
 
+  /// Onset indices that OPEN a semantic section: the first accent with real
+  /// weight inside each span's first 1.2s — the structural doors. The
+  /// musicality panel measured all three cats walking straight through the
+  /// late-chorus drop (92.14s: -4/-11/-6% motion on the hit) and the outro
+  /// entry; a section turn the band doesn't stamp together reads as the
+  /// music changing without the dancers noticing.
+  late final Set<int> _sectionDoorOnsets = () {
+    final doors = <int>{};
+    for (final s in sectionSpans) {
+      for (var i = _lastOnsetIndex(s.start - 1e-9) + 1;
+          i < _accentOnsets.length;
+          i++) {
+        final o = _accentOnsets[i];
+        if (o.time >= s.start + 1.2) break;
+        if (o.strength >= 0.6) {
+          doors.add(i);
+          break;
+        }
+      }
+    }
+    return doors;
+  }();
+
   /// Whether onset [idx] earns a hit-and-hold accent POSE for [lane] — the
   /// unanimous panel finding after the fills shipped: the hits had nowhere
   /// to LAND. Every gesture resolved into the same fist-by-the-ear pump, so
   /// the downbeat was "the smallest, least interesting arm frame of the
   /// bar". Roughly 1-2 of the strongest hits per phrase, per cat, hashed
   /// per lane so the three cats pose on DIFFERENT hits (arm counterpoint
-  /// for free).
+  /// for free) — EXCEPT on a section door, which the whole trio stamps
+  /// together (each cat still picks its own pose flavor and arm).
   bool _poseAt(int idx, int lane, double strength) {
+    if (_sectionDoorOnsets.contains(idx)) return true;
     if (strength < 0.72) return false;
     return _flourishHash(idx, lane, 4) < 0.45;
   }
@@ -1134,13 +1174,14 @@ class DancePerformance {
     if (!resting) {
       final lyric = sectionInfoAt(pos);
       final occ = sectionOccurrenceAt(pos, lyric.section);
+      final finalOcc = sectionIsFinalOccurrenceAt(pos, lyric.section);
       final trio = choreoTrioForSection(
         lyric.section,
         lyric.phase,
         level,
         occ,
         sectionSeconds: lyric.seconds,
-        finalOccurrence: sectionIsFinalOccurrenceAt(pos, lyric.section),
+        finalOccurrence: finalOcc,
       );
       final sectionDynamics = sectionEnergyDynamics(level);
       // Music-reactive amplitude: the dance size follows the CONTINUOUS track
@@ -1152,9 +1193,14 @@ class DancePerformance {
       // (no-waveform) perfs.
       final danceEnergy = waveform.isEmpty
           ? level
-          : ((intensityAt(pos) * danceSectionArcTier(lyric.section, occ))
-                        .clamp(0.0, 1.0) *
-                    20)
+          : ((intensityAt(pos) *
+                        danceSectionArcTier(
+                          lyric.section,
+                          occ,
+                          finalOccurrence: finalOcc,
+                        ))
+                    .clamp(0.0, 1.0) *
+                20)
                 .round() /
             20;
       return (

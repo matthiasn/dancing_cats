@@ -843,6 +843,22 @@ void main() {
       // quantized energy outside the effort-cache's 0..1 domain.
       expect(danceSectionArcTier('chorus', 3), lessThan(1.25));
     });
+
+    test('the FINAL post-chorus (the reprise) tops the whole arc', () {
+      // Keyed on finality like the reprise setlist itself: this track tags
+      // post-chorus exactly once, so an occurrence-gated tier was dead and
+      // the reprise measured BELOW the valley (panel: "the trio
+      // de-crescendos through the song's actual climax").
+      final reprise = danceSectionArcTier(
+        'post-chorus',
+        0,
+        finalOccurrence: true,
+      );
+      expect(reprise, greaterThan(danceSectionArcTier('chorus', 2)));
+      expect(reprise, greaterThan(danceSectionArcTier('post-chorus', 1)));
+      expect(danceSectionArcTier('post-chorus', 0), lessThan(1));
+      expect(reprise, lessThan(1.25));
+    });
   });
 
   group('call-and-response echo', () {
@@ -1129,6 +1145,36 @@ void main() {
       );
       // ...and it has melted back to silence before the next hit's window.
       expect(mag(at(t0 + 0.75, lane: lane)), lessThan(0.6));
+    });
+
+    test('the whole trio stamps every section door', () {
+      final doorPerf = DancePerformance(
+        map: map,
+        binding: BeatLoopBinding.barAligned(map, bars: kDancePhraseBars),
+        sections: const [],
+        sectionSpans: const [
+          (start: 0.0, end: 4.0, section: 'verse'),
+          (start: 4.0, end: 12.0, section: 'chorus'),
+        ],
+        trackDurationSec: 12,
+        onsets: const [
+          (time: 1.0, strength: 1.0),
+          (time: 2.5, strength: 1.0),
+          // The chorus door: first weighty onset inside the new span.
+          (time: 4.4, strength: 0.8),
+          (time: 6.0, strength: 1.0),
+        ],
+      );
+      // ALL THREE lanes pose on the door hit — no cat walks through the
+      // section turn (each still picks its own flavor/arm by hash).
+      for (final lane in [0, 1, 2]) {
+        final f = doorPerf.laneHandFlourishFor(4.6, groove, lane);
+        expect(
+          f.lx.abs() + f.ly.abs() + f.rx.abs() + f.ry.abs(),
+          greaterThan(10),
+          reason: 'lane $lane must stamp the chorus door',
+        );
+      }
     });
 
     test('the paw opens on the posing hand and rolls through fills', () {
