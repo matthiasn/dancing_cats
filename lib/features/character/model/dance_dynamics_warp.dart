@@ -50,6 +50,13 @@ const List<double> kMovingLaneAmplitudeScale = [1.0, 0.88, 0.95];
 /// more clearly as an answer anyway.
 const double kMovingEchoPhase = -1 / 8 - 0.008;
 
+/// The right flank's echo displacement in BEATS — the value a
+/// [wholeClipPhaseShiftedClip] of [kMovingEchoPhase] carries as
+/// `Clip.echoBeats`. The reprise accent hold keys on it to pick the one-beat
+/// answer voice out of a continuously-lerping blend.
+const double kMovingEchoAnswerBeats =
+    -kMovingEchoPhase * kDanceBeatsPerPhraseLoop;
+
 /// The GREY (left-flank) canon delay: TWO beats behind the lead's call in
 /// the hook statement — a featured, unmistakable answer voice (round-3
 /// coach: "the trio reads lead + echo + filler"), distinct from the right

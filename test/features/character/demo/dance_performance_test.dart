@@ -905,6 +905,56 @@ void main() {
       expect(perf.laneAnticipationAt(1.45, 1), greaterThan(0.4));
       expect(perf.laneAnticipationAt(0.95, 1), closeTo(0, 1e-9));
     });
+
+    test('the echo voice HOLDS its reprise answers at peak', () {
+      final map = _beatMap();
+      final perf = DancePerformance(
+        map: map,
+        binding: BeatLoopBinding.barAligned(map, bars: kDancePhraseBars),
+        sections: const [],
+        sectionSpans: const [
+          (start: 0.0, end: 2.0, section: 'post-chorus'), // first release
+          (start: 2.0, end: 4.0, section: 'chorus'),
+          (start: 4.0, end: 6.0, section: 'post-chorus'), // the REPRISE
+        ],
+        trackDurationSec: 6,
+        onsets: const [
+          (time: 1.0, strength: 1.0), // lands in the first post-chorus
+          (time: 4.6, strength: 1.0), // lands in the reprise
+        ],
+      );
+      const echo = kMovingEchoAnswerBeats;
+      const hold = DancePerformance.kMovingRepriseAccentHoldSec;
+      // On the 0.5s grid the echo voice's envelope peaks `echo` beats after
+      // each onset.
+      const firstPeak = 1.0 + echo * 0.5;
+      const reprisePeak = 4.6 + echo * 0.5;
+
+      // Reprise: the answer SUSTAINS at full depth through the hold, then the
+      // unchanged release plays, shifted whole.
+      expect(perf.laneAccentAt(reprisePeak, echo), 1);
+      expect(perf.laneAccentAt(reprisePeak + hold * 0.9, echo), 1);
+      expect(
+        perf.laneAccentAt(reprisePeak + hold + 0.42 * 0.4, echo),
+        closeTo(0, 1e-9),
+        reason: 'the release keeps its shape, delayed by exactly the hold',
+      );
+
+      // Everywhere else the hit-and-breathe release stays untouched: the
+      // first post-chorus decays immediately past its peak...
+      expect(perf.laneAccentAt(firstPeak, echo), 1);
+      expect(perf.laneAccentAt(firstPeak + hold * 0.9, echo), lessThan(0.9));
+      // ...the lead never holds, even in the reprise...
+      expect(perf.laneAccentAt(4.6 + hold * 0.9, 0), lessThan(0.9));
+      // ...and the two-beat canon voice's residual hold has already faded to
+      // near-nothing (the bump is centred on the one-beat answer).
+      const canonBeats = -kMovingCanonPhase * kDanceBeatsPerPhraseLoop;
+      const canonPeak = 4.6 + canonBeats * 0.5;
+      expect(
+        perf.laneAccentAt(canonPeak + hold * 0.9, canonBeats),
+        lessThan(0.9),
+      );
+    });
   });
 
   group('DancePerformance onset phrasing', () {

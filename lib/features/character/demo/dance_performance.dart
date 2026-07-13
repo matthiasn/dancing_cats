@@ -502,6 +502,12 @@ class DancePerformance {
   static const double _kAccentMinSpacingSec = 1;
   static const double _kAccentDecaySec = 0.42;
 
+  /// How long the dark flank's reprise answer sustains at peak before its
+  /// release plays (see [_laneAccentHoldSec]) — about five 60fps frames, a
+  /// readable hold at playback speed without blunting the hit-and-breathe
+  /// release the rest of the song keeps.
+  static const double kMovingRepriseAccentHoldSec = 0.08;
+
   /// How far past neutral the accent's release BREATHES back up, as a
   /// fraction of the drop (see [accentAt]'s breathe lobe). A plié that only
   /// sinks and returns reads as a lean; real weight rebounds slightly above
@@ -558,7 +564,13 @@ class DancePerformance {
   /// Music-driven accent envelope at [posSec] (0..1): a quick decay pop on the
   /// most recent STRONG onset, so the body lands WITH the track's hits. 0
   /// between hits; 0 with no onsets (synthetic performances).
-  double accentAt(double posSec) {
+  ///
+  /// [holdSec] sustains the envelope AT its peak for that long before the
+  /// release plays (the whole decay shifts later, the attack stays on the
+  /// onset) — the "held accent frame" the reprise answer earns. The value is
+  /// continuous in [holdSec], so a hold that ramps with a blend cannot step
+  /// the envelope.
+  double accentAt(double posSec, {double holdSec = 0}) {
     final o = _accentOnsets;
     if (o.isEmpty) return 0;
     var lo = 0;
@@ -575,8 +587,8 @@ class DancePerformance {
     }
     if (idx < 0) return 0;
     final dt = posSec - o[idx].time;
-    if (dt < 0 || dt > _kAccentDecaySec) return 0;
-    final u = (dt / _kAccentDecaySec).clamp(0.0, 1.0);
+    if (dt < 0 || dt > _kAccentDecaySec + holdSec) return 0;
+    final u = ((dt - holdSec) / _kAccentDecaySec).clamp(0.0, 1.0);
     // Drop, then BREATHE. The drop eases out with zero velocity at the onset
     // and reaches neutral at [_kAccentRecoverShare] of the window; the
     // remainder is a C1 negative lobe (zero-derivative at both ends) dipping
@@ -604,7 +616,29 @@ class DancePerformance {
   /// beat under bodies that answer later.
   double laneAccentAt(double posSec, double echoBeats) => echoBeats == 0
       ? accentAt(posSec)
-      : accentAt(map.timeAtBeat(map.beatAt(posSec) - echoBeats));
+      : accentAt(
+          map.timeAtBeat(map.beatAt(posSec) - echoBeats),
+          holdSec: _laneAccentHoldSec(posSec, echoBeats),
+        );
+
+  /// Peak-hold for the one-beat echo voice's REPRISE answers: in the final
+  /// post-chorus the dark flank sustains each hit at full depth for
+  /// [kMovingRepriseAccentHoldSec] before the release plays — the held
+  /// accent frame that marks the reprise's answer as a statement rather
+  /// than a passing hit (round-6 animator), in the one section where the
+  /// canon returns as the arc's peak. Shaped as a smooth bump over the
+  /// DISPLACEMENT: a blending clip's `echoBeats` lerps through the blend
+  /// window, so a boolean gate would step the envelope mid-decay; the bump
+  /// ramps the hold in and out with the blend, peaks on the one-beat voice,
+  /// and has already faded to ~0.1x at the two-beat canon voice.
+  double _laneAccentHoldSec(double posSec, double echoBeats) {
+    if (echoBeats <= 0) return 0;
+    if (sectionInfoAt(posSec).section != 'post-chorus') return 0;
+    if (sectionOccurrenceAt(posSec, 'post-chorus') < 1) return 0;
+    final bump =
+        1 - (echoBeats - kMovingEchoAnswerBeats).abs() / kMovingEchoAnswerBeats;
+    return bump <= 0 ? 0 : kMovingRepriseAccentHoldSec * bump;
+  }
 
   /// [anticipationAt] for a displaced voice — see [laneAccentAt].
   double laneAnticipationAt(double posSec, double echoBeats) => echoBeats == 0
