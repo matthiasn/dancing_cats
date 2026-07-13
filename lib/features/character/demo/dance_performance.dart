@@ -712,6 +712,32 @@ class DancePerformance {
     (lx: 0.8, ly: -0.3, rx: -0.7, ry: -0.25),
   ];
 
+  /// Peak accent-pose reach, in rig units. Deliberately BEYOND the arm's
+  /// length from its authored position: the two-bone IK solver clamps an
+  /// out-of-reach target to a straight-elbow extension toward it, which is
+  /// exactly the pose — the arm genuinely leaves the chest-to-hip box.
+  static const double kMovingAccentPoseUnits = 30;
+
+  /// Accent-pose envelope timing, in seconds around the owning hit: launch
+  /// through the pickup's last moments, SNAP to full reach just past the
+  /// hit (with a slight overshoot-settle), HOLD, then melt back to groove.
+  /// The whole figure clears well before the 1s onset-spacing floor.
+  static const double kMovingPoseRiseStartSec = -0.15;
+  static const double kMovingPoseRiseEndSec = 0.09;
+  static const double kMovingPoseHoldEndSec = 0.30;
+  static const double kMovingPoseReleaseEndSec = 0.65;
+
+  /// One-arm accent poses, picked per hit: point up-out, cross-body reach,
+  /// overhead throw, low sweep. x sign is flipped for a right-arm pose; the
+  /// OTHER arm stays on groove (a parked/travelling contrast instead of the
+  /// perpetual two-arm jog).
+  static const List<({double x, double y})> _kAccentPoses = [
+    (x: 0.75, y: -0.75), // point up-out at 45°
+    (x: -0.65, y: -0.25), // cross-body reach
+    (x: 0.2, y: -1), // overhead throw
+    (x: 0.85, y: 0.35), // low sweep-out
+  ];
+
   /// Deterministic 0..1 hash of (onset index, lane, salt) — the flourish's
   /// only source of "randomness", so every render of the same song makes the
   /// same choices and tests can pin them.
@@ -750,6 +776,45 @@ class DancePerformance {
     return _flourishHash(idx, lane, 2) < 0.55;
   }
 
+  /// Whether onset [idx] earns a hit-and-hold accent POSE for [lane] — the
+  /// unanimous panel finding after the fills shipped: the hits had nowhere
+  /// to LAND. Every gesture resolved into the same fist-by-the-ear pump, so
+  /// the downbeat was "the smallest, least interesting arm frame of the
+  /// bar". Roughly 1-2 of the strongest hits per phrase, per cat, hashed
+  /// per lane so the three cats pose on DIFFERENT hits (arm counterpoint
+  /// for free).
+  bool _poseAt(int idx, int lane, double strength) {
+    if (strength < 0.72) return false;
+    return _flourishHash(idx, lane, 4) < 0.45;
+  }
+
+  /// The accent-pose envelope at [dt] seconds past the owning hit: a C1
+  /// figure that LAUNCHES through the pickup's last moments, snaps to a
+  /// slight (12%) overshoot just past the hit, settles into a genuine HOLD,
+  /// then melts back to groove. Zero (value and slope) outside the figure,
+  /// which clears well before the 1s onset-spacing floor — consecutive
+  /// poses can never overlap.
+  static double _poseEnvelope(double dt) {
+    if (dt <= kMovingPoseRiseStartSec || dt >= kMovingPoseReleaseEndSec) {
+      return 0;
+    }
+    if (dt < kMovingPoseRiseEndSec) {
+      final r =
+          (dt - kMovingPoseRiseStartSec) /
+          (kMovingPoseRiseEndSec - kMovingPoseRiseStartSec);
+      return r * r * (3 - 2 * r) * 1.12;
+    }
+    if (dt < kMovingPoseHoldEndSec) {
+      final s = ((dt - kMovingPoseRiseEndSec) / 0.08).clamp(0.0, 1.0);
+      return 1 + 0.12 * (1 - s * s * (3 - 2 * s));
+    }
+    final r =
+        ((dt - kMovingPoseHoldEndSec) /
+                (kMovingPoseReleaseEndSec - kMovingPoseHoldEndSec))
+            .clamp(0.0, 1.0);
+    return 1 - r * r * (3 - 2 * r);
+  }
+
   /// The hand-flourish displacement for a Moving lane at [posSec] — the
   /// variation layer that keeps repeated hits from reading identical
   /// (owner: "hand movement is still a bit monotonous"). Two additive terms,
@@ -769,6 +834,10 @@ class DancePerformance {
   ///    owning-onset flip always happens at zero amplitude. Frequent enough
   ///    to be a texture (see [_fillAt]), loop-shaped so it can never read
   ///    as a tremor.
+  /// 3. A HIT-AND-HOLD accent pose on the strongest selected hits (see
+  ///    [_poseAt] / [_poseEnvelope]): one arm snaps out of the groove box
+  ///    into a full extension, holds, and melts back — the downbeat
+  ///    finally differs in SHAPE from the groove, not just in amplitude.
   DanceHandFlourish _handFlourishAt(double posSec, double echoBeats, int lane) {
     final o = _accentOnsets;
     if (o.isEmpty) return kNoHandFlourish;
@@ -832,6 +901,33 @@ class DancePerformance {
             ry += cxR * sinT + cyR * cosT;
           }
         }
+      }
+    }
+
+    // Hit-and-hold accent poses: on the selected strongest hits, ONE arm
+    // launches out of the groove box into a full extension (the 30-unit
+    // target is deliberately past the arm's reach — the IK solver clamps to
+    // a straight-elbow pose toward it), holds, and melts back while the
+    // other arm keeps grooving. The envelope starts before the hit, so
+    // both the owning onset and its successor are candidates.
+    final lastIdx = _lastOnsetIndex(dp);
+    for (final i in [lastIdx, lastIdx + 1]) {
+      if (i < 0 || i >= o.length) continue;
+      if (!_poseAt(i, lane, o[i].strength)) continue;
+      final env = _poseEnvelope(dp - o[i].time);
+      if (env == 0) continue;
+      final pose = _kAccentPoses[(_flourishHash(i, lane, 5) *
+              _kAccentPoses.length)
+          .floor()
+          .clamp(0, _kAccentPoses.length - 1)];
+      final amp = kMovingAccentPoseUnits * o[i].strength * env;
+      // pose.x is OUTWARD: -x for the left arm, +x for the right.
+      if (_flourishHash(i, lane, 6) < 0.5) {
+        lx += amp * -pose.x;
+        ly += amp * pose.y;
+      } else {
+        rx += amp * pose.x;
+        ry += amp * pose.y;
       }
     }
     return (lx: lx, ly: ly, rx: rx, ry: ry);

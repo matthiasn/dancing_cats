@@ -1095,6 +1095,42 @@ void main() {
       expect(fills / samples, lessThan(0.9));
     });
 
+    test('strong hits land in a held one-arm pose that melts back', () {
+      // Find, deterministically, an onset that poses for some lane: every
+      // onset here is strength 1, so eligibility is purely the hash.
+      final posed = <(double, int)>[];
+      for (final t in [1.0, 2.5, 4.0, 5.5, 7.0, 8.5, 10.0]) {
+        for (final lane in [0, 1, 2]) {
+          // A pose reads as a LARGE displacement at the hold plateau
+          // (~0.2s past the hit), far beyond ornament scale.
+          if (mag(at(t + 0.2, lane: lane)) > 15) posed.add((t, lane));
+        }
+      }
+      expect(posed, isNotEmpty, reason: 'poses must fire on strong hits');
+      // The three cats pose on DIFFERENT hits (counterpoint by hash).
+      expect(
+        posed.map((p) => p.$2).toSet().length,
+        greaterThan(1),
+        reason: 'poses must not be a unison event',
+      );
+
+      final (t0, lane) = posed.first;
+      // HOLD: deep into the plateau the reach barely moves...
+      final hold1 = at(t0 + 0.18, lane: lane);
+      final hold2 = at(t0 + 0.28, lane: lane);
+      expect((mag(hold1) - mag(hold2)).abs(), lessThan(3));
+      // ...it is ONE-armed: the other hand stays at groove scale...
+      final l = hold1.lx.abs() + hold1.ly.abs();
+      final r = hold1.rx.abs() + hold1.ry.abs();
+      expect(
+        math.max(l, r) / math.max(1e-9, math.min(l, r) + 4.5),
+        greaterThan(2),
+        reason: 'the posing arm must dominate; the other keeps grooving',
+      );
+      // ...and it has melted back to silence before the next hit's window.
+      expect(mag(at(t0 + 0.75, lane: lane)), lessThan(0.6));
+    });
+
     test('the hands never teleport — dense continuity sweep', () {
       var prev = at(0.5);
       var worst = 0.0;
@@ -1109,11 +1145,12 @@ void main() {
         if (step > worst) worst = step;
         prev = f;
       }
-      // Envelope-slope bound: the coil ramps 10/s (0.09 per 2ms step at
-      // 4.5 units) and the double-time loop (6 units at ~16 rad/s) slews
-      // under 100 units/s (0.19 per step). A flavor or window step would
-      // land 1-6+ units in one sample — far above this band.
-      expect(worst, lessThan(0.45));
+      // Envelope-slope bound: the accent-pose launch covers ~34 units in
+      // 0.24s (smoothstep peak ~210 u/s = 0.42 per 2ms step), on top of a
+      // dying fill tail (<= 0.19) and the coil (0.09) — but never all three
+      // peaks aligned. A shape or window step would land 1-30 units in one
+      // sample, far above this band.
+      expect(worst, lessThan(0.7));
     });
 
     test("a blending clip lerps the two sides' flourishes", () {
@@ -1216,11 +1253,11 @@ void main() {
         }
         expect(
           worst,
-          lessThan(0.45),
+          lessThan(0.7),
           reason:
               'lane $lane worst flourish step $worst at '
-              '${worstT.toStringAsFixed(3)}s — the double-time loop slews '
-              '~0.19/step at most; a teleport-class step measures 1-6+ '
+              '${worstT.toStringAsFixed(3)}s — the pose launch slews '
+              '~0.42/step at most; a teleport-class step measures 1-30 '
               'units in one 2ms sample',
         );
       }
