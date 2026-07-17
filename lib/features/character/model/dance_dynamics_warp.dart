@@ -944,6 +944,147 @@ const double kDanceShoulderWindAmplitude = 0.026;
 const double kDanceChestWindAmplitude = 0.03;
 const int kDanceShoulderWindHarmonic = 2;
 
+/// How far a NON-SPEAKING canon voice ducks its upper-body projection while
+/// another voice's displaced envelope is hot (0.38 → the off voice plays at
+/// ~62%). All three voices used to run their full-amplitude statements
+/// simultaneously through the canon, so no voice ever popped: the panel
+/// read "lead dances, backups noodle" instead of a conversation. The duck
+/// rides the same per-lane accent/anticipation envelopes that light the
+/// pools, so a voice swells back to full EXACTLY as its own answer lands;
+/// on tutti hits every envelope is hot together and nobody ducks. Hands
+/// and arms only (root groove untouched — a ducked voice keeps dancing,
+/// it just stops projecting).
+const double kMovingOffVoiceDuck = 0.38;
+
+/// The Moving SPINE GROOVE: a beat-rate chest hinge with the head
+/// nodding just behind it. The wind above is texture (1.7 degrees at 1.5
+/// cycles per bar) — the afrobeats panel measured through it: "the groove
+/// lives only below the waist; head dead level, chest never hinges — legs
+/// say Afrobeats, the upper body says corporate mascot." A pulse-locked
+/// hinge (~2.6 degrees per beat) with the head trailing ~75ms turns the
+/// column into a wave up the body. Head lag is expressed in loop phase
+/// (0.019 of the 8-beat loop ≈ 75ms at this track's ~119 BPM).
+const double kMovingSpineHingeRad = 0.045;
+const double kMovingSpineHeadNodRad = 0.06;
+const int kMovingSpineBeatHarmonic = 8;
+const double kMovingSpineHeadLagPhase = 0.019;
+
+/// Returns [clip] with the Moving spine groove layered on (chest hinge at
+/// beat rate + lagged head nod, see the constants above), scaled by
+/// [energyLevel] so the valley pumps quietly and the drops pump full. Same
+/// blend-safe additive construction as [shoulderWoundClip]: inside a
+/// transition the sine is blended across BOTH sides' clocks, never freshly
+/// phased on the incoming clock. Moving family only; same clip back
+/// otherwise.
+Clip spineGroovedClip(Clip clip, int lane, double energyLevel) {
+  if (!clip.loop || clip.duration <= 0 || !clip.belongsToFamily('moving')) {
+    return clip;
+  }
+  final scale = 0.45 + 0.55 * energyLevel.clamp(0.0, 1.0);
+  final lanePhase = lane * 0.11;
+  JointChannel grooved(
+    JointChannel base, {
+    required List<({double amplitude, double phase})> terms,
+  }) {
+    final plan = clip.transitionPlan;
+    if (plan == null) {
+      var wound = base;
+      for (final t in terms) {
+        wound = WoundJointChannel(
+          wound,
+          amplitude: t.amplitude,
+          harmonic: kMovingSpineBeatHarmonic,
+          phase: t.phase,
+        );
+      }
+      return wound;
+    }
+    JointChannel pumpChannel(double amplitude, double phase) => SineChannel(
+      harmonicAmplitude: amplitude,
+      harmonicMultiplier: kMovingSpineBeatHarmonic.toDouble(),
+      harmonicPhase: phase,
+    );
+    return LayeredJointChannel([
+      base,
+      for (final t in terms)
+        BlendedJointChannel(
+          from: pumpChannel(t.amplitude, t.phase),
+          to: pumpChannel(t.amplitude, t.phase),
+          weight: plan.weight,
+          fromTimeShift: plan.fromTimeShiftSeconds,
+          fromDuration: plan.from.duration,
+          toDuration: plan.to.duration,
+        ),
+    ]);
+  }
+
+  // The head INHERITS every pumped spine joint through the bone chain
+  // (head → neck → chest → torso), so a naive head nod rides in-phase on
+  // top of the hinge and no lag survives to the screen — the certification
+  // panel measured head-chest lag at -5ms with amplitude ratio ~1 ("still
+  // a flagpole"). The head channel must SUBTRACT the inherited pump and
+  // re-add the nod delayed, so the head's WORLD motion is exactly
+  // kMovingSpineHeadNodRad at the lagged phase.
+  final pumpedJoints = clip.channels.keys
+      .where((id) => id == 'torso' || id == 'chest')
+      .length;
+  var changed = false;
+  final channels = <String, JointChannel>{};
+  clip.channels.forEach((id, ch) {
+    if (id == 'torso' || id == 'chest') {
+      channels[id] = grooved(
+        ch,
+        terms: [(amplitude: kMovingSpineHingeRad * scale, phase: lanePhase)],
+      );
+      changed = true;
+    } else if (id == 'head') {
+      channels[id] = grooved(
+        ch,
+        terms: [
+          (
+            amplitude: -pumpedJoints * kMovingSpineHingeRad * scale,
+            phase: lanePhase,
+          ),
+          (
+            amplitude: kMovingSpineHeadNodRad * scale,
+            phase: lanePhase - kMovingSpineHeadLagPhase,
+          ),
+        ],
+      );
+      changed = true;
+    } else {
+      channels[id] = ch;
+    }
+  });
+  if (!changed) return clip;
+  return Clip(
+    name: clip.name,
+    family: clip.family,
+    echoBeats: clip.echoBeats,
+    duration: clip.duration,
+    channels: channels,
+    loop: clip.loop,
+    root: clip.root,
+    locomotionSpeed: clip.locomotionSpeed,
+    groundSpans: clip.groundSpans,
+    contactSpans: clip.contactSpans,
+    contactPinning: clip.contactPinning,
+    limbTargets: clip.limbTargets,
+    supportFootWorldAnchor: clip.supportFootWorldAnchor,
+    supportFootWorldAnchorStrength: clip.supportFootWorldAnchorStrength,
+    supportFootWorldAnchorVerticalBoost:
+        clip.supportFootWorldAnchorVerticalBoost,
+    danceHeadBobScale: clip.danceHeadBobScale,
+    danceHeadLevelClampMin: clip.danceHeadLevelClampMin,
+    armReachScale: clip.armReachScale,
+    headLateralStabilize: clip.headLateralStabilize,
+    enforceSoleFloor: clip.enforceSoleFloor,
+    transitionPlan: clip.transitionPlan,
+    zOrderSwaps: clip.zOrderSwaps,
+    dynamics: clip.dynamics,
+  );
+}
+
 /// Returns [clip] with a small continuous sine roll added to the clavicles
 /// (opposite phase L/R = a shoulder roll) and the chest, so the upper body keeps
 /// winding even between authored poses. Live-path; same clip back if disabled or

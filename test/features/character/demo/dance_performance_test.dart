@@ -739,13 +739,17 @@ void main() {
         // The LAST post-chorus keeps the heat — the track still burns near
         // its peak there, and leading it with the lowest phrase measured as
         // the weakest window of the whole edit (round-3 panel).
-        // ...and RESTATES THE CANON in its second statement (round-5: the
-        // arc's peak must not abandon the conversation).
+        // ...RESTATES THE CANON in its second statement (round-5: the
+        // arc's peak must not abandon the conversation), hands the canon to
+        // the big open statement, and releases exactly ONCE in the closing
+        // statement — the old windowBridge→lowCounter tail double-released
+        // while the track still burned at its sustained maximum (the
+        // climax churned below the build it followed).
         expect(score('post-chorus', 1), [
           'movingChorusTravel',
           'movingHookLead',
+          'movingChorusOpen',
           'movingVerseWindow',
-          'movingHookLowCounter',
         ]);
         // FINALITY, not occurrence, selects the reprise: this track tags
         // post-chorus exactly once, so its occurrence is 0 — an
@@ -765,10 +769,19 @@ void main() {
           'movingBodyRoll',
           'movingHookLowCounter',
         ]);
+        // The bridge is the piece's true dynamic valley: two calmed
+        // statements, a near-still unison LISTEN, then the travel statement
+        // re-ignites into the final chorus (the full-size bridge measured
+        // ABOVE a chorus bar over the quietest audio of the track).
         expect(score('bridge', 0), [
           'movingBridgeBounce',
           'movingBridgeRock',
-          'movingBodyRoll',
+          // The LISTEN bar is the idle body itself (feet pinned by
+          // construction, moving-family-tagged so the painter's layers
+          // stay on): calm-scaling a step-touch clip left full-cadence
+          // legwork, and both certifying lenses measured 82-86s as the
+          // valley's BUSIEST stretch instead of its hush.
+          'idle',
           'movingChorusTravel',
         ]);
         expect(score('outro', 0), [
@@ -1193,18 +1206,34 @@ void main() {
       final paw = perf.lanePawPoseFor(t0 + 0.2, groove, lane);
       final f = at(t0 + 0.2, lane: lane);
       final leftPosing = f.lx.abs() + f.ly.abs() > f.rx.abs() + f.ry.abs();
-      // The posing hand is OPEN at the hold; the other stays near closed
-      // (only the small per-hit softening).
+      // The posing hand is OPEN at the hold; the other stays near its
+      // relaxed half-open rest — clearly below the statement.
       final posingSplay = leftPosing ? paw.splayL : paw.splayR;
       final restingSplay = leftPosing ? paw.splayR : paw.splayL;
       expect(posingSplay, greaterThan(0.8));
-      expect(restingSplay, lessThan(0.35));
+      expect(restingSplay, lessThan(0.5));
       // The posing wrist aligns with the reach.
       final posingWrist = leftPosing ? paw.wristL : paw.wristR;
       expect(posingWrist.abs(), greaterThan(0.2));
 
-      // Quiet gaps: paws fully at rest.
-      expect(perf.lanePawPoseFor(1.6, groove, 0), kClosedPaws);
+      // Quiet gaps: paws rest RELAXED HALF-OPEN with a breathing sway —
+      // never the featureless closed fist ("mittens", two lenses), and
+      // never fully open (that's the hold pose's statement).
+      final resting = perf.lanePawPoseFor(1.6, groove, 0);
+      expect(
+        resting.splayL,
+        allOf(
+          greaterThan(DancePerformance.kMovingPawRestSplay - 0.1),
+          lessThan(DancePerformance.kMovingPawRestSplay + 0.1),
+        ),
+      );
+      expect(
+        resting.splayR,
+        allOf(
+          greaterThan(DancePerformance.kMovingPawRestSplay - 0.1),
+          lessThan(DancePerformance.kMovingPawRestSplay + 0.1),
+        ),
+      );
 
       // During a fill the wrist ROLLS: it changes sign across the window.
       (double, int)? filled;
@@ -1241,12 +1270,12 @@ void main() {
         if (step > worst) worst = step;
         prev = f;
       }
-      // Envelope-slope bound: the accent-pose launch covers ~34 units in
-      // 0.24s (smoothstep peak ~210 u/s = 0.42 per 2ms step), on top of a
-      // dying fill tail (<= 0.19) and the coil (0.09) — but never all three
-      // peaks aligned. A shape or window step would land 1-30 units in one
-      // sample, far above this band.
-      expect(worst, lessThan(0.7));
+      // Envelope-slope bound: a DOOR pose launch now covers ~66 units
+      // (2.2x far-target, see the door-amp note in _handExpressionAt) in
+      // its 0.195s rise with 1.2x overshoot — peak ~0.9 per 2ms step,
+      // measured 0.8997 on this track. A shape or window step would land
+      // 1-30 units in ONE sample, far above this band.
+      expect(worst, lessThan(1.5));
     });
 
     test("a blending clip lerps the two sides' flourishes", () {
@@ -1349,7 +1378,7 @@ void main() {
         }
         expect(
           worst,
-          lessThan(0.7),
+          lessThan(1.5),
           reason:
               'lane $lane worst flourish step $worst at '
               '${worstT.toStringAsFixed(3)}s — the pose launch slews '

@@ -5,6 +5,19 @@ import 'dart:math' as math;
 /// toward) the target.
 typedef TwoBoneIkSolution = ({double upperAngle, double lowerAngle});
 
+/// Where the end-range soft knee starts, as a fraction of the limb's full
+/// reach, and the asymptotic maximum it compresses toward. The old hard
+/// clamp at full reach parked the joint DEAD STRAIGHT for every
+/// out-of-reach target (deliberately used by the hit-and-hold poses) and
+/// kinked the solve's derivative exactly at the boundary — measured as
+/// freeze-frame "peg limbs" at pose apexes and kick extremes, and a
+/// one-frame paw/cuff hitch (45.05s) as a melting reach re-entered range.
+/// The knee is C1 (slope 1 at its start, exponential approach to the
+/// asymptote), so extension eases into ~172 degrees instead of locking at
+/// 180, and nothing changes for targets under ~95.5% reach.
+const double kIkSoftKneeStart = 0.955;
+const double kIkSoftMaxReach = 0.9975;
+
 /// Solves a planar two-bone limb (shoulder → elbow → upper segment, elbow →
 /// wrist → lower segment) reaching from ([shoulderX], [shoulderY]) toward
 /// ([targetX], [targetY]).
@@ -50,8 +63,14 @@ TwoBoneIkSolution? solveTwoBoneIk({
   if (targetDistance <= 1e-6) return null;
 
   final minReach = (upperLength - lowerLength).abs() + 1e-6;
-  final maxReach = upperLength + lowerLength - 1e-6;
-  final solvedDistance = targetDistance.clamp(minReach, maxReach);
+  final fullReach = upperLength + lowerLength;
+  final kneeStart = fullReach * kIkSoftKneeStart;
+  final softMax = fullReach * kIkSoftMaxReach;
+  final span = softMax - kneeStart;
+  final softened = targetDistance <= kneeStart
+      ? targetDistance
+      : kneeStart + span * (1 - math.exp(-(targetDistance - kneeStart) / span));
+  final solvedDistance = softened.clamp(minReach, softMax);
   final targetAngle = math.atan2(toTargetY, toTargetX);
   final shoulderCos =
       (upperLength * upperLength +

@@ -118,7 +118,7 @@ void main() {
       expect(elbow(-1).y, lessThan(0));
     });
 
-    test('a target beyond reach straightens the limb to its max reach', () {
+    test('a target beyond reach eases to NEAR-straight, never dead straight', () {
       const upper = 3.0;
       const lower = 4.0;
       final s = solveTwoBoneIk(
@@ -137,10 +137,26 @@ void main() {
         upperLength: upper,
         lowerLength: lower,
       );
-      // Clamped to maxReach (≈ upper + lower) and pointed at the target (+x).
-      expect(math.sqrt(w.x * w.x + w.y * w.y), closeTo(upper + lower, 1e-2));
-      expect(w.y, closeTo(0, 1e-2));
-      expect(w.x, greaterThan(6.9));
+      // The soft end-range knee (see kIkSoftMaxReach) compresses the last
+      // stretch of reach: the limb extends toward the target but keeps a
+      // hint of elbow bend instead of locking at 180 degrees — the old
+      // hard clamp parked joints DEAD STRAIGHT for every out-of-reach
+      // pose target and kinked the solve at the boundary (freeze-frame
+      // "peg limbs"; the 45.05s one-frame paw hitch).
+      // The forearm re-aims at the true target after the softened elbow
+      // solve (the same deliberate soft-solve as [abduction]), so the
+      // wrist lands a shade past the knee's asymptote — but always
+      // measurably short of dead straight.
+      final reach = math.sqrt(w.x * w.x + w.y * w.y);
+      expect(reach, closeTo((upper + lower) * kIkSoftMaxReach, 2e-2));
+      expect(reach, lessThan(upper + lower - 0.004));
+      // The residual elbow bend is visible but small.
+      final bend =
+          (s.upperAngle - s.lowerAngle).abs() % (2 * math.pi);
+      expect(bend, greaterThan(0.05));
+      expect(bend, lessThan(0.3));
+      expect(w.y.abs(), lessThan(0.3));
+      expect(w.x, greaterThan(6.8));
     });
   });
 
@@ -148,7 +164,7 @@ void main() {
     glados.Glados<({double u, double l, double dir, double frac})>(
       glados.any.reachable,
       glados.ExploreConfig(numRuns: 300),
-    ).test('reaches any target strictly inside its range', (c) {
+    ).test('reaches any target inside the soft knee exactly', (c) {
       final minReach = (c.u - c.l).abs() + 1e-6;
       final maxReach = c.u + c.l - 1e-6;
       final dist = minReach + c.frac * (maxReach - minReach);
@@ -165,13 +181,27 @@ void main() {
         bendDirection: 1,
       );
       expect(s, isNotNull, reason: tag);
-      // Reconstruct the wrist from the solved angles; it must land on the target.
+      // Reconstruct the wrist from the solved angles. Below the soft-knee
+      // start the wrist lands ON the target; inside the knee (the last
+      // ~4.5% of reach) it lands at the knee's compressed distance along
+      // the target ray — strictly monotone, never past the target.
       final ex = math.cos(s!.upperAngle) * c.u;
       final ey = math.sin(s.upperAngle) * c.u;
       final wx = ex + math.cos(s.lowerAngle) * c.l;
       final wy = ey + math.sin(s.lowerAngle) * c.l;
-      expect(wx, closeTo(tx, 1e-6), reason: tag);
-      expect(wy, closeTo(ty, 1e-6), reason: tag);
+      final kneeStart = (c.u + c.l) * kIkSoftKneeStart;
+      if (dist <= kneeStart) {
+        expect(wx, closeTo(tx, 1e-6), reason: tag);
+        expect(wy, closeTo(ty, 1e-6), reason: tag);
+      } else {
+        final solved = math.sqrt(wx * wx + wy * wy);
+        expect(solved, lessThanOrEqualTo(dist + 1e-6), reason: tag);
+        expect(solved, greaterThan(kneeStart - 1e-6), reason: tag);
+        // Direction is preserved to within the forearm re-aim's residual
+        // (the wrist rides the elbow→target ray, not the shoulder ray).
+        expect(math.atan2(wy, wx), closeTo(math.atan2(ty, tx), 6e-3),
+            reason: tag);
+      }
     }, tags: 'glados');
   });
 

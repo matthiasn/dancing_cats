@@ -575,11 +575,27 @@ class DancePerformance {
   /// word start in the peak picking.
   static const double _kVocalAccentStrength = 0.42;
 
+  /// How far a picked accent's PRESENTED strength closes the gap toward the
+  /// track's local loudness (see [_accentOnsets]). The final post-chorus
+  /// carries the song's loudest sustained stretch (normalized intensity
+  /// ~0.95) yet its transients mix soft — one onset ≥0.5 in seventeen
+  /// seconds, mean 0.26 — so absolute presentation danced the climax at a
+  /// third of the first chorus's drop depth and starved every strength-gated
+  /// layer with it (fills, hold poses, door stamps, blooms; v91 biomech:
+  /// "the reprise churns below the build"). A dancer hits relative to the
+  /// section's heat: each picked onset lifts by this fraction of
+  /// (local intensity − raw strength). Pick ORDER stays raw-strength-greedy,
+  /// within-neighbourhood contrast survives (the gap shrinks as raw grows),
+  /// and hits already at or above the local loudness are untouched.
+  static const double _kAccentLocalLift = 0.6;
+
   /// The onsets that fire a visible body accent: strength-greedy peak picking
   /// with [_kAccentMinSpacingSec] between hits (see the constants above for
   /// why this replaced a flat strength floor). Instrumental onsets are joined
   /// by a secondary tier of lead-vocal word starts (see
-  /// [_kVocalAccentStrength]). Pre-computed once, sorted by time.
+  /// [_kVocalAccentStrength]); picked strengths then lift toward the local
+  /// loudness (see [_kAccentLocalLift] — synthetic no-waveform performances
+  /// keep raw strengths). Pre-computed once, sorted by time.
   late final List<({double time, double strength})> _accentOnsets = () {
     final candidates = [
       for (final o in onsets)
@@ -596,7 +612,17 @@ class DancePerformance {
       if (!tooClose) picked.add(o);
     }
     picked.sort((a, b) => a.time.compareTo(b.time));
-    return picked;
+    if (waveform.isEmpty) return picked;
+    return [
+      for (final o in picked)
+        (
+          time: o.time,
+          strength:
+              o.strength +
+              math.max(0, intensityAt(o.time) - o.strength) *
+                  _kAccentLocalLift,
+        ),
+    ];
   }();
 
   /// Music-driven accent envelope at [posSec] (0..1): a quick decay pop on the
@@ -708,6 +734,35 @@ class DancePerformance {
     final to = laneAnticipationAt(posSec, plan.to.echoBeats);
     return from + (to - from) * plan.weight;
   }
+
+  /// Paw resting openness (0 fist .. 1 full splay): the hands ride RELAXED
+  /// and half-open between hits. Two lenses converged on the old
+  /// closed-at-rest default from opposite directions — "dancing in
+  /// mittens" (long featureless ball-fists on every hold) and "fists are
+  /// for punctuation, not the resting state of a laid-back groove."
+  static const double kMovingPawRestSplay = 0.32;
+
+  /// Gentle beat-rate wrist/finger sway around the resting openness — the
+  /// "wrist-led swing" that keeps a relaxed hand alive at freeze-frame.
+  static const double kMovingPawSwayRad = 0.05;
+
+  /// How far a full-strength hit CLENCHES the resting paw toward a fist.
+  /// The polarity is deliberate: relaxed hand → fist ON the hit reads as
+  /// punctuation; the old fist → slightly-softened-fist read as a glove.
+  static const double kMovingPawHitFist = 0.4;
+
+  /// Wrist follow-through per unit of 30ms load-envelope delta: the wrist
+  /// winds BACK while the body's load builds and whips slightly forward as
+  /// it releases — the extremity trails the arm instead of arriving with
+  /// it as one rigid unit (animator: "arms arrive and stop dead").
+  static const double kMovingWristFollow = 0.6;
+
+  /// Micro finger pulse (splay amplitude) while a hit-and-hold pose HOLDS:
+  /// a held extension whose paw is pixel-frozen for 1.6s reads as a prop —
+  /// a ~0.3s breathing pulse keeps it alive without moving the arm.
+  /// Deepened 0.06 → 0.09 after certification: present but "near-
+  /// subliminal at full frame" (animator, autocorr 0.17-0.25).
+  static const double kMovingHoldPawPulse = 0.09;
 
   /// Peak hand-flourish displacement, in rig units, at full load. Small next
   /// to the authored hand paths — a shading on the phrase, not a new phrase.
@@ -890,18 +945,25 @@ class DancePerformance {
   static double _poseEnvelope(double dt, {bool door = false}) {
     final holdEnd = door ? 0.55 : kMovingPoseHoldEndSec;
     final releaseEnd = door ? 1.05 : kMovingPoseReleaseEndSec;
+    // A DOOR punches: the biggest musical moments were selling their hit
+    // through the light flare while the arm's attack spread across ~14
+    // frames (animator: "the drop is sold by the flare, not the body").
+    // The door's sweep completes ~3 frames past the hit with a harder
+    // overshoot; ordinary poses keep the certified softer figure.
+    final riseEnd = door ? 0.045 : kMovingPoseRiseEndSec;
+    final overshoot = door ? 1.2 : 1.12;
+    final settleSec = door ? 0.1 : 0.08;
     if (dt <= kMovingPoseRiseStartSec || dt >= releaseEnd) {
       return 0;
     }
-    if (dt < kMovingPoseRiseEndSec) {
+    if (dt < riseEnd) {
       final r =
-          (dt - kMovingPoseRiseStartSec) /
-          (kMovingPoseRiseEndSec - kMovingPoseRiseStartSec);
-      return r * r * (3 - 2 * r) * 1.12;
+          (dt - kMovingPoseRiseStartSec) / (riseEnd - kMovingPoseRiseStartSec);
+      return r * r * (3 - 2 * r) * overshoot;
     }
     if (dt < holdEnd) {
-      final s = ((dt - kMovingPoseRiseEndSec) / 0.08).clamp(0.0, 1.0);
-      return 1 + 0.12 * (1 - s * s * (3 - 2 * s));
+      final s = ((dt - riseEnd) / settleSec).clamp(0.0, 1.0);
+      return 1 + (overshoot - 1) * (1 - s * s * (3 - 2 * s));
     }
     final r = ((dt - holdEnd) / (releaseEnd - holdEnd)).clamp(0.0, 1.0);
     return 1 - r * r * (3 - 2 * r);
@@ -947,8 +1009,23 @@ class DancePerformance {
     var ry = 0.0;
     var wristL = 0.0;
     var wristR = 0.0;
-    var splayL = 0.0;
-    var splayR = 0.0;
+    // Paws rest RELAXED HALF-OPEN, with a gentle beat-rate wrist sway, and
+    // CLOSE into fists on the hits. The old polarity (closed at rest,
+    // softening open on hits) kept two featureless ball-fists on screen for
+    // most of the song — the panel's "dancing in mittens / corporate
+    // mascot" tell from two lenses at once. A relaxed hand that clenches
+    // into the hit is punctuation; a fist that occasionally relaxes is a
+    // glove.
+    final beat = map.beatAt(dp);
+    var splayL =
+        kMovingPawRestSplay +
+        kMovingPawSwayRad * math.sin(2 * math.pi * beat + lane * 0.9);
+    var splayR =
+        kMovingPawRestSplay +
+        kMovingPawSwayRad * math.sin(2 * math.pi * beat + lane * 0.9 + 1.7);
+    wristL += kMovingPawSwayRad * math.sin(2 * math.pi * beat + lane * 0.9);
+    wristR +=
+        kMovingPawSwayRad * math.sin(2 * math.pi * beat + lane * 0.9 + 1.7);
 
     final acc = laneAccentAt(posSec, echoBeats).clamp(0.0, 1.0);
     final ant = laneAnticipationAt(posSec, echoBeats);
@@ -965,11 +1042,22 @@ class DancePerformance {
       ly += amp * v.ly;
       rx += amp * v.rx;
       ry += amp * v.ry;
-      // Every hit softens the paws open a touch — a fist that never
-      // breathes is the mitten tell.
-      splayL += 0.18 * load;
-      splayR += 0.18 * load;
+      // The hands CLENCH with the hit and relax with the release.
+      splayL -= kMovingPawHitFist * load;
+      splayR -= kMovingPawHitFist * load;
     }
+    // Extremity follow-through: the wrists trail the body's load — winding
+    // back as the load builds, whipping slightly forward as it releases
+    // (panel: "arms arrive and stop as rigid units"). Driven by the load
+    // envelope's local slope (a 30ms finite difference of the same
+    // continuous envelope, so the term can never step).
+    final loadPrev = math.max(
+      laneAccentAt(posSec - 0.03, echoBeats).clamp(0.0, 1.0),
+      laneAnticipationAt(posSec - 0.03, echoBeats),
+    );
+    final loadDelta = load - loadPrev;
+    wristL += -kMovingWristFollow * loadDelta;
+    wristR += -kMovingWristFollow * loadDelta;
 
     final next = _lastOnsetIndex(dp) + 1;
     if (next < o.length) {
@@ -1028,22 +1116,59 @@ class DancePerformance {
       if (i < 0 || i >= o.length) continue;
       if (!_poseAt(i, lane, o[i].strength)) continue;
       final door = _sectionDoorOnsets.contains(i);
-      final env = _poseEnvelope(dp - o[i].time, door: door);
+      // A door stamp anchors on the BEAT nearest its onset, not the onset
+      // itself: doors are structural grammar, and the certifying animator
+      // measured the 105.8s stamp apexing 2.5 frames BEFORE the beat (its
+      // onset mixes early) and the finale's apex splitting the beat pair.
+      // Ordinary poses stay onset-anchored like every other accent layer.
+      final anchorT = door
+          ? map.timeAtBeat(map.beatAt(o[i].time).roundToDouble())
+          : o[i].time;
+      final env = _poseEnvelope(dp - anchorT, door: door);
       if (env == 0) continue;
-      final flavor = (_flourishHash(i, lane, 5) * _kAccentPoses.length)
+      // A DOOR is stamped as ONE shape: the trio shares flavor and arm.
+      // Per-lane hashes had the three cats stamping three different
+      // sentences at the exact moments meant to read as ensemble
+      // punctuation (panel: the tutti bookends "land 2/3" — one cat
+      // always visibly sat out the statement).
+      final hashLane = door ? 0 : lane;
+      final flavor = (_flourishHash(i, hashLane, 5) * _kAccentPoses.length)
           .floor()
           .clamp(0, _kAccentPoses.length - 1);
       final pose = _kAccentPoses[flavor];
       // A door statement reaches full extension even in low-energy sections
       // (the finale button fires at E~0.1 where the painter's energy scale
-      // would otherwise halve it; the IK solver clamps the excess for hot
-      // sections, so the boost costs nothing there).
+      // would otherwise halve it; the IK solver's soft end-range absorbs
+      // the excess for hot sections, so the boost costs nothing there).
+      // 2.2x, not 1.4x: the offset target is HAND-RELATIVE, and from a
+      // low-carriage base clip a 42-unit target still landed a stamp at
+      // half height (coach: the 90.1 door "dim, low, half-height fist" on
+      // the low-counter lane). Far enough past reach, the solve's
+      // direction converges to the offset direction from ANY base
+      // carriage — one shape from three different starting arms.
       final amp =
-          kMovingAccentPoseUnits * (door ? 1.4 : 1.0) * o[i].strength * env;
+          kMovingAccentPoseUnits * (door ? 2.2 : 1.0) * o[i].strength * env;
       final wrist = _kAccentPoseWrist[flavor] * env;
-      final open = env.clamp(0.0, 1.0);
+      // The held paw BREATHES: a micro finger pulse across the hold window
+      // (smooth-gated at both ends) so a 1.6s freeze-frame still reads as
+      // a living hand, not a prop on a stick.
+      final dt = dp - anchorT;
+      const holdStart = kMovingPoseRiseEndSec;
+      final holdEnd = door ? 0.55 : kMovingPoseHoldEndSec;
+      var pulse = 0.0;
+      if (dt > holdStart && dt < holdEnd) {
+        final gIn = ((dt - holdStart) / 0.1).clamp(0.0, 1.0);
+        final gOut = ((holdEnd - dt) / 0.1).clamp(0.0, 1.0);
+        final gate =
+            gIn * gIn * (3 - 2 * gIn) * (gOut * gOut * (3 - 2 * gOut));
+        pulse =
+            kMovingHoldPawPulse *
+            math.sin(2 * math.pi * (dt - holdStart) / 0.3) *
+            gate;
+      }
+      final open = env.clamp(0.0, 1.0) + pulse;
       // pose.x is OUTWARD: -x for the left arm, +x for the right.
-      if (_flourishHash(i, lane, 6) < 0.5) {
+      if (_flourishHash(i, hashLane, 6) < 0.5) {
         lx += amp * -pose.x;
         ly += amp * pose.y;
         wristL += -wrist;
@@ -1192,6 +1317,99 @@ class DancePerformance {
   static final Clip _movingChorusOpen = CatClips.movingChorusOpen;
   static final Clip _movingBridgeRock = CatClips.movingBridgeRock;
   static final Clip _movingBodyRoll = CatClips.movingBodyRoll;
+
+  /// A statement-sized CALM of [clip] for the bridge valley: root groove and
+  /// hand reach scaled down at the score level (feet untouched — plants must
+  /// not slide). The energy pipeline alone cannot carve the valley: its
+  /// floors (root 0.6 + hands 0.78 of authored size at ZERO energy) kept the
+  /// quietest fourteen seconds of the track dancing at chorus-measured
+  /// motion (panel frame-diff 1.31 valley vs 1.22 chorus bar — "the chorus
+  /// with the lights dimmed"). Score-level like every other Moving variant,
+  /// so transitions blend it as an ordinary clip on its own clock.
+  static Clip _calmedStatement(Clip clip, double root, double hands) =>
+      effortModulatedClip(
+        bodyGrooveScaledClip(clip, root),
+        (_) => hands,
+      );
+
+  /// Bridge statements, softened (~0.6 of authored size after the energy
+  /// pipeline's own scaling) — sways and weight rocks instead of full-size
+  /// pumps over the quietest audio of the piece.
+  static final Clip _movingBridgeCalm = _calmedStatement(
+    CatClips.movingBridgeRock,
+    0.62,
+    0.6,
+  );
+  static final Clip _movingBreakdownCalm = _calmedStatement(
+    CatClips.movingBreakdownGroove,
+    0.62,
+    0.6,
+  );
+
+  /// The valley's LISTEN bar: the trio genuinely STOPS. Round-2 shipped
+  /// this as breakdown-at-0.4 — but the calm scaling deliberately never
+  /// touches feet, so the authored step-touch legwork kept full cadence
+  /// and BOTH certifying lenses measured 82-86s as the valley's busiest
+  /// stretch ("the hush that never lands"). The hold is now the idle body
+  /// itself — feet pinned by construction, breath/ears/tail keeping it
+  /// alive — re-tagged into the moving family so the painter's moving-
+  /// gated layers (spine pump, half-open paws, pocket clock) stay ON
+  /// through the slot boundaries instead of snapping off for one slot.
+  static final Clip _movingListenHold = () {
+    final idle = CatClips.idle;
+    return Clip(
+      name: idle.name,
+      family: 'moving',
+      echoBeats: idle.echoBeats,
+      duration: idle.duration,
+      channels: idle.channels,
+      loop: idle.loop,
+      root: idle.root,
+      locomotionSpeed: idle.locomotionSpeed,
+      groundSpans: idle.groundSpans,
+      contactSpans: idle.contactSpans,
+      contactPinning: idle.contactPinning,
+      limbTargets: idle.limbTargets,
+      supportFootWorldAnchor: idle.supportFootWorldAnchor,
+      supportFootWorldAnchorStrength: idle.supportFootWorldAnchorStrength,
+      supportFootWorldAnchorVerticalBoost:
+          idle.supportFootWorldAnchorVerticalBoost,
+      danceHeadBobScale: idle.danceHeadBobScale,
+      danceHeadLevelClampMin: idle.danceHeadLevelClampMin,
+      armReachScale: idle.armReachScale,
+      headLateralStabilize: idle.headLateralStabilize,
+      enforceSoleFloor: idle.enforceSoleFloor,
+      transitionPlan: idle.transitionPlan,
+      zOrderSwaps: idle.zOrderSwaps,
+      dynamics: idle.dynamics,
+    );
+  }();
+
+  /// Deeper calm for the FLANKS of the valley statements: at the shared
+  /// 0.62/0.6 the certifying coach measured grey's bridge bars at his own
+  /// chorus level ("the release reads as slightly softer, carried mostly
+  /// by one dancer") — the flanks exhale harder so the lead's statements
+  /// read as solos over a quiet floor.
+  static final Clip _movingVerseCalmDeep = _calmedStatement(
+    CatClips.movingVerseGroove,
+    0.55,
+    0.45,
+  );
+  static final Clip _movingLowCounterCalmDeep = _calmedStatement(
+    CatClips.movingGrooveLowCounter,
+    0.55,
+    0.45,
+  );
+  static final Clip _movingBreakdownCalmDeep = _calmedStatement(
+    CatClips.movingBreakdownGroove,
+    0.55,
+    0.45,
+  );
+  static final Clip _movingVerseWindowCalmDeep = _calmedStatement(
+    CatClips.movingVerseWindow,
+    0.55,
+    0.45,
+  );
 
   /// How far open the lyric-synced mouth slack window is dilated so short gaps
   /// between a phrase's words don't make the mouth flicker shut.
@@ -1424,10 +1642,6 @@ class DancePerformance {
       lead: _movingVerseWindow,
       ensemble: [_movingVerseWindow, _movingVerse, _movingSideAnswer],
     );
-    final breakdown = (
-      lead: _movingBreakdown,
-      ensemble: [_movingBreakdown, _movingVerse, _movingLowCounter],
-    );
     final bridgeRock = (
       lead: _movingBridgeRock,
       ensemble: [_movingBridgeRock, _movingBreakdown, _movingVerseWindow],
@@ -1486,8 +1700,15 @@ class DancePerformance {
           // Keyed on FINALITY, not occurrence: this track tags post-chorus
           // once, so an occurrence-only gate never fired and the reprise
           // shipped dead (see sectionIsFinalOccurrenceAt).
+          // The reprise's back half used to double-release (windowBridge
+          // THEN lowCounter) while the track still burned at its sustained
+          // maximum — the climax churned below the build it followed. The
+          // canon hands to the big OPEN statement (not hookUnison: its lead
+          // shares the canon's lead clip, and back-to-back identical leads
+          // read as one 8-second sentence) and releases exactly once, in
+          // the closing statement.
           variant >= 1 || finalOccurrence
-              ? [hookTravel, hookCall, windowBridge, lowCounter]
+              ? [hookTravel, hookCall, hookOpen, windowBridge]
               : [lowCounter, hookTravel, bodyRoll, windowBridge],
           phase,
           sectionSeconds,
@@ -1510,12 +1731,35 @@ class DancePerformance {
           sectionSeconds,
         );
       case 'bridge':
+        // The valley must RELEASE, not dim: the calm statements shrink to
+        // sways and weight rocks, the third bar all but stops (a unison
+        // LISTEN — the only near-stillness in the piece), and the travel
+        // statement re-ignites out of that stillness so the final chorus
+        // has somewhere to come from. The panel measured the previous
+        // full-size bridge ABOVE a chorus bar (frame-diff 1.31 vs 1.22)
+        // over the quietest audio of the track.
+        final bridgeEase = (
+          lead: _movingBreakdownCalm,
+          ensemble: [
+            _movingBreakdownCalm,
+            _movingVerseCalmDeep,
+            _movingLowCounterCalmDeep,
+          ],
+        );
+        final bridgeSway = (
+          lead: _movingBridgeCalm,
+          ensemble: [
+            _movingBridgeCalm,
+            _movingBreakdownCalmDeep,
+            _movingVerseWindowCalmDeep,
+          ],
+        );
+        final bridgeListen = (
+          lead: _movingListenHold,
+          ensemble: [_movingListenHold, _movingListenHold, _movingListenHold],
+        );
         return _rotateSetlist(
-          // Keep the first three statements grounded, then travel into the
-          // late chorus. The former low-counter ending extended the bridge's
-          // low fist vocabulary for eight seconds; sideVerse was rejected too
-          // because it repeated the incoming chorus lead across the boundary.
-          [breakdown, bridgeRock, bodyRoll, hookTravel],
+          [bridgeEase, bridgeSway, bridgeListen, hookTravel],
           phase,
           sectionSeconds,
         );

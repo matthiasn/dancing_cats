@@ -487,6 +487,58 @@ void main() {
       );
     });
 
+    test('a non-speaking canon voice ducks its hand projection', () {
+      CharacterPainter build(DanceStage stage, {List<double>? gains}) =>
+          danceCharacterPainter(
+            cast: DanceCast.build(),
+            renderer: CharacterRenderer(antiAlias: false),
+            stage: stage,
+            shot: (zoom: 1.0, dx: 0.0, dy: 0.0),
+            leadMouth: 0,
+            bgMouth: 0,
+            leadShape: MouthShape.neutral,
+            bgShape: MouthShape.neutral,
+            scale: 1,
+            backlights: const [],
+            laneVoiceGains: gains,
+          );
+      double handAmp(Clip clip) {
+        final ch = clip.limbTargets
+            .singleWhere((t) => t.endBoneId == CatBones.handL)
+            .channel;
+        // Peak-to-peak across the loop — an amplitude read, robust to the
+        // mean-preserving scaling.
+        var lo = double.infinity;
+        var hi = double.negativeInfinity;
+        for (var p = 0.0; p < 1; p += 0.02) {
+          final x = ch.sample(p).x;
+          if (x < lo) lo = x;
+          if (x > hi) hi = x;
+        }
+        return hi - lo;
+      }
+
+      final moving = _movingStage();
+      final plain = build(moving);
+      final ducked = build(moving, gains: const [1.0, 0.62, 1.0]);
+      // The lead (gain 1) is untouched; the ducked flank's hand amplitude
+      // scales by its gain so the speaking voice pops at full frame.
+      expect(
+        handAmp(ducked.clip),
+        closeTo(handAmp(plain.clip), 1e-9),
+      );
+      expect(
+        handAmp(ducked.ensembleClips[1]),
+        closeTo(handAmp(plain.ensembleClips[1]) * 0.62, 1e-6),
+      );
+      // The catalogue never ducks (the gate is Moving-only).
+      final catalogue = _catalogueStage();
+      expect(
+        handAmp(build(catalogue, gains: const [1.0, 0.5, 1.0]).ensembleClips[1]),
+        closeTo(handAmp(build(catalogue).ensembleClips[1]), 1e-9),
+      );
+    });
+
     test("a canon quote is delivered at the caller's full amplitude", () {
       final base = CatClips.movingGroove;
       final quote = wholeClipPhaseShiftedClip(base, kMovingCanonPhase);

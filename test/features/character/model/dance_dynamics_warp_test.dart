@@ -256,6 +256,64 @@ void main() {
     });
   });
 
+  group('spineGroovedClip', () {
+    Clip movingClip() => const Clip(
+      name: 'test-moving',
+      family: 'moving',
+      duration: 6,
+      channels: {
+        'torso': KeyframeChannel([Keyframe(p: 0)]),
+        'head': KeyframeChannel([Keyframe(p: 0)]),
+        'hand.R': KeyframeChannel([Keyframe(p: 0)]),
+      },
+    );
+
+    test('pumps the chest; the head WORLD nod trails by the lag', () {
+      final grooved = spineGroovedClip(movingClip(), 0, 1);
+      // The pump's first peak sits a quarter-cycle into the beat harmonic.
+      const q = 0.25 / kMovingSpineBeatHarmonic;
+      expect(
+        grooved.channels['torso']!.sample(q).rotation,
+        closeTo(kMovingSpineHingeRad, 1e-9),
+      );
+      // The head channel COMPENSATES the pump it inherits through the
+      // chain and re-adds the nod delayed: sampled as world motion
+      // (inherited torso + local head), the nod peaks exactly one lag
+      // phase after the chest and at exactly the nod amplitude — the wave
+      // climbs the column instead of the spine tilting as one flagpole.
+      double worldNod(double p) =>
+          grooved.channels['torso']!.sample(p).rotation +
+          grooved.channels['head']!.sample(p).rotation;
+      expect(
+        worldNod(q + kMovingSpineHeadLagPhase),
+        closeTo(kMovingSpineHeadNodRad, 1e-9),
+      );
+      expect(
+        worldNod(q),
+        lessThan(worldNod(q + kMovingSpineHeadLagPhase)),
+      );
+      expect(grooved.channels['hand.R']!.sample(q).rotation, 0);
+    });
+
+    test('scales with energy and skips non-moving clips', () {
+      final quiet = spineGroovedClip(movingClip(), 0, 0);
+      const q = 0.25 / kMovingSpineBeatHarmonic;
+      expect(
+        quiet.channels['torso']!.sample(q).rotation,
+        closeTo(kMovingSpineHingeRad * 0.45, 1e-9),
+      );
+      final catalogue = _loopingClip(
+        channels: const {
+          'torso': KeyframeChannel([Keyframe(p: 0)]),
+        },
+      );
+      expect(
+        identical(spineGroovedClip(catalogue, 0, 1), catalogue),
+        isTrue,
+      );
+    });
+  });
+
   group('handFlourishedClip', () {
     const target = KeyframeIkTargetChannel([
       IkTargetKeyframe(p: 0, x: 5, y: 60),

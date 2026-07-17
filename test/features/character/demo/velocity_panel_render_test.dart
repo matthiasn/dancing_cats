@@ -84,5 +84,8 @@ void main() {
     File(path).writeAsBytesSync(bytes!.buffer.asUint8List());
     // ignore: avoid_print
     print('wrote $path');
-  });
+    // Renders six full panels (~29s on an idle VM) — the default 30s test
+    // timeout trips under CI/full-suite load, so this diagnostic gets an
+    // explicit generous budget.
+  }, timeout: const Timeout(Duration(minutes: 3)));
 }

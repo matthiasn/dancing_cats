@@ -398,6 +398,7 @@ class DancePlaybackStepper {
           ? kMovingPhraseLoopBeats
           : perf.binding.loopLengthBeats;
       final swing = songGroove ? kMovingSwingBeats : 0.0;
+      final lag = songGroove ? kMovingPocketLagBeats : 0.0;
       final offsetBeats =
           ((kDanceEntryPhaseOffset[moveName] ?? 0) * loopLengthBeats).round();
       int rotate(int anchorBeatIndex) {
@@ -419,6 +420,7 @@ class DancePlaybackStepper {
             loopLengthBeats: loopLengthBeats,
             anchorBeatIndex: rotate(db),
             swing: swing,
+            lag: lag,
           );
         }
       }
@@ -426,6 +428,7 @@ class DancePlaybackStepper {
         loopLengthBeats: loopLengthBeats,
         anchorBeatIndex: rotate(perf.binding.anchorBeatIndex),
         swing: swing,
+        lag: lag,
       );
     });
   }
@@ -478,6 +481,22 @@ const int kMovingPhraseLoopBeats = 8;
 /// wall-clock bands would otherwise cap the pocket depth by measurement
 /// artefact rather than by musical choice.
 const double kMovingSwingBeats = 0.06;
+
+/// Constant pocket lag for the Moving family, in beats (see
+/// [BeatLoopBinding.lag]).
+///
+/// [kMovingSwingBeats] shapes the INSIDE of each beat but is identity at
+/// every beat line, so beat-keyed pose arrivals still landed machine-tight:
+/// the panel's phase-folded measurement put chorus pose-settles +13ms after
+/// the beat (verse +38ms) with the velocity burst finishing ON the gridline
+/// — "sequencer-tight, not Omah Lay laid-back. A Lagos body settles
+/// 50-90ms late and melts into the hit." 0.10 beats ≈ 50ms at this track's
+/// ~119 BPM puts the measured settles at ~63ms (chorus) / ~88ms (verse),
+/// inside that pocket, with arrival velocity still decaying across the
+/// beat line. The music-locked layers (accent pliés, blooms, door stamps)
+/// deliberately do NOT ride this clock: the body sits behind the beat
+/// while the hits stay on it — which is the pocket, by definition.
+const double kMovingPocketLagBeats = 0.10;
 
 /// The short window used when one catalogue move changes to another.
 ///

@@ -61,6 +61,7 @@ class DanceStageView extends StatelessWidget {
     this.laneBodyAnticipations,
     this.laneHandFlourishes,
     this.lanePawPoses,
+    this.laneVoiceGains,
     this.onDancerAnchors,
     this.useNewBackdrop = true,
     this.showCaptions = false,
@@ -114,6 +115,12 @@ class DanceStageView extends StatelessWidget {
   /// Per-lane paw articulation (wrist lag + toe/thumb splay, see
   /// `DancePerformance.lanePawPoseFor`). Null → paws rest closed.
   final List<DancePawPose>? lanePawPoses;
+
+  /// Per-lane canon CONVERSATION gains (1 = full voice): while another
+  /// voice's displaced envelope speaks and this lane's is cold, its
+  /// upper-body projection ducks (see kMovingOffVoiceDuck) so the speaking
+  /// voice pops without any staging change. Null → no ducking.
+  final List<double>? laneVoiceGains;
 
   /// Audio position seconds — drives the scenery (it pauses/seeks with the
   /// track).
@@ -284,6 +291,7 @@ class DanceStageView extends StatelessWidget {
                           laneBodyAnticipations: laneBodyAnticipations,
                           laneHandFlourishes: laneHandFlourishes,
                           lanePawPoses: lanePawPoses,
+                          laneVoiceGains: laneVoiceGains,
                           leadMouth: leadMouth,
                           bgMouth: bgMouth,
                           leadShape: leadShape,
@@ -483,6 +491,7 @@ CharacterPainter danceCharacterPainter({
   List<double>? laneBodyAnticipations,
   List<DanceHandFlourish>? laneHandFlourishes,
   List<DancePawPose>? lanePawPoses,
+  List<double>? laneVoiceGains,
 }) {
   final moving = stage.lead.belongsToFamily('moving');
   final load = _bodyLoadEnvelope(bodyAccent, bodyAnticipation);
@@ -556,6 +565,20 @@ CharacterPainter danceCharacterPainter({
     ));
   }
 
+  // The canon conversation gate: a non-speaking voice's hands/arms play at
+  // reduced amplitude until its OWN displaced envelope speaks (see
+  // kMovingOffVoiceDuck). Applied outermost so the duck scales the whole
+  // hand statement — authored path, flourish, and pose together. The root
+  // groove is untouched: a ducked voice keeps dancing, it just stops
+  // projecting.
+  Clip voiceGained(Clip clip, int lane) {
+    final gains = laneVoiceGains;
+    if (gains == null || !moving) return clip;
+    final g = gains[lane];
+    if (g >= 1.0) return clip;
+    return effortModulatedClip(clip, (_) => g);
+  }
+
   return CharacterPainter(
     scene: cast.lead,
     partnerScene: cast.left,
@@ -567,18 +590,21 @@ CharacterPainter danceCharacterPainter({
     ],
     ensembleClips: [
       for (var i = 0; i < stage.ensemble.length; i++)
-        pawPosed(
-          flourished(
-            accentDroppedClip(
-              productionDanceClip(
-                stage.ensemble[i],
-                stage.dynamics[i],
-                i,
-                stage.energyLevel,
+        voiceGained(
+          pawPosed(
+            flourished(
+              accentDroppedClip(
+                productionDanceClip(
+                  stage.ensemble[i],
+                  stage.dynamics[i],
+                  i,
+                  stage.energyLevel,
+                ),
+                dropUnits(i),
+                bobDuck: bobDuckFor(i),
+                chestCompress: chestCompressFor(i),
               ),
-              dropUnits(i),
-              bobDuck: bobDuckFor(i),
-              chestCompress: chestCompressFor(i),
+              i,
             ),
             i,
           ),
@@ -588,18 +614,21 @@ CharacterPainter danceCharacterPainter({
     synchronousEnsemble: stage.synchronous,
     singingHeadMotion: true,
     walkingPair: true,
-    clip: pawPosed(
-      flourished(
-        accentDroppedClip(
-          productionDanceClip(
-            stage.lead,
-            stage.dynamics.first,
-            0,
-            stage.energyLevel,
+    clip: voiceGained(
+      pawPosed(
+        flourished(
+          accentDroppedClip(
+            productionDanceClip(
+              stage.lead,
+              stage.dynamics.first,
+              0,
+              stage.energyLevel,
+            ),
+            dropUnits(0),
+            bobDuck: bobDuckFor(0),
+            chestCompress: chestCompressFor(0),
           ),
-          dropUnits(0),
-          bobDuck: bobDuckFor(0),
-          chestCompress: chestCompressFor(0),
+          0,
         ),
         0,
       ),
@@ -872,7 +901,12 @@ Clip productionDanceClip(
     // never a static posed post while the hips bounce (the pocket is upper-
     // body-led — coach).
     final wound = shoulderWoundClip(microTimed, lane);
-    if (transition == null) return wound;
+    // 7. Beat-locked SPINE GROOVE: chest hinge pumping on the pulse with the
+    // head nodding just behind it (afrobeats panel: the wind alone left a
+    // "flagpole spine" — the groove has to climb the column, not stop at
+    // the hips). Energy-scaled so the valley pumps quietly.
+    final spined = spineGroovedClip(wound, lane, energyLevel);
+    if (transition == null) return spined;
 
     // Scene-level transition consumers (support balance, contact locking,
     // world anchors, z-order) evaluate `transitionPlan.from/to` directly.
@@ -883,7 +917,7 @@ Clip productionDanceClip(
     // 85.47s and 137.87s. Carry the exact same production decoration into the
     // plan's two semantic sources while preserving the already-mixed channels.
     return _clipWithTransitionPlan(
-      wound,
+      spined,
       ClipTransitionPlan(
         from: productionDanceClip(
           transition.from,
