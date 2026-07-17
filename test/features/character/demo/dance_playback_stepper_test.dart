@@ -141,15 +141,29 @@ void main() {
       for (var t = 3.2; t < 4.0; t += 0.016) {
         stepper.advance(perf, const [], t, 0.016);
       }
+      // Inside the pocket window (kMovingPocketLagBeats behind the grid) the
+      // seamless loop still shows its wrap content — frame 0 itself arrives
+      // a pocket late, which is the Moving family's behind-the-beat feel.
       stepper.advance(perf, const [], 4.02, 0.016);
       expect(stepper.stage?.lead.name, 'movingHookSideAnswer');
       final duration = stepper.stage!.lead.duration;
       expect(
         stepper.stage!.seconds,
+        greaterThan(duration * 7 / 8),
+        reason:
+            'inside the pocket lag the incoming clip sits just BEFORE its '
+            'own frame 0 (seamless wrap content)',
+      );
+      // Once the pocket has elapsed (0.10 beats ≈ 50ms at these 0.5s
+      // beats), bar 1 has landed: the re-anchor holds, just felt late.
+      stepper.advance(perf, const [], 4.08, 0.016);
+      expect(
+        stepper.stage!.seconds,
         lessThan(duration / 8),
         reason:
-            'just past the segment-anchor downbeat the incoming clip should '
-            'be at the very start of its own bar 1, not mid-phrase',
+            'just past the segment-anchor downbeat plus the pocket, the '
+            'incoming clip should be at the very start of its own bar 1, '
+            'not mid-phrase',
       );
     });
 

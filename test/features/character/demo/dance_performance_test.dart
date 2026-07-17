@@ -739,13 +739,17 @@ void main() {
         // The LAST post-chorus keeps the heat — the track still burns near
         // its peak there, and leading it with the lowest phrase measured as
         // the weakest window of the whole edit (round-3 panel).
-        // ...and RESTATES THE CANON in its second statement (round-5: the
-        // arc's peak must not abandon the conversation).
+        // ...RESTATES THE CANON in its second statement (round-5: the
+        // arc's peak must not abandon the conversation), hands the canon to
+        // the big open statement, and releases exactly ONCE in the closing
+        // statement — the old windowBridge→lowCounter tail double-released
+        // while the track still burned at its sustained maximum (the
+        // climax churned below the build it followed).
         expect(score('post-chorus', 1), [
           'movingChorusTravel',
           'movingHookLead',
+          'movingChorusOpen',
           'movingVerseWindow',
-          'movingHookLowCounter',
         ]);
         // FINALITY, not occurrence, selects the reprise: this track tags
         // post-chorus exactly once, so its occurrence is 0 — an
@@ -765,10 +769,14 @@ void main() {
           'movingBodyRoll',
           'movingHookLowCounter',
         ]);
+        // The bridge is the piece's true dynamic valley: two calmed
+        // statements, a near-still unison LISTEN, then the travel statement
+        // re-ignites into the final chorus (the full-size bridge measured
+        // ABOVE a chorus bar over the quietest audio of the track).
         expect(score('bridge', 0), [
           'movingBridgeBounce',
           'movingBridgeRock',
-          'movingBodyRoll',
+          'movingBridgeBounce',
           'movingChorusTravel',
         ]);
         expect(score('outro', 0), [

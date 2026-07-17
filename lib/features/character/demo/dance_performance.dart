@@ -575,11 +575,27 @@ class DancePerformance {
   /// word start in the peak picking.
   static const double _kVocalAccentStrength = 0.42;
 
+  /// How far a picked accent's PRESENTED strength closes the gap toward the
+  /// track's local loudness (see [_accentOnsets]). The final post-chorus
+  /// carries the song's loudest sustained stretch (normalized intensity
+  /// ~0.95) yet its transients mix soft — one onset ≥0.5 in seventeen
+  /// seconds, mean 0.26 — so absolute presentation danced the climax at a
+  /// third of the first chorus's drop depth and starved every strength-gated
+  /// layer with it (fills, hold poses, door stamps, blooms; v91 biomech:
+  /// "the reprise churns below the build"). A dancer hits relative to the
+  /// section's heat: each picked onset lifts by this fraction of
+  /// (local intensity − raw strength). Pick ORDER stays raw-strength-greedy,
+  /// within-neighbourhood contrast survives (the gap shrinks as raw grows),
+  /// and hits already at or above the local loudness are untouched.
+  static const double _kAccentLocalLift = 0.6;
+
   /// The onsets that fire a visible body accent: strength-greedy peak picking
   /// with [_kAccentMinSpacingSec] between hits (see the constants above for
   /// why this replaced a flat strength floor). Instrumental onsets are joined
   /// by a secondary tier of lead-vocal word starts (see
-  /// [_kVocalAccentStrength]). Pre-computed once, sorted by time.
+  /// [_kVocalAccentStrength]); picked strengths then lift toward the local
+  /// loudness (see [_kAccentLocalLift] — synthetic no-waveform performances
+  /// keep raw strengths). Pre-computed once, sorted by time.
   late final List<({double time, double strength})> _accentOnsets = () {
     final candidates = [
       for (final o in onsets)
@@ -596,7 +612,17 @@ class DancePerformance {
       if (!tooClose) picked.add(o);
     }
     picked.sort((a, b) => a.time.compareTo(b.time));
-    return picked;
+    if (waveform.isEmpty) return picked;
+    return [
+      for (final o in picked)
+        (
+          time: o.time,
+          strength:
+              o.strength +
+              math.max(0, intensityAt(o.time) - o.strength) *
+                  _kAccentLocalLift,
+        ),
+    ];
   }();
 
   /// Music-driven accent envelope at [posSec] (0..1): a quick decay pop on the
@@ -1030,7 +1056,13 @@ class DancePerformance {
       final door = _sectionDoorOnsets.contains(i);
       final env = _poseEnvelope(dp - o[i].time, door: door);
       if (env == 0) continue;
-      final flavor = (_flourishHash(i, lane, 5) * _kAccentPoses.length)
+      // A DOOR is stamped as ONE shape: the trio shares flavor and arm.
+      // Per-lane hashes had the three cats stamping three different
+      // sentences at the exact moments meant to read as ensemble
+      // punctuation (panel: the tutti bookends "land 2/3" — one cat
+      // always visibly sat out the statement).
+      final hashLane = door ? 0 : lane;
+      final flavor = (_flourishHash(i, hashLane, 5) * _kAccentPoses.length)
           .floor()
           .clamp(0, _kAccentPoses.length - 1);
       final pose = _kAccentPoses[flavor];
@@ -1043,7 +1075,7 @@ class DancePerformance {
       final wrist = _kAccentPoseWrist[flavor] * env;
       final open = env.clamp(0.0, 1.0);
       // pose.x is OUTWARD: -x for the left arm, +x for the right.
-      if (_flourishHash(i, lane, 6) < 0.5) {
+      if (_flourishHash(i, hashLane, 6) < 0.5) {
         lx += amp * -pose.x;
         ly += amp * pose.y;
         wristL += -wrist;
@@ -1192,6 +1224,60 @@ class DancePerformance {
   static final Clip _movingChorusOpen = CatClips.movingChorusOpen;
   static final Clip _movingBridgeRock = CatClips.movingBridgeRock;
   static final Clip _movingBodyRoll = CatClips.movingBodyRoll;
+
+  /// A statement-sized CALM of [clip] for the bridge valley: root groove and
+  /// hand reach scaled down at the score level (feet untouched — plants must
+  /// not slide). The energy pipeline alone cannot carve the valley: its
+  /// floors (root 0.6 + hands 0.78 of authored size at ZERO energy) kept the
+  /// quietest fourteen seconds of the track dancing at chorus-measured
+  /// motion (panel frame-diff 1.31 valley vs 1.22 chorus bar — "the chorus
+  /// with the lights dimmed"). Score-level like every other Moving variant,
+  /// so transitions blend it as an ordinary clip on its own clock.
+  static Clip _calmedStatement(Clip clip, double root, double hands) =>
+      effortModulatedClip(
+        bodyGrooveScaledClip(clip, root),
+        (_) => hands,
+      );
+
+  /// Bridge statements, softened (~0.6 of authored size after the energy
+  /// pipeline's own scaling) — sways and weight rocks instead of full-size
+  /// pumps over the quietest audio of the piece.
+  static final Clip _movingBridgeCalm = _calmedStatement(
+    CatClips.movingBridgeRock,
+    0.62,
+    0.6,
+  );
+  static final Clip _movingBreakdownCalm = _calmedStatement(
+    CatClips.movingBreakdownGroove,
+    0.62,
+    0.6,
+  );
+  static final Clip _movingVerseCalm = _calmedStatement(
+    CatClips.movingVerseGroove,
+    0.62,
+    0.6,
+  );
+  static final Clip _movingVerseWindowCalm = _calmedStatement(
+    CatClips.movingVerseWindow,
+    0.62,
+    0.6,
+  );
+  static final Clip _movingLowCounterCalm = _calmedStatement(
+    CatClips.movingGrooveLowCounter,
+    0.62,
+    0.6,
+  );
+
+  /// The valley's near-still LISTENING bar (~0.4 of authored size): the
+  /// trio all but stops — breath, weight, small head groove — right before
+  /// the travel statement re-ignites into the final chorus, so the build
+  /// has somewhere to come from (panel: "insert one near-still listening
+  /// bar around 84.8-86.8, then re-ignite through 88.86").
+  static final Clip _movingBridgeListen = _calmedStatement(
+    CatClips.movingBreakdownGroove,
+    0.4,
+    0.42,
+  );
 
   /// How far open the lyric-synced mouth slack window is dilated so short gaps
   /// between a phrase's words don't make the mouth flicker shut.
@@ -1424,10 +1510,6 @@ class DancePerformance {
       lead: _movingVerseWindow,
       ensemble: [_movingVerseWindow, _movingVerse, _movingSideAnswer],
     );
-    final breakdown = (
-      lead: _movingBreakdown,
-      ensemble: [_movingBreakdown, _movingVerse, _movingLowCounter],
-    );
     final bridgeRock = (
       lead: _movingBridgeRock,
       ensemble: [_movingBridgeRock, _movingBreakdown, _movingVerseWindow],
@@ -1486,8 +1568,15 @@ class DancePerformance {
           // Keyed on FINALITY, not occurrence: this track tags post-chorus
           // once, so an occurrence-only gate never fired and the reprise
           // shipped dead (see sectionIsFinalOccurrenceAt).
+          // The reprise's back half used to double-release (windowBridge
+          // THEN lowCounter) while the track still burned at its sustained
+          // maximum — the climax churned below the build it followed. The
+          // canon hands to the big OPEN statement (not hookUnison: its lead
+          // shares the canon's lead clip, and back-to-back identical leads
+          // read as one 8-second sentence) and releases exactly once, in
+          // the closing statement.
           variant >= 1 || finalOccurrence
-              ? [hookTravel, hookCall, windowBridge, lowCounter]
+              ? [hookTravel, hookCall, hookOpen, windowBridge]
               : [lowCounter, hookTravel, bodyRoll, windowBridge],
           phase,
           sectionSeconds,
@@ -1510,12 +1599,27 @@ class DancePerformance {
           sectionSeconds,
         );
       case 'bridge':
+        // The valley must RELEASE, not dim: the calm statements shrink to
+        // sways and weight rocks, the third bar all but stops (a unison
+        // LISTEN — the only near-stillness in the piece), and the travel
+        // statement re-ignites out of that stillness so the final chorus
+        // has somewhere to come from. The panel measured the previous
+        // full-size bridge ABOVE a chorus bar (frame-diff 1.31 vs 1.22)
+        // over the quietest audio of the track.
+        final bridgeEase = (
+          lead: _movingBreakdownCalm,
+          ensemble: [_movingBreakdownCalm, _movingVerseCalm, _movingLowCounterCalm],
+        );
+        final bridgeSway = (
+          lead: _movingBridgeCalm,
+          ensemble: [_movingBridgeCalm, _movingBreakdownCalm, _movingVerseWindowCalm],
+        );
+        final bridgeListen = (
+          lead: _movingBridgeListen,
+          ensemble: [_movingBridgeListen, _movingBridgeListen, _movingBridgeListen],
+        );
         return _rotateSetlist(
-          // Keep the first three statements grounded, then travel into the
-          // late chorus. The former low-counter ending extended the bridge's
-          // low fist vocabulary for eight seconds; sideVerse was rejected too
-          // because it repeated the incoming chorus lead across the boundary.
-          [breakdown, bridgeRock, bodyRoll, hookTravel],
+          [bridgeEase, bridgeSway, bridgeListen, hookTravel],
           phase,
           sectionSeconds,
         );

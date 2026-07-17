@@ -140,7 +140,7 @@ class BeatMap {
     required BeatLoopBinding binding,
   }) {
     final beat = beatAt(tSec) - binding.anchorBeatIndex;
-    final swung = _swungBeat(beat, binding.swing);
+    final swung = _swungBeat(beat, binding.swing) - binding.lag;
     var loopPhase = (swung / binding.loopLengthBeats) % 1.0;
     if (loopPhase < 0) loopPhase += 1.0; // defensive; Dart % is already >= 0
     return loopPhase * clipDuration;
@@ -186,11 +186,16 @@ class BeatLoopBinding {
     required this.loopLengthBeats,
     required this.anchorBeatIndex,
     this.swing = 0,
+    this.lag = 0,
   }) : assert(loopLengthBeats > 0, 'loop must span at least one beat'),
        assert(anchorBeatIndex >= 0, 'anchor beat index must be non-negative'),
        assert(
          swing >= 0 && swing < 0.3,
          'swing must stay below the 1/π monotonicity bound',
+       ),
+       assert(
+         lag >= 0 && lag < 0.5,
+         'lag must stay a pocket, not a beat displacement',
        );
 
   /// Rung 3 — bar-correct. Anchor the loop on the `fromDownbeat`-th detected
@@ -236,4 +241,12 @@ class BeatLoopBinding {
   /// Applied to the WHOLE clip clock — arms, feet, and support changes swing
   /// together, so contacts stay consistent with the motion they ground.
   final double swing;
+
+  /// Constant pocket lag, in beats: how far the WHOLE clip clock sits behind
+  /// the detected grid. [swing] is identity AT every beat, so beat-aligned
+  /// pose arrivals still landed sequencer-tight (panel measured settles
+  /// +13ms after the beat; a laid-back body settles 50-90ms late with its
+  /// velocity still decaying ACROSS the beat line). Music-locked envelopes
+  /// (accents, pliés, blooms) do not ride this clock and stay on the hits.
+  final double lag;
 }
