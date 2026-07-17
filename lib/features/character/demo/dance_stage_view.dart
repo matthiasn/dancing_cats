@@ -62,6 +62,7 @@ class DanceStageView extends StatelessWidget {
     this.laneHandFlourishes,
     this.lanePawPoses,
     this.laneVoiceGains,
+    this.laneSingLevels,
     this.onDancerAnchors,
     this.useNewBackdrop = true,
     this.showCaptions = false,
@@ -121,6 +122,12 @@ class DanceStageView extends StatelessWidget {
   /// upper-body projection ducks (see kMovingOffVoiceDuck) so the speaking
   /// voice pops without any staging change. Null → no ducking.
   final List<double>? laneVoiceGains;
+
+  /// Per-lane eased mouth levels (lead, backup-left, backup-right),
+  /// quantized to 0.25 steps by the producer: while a lane sings, its
+  /// spine-groove head nod ducks (see kMovingSingHeadDamp) so the mouth
+  /// stays legible. Null → no damping.
+  final List<double>? laneSingLevels;
 
   /// Audio position seconds — drives the scenery (it pauses/seeks with the
   /// track).
@@ -292,6 +299,7 @@ class DanceStageView extends StatelessWidget {
                           laneHandFlourishes: laneHandFlourishes,
                           lanePawPoses: lanePawPoses,
                           laneVoiceGains: laneVoiceGains,
+                          laneSingLevels: laneSingLevels,
                           leadMouth: leadMouth,
                           bgMouth: bgMouth,
                           leadShape: leadShape,
@@ -492,6 +500,7 @@ CharacterPainter danceCharacterPainter({
   List<DanceHandFlourish>? laneHandFlourishes,
   List<DancePawPose>? lanePawPoses,
   List<double>? laneVoiceGains,
+  List<double>? laneSingLevels,
 }) {
   final moving = stage.lead.belongsToFamily('moving');
   final load = _bodyLoadEnvelope(bodyAccent, bodyAnticipation);
@@ -599,6 +608,7 @@ CharacterPainter danceCharacterPainter({
                   stage.dynamics[i],
                   i,
                   stage.energyLevel,
+                  singLevel: laneSingLevels == null ? 0 : laneSingLevels[i],
                 ),
                 dropUnits(i),
                 bobDuck: bobDuckFor(i),
@@ -623,6 +633,7 @@ CharacterPainter danceCharacterPainter({
               stage.dynamics.first,
               0,
               stage.energyLevel,
+              singLevel: laneSingLevels == null ? 0 : laneSingLevels.first,
             ),
             dropUnits(0),
             bobDuck: bobDuckFor(0),
@@ -777,7 +788,8 @@ double _bodyLoadEnvelope(double bodyAccent, double bodyAnticipation) =>
 /// dynamics) this builds each warped clip once and reuses it every frame; only
 /// transitions — whose blended clip is already a fresh instance per frame —
 /// pay the wrapper allocation, on top of the `blendedClip` work they already do.
-final Expando<Map<(DanceDynamics, int, double), Clip>> _warpCache = Expando();
+final Expando<Map<(DanceDynamics, int, double, double), Clip>> _warpCache =
+    Expando();
 
 /// Moving phrases whose authored loop restart was visually observed as an arm
 /// teleport in the production performance. Their position seams are closed,
@@ -799,11 +811,15 @@ Clip productionDanceClip(
   Clip clip,
   DanceDynamics dynamics,
   int lane,
-  double energyLevel,
-) {
+  double energyLevel, {
+  // Quantized by the caller (0.25 steps) — a raw eased mouth level would
+  // give the cache a near-unique key every frame.
+  double singLevel = 0,
+}) {
   final cache = _warpCache[clip] ??= {};
-  // energyLevel is per-section-constant, so this stays a small keyed cache.
-  return cache[(dynamics, lane, energyLevel)] ??= () {
+  // energyLevel is per-section-constant and singLevel is quantized, so this
+  // stays a small keyed cache.
+  return cache[(dynamics, lane, energyLevel, singLevel)] ??= () {
     final transition = clip.transitionPlan;
     final songGroove = clip.belongsToFamily('moving');
     // 1. Effort TIME warp (unchanged): reshapes the beat timing by dynamics.
@@ -905,7 +921,12 @@ Clip productionDanceClip(
     // head nodding just behind it (afrobeats panel: the wind alone left a
     // "flagpole spine" — the groove has to climb the column, not stop at
     // the hips). Energy-scaled so the valley pumps quietly.
-    final spined = spineGroovedClip(wound, lane, energyLevel);
+    final spined = spineGroovedClip(
+      wound,
+      lane,
+      energyLevel,
+      singLevel: singLevel,
+    );
     if (transition == null) return spined;
 
     // Scene-level transition consumers (support balance, contact locking,
@@ -924,12 +945,14 @@ Clip productionDanceClip(
           dynamics,
           lane,
           energyLevel,
+          singLevel: singLevel,
         ),
         to: productionDanceClip(
           transition.to,
           dynamics,
           lane,
           energyLevel,
+          singLevel: singLevel,
         ),
         weight: transition.weight,
         fromTimeShiftSeconds: transition.fromTimeShiftSeconds,

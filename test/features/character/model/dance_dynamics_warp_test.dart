@@ -295,6 +295,26 @@ void main() {
       expect(grooved.channels['hand.R']!.sample(q).rotation, 0);
     });
 
+    test('a singing lane steadies its head; the chest keeps pumping', () {
+      final grooved = spineGroovedClip(movingClip(), 0, 1, singLevel: 1);
+      const q = 0.25 / kMovingSpineBeatHarmonic;
+      // The chest hinge is untouched by singing.
+      expect(
+        grooved.channels['torso']!.sample(q).rotation,
+        closeTo(kMovingSpineHingeRad, 1e-9),
+      );
+      // The WORLD head nod (inherited pump + compensating local channel)
+      // ducks by kMovingSingHeadDamp — the mouth articulates on a steady
+      // head while the lane sings, and swings freely between lines.
+      double worldNod(double p) =>
+          grooved.channels['torso']!.sample(p).rotation +
+          grooved.channels['head']!.sample(p).rotation;
+      expect(
+        worldNod(q + kMovingSpineHeadLagPhase),
+        closeTo(kMovingSpineHeadNodRad * (1 - kMovingSingHeadDamp), 1e-9),
+      );
+    });
+
     test('scales with energy and skips non-moving clips', () {
       final quiet = spineGroovedClip(movingClip(), 0, 0);
       const q = 0.25 / kMovingSpineBeatHarmonic;
