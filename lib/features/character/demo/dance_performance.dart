@@ -760,7 +760,9 @@ class DancePerformance {
   /// Micro finger pulse (splay amplitude) while a hit-and-hold pose HOLDS:
   /// a held extension whose paw is pixel-frozen for 1.6s reads as a prop —
   /// a ~0.3s breathing pulse keeps it alive without moving the arm.
-  static const double kMovingHoldPawPulse = 0.06;
+  /// Deepened 0.06 → 0.09 after certification: present but "near-
+  /// subliminal at full frame" (animator, autocorr 0.17-0.25).
+  static const double kMovingHoldPawPulse = 0.09;
 
   /// Peak hand-flourish displacement, in rig units, at full load. Small next
   /// to the authored hand paths — a shading on the phrase, not a new phrase.
@@ -1114,7 +1116,15 @@ class DancePerformance {
       if (i < 0 || i >= o.length) continue;
       if (!_poseAt(i, lane, o[i].strength)) continue;
       final door = _sectionDoorOnsets.contains(i);
-      final env = _poseEnvelope(dp - o[i].time, door: door);
+      // A door stamp anchors on the BEAT nearest its onset, not the onset
+      // itself: doors are structural grammar, and the certifying animator
+      // measured the 105.8s stamp apexing 2.5 frames BEFORE the beat (its
+      // onset mixes early) and the finale's apex splitting the beat pair.
+      // Ordinary poses stay onset-anchored like every other accent layer.
+      final anchorT = door
+          ? map.timeAtBeat(map.beatAt(o[i].time).roundToDouble())
+          : o[i].time;
+      final env = _poseEnvelope(dp - anchorT, door: door);
       if (env == 0) continue;
       // A DOOR is stamped as ONE shape: the trio shares flavor and arm.
       // Per-lane hashes had the three cats stamping three different
@@ -1128,21 +1138,27 @@ class DancePerformance {
       final pose = _kAccentPoses[flavor];
       // A door statement reaches full extension even in low-energy sections
       // (the finale button fires at E~0.1 where the painter's energy scale
-      // would otherwise halve it; the IK solver clamps the excess for hot
-      // sections, so the boost costs nothing there).
+      // would otherwise halve it; the IK solver's soft end-range absorbs
+      // the excess for hot sections, so the boost costs nothing there).
+      // 2.2x, not 1.4x: the offset target is HAND-RELATIVE, and from a
+      // low-carriage base clip a 42-unit target still landed a stamp at
+      // half height (coach: the 90.1 door "dim, low, half-height fist" on
+      // the low-counter lane). Far enough past reach, the solve's
+      // direction converges to the offset direction from ANY base
+      // carriage — one shape from three different starting arms.
       final amp =
-          kMovingAccentPoseUnits * (door ? 1.4 : 1.0) * o[i].strength * env;
+          kMovingAccentPoseUnits * (door ? 2.2 : 1.0) * o[i].strength * env;
       final wrist = _kAccentPoseWrist[flavor] * env;
       // The held paw BREATHES: a micro finger pulse across the hold window
       // (smooth-gated at both ends) so a 1.6s freeze-frame still reads as
       // a living hand, not a prop on a stick.
-      final dt = dp - o[i].time;
+      final dt = dp - anchorT;
       const holdStart = kMovingPoseRiseEndSec;
       final holdEnd = door ? 0.55 : kMovingPoseHoldEndSec;
       var pulse = 0.0;
       if (dt > holdStart && dt < holdEnd) {
-        final gIn = ((dt - holdStart) / 0.06).clamp(0.0, 1.0);
-        final gOut = ((holdEnd - dt) / 0.06).clamp(0.0, 1.0);
+        final gIn = ((dt - holdStart) / 0.1).clamp(0.0, 1.0);
+        final gOut = ((holdEnd - dt) / 0.1).clamp(0.0, 1.0);
         final gate =
             gIn * gIn * (3 - 2 * gIn) * (gOut * gOut * (3 - 2 * gOut));
         pulse =
@@ -1329,31 +1345,70 @@ class DancePerformance {
     0.62,
     0.6,
   );
-  static final Clip _movingVerseCalm = _calmedStatement(
-    CatClips.movingVerseGroove,
-    0.62,
-    0.6,
-  );
-  static final Clip _movingVerseWindowCalm = _calmedStatement(
-    CatClips.movingVerseWindow,
-    0.62,
-    0.6,
-  );
-  static final Clip _movingLowCounterCalm = _calmedStatement(
-    CatClips.movingGrooveLowCounter,
-    0.62,
-    0.6,
-  );
 
-  /// The valley's near-still LISTENING bar (~0.4 of authored size): the
-  /// trio all but stops — breath, weight, small head groove — right before
-  /// the travel statement re-ignites into the final chorus, so the build
-  /// has somewhere to come from (panel: "insert one near-still listening
-  /// bar around 84.8-86.8, then re-ignite through 88.86").
-  static final Clip _movingBridgeListen = _calmedStatement(
+  /// The valley's LISTEN bar: the trio genuinely STOPS. Round-2 shipped
+  /// this as breakdown-at-0.4 — but the calm scaling deliberately never
+  /// touches feet, so the authored step-touch legwork kept full cadence
+  /// and BOTH certifying lenses measured 82-86s as the valley's busiest
+  /// stretch ("the hush that never lands"). The hold is now the idle body
+  /// itself — feet pinned by construction, breath/ears/tail keeping it
+  /// alive — re-tagged into the moving family so the painter's moving-
+  /// gated layers (spine pump, half-open paws, pocket clock) stay ON
+  /// through the slot boundaries instead of snapping off for one slot.
+  static final Clip _movingListenHold = () {
+    final idle = CatClips.idle;
+    return Clip(
+      name: idle.name,
+      family: 'moving',
+      echoBeats: idle.echoBeats,
+      duration: idle.duration,
+      channels: idle.channels,
+      loop: idle.loop,
+      root: idle.root,
+      locomotionSpeed: idle.locomotionSpeed,
+      groundSpans: idle.groundSpans,
+      contactSpans: idle.contactSpans,
+      contactPinning: idle.contactPinning,
+      limbTargets: idle.limbTargets,
+      supportFootWorldAnchor: idle.supportFootWorldAnchor,
+      supportFootWorldAnchorStrength: idle.supportFootWorldAnchorStrength,
+      supportFootWorldAnchorVerticalBoost:
+          idle.supportFootWorldAnchorVerticalBoost,
+      danceHeadBobScale: idle.danceHeadBobScale,
+      danceHeadLevelClampMin: idle.danceHeadLevelClampMin,
+      armReachScale: idle.armReachScale,
+      headLateralStabilize: idle.headLateralStabilize,
+      enforceSoleFloor: idle.enforceSoleFloor,
+      transitionPlan: idle.transitionPlan,
+      zOrderSwaps: idle.zOrderSwaps,
+      dynamics: idle.dynamics,
+    );
+  }();
+
+  /// Deeper calm for the FLANKS of the valley statements: at the shared
+  /// 0.62/0.6 the certifying coach measured grey's bridge bars at his own
+  /// chorus level ("the release reads as slightly softer, carried mostly
+  /// by one dancer") — the flanks exhale harder so the lead's statements
+  /// read as solos over a quiet floor.
+  static final Clip _movingVerseCalmDeep = _calmedStatement(
+    CatClips.movingVerseGroove,
+    0.55,
+    0.45,
+  );
+  static final Clip _movingLowCounterCalmDeep = _calmedStatement(
+    CatClips.movingGrooveLowCounter,
+    0.55,
+    0.45,
+  );
+  static final Clip _movingBreakdownCalmDeep = _calmedStatement(
     CatClips.movingBreakdownGroove,
-    0.4,
-    0.42,
+    0.55,
+    0.45,
+  );
+  static final Clip _movingVerseWindowCalmDeep = _calmedStatement(
+    CatClips.movingVerseWindow,
+    0.55,
+    0.45,
   );
 
   /// How far open the lyric-synced mouth slack window is dilated so short gaps
@@ -1685,15 +1740,23 @@ class DancePerformance {
         // over the quietest audio of the track.
         final bridgeEase = (
           lead: _movingBreakdownCalm,
-          ensemble: [_movingBreakdownCalm, _movingVerseCalm, _movingLowCounterCalm],
+          ensemble: [
+            _movingBreakdownCalm,
+            _movingVerseCalmDeep,
+            _movingLowCounterCalmDeep,
+          ],
         );
         final bridgeSway = (
           lead: _movingBridgeCalm,
-          ensemble: [_movingBridgeCalm, _movingBreakdownCalm, _movingVerseWindowCalm],
+          ensemble: [
+            _movingBridgeCalm,
+            _movingBreakdownCalmDeep,
+            _movingVerseWindowCalmDeep,
+          ],
         );
         final bridgeListen = (
-          lead: _movingBridgeListen,
-          ensemble: [_movingBridgeListen, _movingBridgeListen, _movingBridgeListen],
+          lead: _movingListenHold,
+          ensemble: [_movingListenHold, _movingListenHold, _movingListenHold],
         );
         return _rotateSetlist(
           [bridgeEase, bridgeSway, bridgeListen, hookTravel],

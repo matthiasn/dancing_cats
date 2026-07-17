@@ -268,7 +268,7 @@ void main() {
       },
     );
 
-    test('pumps chest and head at beat rate, head trailing by the lag', () {
+    test('pumps the chest; the head WORLD nod trails by the lag', () {
       final grooved = spineGroovedClip(movingClip(), 0, 1);
       // The pump's first peak sits a quarter-cycle into the beat harmonic.
       const q = 0.25 / kMovingSpineBeatHarmonic;
@@ -276,13 +276,21 @@ void main() {
         grooved.channels['torso']!.sample(q).rotation,
         closeTo(kMovingSpineHingeRad, 1e-9),
       );
-      // The head reaches its own peak LATER by exactly the lag phase — the
-      // wave climbs the column instead of the whole spine tilting as one.
+      // The head channel COMPENSATES the pump it inherits through the
+      // chain and re-adds the nod delayed: sampled as world motion
+      // (inherited torso + local head), the nod peaks exactly one lag
+      // phase after the chest and at exactly the nod amplitude — the wave
+      // climbs the column instead of the spine tilting as one flagpole.
+      double worldNod(double p) =>
+          grooved.channels['torso']!.sample(p).rotation +
+          grooved.channels['head']!.sample(p).rotation;
       expect(
-        grooved.channels['head']!
-            .sample(q + kMovingSpineHeadLagPhase)
-            .rotation,
+        worldNod(q + kMovingSpineHeadLagPhase),
         closeTo(kMovingSpineHeadNodRad, 1e-9),
+      );
+      expect(
+        worldNod(q),
+        lessThan(worldNod(q + kMovingSpineHeadLagPhase)),
       );
       expect(grooved.channels['hand.R']!.sample(q).rotation, 0);
     });

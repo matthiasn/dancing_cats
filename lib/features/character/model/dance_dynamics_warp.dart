@@ -965,7 +965,7 @@ const double kMovingOffVoiceDuck = 0.38;
 /// column into a wave up the body. Head lag is expressed in loop phase
 /// (0.019 of the 8-beat loop ≈ 75ms at this track's ~119 BPM).
 const double kMovingSpineHingeRad = 0.045;
-const double kMovingSpineHeadNodRad = 0.028;
+const double kMovingSpineHeadNodRad = 0.06;
 const int kMovingSpineBeatHarmonic = 8;
 const double kMovingSpineHeadLagPhase = 0.019;
 
@@ -984,51 +984,72 @@ Clip spineGroovedClip(Clip clip, int lane, double energyLevel) {
   final lanePhase = lane * 0.11;
   JointChannel grooved(
     JointChannel base, {
-    required double amplitude,
-    required double phase,
+    required List<({double amplitude, double phase})> terms,
   }) {
     final plan = clip.transitionPlan;
     if (plan == null) {
-      return WoundJointChannel(
-        base,
-        amplitude: amplitude,
-        harmonic: kMovingSpineBeatHarmonic,
-        phase: phase,
-      );
+      var wound = base;
+      for (final t in terms) {
+        wound = WoundJointChannel(
+          wound,
+          amplitude: t.amplitude,
+          harmonic: kMovingSpineBeatHarmonic,
+          phase: t.phase,
+        );
+      }
+      return wound;
     }
-    JointChannel pumpChannel() => SineChannel(
+    JointChannel pumpChannel(double amplitude, double phase) => SineChannel(
       harmonicAmplitude: amplitude,
       harmonicMultiplier: kMovingSpineBeatHarmonic.toDouble(),
       harmonicPhase: phase,
     );
     return LayeredJointChannel([
       base,
-      BlendedJointChannel(
-        from: pumpChannel(),
-        to: pumpChannel(),
-        weight: plan.weight,
-        fromTimeShift: plan.fromTimeShiftSeconds,
-        fromDuration: plan.from.duration,
-        toDuration: plan.to.duration,
-      ),
+      for (final t in terms)
+        BlendedJointChannel(
+          from: pumpChannel(t.amplitude, t.phase),
+          to: pumpChannel(t.amplitude, t.phase),
+          weight: plan.weight,
+          fromTimeShift: plan.fromTimeShiftSeconds,
+          fromDuration: plan.from.duration,
+          toDuration: plan.to.duration,
+        ),
     ]);
   }
 
+  // The head INHERITS every pumped spine joint through the bone chain
+  // (head → neck → chest → torso), so a naive head nod rides in-phase on
+  // top of the hinge and no lag survives to the screen — the certification
+  // panel measured head-chest lag at -5ms with amplitude ratio ~1 ("still
+  // a flagpole"). The head channel must SUBTRACT the inherited pump and
+  // re-add the nod delayed, so the head's WORLD motion is exactly
+  // kMovingSpineHeadNodRad at the lagged phase.
+  final pumpedJoints = clip.channels.keys
+      .where((id) => id == 'torso' || id == 'chest')
+      .length;
   var changed = false;
   final channels = <String, JointChannel>{};
   clip.channels.forEach((id, ch) {
     if (id == 'torso' || id == 'chest') {
       channels[id] = grooved(
         ch,
-        amplitude: kMovingSpineHingeRad * scale,
-        phase: lanePhase,
+        terms: [(amplitude: kMovingSpineHingeRad * scale, phase: lanePhase)],
       );
       changed = true;
     } else if (id == 'head') {
       channels[id] = grooved(
         ch,
-        amplitude: kMovingSpineHeadNodRad * scale,
-        phase: lanePhase - kMovingSpineHeadLagPhase,
+        terms: [
+          (
+            amplitude: -pumpedJoints * kMovingSpineHingeRad * scale,
+            phase: lanePhase,
+          ),
+          (
+            amplitude: kMovingSpineHeadNodRad * scale,
+            phase: lanePhase - kMovingSpineHeadLagPhase,
+          ),
+        ],
       );
       changed = true;
     } else {

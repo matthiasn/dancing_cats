@@ -776,7 +776,12 @@ void main() {
         expect(score('bridge', 0), [
           'movingBridgeBounce',
           'movingBridgeRock',
-          'movingBridgeBounce',
+          // The LISTEN bar is the idle body itself (feet pinned by
+          // construction, moving-family-tagged so the painter's layers
+          // stay on): calm-scaling a step-touch clip left full-cadence
+          // legwork, and both certifying lenses measured 82-86s as the
+          // valley's BUSIEST stretch instead of its hush.
+          'idle',
           'movingChorusTravel',
         ]);
         expect(score('outro', 0), [
@@ -1265,12 +1270,12 @@ void main() {
         if (step > worst) worst = step;
         prev = f;
       }
-      // Envelope-slope bound: the accent-pose launch covers ~34 units in
-      // 0.24s (smoothstep peak ~210 u/s = 0.42 per 2ms step), on top of a
-      // dying fill tail (<= 0.19) and the coil (0.09) — but never all three
-      // peaks aligned. A shape or window step would land 1-30 units in one
-      // sample, far above this band.
-      expect(worst, lessThan(0.7));
+      // Envelope-slope bound: a DOOR pose launch now covers ~66 units
+      // (2.2x far-target, see the door-amp note in _handExpressionAt) in
+      // its 0.195s rise with 1.2x overshoot — peak ~0.9 per 2ms step,
+      // measured 0.8997 on this track. A shape or window step would land
+      // 1-30 units in ONE sample, far above this band.
+      expect(worst, lessThan(1.5));
     });
 
     test("a blending clip lerps the two sides' flourishes", () {
@@ -1373,7 +1378,7 @@ void main() {
         }
         expect(
           worst,
-          lessThan(0.7),
+          lessThan(1.5),
           reason:
               'lane $lane worst flourish step $worst at '
               '${worstT.toStringAsFixed(3)}s — the pose launch slews '
