@@ -1411,6 +1411,14 @@ class DancePerformance {
     0.45,
   );
 
+  /// The valley's third statement: a slowed, softened body roll — the last
+  /// moving gesture before the hold.
+  static final Clip _movingBodyRollCalm = _calmedStatement(
+    CatClips.movingBodyRoll,
+    0.58,
+    0.5,
+  );
+
   /// How far open the lyric-synced mouth slack window is dilated so short gaps
   /// between a phrase's words don't make the mouth flicker shut.
   static const double voiceSlack = 0.3;
@@ -1732,12 +1740,16 @@ class DancePerformance {
         );
       case 'bridge':
         // The valley must RELEASE, not dim: the calm statements shrink to
-        // sways and weight rocks, the third bar all but stops (a unison
-        // LISTEN — the only near-stillness in the piece), and the travel
-        // statement re-ignites out of that stillness so the final chorus
-        // has somewhere to come from. The panel measured the previous
-        // full-size bridge ABOVE a chorus bar (frame-diff 1.31 vs 1.22)
-        // over the quietest audio of the track.
+        // sways and weight rocks, then the trio all but stops (a unison
+        // LISTEN — the only near-stillness in the piece). The LISTEN is
+        // the LAST statement, running into and through the track's break
+        // (~88.9-90.8s of near-silence before the final-chorus drop):
+        // stillness meets the silence, the break pre-door holds one
+        // statement through it, and the 90.1 drop detonates out of
+        // nothing. The earlier cut re-ignited with the travel statement a
+        // full slot BEFORE the break — the owner heard it immediately as
+        // "dancing starts seconds before the music picks up" (the panels
+        // had read the same ramp as a build; ears beat instruments).
         final bridgeEase = (
           lead: _movingBreakdownCalm,
           ensemble: [
@@ -1754,12 +1766,20 @@ class DancePerformance {
             _movingVerseWindowCalmDeep,
           ],
         );
+        final bridgeRoll = (
+          lead: _movingBodyRollCalm,
+          ensemble: [
+            _movingBodyRollCalm,
+            _movingBreakdownCalmDeep,
+            _movingVerseCalmDeep,
+          ],
+        );
         final bridgeListen = (
           lead: _movingListenHold,
           ensemble: [_movingListenHold, _movingListenHold, _movingListenHold],
         );
         return _rotateSetlist(
-          [bridgeEase, bridgeSway, bridgeListen, hookTravel],
+          [bridgeEase, bridgeSway, bridgeRoll, bridgeListen],
           phase,
           sectionSeconds,
         );
