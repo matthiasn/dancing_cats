@@ -776,13 +776,15 @@ void main() {
         expect(score('bridge', 0), [
           'movingBridgeBounce',
           'movingBridgeRock',
+          'movingBodyRoll',
           // The LISTEN bar is the idle body itself (feet pinned by
           // construction, moving-family-tagged so the painter's layers
-          // stay on): calm-scaling a step-touch clip left full-cadence
-          // legwork, and both certifying lenses measured 82-86s as the
-          // valley's BUSIEST stretch instead of its hush.
+          // stay on) and it is the LAST statement: it runs into and
+          // through the track's break so stillness meets the silence and
+          // the 90.1 drop detonates out of nothing. Re-igniting a slot
+          // earlier had the trio dancing seconds before the music
+          // returned (owner-caught).
           'idle',
-          'movingChorusTravel',
         ]);
         expect(score('outro', 0), [
           'movingHookSideAnswer',
