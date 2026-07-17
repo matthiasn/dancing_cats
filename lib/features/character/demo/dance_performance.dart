@@ -735,6 +735,33 @@ class DancePerformance {
     return from + (to - from) * plan.weight;
   }
 
+  /// Paw resting openness (0 fist .. 1 full splay): the hands ride RELAXED
+  /// and half-open between hits. Two lenses converged on the old
+  /// closed-at-rest default from opposite directions — "dancing in
+  /// mittens" (long featureless ball-fists on every hold) and "fists are
+  /// for punctuation, not the resting state of a laid-back groove."
+  static const double kMovingPawRestSplay = 0.32;
+
+  /// Gentle beat-rate wrist/finger sway around the resting openness — the
+  /// "wrist-led swing" that keeps a relaxed hand alive at freeze-frame.
+  static const double kMovingPawSwayRad = 0.05;
+
+  /// How far a full-strength hit CLENCHES the resting paw toward a fist.
+  /// The polarity is deliberate: relaxed hand → fist ON the hit reads as
+  /// punctuation; the old fist → slightly-softened-fist read as a glove.
+  static const double kMovingPawHitFist = 0.4;
+
+  /// Wrist follow-through per unit of 30ms load-envelope delta: the wrist
+  /// winds BACK while the body's load builds and whips slightly forward as
+  /// it releases — the extremity trails the arm instead of arriving with
+  /// it as one rigid unit (animator: "arms arrive and stop dead").
+  static const double kMovingWristFollow = 0.6;
+
+  /// Micro finger pulse (splay amplitude) while a hit-and-hold pose HOLDS:
+  /// a held extension whose paw is pixel-frozen for 1.6s reads as a prop —
+  /// a ~0.3s breathing pulse keeps it alive without moving the arm.
+  static const double kMovingHoldPawPulse = 0.06;
+
   /// Peak hand-flourish displacement, in rig units, at full load. Small next
   /// to the authored hand paths — a shading on the phrase, not a new phrase.
   static const double kMovingFlourishUnits = 4.5;
@@ -916,18 +943,25 @@ class DancePerformance {
   static double _poseEnvelope(double dt, {bool door = false}) {
     final holdEnd = door ? 0.55 : kMovingPoseHoldEndSec;
     final releaseEnd = door ? 1.05 : kMovingPoseReleaseEndSec;
+    // A DOOR punches: the biggest musical moments were selling their hit
+    // through the light flare while the arm's attack spread across ~14
+    // frames (animator: "the drop is sold by the flare, not the body").
+    // The door's sweep completes ~3 frames past the hit with a harder
+    // overshoot; ordinary poses keep the certified softer figure.
+    final riseEnd = door ? 0.045 : kMovingPoseRiseEndSec;
+    final overshoot = door ? 1.2 : 1.12;
+    final settleSec = door ? 0.1 : 0.08;
     if (dt <= kMovingPoseRiseStartSec || dt >= releaseEnd) {
       return 0;
     }
-    if (dt < kMovingPoseRiseEndSec) {
+    if (dt < riseEnd) {
       final r =
-          (dt - kMovingPoseRiseStartSec) /
-          (kMovingPoseRiseEndSec - kMovingPoseRiseStartSec);
-      return r * r * (3 - 2 * r) * 1.12;
+          (dt - kMovingPoseRiseStartSec) / (riseEnd - kMovingPoseRiseStartSec);
+      return r * r * (3 - 2 * r) * overshoot;
     }
     if (dt < holdEnd) {
-      final s = ((dt - kMovingPoseRiseEndSec) / 0.08).clamp(0.0, 1.0);
-      return 1 + 0.12 * (1 - s * s * (3 - 2 * s));
+      final s = ((dt - riseEnd) / settleSec).clamp(0.0, 1.0);
+      return 1 + (overshoot - 1) * (1 - s * s * (3 - 2 * s));
     }
     final r = ((dt - holdEnd) / (releaseEnd - holdEnd)).clamp(0.0, 1.0);
     return 1 - r * r * (3 - 2 * r);
@@ -973,8 +1007,23 @@ class DancePerformance {
     var ry = 0.0;
     var wristL = 0.0;
     var wristR = 0.0;
-    var splayL = 0.0;
-    var splayR = 0.0;
+    // Paws rest RELAXED HALF-OPEN, with a gentle beat-rate wrist sway, and
+    // CLOSE into fists on the hits. The old polarity (closed at rest,
+    // softening open on hits) kept two featureless ball-fists on screen for
+    // most of the song — the panel's "dancing in mittens / corporate
+    // mascot" tell from two lenses at once. A relaxed hand that clenches
+    // into the hit is punctuation; a fist that occasionally relaxes is a
+    // glove.
+    final beat = map.beatAt(dp);
+    var splayL =
+        kMovingPawRestSplay +
+        kMovingPawSwayRad * math.sin(2 * math.pi * beat + lane * 0.9);
+    var splayR =
+        kMovingPawRestSplay +
+        kMovingPawSwayRad * math.sin(2 * math.pi * beat + lane * 0.9 + 1.7);
+    wristL += kMovingPawSwayRad * math.sin(2 * math.pi * beat + lane * 0.9);
+    wristR +=
+        kMovingPawSwayRad * math.sin(2 * math.pi * beat + lane * 0.9 + 1.7);
 
     final acc = laneAccentAt(posSec, echoBeats).clamp(0.0, 1.0);
     final ant = laneAnticipationAt(posSec, echoBeats);
@@ -991,11 +1040,22 @@ class DancePerformance {
       ly += amp * v.ly;
       rx += amp * v.rx;
       ry += amp * v.ry;
-      // Every hit softens the paws open a touch — a fist that never
-      // breathes is the mitten tell.
-      splayL += 0.18 * load;
-      splayR += 0.18 * load;
+      // The hands CLENCH with the hit and relax with the release.
+      splayL -= kMovingPawHitFist * load;
+      splayR -= kMovingPawHitFist * load;
     }
+    // Extremity follow-through: the wrists trail the body's load — winding
+    // back as the load builds, whipping slightly forward as it releases
+    // (panel: "arms arrive and stop as rigid units"). Driven by the load
+    // envelope's local slope (a 30ms finite difference of the same
+    // continuous envelope, so the term can never step).
+    final loadPrev = math.max(
+      laneAccentAt(posSec - 0.03, echoBeats).clamp(0.0, 1.0),
+      laneAnticipationAt(posSec - 0.03, echoBeats),
+    );
+    final loadDelta = load - loadPrev;
+    wristL += -kMovingWristFollow * loadDelta;
+    wristR += -kMovingWristFollow * loadDelta;
 
     final next = _lastOnsetIndex(dp) + 1;
     if (next < o.length) {
@@ -1073,7 +1133,24 @@ class DancePerformance {
       final amp =
           kMovingAccentPoseUnits * (door ? 1.4 : 1.0) * o[i].strength * env;
       final wrist = _kAccentPoseWrist[flavor] * env;
-      final open = env.clamp(0.0, 1.0);
+      // The held paw BREATHES: a micro finger pulse across the hold window
+      // (smooth-gated at both ends) so a 1.6s freeze-frame still reads as
+      // a living hand, not a prop on a stick.
+      final dt = dp - o[i].time;
+      const holdStart = kMovingPoseRiseEndSec;
+      final holdEnd = door ? 0.55 : kMovingPoseHoldEndSec;
+      var pulse = 0.0;
+      if (dt > holdStart && dt < holdEnd) {
+        final gIn = ((dt - holdStart) / 0.06).clamp(0.0, 1.0);
+        final gOut = ((holdEnd - dt) / 0.06).clamp(0.0, 1.0);
+        final gate =
+            gIn * gIn * (3 - 2 * gIn) * (gOut * gOut * (3 - 2 * gOut));
+        pulse =
+            kMovingHoldPawPulse *
+            math.sin(2 * math.pi * (dt - holdStart) / 0.3) *
+            gate;
+      }
+      final open = env.clamp(0.0, 1.0) + pulse;
       // pose.x is OUTWARD: -x for the left arm, +x for the right.
       if (_flourishHash(i, hashLane, 6) < 0.5) {
         lx += amp * -pose.x;

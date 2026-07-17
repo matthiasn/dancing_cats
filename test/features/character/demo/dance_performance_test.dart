@@ -1201,18 +1201,34 @@ void main() {
       final paw = perf.lanePawPoseFor(t0 + 0.2, groove, lane);
       final f = at(t0 + 0.2, lane: lane);
       final leftPosing = f.lx.abs() + f.ly.abs() > f.rx.abs() + f.ry.abs();
-      // The posing hand is OPEN at the hold; the other stays near closed
-      // (only the small per-hit softening).
+      // The posing hand is OPEN at the hold; the other stays near its
+      // relaxed half-open rest — clearly below the statement.
       final posingSplay = leftPosing ? paw.splayL : paw.splayR;
       final restingSplay = leftPosing ? paw.splayR : paw.splayL;
       expect(posingSplay, greaterThan(0.8));
-      expect(restingSplay, lessThan(0.35));
+      expect(restingSplay, lessThan(0.5));
       // The posing wrist aligns with the reach.
       final posingWrist = leftPosing ? paw.wristL : paw.wristR;
       expect(posingWrist.abs(), greaterThan(0.2));
 
-      // Quiet gaps: paws fully at rest.
-      expect(perf.lanePawPoseFor(1.6, groove, 0), kClosedPaws);
+      // Quiet gaps: paws rest RELAXED HALF-OPEN with a breathing sway —
+      // never the featureless closed fist ("mittens", two lenses), and
+      // never fully open (that's the hold pose's statement).
+      final resting = perf.lanePawPoseFor(1.6, groove, 0);
+      expect(
+        resting.splayL,
+        allOf(
+          greaterThan(DancePerformance.kMovingPawRestSplay - 0.1),
+          lessThan(DancePerformance.kMovingPawRestSplay + 0.1),
+        ),
+      );
+      expect(
+        resting.splayR,
+        allOf(
+          greaterThan(DancePerformance.kMovingPawRestSplay - 0.1),
+          lessThan(DancePerformance.kMovingPawRestSplay + 0.1),
+        ),
+      );
 
       // During a fill the wrist ROLLS: it changes sign across the window.
       (double, int)? filled;

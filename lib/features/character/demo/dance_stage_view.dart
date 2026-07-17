@@ -872,7 +872,12 @@ Clip productionDanceClip(
     // never a static posed post while the hips bounce (the pocket is upper-
     // body-led — coach).
     final wound = shoulderWoundClip(microTimed, lane);
-    if (transition == null) return wound;
+    // 7. Beat-locked SPINE GROOVE: chest hinge pumping on the pulse with the
+    // head nodding just behind it (afrobeats panel: the wind alone left a
+    // "flagpole spine" — the groove has to climb the column, not stop at
+    // the hips). Energy-scaled so the valley pumps quietly.
+    final spined = spineGroovedClip(wound, lane, energyLevel);
+    if (transition == null) return spined;
 
     // Scene-level transition consumers (support balance, contact locking,
     // world anchors, z-order) evaluate `transitionPlan.from/to` directly.
@@ -883,7 +888,7 @@ Clip productionDanceClip(
     // 85.47s and 137.87s. Carry the exact same production decoration into the
     // plan's two semantic sources while preserving the already-mixed channels.
     return _clipWithTransitionPlan(
-      wound,
+      spined,
       ClipTransitionPlan(
         from: productionDanceClip(
           transition.from,

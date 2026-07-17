@@ -944,6 +944,114 @@ const double kDanceShoulderWindAmplitude = 0.026;
 const double kDanceChestWindAmplitude = 0.03;
 const int kDanceShoulderWindHarmonic = 2;
 
+/// The Moving SPINE GROOVE: a chest hinge pumping at BEAT rate with the head
+/// nodding just behind it. The wind above is texture (1.7 degrees at 1.5
+/// cycles per bar) — the afrobeats panel measured through it: "the groove
+/// lives only below the waist; head dead level, chest never hinges — legs
+/// say Afrobeats, the upper body says corporate mascot." A pulse-locked
+/// hinge (~2.6 degrees per beat) with the head trailing ~75ms turns the
+/// column into a wave up the body. Head lag is expressed in loop phase
+/// (0.019 of the 8-beat loop ≈ 75ms at this track's ~119 BPM).
+const double kMovingSpineHingeRad = 0.045;
+const double kMovingSpineHeadNodRad = 0.028;
+const int kMovingSpineBeatHarmonic = 8;
+const double kMovingSpineHeadLagPhase = 0.019;
+
+/// Returns [clip] with the Moving spine groove layered on (chest hinge at
+/// beat rate + lagged head nod, see the constants above), scaled by
+/// [energyLevel] so the valley pumps quietly and the drops pump full. Same
+/// blend-safe additive construction as [shoulderWoundClip]: inside a
+/// transition the sine is blended across BOTH sides' clocks, never freshly
+/// phased on the incoming clock. Moving family only; same clip back
+/// otherwise.
+Clip spineGroovedClip(Clip clip, int lane, double energyLevel) {
+  if (!clip.loop || clip.duration <= 0 || !clip.belongsToFamily('moving')) {
+    return clip;
+  }
+  final scale = 0.45 + 0.55 * energyLevel.clamp(0.0, 1.0);
+  final lanePhase = lane * 0.11;
+  JointChannel grooved(
+    JointChannel base, {
+    required double amplitude,
+    required double phase,
+  }) {
+    final plan = clip.transitionPlan;
+    if (plan == null) {
+      return WoundJointChannel(
+        base,
+        amplitude: amplitude,
+        harmonic: kMovingSpineBeatHarmonic,
+        phase: phase,
+      );
+    }
+    JointChannel pumpChannel() => SineChannel(
+      harmonicAmplitude: amplitude,
+      harmonicMultiplier: kMovingSpineBeatHarmonic.toDouble(),
+      harmonicPhase: phase,
+    );
+    return LayeredJointChannel([
+      base,
+      BlendedJointChannel(
+        from: pumpChannel(),
+        to: pumpChannel(),
+        weight: plan.weight,
+        fromTimeShift: plan.fromTimeShiftSeconds,
+        fromDuration: plan.from.duration,
+        toDuration: plan.to.duration,
+      ),
+    ]);
+  }
+
+  var changed = false;
+  final channels = <String, JointChannel>{};
+  clip.channels.forEach((id, ch) {
+    if (id == 'torso' || id == 'chest') {
+      channels[id] = grooved(
+        ch,
+        amplitude: kMovingSpineHingeRad * scale,
+        phase: lanePhase,
+      );
+      changed = true;
+    } else if (id == 'head') {
+      channels[id] = grooved(
+        ch,
+        amplitude: kMovingSpineHeadNodRad * scale,
+        phase: lanePhase - kMovingSpineHeadLagPhase,
+      );
+      changed = true;
+    } else {
+      channels[id] = ch;
+    }
+  });
+  if (!changed) return clip;
+  return Clip(
+    name: clip.name,
+    family: clip.family,
+    echoBeats: clip.echoBeats,
+    duration: clip.duration,
+    channels: channels,
+    loop: clip.loop,
+    root: clip.root,
+    locomotionSpeed: clip.locomotionSpeed,
+    groundSpans: clip.groundSpans,
+    contactSpans: clip.contactSpans,
+    contactPinning: clip.contactPinning,
+    limbTargets: clip.limbTargets,
+    supportFootWorldAnchor: clip.supportFootWorldAnchor,
+    supportFootWorldAnchorStrength: clip.supportFootWorldAnchorStrength,
+    supportFootWorldAnchorVerticalBoost:
+        clip.supportFootWorldAnchorVerticalBoost,
+    danceHeadBobScale: clip.danceHeadBobScale,
+    danceHeadLevelClampMin: clip.danceHeadLevelClampMin,
+    armReachScale: clip.armReachScale,
+    headLateralStabilize: clip.headLateralStabilize,
+    enforceSoleFloor: clip.enforceSoleFloor,
+    transitionPlan: clip.transitionPlan,
+    zOrderSwaps: clip.zOrderSwaps,
+    dynamics: clip.dynamics,
+  );
+}
+
 /// Returns [clip] with a small continuous sine roll added to the clavicles
 /// (opposite phase L/R = a shoulder roll) and the chest, so the upper body keeps
 /// winding even between authored poses. Live-path; same clip back if disabled or

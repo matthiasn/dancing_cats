@@ -256,6 +256,56 @@ void main() {
     });
   });
 
+  group('spineGroovedClip', () {
+    Clip movingClip() => Clip(
+      name: 'test-moving',
+      family: 'moving',
+      duration: 6,
+      channels: const {
+        'torso': KeyframeChannel([Keyframe(p: 0)]),
+        'head': KeyframeChannel([Keyframe(p: 0)]),
+        'hand.R': KeyframeChannel([Keyframe(p: 0)]),
+      },
+    );
+
+    test('pumps chest and head at beat rate, head trailing by the lag', () {
+      final grooved = spineGroovedClip(movingClip(), 0, 1.0);
+      // The pump's first peak sits a quarter-cycle into the beat harmonic.
+      final q = 0.25 / kMovingSpineBeatHarmonic;
+      expect(
+        grooved.channels['torso']!.sample(q).rotation,
+        closeTo(kMovingSpineHingeRad, 1e-9),
+      );
+      // The head reaches its own peak LATER by exactly the lag phase — the
+      // wave climbs the column instead of the whole spine tilting as one.
+      expect(
+        grooved.channels['head']!
+            .sample(q + kMovingSpineHeadLagPhase)
+            .rotation,
+        closeTo(kMovingSpineHeadNodRad, 1e-9),
+      );
+      expect(grooved.channels['hand.R']!.sample(q).rotation, 0);
+    });
+
+    test('scales with energy and skips non-moving clips', () {
+      final quiet = spineGroovedClip(movingClip(), 0, 0.0);
+      final q = 0.25 / kMovingSpineBeatHarmonic;
+      expect(
+        quiet.channels['torso']!.sample(q).rotation,
+        closeTo(kMovingSpineHingeRad * 0.45, 1e-9),
+      );
+      final catalogue = _loopingClip(
+        channels: const {
+          'torso': KeyframeChannel([Keyframe(p: 0)]),
+        },
+      );
+      expect(
+        identical(spineGroovedClip(catalogue, 0, 1.0), catalogue),
+        isTrue,
+      );
+    });
+  });
+
   group('handFlourishedClip', () {
     const target = KeyframeIkTargetChannel([
       IkTargetKeyframe(p: 0, x: 5, y: 60),
