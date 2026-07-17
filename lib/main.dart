@@ -1096,6 +1096,14 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
       laneHandFlourishes: laneHandFlourishes,
       lanePawPoses: lanePawPoses,
       laneVoiceGains: laneVoiceGains,
+      // The singers' heads steady through their lines (see
+      // kMovingSingHeadDamp): eased mouth levels, quantized to 0.25 steps
+      // so the production-clip cache stays small.
+      laneSingLevels: [
+        (_stepper.leadMouth * 4).round() / 4,
+        (_stepper.bgMouth * 4).round() / 4,
+        (_stepper.bgMouth * 4).round() / 4,
+      ],
       backdropTimeSeconds: posSec,
       // Ambient stage lights run on a steady wall clock (decoupled from the
       // looping dance); offline renderers pass the audio position instead so a

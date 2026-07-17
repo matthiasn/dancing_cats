@@ -969,6 +969,19 @@ const double kMovingSpineHeadNodRad = 0.06;
 const int kMovingSpineBeatHarmonic = 8;
 const double kMovingSpineHeadLagPhase = 0.019;
 
+/// How far a lane's HEAD NOD ducks while that lane is singing (0..1 of the
+/// nod removed at full mouth). The beat-rate nod rode the singers' heads
+/// through their lines and the owner read it immediately as broken lip
+/// sync — the mouth articulated on cue (mouths ride the raw audio clock)
+/// but the head carried it around at 2Hz. A singer steadies their head to
+/// deliver a line: the nod ducks with the lane's eased mouth level (fast
+/// attack, slow release — the same envelope the jaw already wears, so the
+/// damp can't flutter between phonemes) and swings freely again in the
+/// instrumental gaps. The chest hinge and the head's inherited-pump
+/// COMPENSATION stay at full strength — compensation is what holds the
+/// head steady over a pumping chest.
+const double kMovingSingHeadDamp = 0.7;
+
 /// Returns [clip] with the Moving spine groove layered on (chest hinge at
 /// beat rate + lagged head nod, see the constants above), scaled by
 /// [energyLevel] so the valley pumps quietly and the drops pump full. Same
@@ -976,11 +989,17 @@ const double kMovingSpineHeadLagPhase = 0.019;
 /// transition the sine is blended across BOTH sides' clocks, never freshly
 /// phased on the incoming clock. Moving family only; same clip back
 /// otherwise.
-Clip spineGroovedClip(Clip clip, int lane, double energyLevel) {
+Clip spineGroovedClip(
+  Clip clip,
+  int lane,
+  double energyLevel, {
+  double singLevel = 0,
+}) {
   if (!clip.loop || clip.duration <= 0 || !clip.belongsToFamily('moving')) {
     return clip;
   }
   final scale = 0.45 + 0.55 * energyLevel.clamp(0.0, 1.0);
+  final nodDamp = 1 - kMovingSingHeadDamp * singLevel.clamp(0.0, 1.0);
   final lanePhase = lane * 0.11;
   JointChannel grooved(
     JointChannel base, {
@@ -1046,7 +1065,7 @@ Clip spineGroovedClip(Clip clip, int lane, double energyLevel) {
             phase: lanePhase,
           ),
           (
-            amplitude: kMovingSpineHeadNodRad * scale,
+            amplitude: kMovingSpineHeadNodRad * scale * nodDamp,
             phase: lanePhase - kMovingSpineHeadLagPhase,
           ),
         ],
