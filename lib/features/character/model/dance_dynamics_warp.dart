@@ -944,7 +944,19 @@ const double kDanceShoulderWindAmplitude = 0.026;
 const double kDanceChestWindAmplitude = 0.03;
 const int kDanceShoulderWindHarmonic = 2;
 
-/// The Moving SPINE GROOVE: a chest hinge pumping at BEAT rate with the head
+/// How far a NON-SPEAKING canon voice ducks its upper-body projection while
+/// another voice's displaced envelope is hot (0.38 → the off voice plays at
+/// ~62%). All three voices used to run their full-amplitude statements
+/// simultaneously through the canon, so no voice ever popped: the panel
+/// read "lead dances, backups noodle" instead of a conversation. The duck
+/// rides the same per-lane accent/anticipation envelopes that light the
+/// pools, so a voice swells back to full EXACTLY as its own answer lands;
+/// on tutti hits every envelope is hot together and nobody ducks. Hands
+/// and arms only (root groove untouched — a ducked voice keeps dancing,
+/// it just stops projecting).
+const double kMovingOffVoiceDuck = 0.38;
+
+/// The Moving SPINE GROOVE: a beat-rate chest hinge with the head
 /// nodding just behind it. The wind above is texture (1.7 degrees at 1.5
 /// cycles per bar) — the afrobeats panel measured through it: "the groove
 /// lives only below the waist; head dead level, chest never hinges — legs

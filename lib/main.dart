@@ -20,6 +20,9 @@ import 'package:dancing_cats/features/character/demo/dance_playback_stepper.dart
 import 'package:dancing_cats/features/character/demo/dance_stage_view.dart';
 import 'package:dancing_cats/features/character/demo/dance_transport_bar.dart';
 import 'package:dancing_cats/features/character/model/beat_map.dart';
+import 'package:dancing_cats/features/character/model/clip.dart' as anim;
+import 'package:dancing_cats/features/character/model/dance_dynamics_warp.dart'
+    show kMovingOffVoiceDuck;
 import 'package:dancing_cats/features/character/runtime/character_painter.dart';
 import 'package:dancing_cats/features/character/runtime/character_renderer.dart';
 import 'package:dancing_cats/features/scenery/model/backdrop_grade.dart';
@@ -1024,6 +1027,37 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
         _perf?.lanePawPoseFor(posSec, stage.ensemble[lane], lane) ??
             kClosedPaws,
     ];
+    // The canon CONVERSATION gate: while another voice's displaced envelope
+    // is speaking and this lane's is cold, the lane ducks its upper-body
+    // projection (see kMovingOffVoiceDuck). Driven by the same per-lane
+    // envelopes as the pools/pliés — continuous by construction, so a voice
+    // swells back exactly as its own answer lands. Only staged canons gate
+    // (a blend into/out of one counts through its plan's sides).
+    bool displaced(anim.Clip c) =>
+        c.echoBeats != 0 ||
+        (c.transitionPlan != null &&
+            (c.transitionPlan!.from.echoBeats != 0 ||
+                c.transitionPlan!.to.echoBeats != 0));
+    final canonStaged = stage.ensemble.any(displaced);
+    final laneVoiceGains = [
+      for (var lane = 0; lane < stage.ensemble.length; lane++)
+        () {
+          if (!canonStaged) return 1.0;
+          final own = math.max(
+            laneBodyAccents[lane],
+            laneBodyAnticipations[lane],
+          );
+          var others = 0.0;
+          for (var l = 0; l < stage.ensemble.length; l++) {
+            if (l == lane) continue;
+            others = math.max(
+              others,
+              math.max(laneBodyAccents[l], laneBodyAnticipations[l]),
+            );
+          }
+          return 1.0 - kMovingOffVoiceDuck * (others - own).clamp(0.0, 1.0);
+        }(),
+    ];
     // The director owns the camera; the stepper holds the eased framing and the
     // singing mouths. The whole composite is the generalized DanceStageView,
     // rendered identically by the live app and every offline renderer — there is
@@ -1061,6 +1095,7 @@ class _DanceToTrackPageState extends State<DanceToTrackPage>
       laneBodyAnticipations: laneBodyAnticipations,
       laneHandFlourishes: laneHandFlourishes,
       lanePawPoses: lanePawPoses,
+      laneVoiceGains: laneVoiceGains,
       backdropTimeSeconds: posSec,
       // Ambient stage lights run on a steady wall clock (decoupled from the
       // looping dance); offline renderers pass the audio position instead so a

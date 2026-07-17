@@ -257,11 +257,11 @@ void main() {
   });
 
   group('spineGroovedClip', () {
-    Clip movingClip() => Clip(
+    Clip movingClip() => const Clip(
       name: 'test-moving',
       family: 'moving',
       duration: 6,
-      channels: const {
+      channels: {
         'torso': KeyframeChannel([Keyframe(p: 0)]),
         'head': KeyframeChannel([Keyframe(p: 0)]),
         'hand.R': KeyframeChannel([Keyframe(p: 0)]),
@@ -269,9 +269,9 @@ void main() {
     );
 
     test('pumps chest and head at beat rate, head trailing by the lag', () {
-      final grooved = spineGroovedClip(movingClip(), 0, 1.0);
+      final grooved = spineGroovedClip(movingClip(), 0, 1);
       // The pump's first peak sits a quarter-cycle into the beat harmonic.
-      final q = 0.25 / kMovingSpineBeatHarmonic;
+      const q = 0.25 / kMovingSpineBeatHarmonic;
       expect(
         grooved.channels['torso']!.sample(q).rotation,
         closeTo(kMovingSpineHingeRad, 1e-9),
@@ -288,8 +288,8 @@ void main() {
     });
 
     test('scales with energy and skips non-moving clips', () {
-      final quiet = spineGroovedClip(movingClip(), 0, 0.0);
-      final q = 0.25 / kMovingSpineBeatHarmonic;
+      final quiet = spineGroovedClip(movingClip(), 0, 0);
+      const q = 0.25 / kMovingSpineBeatHarmonic;
       expect(
         quiet.channels['torso']!.sample(q).rotation,
         closeTo(kMovingSpineHingeRad * 0.45, 1e-9),
@@ -300,7 +300,7 @@ void main() {
         },
       );
       expect(
-        identical(spineGroovedClip(catalogue, 0, 1.0), catalogue),
+        identical(spineGroovedClip(catalogue, 0, 1), catalogue),
         isTrue,
       );
     });
